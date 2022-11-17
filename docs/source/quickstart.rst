@@ -13,9 +13,12 @@ However, if the uncertainty estimates you provide are inaccurate,
 conformal sets might be large and unusable.
 :ref:`From model outputs <model_outputs>` also starts from pre-trained models but offers better control,
 as it can make sure uncertainty estimates have been appropriately calibrated.
-:ref:`From Flax models <flax_models>` has higher compatibility requirements
-but it enables you to replace standard training with scalable Bayesian inference procedures,
-further improving the quantification of uncertainty.
+However, these may have been obtain with classical training methods,
+that may not capture model (epistemic) uncertainty sufficiently well.
+:ref:`From Flax models <flax_models>` has higher compatibility requirements,
+as it requires you to build a deep learning model in `Flax <https://flax.readthedocs.io/en/latest/index.html>`_.
+However, it enables you to replace standard training with scalable Bayesian inference procedures,
+which may significantly improve the quantification of predictive uncertainty.
 
 The next paragraphs offer more details about each of these usage modes.
 
