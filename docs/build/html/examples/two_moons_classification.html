@@ -1,0 +1,677 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="Docutils 0.19: https://docutils.sourceforge.io/" name="generator"/>
+<title>Two-moons Classification | Fortuna's documentation</title>
+<link href="../_static/pygments.css" rel="stylesheet"/>
+<link href="../_static/theme.9297a650d9dd3016d913.css" rel="stylesheet"/>
+<link href="../_static/sg_gallery.css" rel="stylesheet"/>
+<link href="../_static/sg_gallery.css" rel="stylesheet"/>
+<link href="../search.html" rel="search" title="Search"/>
+<link href="../genindex.html" rel="index" title="Index"/>
+<link href="tabular_regressions.html" rel="next" title="Tabular regressions"/>
+<link href="sinusoidal_regression.html" rel="prev" title="Sinusoidal regression"/>
+</head>
+<body class="antialiased text-gray scroll-smooth">
+<div class="min-h-screen xl:h-screen flex flex-col xl:grid xl:grid-layout print:block print:h-auto" data-action="keydown@window-&gt;search#focus " data-controller="sidebar search " id="page">
+<a class="block transition -translate-x-full focus:translate-x-0 opacity-0 focus:opacity-100 text-xl bg-white p-4 z-20 absolute top-0 left-0 h-14" href="#two-moons-classification" title="Skip navigation links">Skip to content</a>
+<header class="grid-area-header z-10 h-14 fixed w-full top-0 print:hidden">
+<div class="bg-gray-dark shadow-md flex items-center h-full xl:px-2 relative"><div class="flex items-center">
+<button class="xl:hidden h-14 w-14 leading-14 text-gray-100 hover:bg-gray-700 hover:text-brand focus:outline-none focus:bg-gray-700 focus:text-brand" data-action="sidebar#open" data-sidebar-target="hamburger">
+<span class="sr-only">Open navigation menu</span>
+<svg aria-hidden="true" class="fill-current h-8 w-8" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
+</button><a class="hover:bg-gray-700 focus:bg-gray-700 focus:outline-none" href="../index.html" title="Back to homepage"><img alt="Logo" class="h-14 w-14 p-3 inline-block" src="../_static/fortuna_symbol_white.png"/><span class="hidden lg:inline-block shrink-0 font-medium text-gray-100 mx-5 leading-14 tracking-wider">Fortuna's documentation</span>
+</a></div><div class="flex justify-end items-center flex-1"><form action="../search.html" class="flex print:hidden justify-between items-center leading-14 md:ml-4 bg-gray-dark text-gray-300 focus-within:bg-gray-50 focus-within:text-gray-800 focus-within:absolute focus-within:inset-x-0 focus-within:top-0 md:focus-within:w-full md:focus-within:static z-10" data-action="click-&gt;search#focusSearchInput" id="searchbox" method="get">
+<button aria-label="Get search results" class="text-inherit h-14 w-14" tabindex="-1">
+<svg aria-hidden="true" class="fill-current stroke-current h-8 w-8" stroke-width="0.5" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+</button>
+<input aria-label="Search the docs" class="pr-2 bg-transparent text-inherit focus:outline-none w-0 md:w-auto focus:w-full transition-all duration-100" data-search-target="searchInput" id="search-input" name="q" placeholder="Search the docs" type="search"/>
+</form></div>
+</div>
+</header>
+<aside class="grid-area-sidebar h-full fixed pt-14 xl:relative inset-y-0 left-0 z-20 xl:z-0 print:hidden overflow-y-auto transition-all transform transform-gpu -translate-x-full opacity-0 duration-300 xl:translate-x-0 xl:opacity-100" data-sidebar-target="sidebar">
+<nav class="h-full overflow-y-auto bg-white text-gray-600 pt-8 flex flex-col" role="navigation">
+<div class="nav-toc flex-1 pl-6"><p class="caption" role="heading"><span class="caption-text">CONTENTS:</span></p>
+<ul class="current">
+<li class="toctree-l1"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../quickstart.html">Quickstart</a></div></li>
+<li class="toctree-l1"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../installation.html">Installation</a></div></li>
+<li class="toctree-l1 current expanded"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="examples.html">Examples</a></div><ul class="current">
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html">MNIST Classification</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#Download-MNIST-data-from-TensorFlow">Download MNIST data from TensorFlow</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#Build-a-probabilistic-classifier">Build a probabilistic classifier</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#Conformal-prediction-sets">Conformal prediction sets</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="mnist_classification.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html">Sinusoidal regression</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#Generate-the-data">Generate the data</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#Build-a-probabilistic-regressor">Build a probabilistic regressor</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#Conformal-intervals">Conformal intervals</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="sinusoidal_regression.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2 current expanded"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="current reference internal" data-action="click-&gt;sidebar#close" href="#">Two-moons Classification</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#Download-Two-Moons-data-from-scikit-learn">Download Two-Moons data from scikit-learn</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#Build-a-probabilistic-classifier">Build a probabilistic classifier</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="tabular_regressions.html">Tabular regressions</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="tabular_regressions.html#Download-regression-datasets-from-UCI">Download regression datasets from UCI</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="tabular_regressions.html#Regression-on-each-data-set">Regression on each data set</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="bring_in_your_own.html">Bring in your own objects</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="bring_in_your_own.html#Bring-in-your-own-model">Bring in your own model</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="bring_in_your_own.html#Bring-in-your-own-prior-distribution">Bring in your own prior distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="bring_in_your_own.html#Bring-in-your-own-output-calibrator">Bring in your own output calibrator</a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/usage_modes.html">Usage modes</a></div><ul>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/uncertainty_estimates.html">From uncertainty estimates</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/uncertainty_estimates.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/uncertainty_estimates.html#regression">Regression</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/model_outputs.html">From model outputs</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/model_outputs.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/model_outputs.html#regression">Regression</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/flax_models.html">From Flax models</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/flax_models.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../usage_modes/flax_models.html#regression">Regression</a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/references.html">API References</a></div><ul>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html">Probabilistic model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html#fortuna.prob_model.classification.ProbClassifier"><code class="docutils literal notranslate">ProbClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html#fortuna.prob_model.regression.ProbRegressor"><code class="docutils literal notranslate">ProbRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html#fortuna.prob_model.base.ProbModel"><code class="docutils literal notranslate">ProbModel</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/predictive.html">Predictive distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/posterior/posterior.html">Posterior</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/joint.html">Joint distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/likelihood.html">Likelihood function</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prior.html">Prior distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/fit_config.html">Posterior fitting configuration</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html">Calibration model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html#fortuna.calib_model.classification.CalibClassifier"><code class="docutils literal notranslate">CalibClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html#fortuna.calib_model.regression.CalibRegressor"><code class="docutils literal notranslate">CalibRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html#fortuna.calib_model.base.CalibModel"><code class="docutils literal notranslate">CalibModel</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/predictive.html">Predictive distribution</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/model.html">Model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/builtin_models.html">Built-in models</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/linen_module.html">Flax Linen Module</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/model_manager.html">Model manager</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html">Output calibrator</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html#fortuna.output_calibrator.classification.ClassificationTemperatureScaler"><code class="docutils literal notranslate">ClassificationTemperatureScaler</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html#fortuna.output_calibrator.regression.RegressionTemperatureScaler"><code class="docutils literal notranslate">RegressionTemperatureScaler</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html#fortuna.training.calib_state.CalibState"><code class="docutils literal notranslate">CalibState</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html">Probabilistic output layer</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html#fortuna.prob_output_layer.base.ProbOutputLayer"><code class="docutils literal notranslate">ProbOutputLayer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html#fortuna.prob_output_layer.classification.ClassificationProbOutputLayer"><code class="docutils literal notranslate">ClassificationProbOutputLayer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html#fortuna.prob_output_layer.regression.RegressionProbOutputLayer"><code class="docutils literal notranslate">RegressionProbOutputLayer</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_config.html">Calibration configuration</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_config.html#fortuna.calib_config.base.CalibConfig"><code class="docutils literal notranslate">CalibConfig</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html">Conformer</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.classification.AdaptivePredictionConformalClassifier"><code class="docutils literal notranslate">AdaptivePredictionConformalClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.classification.SimplePredictionConformalClassifier"><code class="docutils literal notranslate">SimplePredictionConformalClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor"><code class="docutils literal notranslate">OneDimensionalUncertaintyConformalRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.regression.QuantileConformalRegressor"><code class="docutils literal notranslate">QuantileConformalRegressor</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html">Data loader</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.DataLoader"><code class="docutils literal notranslate">DataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.InputsLoader"><code class="docutils literal notranslate">InputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.TargetsLoader"><code class="docutils literal notranslate">TargetsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromIterableToDataLoader"><code class="docutils literal notranslate">FromIterableToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromCallableIterableToDataLoader"><code class="docutils literal notranslate">FromCallableIterableToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromArrayDataToDataLoader"><code class="docutils literal notranslate">FromArrayDataToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromArrayInputsToInputsLoader"><code class="docutils literal notranslate">FromArrayInputsToInputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromDataLoaderToInputsLoader"><code class="docutils literal notranslate">FromDataLoaderToInputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromArrayTargetsToTargetsLoader"><code class="docutils literal notranslate">FromArrayTargetsToTargetsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromDataLoaderToTargetsLoader"><code class="docutils literal notranslate">FromDataLoaderToTargetsLoader</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html">Metric</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.accuracy"><code class="docutils literal notranslate">accuracy()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.brier_score"><code class="docutils literal notranslate">brier_score()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.ece"><code class="docutils literal notranslate">ece()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.expected_calibration_error"><code class="docutils literal notranslate">expected_calibration_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.maximum_calibration_error"><code class="docutils literal notranslate">maximum_calibration_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.mce"><code class="docutils literal notranslate">mce()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mae"><code class="docutils literal notranslate">mae()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mean_absolute_error"><code class="docutils literal notranslate">mean_absolute_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mean_squared_error"><code class="docutils literal notranslate">mean_squared_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mse"><code class="docutils literal notranslate">mse()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.picp"><code class="docutils literal notranslate">picp()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.prediction_interval_coverage_probability"><code class="docutils literal notranslate">prediction_interval_coverage_probability()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.rmae"><code class="docutils literal notranslate">rmae()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.rmse"><code class="docutils literal notranslate">rmse()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.root_mean_absolute_error"><code class="docutils literal notranslate">root_mean_absolute_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.root_mean_squared_error"><code class="docutils literal notranslate">root_mean_squared_error()</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/utils.html">Utils</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/utils.html#fortuna.utils.random.RandomNumberGenerator"><code class="docutils literal notranslate">RandomNumberGenerator</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/plot.html">Plot</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/plot.html#fortuna.plot.plot_reliability_diagram"><code class="docutils literal notranslate">plot_reliability_diagram()</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html">Typing</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Array"><code class="docutils literal notranslate">Array</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Batch"><code class="docutils literal notranslate">Batch</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Params"><code class="docutils literal notranslate">Params</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Mutable"><code class="docutils literal notranslate">Mutable</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Path"><code class="docutils literal notranslate">Path</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.OptaxOptimizer"><code class="docutils literal notranslate">OptaxOptimizer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.CalibParams"><code class="docutils literal notranslate">CalibParams</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.CalibMutable"><code class="docutils literal notranslate">CalibMutable</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Status"><code class="docutils literal notranslate">Status</code></a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<button class="text-4xl text-gray-800 p-4 bottom-0 hover:text-brand xl:hidden focus:text-brand self-center" data-action="sidebar#close" title="Close navigation menu">
+<span class="sr-only">Close navigation menu</span>
+<svg aria-hidden="true" class="fill-current stroke-current h-6 w-6" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</aside>
+<main class="px-4 pt-14 xl:ml-fluid grid-area-main overflow-y-auto flex flex-col flex-1 h-full mx-0 md:mx-auto xl:mr-0"><nav aria-label="breadcrumbs" class="print:hidden mt-12 text-sm text-gray-light" role="navigation">
+<a class="text-gray-light text-sm hover:text-gray-dark font-medium focus:text-gray-dark" href="../index.html">Fortuna's documentation</a>
+<span class="mr-1">/</span><a class="text-gray-light text-sm hover:text-gray-dark" href="examples.html">Examples</a>
+<span class="mr-1">/</span><span aria-current="page">Two-moons Classification</span>
+</nav>
+<article class="flex-1" role="main">
+<style>
+/* CSS for nbsphinx extension */
+
+/* remove conflicting styling from Sphinx themes */
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt *,
+div.nbinput.container div.input_area pre,
+div.nboutput.container div.output_area pre,
+div.nbinput.container div.input_area .highlight,
+div.nboutput.container div.output_area .highlight {
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+}
+
+div.nbinput.container > div[class*=highlight],
+div.nboutput.container > div[class*=highlight] {
+    margin: 0;
+}
+
+div.nbinput.container div.prompt *,
+div.nboutput.container div.prompt * {
+    background: none;
+}
+
+div.nboutput.container div.output_area .highlight,
+div.nboutput.container div.output_area pre {
+    background: unset;
+}
+
+div.nboutput.container div.output_area div.highlight {
+    color: unset;  /* override Pygments text color */
+}
+
+/* avoid gaps between output lines */
+div.nboutput.container div[class*=highlight] pre {
+    line-height: normal;
+}
+
+/* input/output containers */
+div.nbinput.container,
+div.nboutput.container {
+    display: -webkit-flex;
+    display: flex;
+    align-items: flex-start;
+    margin: 0;
+    width: 100%;
+}
+@media (max-width: 540px) {
+    div.nbinput.container,
+    div.nboutput.container {
+        flex-direction: column;
+    }
+}
+
+/* input container */
+div.nbinput.container {
+    padding-top: 5px;
+}
+
+/* last container */
+div.nblast.container {
+    padding-bottom: 5px;
+}
+
+/* input prompt */
+div.nbinput.container div.prompt pre {
+    color: #307FC1;
+}
+
+/* output prompt */
+div.nboutput.container div.prompt pre {
+    color: #BF5B3D;
+}
+
+/* all prompts */
+div.nbinput.container div.prompt,
+div.nboutput.container div.prompt {
+    width: 4.5ex;
+    padding-top: 5px;
+    position: relative;
+    user-select: none;
+}
+
+div.nbinput.container div.prompt > div,
+div.nboutput.container div.prompt > div {
+    position: absolute;
+    right: 0;
+    margin-right: 0.3ex;
+}
+
+@media (max-width: 540px) {
+    div.nbinput.container div.prompt,
+    div.nboutput.container div.prompt {
+        width: unset;
+        text-align: left;
+        padding: 0.4em;
+    }
+    div.nboutput.container div.prompt.empty {
+        padding: 0;
+    }
+
+    div.nbinput.container div.prompt > div,
+    div.nboutput.container div.prompt > div {
+        position: unset;
+    }
+}
+
+/* disable scrollbars on prompts */
+div.nbinput.container div.prompt pre,
+div.nboutput.container div.prompt pre {
+    overflow: hidden;
+}
+
+/* input/output area */
+div.nbinput.container div.input_area,
+div.nboutput.container div.output_area {
+    -webkit-flex: 1;
+    flex: 1;
+    overflow: auto;
+}
+@media (max-width: 540px) {
+    div.nbinput.container div.input_area,
+    div.nboutput.container div.output_area {
+        width: 100%;
+    }
+}
+
+/* input area */
+div.nbinput.container div.input_area {
+    border: 1px solid #e0e0e0;
+    border-radius: 2px;
+    /*background: #f5f5f5;*/
+}
+
+/* override MathJax center alignment in output cells */
+div.nboutput.container div[class*=MathJax] {
+    text-align: left !important;
+}
+
+/* override sphinx.ext.imgmath center alignment in output cells */
+div.nboutput.container div.math p {
+    text-align: left;
+}
+
+/* standard error */
+div.nboutput.container div.output_area.stderr {
+    background: #fdd;
+}
+
+/* ANSI colors */
+.ansi-black-fg { color: #3E424D; }
+.ansi-black-bg { background-color: #3E424D; }
+.ansi-black-intense-fg { color: #282C36; }
+.ansi-black-intense-bg { background-color: #282C36; }
+.ansi-red-fg { color: #E75C58; }
+.ansi-red-bg { background-color: #E75C58; }
+.ansi-red-intense-fg { color: #B22B31; }
+.ansi-red-intense-bg { background-color: #B22B31; }
+.ansi-green-fg { color: #00A250; }
+.ansi-green-bg { background-color: #00A250; }
+.ansi-green-intense-fg { color: #007427; }
+.ansi-green-intense-bg { background-color: #007427; }
+.ansi-yellow-fg { color: #DDB62B; }
+.ansi-yellow-bg { background-color: #DDB62B; }
+.ansi-yellow-intense-fg { color: #B27D12; }
+.ansi-yellow-intense-bg { background-color: #B27D12; }
+.ansi-blue-fg { color: #208FFB; }
+.ansi-blue-bg { background-color: #208FFB; }
+.ansi-blue-intense-fg { color: #0065CA; }
+.ansi-blue-intense-bg { background-color: #0065CA; }
+.ansi-magenta-fg { color: #D160C4; }
+.ansi-magenta-bg { background-color: #D160C4; }
+.ansi-magenta-intense-fg { color: #A03196; }
+.ansi-magenta-intense-bg { background-color: #A03196; }
+.ansi-cyan-fg { color: #60C6C8; }
+.ansi-cyan-bg { background-color: #60C6C8; }
+.ansi-cyan-intense-fg { color: #258F8F; }
+.ansi-cyan-intense-bg { background-color: #258F8F; }
+.ansi-white-fg { color: #C5C1B4; }
+.ansi-white-bg { background-color: #C5C1B4; }
+.ansi-white-intense-fg { color: #A1A6B2; }
+.ansi-white-intense-bg { background-color: #A1A6B2; }
+
+.ansi-default-inverse-fg { color: #FFFFFF; }
+.ansi-default-inverse-bg { background-color: #000000; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-underline { text-decoration: underline; }
+
+
+div.nbinput.container div.input_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight] > pre,
+div.nboutput.container div.output_area div[class*=highlight].math,
+div.nboutput.container div.output_area.rendered_html,
+div.nboutput.container div.output_area > div.output_javascript,
+div.nboutput.container div.output_area:not(.rendered_html) > img{
+    padding: 5px;
+    margin: 0;
+}
+
+/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
+div.nbinput.container div.input_area > div[class^='highlight'],
+div.nboutput.container div.output_area > div[class^='highlight']{
+    overflow-y: hidden;
+}
+
+/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
+.prompt .copybtn {
+    display: none;
+}
+
+/* Some additional styling taken form the Jupyter notebook CSS */
+.jp-RenderedHTMLCommon table,
+div.rendered_html table {
+  border: none;
+  border-collapse: collapse;
+  border-spacing: 0;
+  color: black;
+  font-size: 12px;
+  table-layout: fixed;
+}
+.jp-RenderedHTMLCommon thead,
+div.rendered_html thead {
+  border-bottom: 1px solid black;
+  vertical-align: bottom;
+}
+.jp-RenderedHTMLCommon tr,
+.jp-RenderedHTMLCommon th,
+.jp-RenderedHTMLCommon td,
+div.rendered_html tr,
+div.rendered_html th,
+div.rendered_html td {
+  text-align: right;
+  vertical-align: middle;
+  padding: 0.5em 0.5em;
+  line-height: normal;
+  white-space: normal;
+  max-width: none;
+  border: none;
+}
+.jp-RenderedHTMLCommon th,
+div.rendered_html th {
+  font-weight: bold;
+}
+.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
+div.rendered_html tbody tr:nth-child(odd) {
+  background: #f5f5f5;
+}
+.jp-RenderedHTMLCommon tbody tr:hover,
+div.rendered_html tbody tr:hover {
+  background: rgba(66, 165, 245, 0.2);
+}
+</style>
+<section id="Two-moons-Classification">
+<h1>Two-moons Classification<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#Two-moons-Classification">¶</a></h1>
+<p>In this notebook we show how to use Fortuna to obtain calibrated uncertainty estimates of predictions in an MNIST classification task.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">import</span> <span class="nn">sys</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">'./../src'</span><span class="p">)</span>
+</code></pre></div></div>
+</div>
+<section id="Download-Two-Moons-data-from-scikit-learn">
+<h2>Download Two-Moons data from scikit-learn<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#Download-Two-Moons-data-from-scikit-learn">¶</a></h2>
+<p>Let us first download two-moons data from <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html" rel="nofollow noopener">scikit-learn<svg aria-hidden="true" class="external-link-icon" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"></path></svg></a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">sklearn.datasets</span> <span class="kn">import</span> <span class="n">make_moons</span>
+<span class="n">train_data</span> <span class="o">=</span> <span class="n">make_moons</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">0.07</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">val_data</span> <span class="o">=</span> <span class="n">make_moons</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">0.07</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">test_data</span> <span class="o">=</span> <span class="n">make_moons</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">0.07</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</code></pre></div></div>
+</div>
+</section>
+<section id="Convert-data-to-a-compatible-data-loader">
+<h2>Convert data to a compatible data loader<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#Convert-data-to-a-compatible-data-loader">¶</a></h2>
+<p>Fortuna helps you converting data and data loaders into a data loader that Fortuna can digest.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="n">train_data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">from_array_data</span><span class="p">(</span><span class="n">train_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">prefetch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">val_data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">from_array_data</span><span class="p">(</span><span class="n">val_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">prefetch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">test_data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="o">.</span><span class="n">from_array_data</span><span class="p">(</span><span class="n">test_data</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">prefetch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div></div>
+</div>
+</section>
+<section id="Build-a-probabilistic-classifier">
+<h2>Build a probabilistic classifier<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#Build-a-probabilistic-classifier">¶</a></h2>
+<p>Let us build a probabilistic classifier. This is an interface object containing several attributes that you can configure, i.e. <code class="docutils literal notranslate">model</code>, <code class="docutils literal notranslate">prior</code>, <code class="docutils literal notranslate">posterior_approximator</code>, <code class="docutils literal notranslate">output_calibrator</code>. In this example, we use an MLP model, an Automatic Differentiation Variational Inference posterior approximator, and the default temperature scaling output calibrator.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.prob_model</span> <span class="kn">import</span> <span class="n">ProbClassifier</span>
+<span class="kn">from</span> <span class="nn">fortuna.model</span> <span class="kn">import</span> <span class="n">MLP</span>
+<span class="kn">from</span> <span class="nn">fortuna.prob_model.posterior</span> <span class="kn">import</span> <span class="n">ADVIPosteriorApproximator</span>
+<span class="kn">import</span> <span class="nn">flax.linen</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="n">output_dim</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">prob_model</span> <span class="o">=</span> <span class="n">ProbClassifier</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">MLP</span><span class="p">(</span><span class="n">output_dim</span><span class="o">=</span><span class="n">output_dim</span><span class="p">,</span> <span class="n">activations</span><span class="o">=</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">tanh</span><span class="p">)),</span>
+    <span class="n">posterior_approximator</span><span class="o">=</span><span class="n">ADVIPosteriorApproximator</span><span class="p">()</span>
+<span class="p">)</span>
+</code></pre></div></div>
+</div>
+</section>
+<section id="Train-the-probabilistic-model:-posterior-fitting-and-calibration">
+<h2>Train the probabilistic model: posterior fitting and calibration<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#Train-the-probabilistic-model:-posterior-fitting-and-calibration">¶</a></h2>
+<p>We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.prob_model.fit_config</span> <span class="kn">import</span> <span class="n">FitConfig</span><span class="p">,</span> <span class="n">FitMonitor</span><span class="p">,</span> <span class="n">FitOptimizer</span>
+<span class="kn">from</span> <span class="nn">fortuna.metric.classification</span> <span class="kn">import</span> <span class="n">accuracy</span>
+<span class="kn">import</span> <span class="nn">optax</span>
+<span class="n">status</span> <span class="o">=</span> <span class="n">prob_model</span><span class="o">.</span><span class="n">train</span><span class="p">(</span>
+    <span class="n">train_data_loader</span><span class="o">=</span><span class="n">train_data_loader</span><span class="p">,</span>
+    <span class="n">val_data_loader</span><span class="o">=</span><span class="n">val_data_loader</span><span class="p">,</span>
+    <span class="n">calib_data_loader</span><span class="o">=</span><span class="n">val_data_loader</span><span class="p">,</span>
+    <span class="n">fit_config</span><span class="o">=</span><span class="n">FitConfig</span><span class="p">(</span><span class="n">monitor</span><span class="o">=</span><span class="n">FitMonitor</span><span class="p">(</span><span class="n">metrics</span><span class="o">=</span><span class="p">(</span><span class="n">accuracy</span><span class="p">,)),</span> <span class="n">optimizer</span><span class="o">=</span><span class="n">FitOptimizer</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">optax</span><span class="o">.</span><span class="n">adam</span><span class="p">(</span><span class="mf">1e-1</span><span class="p">)))</span>
+<span class="p">)</span>
+</code></pre></div></div>
+</div>
+</section>
+<section id="Estimate-predictive-statistics">
+<h2>Estimate predictive statistics<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#Estimate-predictive-statistics">¶</a></h2>
+<p>We can now compute some predictive statistics by invoking the <code class="docutils literal notranslate">predictive</code> attribute of the probabilistic classifier, and the method of interest. Most predictive statistics, e.g. mean or mode, require a loader of input data points. You can easily get this from the data loader calling its method <code class="docutils literal notranslate">to_inputs_loader</code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="n">test_log_probs</span> <span class="o">=</span> <span class="n">prob_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">data_loader</span><span class="o">=</span><span class="n">test_data_loader</span><span class="p">)</span>
+<span class="n">test_inputs_loader</span> <span class="o">=</span> <span class="n">test_data_loader</span><span class="o">.</span><span class="n">to_inputs_loader</span><span class="p">()</span>
+<span class="n">test_means</span> <span class="o">=</span> <span class="n">prob_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">inputs_loader</span><span class="o">=</span><span class="n">test_inputs_loader</span><span class="p">)</span>
+<span class="n">test_modes</span> <span class="o">=</span> <span class="n">prob_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">inputs_loader</span><span class="o">=</span><span class="n">test_inputs_loader</span><span class="p">,</span> <span class="n">means</span><span class="o">=</span><span class="n">test_means</span><span class="p">)</span>
+</code></pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">fortuna.data</span> <span class="kn">import</span> <span class="n">InputsLoader</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">size</span> <span class="o">=</span> <span class="mi">150</span>
+<span class="n">xx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+<span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">_xx</span><span class="p">,</span> <span class="n">_yy</span><span class="p">]</span> <span class="k">for</span> <span class="n">_xx</span> <span class="ow">in</span> <span class="n">xx</span> <span class="k">for</span> <span class="n">_yy</span> <span class="ow">in</span> <span class="n">yy</span><span class="p">])</span>
+<span class="n">grid_loader</span> <span class="o">=</span> <span class="n">InputsLoader</span><span class="o">.</span><span class="n">from_array_inputs</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span>
+<span class="n">grid_entropies</span> <span class="o">=</span> <span class="n">prob_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">entropy</span><span class="p">(</span><span class="n">grid_loader</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="n">grid</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">"Predictions and entropy"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">pcolor</span><span class="p">(</span><span class="n">grid</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">grid</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">grid_entropies</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">test_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">test_data</span><span class="p">[</span><span class="mi">0</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="p">[</span><span class="s2">"C0"</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">"C1"</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">test_modes</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">();</span>
+</code></pre></div></div>
+</div>
+</section>
+<section id="Compute-metrics">
+<h2>Compute metrics<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#Compute-metrics">¶</a></h2>
+<p>In classification, the predictive mode is a prediction for labels, while the predictive mean is a prediction for the probability of each label. As such, we can use these to compute several metrics, e.g. the accuracy, the Brier score, the expected calibration error (ECE), etc.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.metric.classification</span> <span class="kn">import</span> <span class="n">accuracy</span><span class="p">,</span> <span class="n">expected_calibration_error</span><span class="p">,</span> <span class="n">brier_score</span>
+<span class="n">test_targets</span> <span class="o">=</span> <span class="n">test_data_loader</span><span class="o">.</span><span class="n">to_array_targets</span><span class="p">()</span>
+<span class="n">acc</span> <span class="o">=</span> <span class="n">accuracy</span><span class="p">(</span><span class="n">preds</span><span class="o">=</span><span class="n">test_modes</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">test_targets</span><span class="p">)</span>
+<span class="n">brier</span> <span class="o">=</span> <span class="n">brier_score</span><span class="p">(</span><span class="n">probs</span><span class="o">=</span><span class="n">test_means</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">test_targets</span><span class="p">)</span>
+<span class="n">ece</span> <span class="o">=</span> <span class="n">expected_calibration_error</span><span class="p">(</span><span class="n">preds</span><span class="o">=</span><span class="n">test_modes</span><span class="p">,</span> <span class="n">probs</span><span class="o">=</span><span class="n">test_means</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">test_targets</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Test accuracy: </span><span class="si">{</span><span class="n">acc</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Brier score: </span><span class="si">{</span><span class="n">brier</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ECE: </span><span class="si">{</span><span class="n">ece</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div></div>
+</div>
+</section>
+<section id="What-if-we-had-had-model-outputs-to-start-from?">
+<h2>What if we had had model outputs to start from?<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#What-if-we-had-had-model-outputs-to-start-from?">¶</a></h2>
+<p>If you have already trained a model and obtained model outputs, you can still use Fortuna to calibrate them, and estimate uncertainty. For educational purposes only, let us take the logarithm of the predictive mean estimated above as model outputs, and pretend these were generated with some other framework. Furthermore, we store arrays of validation and test target variables, and assume these were also given.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="n">val_outputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1e-6</span> <span class="o">+</span> <span class="n">prob_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">inputs_loader</span><span class="o">=</span><span class="n">val_data_loader</span><span class="o">.</span><span class="n">to_inputs_loader</span><span class="p">()))</span>
+<span class="n">test_outputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1e-6</span> <span class="o">+</span> <span class="n">test_means</span><span class="p">)</span>
+
+<span class="n">val_targets</span> <span class="o">=</span> <span class="n">val_data_loader</span><span class="o">.</span><span class="n">to_array_targets</span><span class="p">()</span>
+<span class="n">test_targets</span> <span class="o">=</span> <span class="n">test_data_loader</span><span class="o">.</span><span class="n">to_array_targets</span><span class="p">()</span>
+</code></pre></div></div>
+</div>
+<p>We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.calib_model.classification</span> <span class="kn">import</span> <span class="n">CalibClassifier</span>
+<span class="n">calib_model</span> <span class="o">=</span> <span class="n">CalibClassifier</span><span class="p">()</span>
+<span class="n">calib_status</span> <span class="o">=</span> <span class="n">calib_model</span><span class="o">.</span><span class="n">calibrate</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">val_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">val_targets</span><span class="p">)</span>
+</code></pre></div></div>
+</div>
+<p>Similarly as above, we can now compute predictive statistics.</p>
+<div class="nbinput nblast docutils container">
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code>[ ]:
+</code></pre></div></div>
+<div class="code-wrapper" data-controller="code">
+<div class="highlight"><pre><code><span class="n">test_log_probs</span> <span class="o">=</span> <span class="n">calib_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">log_prob</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">test_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">test_targets</span><span class="p">)</span>
+<span class="n">test_means</span> <span class="o">=</span> <span class="n">calib_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">test_outputs</span><span class="p">)</span>
+<span class="n">test_modes</span> <span class="o">=</span> <span class="n">calib_model</span><span class="o">.</span><span class="n">predictive</span><span class="o">.</span><span class="n">mode</span><span class="p">(</span><span class="n">outputs</span><span class="o">=</span><span class="n">test_outputs</span><span class="p">)</span>
+</code></pre></div></div>
+</div>
+<p>Then one can compute metrics, exactly as done above.</p>
+</section>
+</section>
+</article>
+<footer>
+<div class="mt-20 mb-4 text-sm text-gray-700 print:mt-4">© 2022, AWS Made with <a href="https://www.sphinx-doc.org">Sphinx 5.3.0</a></div>
+</footer></main>
+<button class="fixed bottom-0 right-0 z-20 opacity-0 p-4 m-4 tracking-wide bg-gray-900 text-gray-100 transition transform transform-gpu duration-500 translate-y-full" data-action="search#hideSnackbar" data-search-target="snackbar">
+  Clear highlights
+</button><div class="fixed hidden inset-0 bg-black bg-opacity-50" data-action="click-&gt;sidebar#close" data-sidebar-target="screen">
+</div>
+</div>
+<script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+<script src="../_static/jquery.js"></script>
+<script src="../_static/underscore.js"></script>
+<script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+<script src="../_static/doctools.js"></script>
+<script src="../_static/sphinx_highlight.js"></script>
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+<script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+<script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="../_static/theme.3051a0ec24cad00d4d88.js"></script>
+</body>
+</html>

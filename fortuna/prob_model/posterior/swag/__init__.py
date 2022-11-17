@@ -1,0 +1,1 @@
+SWAG_NAME = "swag"
