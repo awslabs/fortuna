@@ -1,0 +1,346 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="Docutils 0.19: https://docutils.sourceforge.io/" name="generator"/>
+<title>From uncertainty estimates | Fortuna's documentation</title>
+<link href="../_static/pygments.css" rel="stylesheet"/>
+<link href="../_static/theme.9297a650d9dd3016d913.css" rel="stylesheet"/>
+<link href="../_static/sg_gallery.css" rel="stylesheet"/>
+<link href="../_static/sg_gallery.css" rel="stylesheet"/>
+<link href="../search.html" rel="search" title="Search"/>
+<link href="../genindex.html" rel="index" title="Index"/>
+<link href="model_outputs.html" rel="next" title="From model outputs"/>
+<link href="usage_modes.html" rel="prev" title="Usage modes"/>
+</head>
+<body class="antialiased text-gray scroll-smooth">
+<div class="min-h-screen xl:h-screen flex flex-col xl:grid xl:grid-layout print:block print:h-auto" data-action="keydown@window-&gt;search#focus " data-controller="sidebar search " id="page">
+<a class="block transition -translate-x-full focus:translate-x-0 opacity-0 focus:opacity-100 text-xl bg-white p-4 z-20 absolute top-0 left-0 h-14" href="#from-uncertainty-estimates" title="Skip navigation links">Skip to content</a>
+<header class="grid-area-header z-10 h-14 fixed w-full top-0 print:hidden">
+<div class="bg-gray-dark shadow-md flex items-center h-full xl:px-2 relative"><div class="flex items-center">
+<button class="xl:hidden h-14 w-14 leading-14 text-gray-100 hover:bg-gray-700 hover:text-brand focus:outline-none focus:bg-gray-700 focus:text-brand" data-action="sidebar#open" data-sidebar-target="hamburger">
+<span class="sr-only">Open navigation menu</span>
+<svg aria-hidden="true" class="fill-current h-8 w-8" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
+</button><a class="hover:bg-gray-700 focus:bg-gray-700 focus:outline-none" href="../index.html" title="Back to homepage"><img alt="Logo" class="h-14 w-14 p-3 inline-block" src="../_static/fortuna_symbol_white.png"/><span class="hidden lg:inline-block shrink-0 font-medium text-gray-100 mx-5 leading-14 tracking-wider">Fortuna's documentation</span>
+</a></div><div class="flex justify-end items-center flex-1"><form action="../search.html" class="flex print:hidden justify-between items-center leading-14 md:ml-4 bg-gray-dark text-gray-300 focus-within:bg-gray-50 focus-within:text-gray-800 focus-within:absolute focus-within:inset-x-0 focus-within:top-0 md:focus-within:w-full md:focus-within:static z-10" data-action="click-&gt;search#focusSearchInput" id="searchbox" method="get">
+<button aria-label="Get search results" class="text-inherit h-14 w-14" tabindex="-1">
+<svg aria-hidden="true" class="fill-current stroke-current h-8 w-8" stroke-width="0.5" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+</button>
+<input aria-label="Search the docs" class="pr-2 bg-transparent text-inherit focus:outline-none w-0 md:w-auto focus:w-full transition-all duration-100" data-search-target="searchInput" id="search-input" name="q" placeholder="Search the docs" type="search"/>
+</form></div>
+</div>
+</header>
+<aside class="grid-area-sidebar h-full fixed pt-14 xl:relative inset-y-0 left-0 z-20 xl:z-0 print:hidden overflow-y-auto transition-all transform transform-gpu -translate-x-full opacity-0 duration-300 xl:translate-x-0 xl:opacity-100" data-sidebar-target="sidebar">
+<nav class="h-full overflow-y-auto bg-white text-gray-600 pt-8 flex flex-col" role="navigation">
+<div class="nav-toc flex-1 pl-6"><p class="caption" role="heading"><span class="caption-text">CONTENTS:</span></p>
+<ul class="current">
+<li class="toctree-l1"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../quickstart.html">Quickstart</a></div></li>
+<li class="toctree-l1"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../installation.html">Installation</a></div></li>
+<li class="toctree-l1"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/examples.html">Examples</a></div><ul>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html">MNIST Classification</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#Download-MNIST-data-from-TensorFlow">Download MNIST data from TensorFlow</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#Build-a-probabilistic-classifier">Build a probabilistic classifier</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#Conformal-prediction-sets">Conformal prediction sets</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/mnist_classification.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html">Sinusoidal regression</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#Generate-the-data">Generate the data</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#Build-a-probabilistic-regressor">Build a probabilistic regressor</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#Conformal-intervals">Conformal intervals</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/sinusoidal_regression.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html">Two-moons Classification</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html#Download-Two-Moons-data-from-scikit-learn">Download Two-Moons data from scikit-learn</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html#Build-a-probabilistic-classifier">Build a probabilistic classifier</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/two_moons_classification.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/tabular_regressions.html">Tabular regressions</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/tabular_regressions.html#Download-regression-datasets-from-UCI">Download regression datasets from UCI</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/tabular_regressions.html#Regression-on-each-data-set">Regression on each data set</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/bring_in_your_own.html">Bring in your own objects</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/bring_in_your_own.html#Bring-in-your-own-model">Bring in your own model</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/bring_in_your_own.html#Bring-in-your-own-prior-distribution">Bring in your own prior distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../examples/bring_in_your_own.html#Bring-in-your-own-output-calibrator">Bring in your own output calibrator</a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current expanded"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="usage_modes.html">Usage modes</a></div><ul class="current">
+<li class="toctree-l2 current expanded"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="current reference internal" data-action="click-&gt;sidebar#close" href="#">From uncertainty estimates</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#regression">Regression</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="model_outputs.html">From model outputs</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="model_outputs.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="model_outputs.html#regression">Regression</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="flax_models.html">From Flax models</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="flax_models.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="flax_models.html#regression">Regression</a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/references.html">API References</a></div><ul>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html">Probabilistic model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html#fortuna.prob_model.classification.ProbClassifier"><code class="docutils literal notranslate">ProbClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html#fortuna.prob_model.regression.ProbRegressor"><code class="docutils literal notranslate">ProbRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prob_model.html#fortuna.prob_model.base.ProbModel"><code class="docutils literal notranslate">ProbModel</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/predictive.html">Predictive distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/posterior/posterior.html">Posterior</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/joint.html">Joint distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/likelihood.html">Likelihood function</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/prior.html">Prior distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_model/fit_config.html">Posterior fitting configuration</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html">Calibration model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html#fortuna.calib_model.classification.CalibClassifier"><code class="docutils literal notranslate">CalibClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html#fortuna.calib_model.regression.CalibRegressor"><code class="docutils literal notranslate">CalibRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/calib_model.html#fortuna.calib_model.base.CalibModel"><code class="docutils literal notranslate">CalibModel</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_model/predictive.html">Predictive distribution</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/model.html">Model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/builtin_models.html">Built-in models</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/linen_module.html">Flax Linen Module</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/model/model_manager.html">Model manager</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html">Output calibrator</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html#fortuna.output_calibrator.classification.ClassificationTemperatureScaler"><code class="docutils literal notranslate">ClassificationTemperatureScaler</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html#fortuna.output_calibrator.regression.RegressionTemperatureScaler"><code class="docutils literal notranslate">RegressionTemperatureScaler</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/output_calibrator.html#fortuna.training.calib_state.CalibState"><code class="docutils literal notranslate">CalibState</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html">Probabilistic output layer</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html#fortuna.prob_output_layer.base.ProbOutputLayer"><code class="docutils literal notranslate">ProbOutputLayer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html#fortuna.prob_output_layer.classification.ClassificationProbOutputLayer"><code class="docutils literal notranslate">ClassificationProbOutputLayer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/prob_output_layer.html#fortuna.prob_output_layer.regression.RegressionProbOutputLayer"><code class="docutils literal notranslate">RegressionProbOutputLayer</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_config.html">Calibration configuration</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/calib_config.html#fortuna.calib_config.base.CalibConfig"><code class="docutils literal notranslate">CalibConfig</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html">Conformer</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.classification.AdaptivePredictionConformalClassifier"><code class="docutils literal notranslate">AdaptivePredictionConformalClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.classification.SimplePredictionConformalClassifier"><code class="docutils literal notranslate">SimplePredictionConformalClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor"><code class="docutils literal notranslate">OneDimensionalUncertaintyConformalRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/conformer.html#fortuna.conformer.regression.QuantileConformalRegressor"><code class="docutils literal notranslate">QuantileConformalRegressor</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html">Data loader</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.DataLoader"><code class="docutils literal notranslate">DataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.InputsLoader"><code class="docutils literal notranslate">InputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.TargetsLoader"><code class="docutils literal notranslate">TargetsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromIterableToDataLoader"><code class="docutils literal notranslate">FromIterableToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromCallableIterableToDataLoader"><code class="docutils literal notranslate">FromCallableIterableToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromArrayDataToDataLoader"><code class="docutils literal notranslate">FromArrayDataToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromArrayInputsToInputsLoader"><code class="docutils literal notranslate">FromArrayInputsToInputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromDataLoaderToInputsLoader"><code class="docutils literal notranslate">FromDataLoaderToInputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromArrayTargetsToTargetsLoader"><code class="docutils literal notranslate">FromArrayTargetsToTargetsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/data_loader.html#fortuna.data.loader.FromDataLoaderToTargetsLoader"><code class="docutils literal notranslate">FromDataLoaderToTargetsLoader</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html">Metric</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.accuracy"><code class="docutils literal notranslate">accuracy()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.brier_score"><code class="docutils literal notranslate">brier_score()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.ece"><code class="docutils literal notranslate">ece()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.expected_calibration_error"><code class="docutils literal notranslate">expected_calibration_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.maximum_calibration_error"><code class="docutils literal notranslate">maximum_calibration_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.classification.mce"><code class="docutils literal notranslate">mce()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mae"><code class="docutils literal notranslate">mae()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mean_absolute_error"><code class="docutils literal notranslate">mean_absolute_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mean_squared_error"><code class="docutils literal notranslate">mean_squared_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.mse"><code class="docutils literal notranslate">mse()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.picp"><code class="docutils literal notranslate">picp()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.prediction_interval_coverage_probability"><code class="docutils literal notranslate">prediction_interval_coverage_probability()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.rmae"><code class="docutils literal notranslate">rmae()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.rmse"><code class="docutils literal notranslate">rmse()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.root_mean_absolute_error"><code class="docutils literal notranslate">root_mean_absolute_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/metric.html#fortuna.metric.regression.root_mean_squared_error"><code class="docutils literal notranslate">root_mean_squared_error()</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/utils.html">Utils</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/utils.html#fortuna.utils.random.RandomNumberGenerator"><code class="docutils literal notranslate">RandomNumberGenerator</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/plot.html">Plot</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/plot.html#fortuna.plot.plot_reliability_diagram"><code class="docutils literal notranslate">plot_reliability_diagram()</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html">Typing</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Array"><code class="docutils literal notranslate">Array</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Batch"><code class="docutils literal notranslate">Batch</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Params"><code class="docutils literal notranslate">Params</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Mutable"><code class="docutils literal notranslate">Mutable</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Path"><code class="docutils literal notranslate">Path</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.OptaxOptimizer"><code class="docutils literal notranslate">OptaxOptimizer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.CalibParams"><code class="docutils literal notranslate">CalibParams</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.CalibMutable"><code class="docutils literal notranslate">CalibMutable</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references/typing.html#fortuna.typing.Status"><code class="docutils literal notranslate">Status</code></a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<button class="text-4xl text-gray-800 p-4 bottom-0 hover:text-brand xl:hidden focus:text-brand self-center" data-action="sidebar#close" title="Close navigation menu">
+<span class="sr-only">Close navigation menu</span>
+<svg aria-hidden="true" class="fill-current stroke-current h-6 w-6" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</aside>
+<main class="px-4 pt-14 xl:ml-fluid grid-area-main overflow-y-auto flex flex-col flex-1 h-full mx-0 md:mx-auto xl:mr-0"><nav aria-label="breadcrumbs" class="print:hidden mt-12 text-sm text-gray-light" role="navigation">
+<a class="text-gray-light text-sm hover:text-gray-dark font-medium focus:text-gray-dark" href="../index.html">Fortuna's documentation</a>
+<span class="mr-1">/</span><a class="text-gray-light text-sm hover:text-gray-dark" href="usage_modes.html">Usage modes</a>
+<span class="mr-1">/</span><span aria-current="page">From uncertainty estimates</span>
+</nav>
+<article class="flex-1" role="main">
+<section id="from-uncertainty-estimates">
+<span id="conformal"></span><h1>From uncertainty estimates<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#from-uncertainty-estimates">¶</a></h1>
+<p>Fortuna provides some <a class="reference external" href="https://arxiv.org/abs/2107.07511" rel="nofollow noopener">conformal prediction methods<svg aria-hidden="true" class="external-link-icon" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 19H5V5h7V3H5a2 2 0 00-2 2v14a2 2 0 002 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"></path></svg></a>.
+These start from uncertainty estimates and some calibration data, and construct <em>conformal predictions sets</em>,
+i.e. rigorous sets of predictions that are probable above a certain threshold.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>If you provide bad uncertainty estimates, the conformal prediction sets may be very large and uninformative.
+If possible, please consider letting Fortuna estimating uncertainty - see <a class="reference internal" href="flax_models.html#flax-models"><span class="std std-ref">From Flax models</span></a>.</p>
+</div>
+<section id="classification">
+<span id="conformal-classification"></span><h2>Classification<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#classification">¶</a></h2>
+<p>In classification, conformal sets are collections of labels that are probable above a certain
+thresholds. In the following example, we show how you can use Fortuna to construct them.</p>
+<section id="classification-example-conformal-intervals-from-probability-predictions">
+<span id="conformal-classification-example"></span><h3>Classification example: conformal intervals from probability predictions<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#classification-example-conformal-intervals-from-probability-predictions">¶</a></h3>
+<p>We assume you have trained a model and, for each input,
+you have a way of estimating the probability of each label.
+We call <code class="code docutils literal notranslate">val_probs</code> and <code class="code docutils literal notranslate">test_probs</code> these probabilities computed on some validation and test data sets,
+respectively.
+We further require the array of validation target variables <code class="code docutils literal notranslate">val_targets</code> corresponding to the
+validation probabilities. Then the following code provides a 95% conformal set for each test input.
+Please check <a class="reference internal" href="../references/conformer.html#fortuna.conformer.classification.AdaptivePredictionConformalClassifier" title="fortuna.conformer.classification.AdaptivePredictionConformalClassifier"><code class="xref py py-class docutils literal notranslate">AdaptivePredictionConformalClassifier</code></a> for reference.</p>
+<div class="code-wrapper" data-controller="code">
+<div class="code-header">
+<span class="caption-text"><strong>References:</strong> <a class="reference internal" href="../references/conformer.html#fortuna.conformer.classification.AdaptivePredictionConformalClassifier.conformal_set" title="fortuna.conformer.classification.AdaptivePredictionConformalClassifier.conformal_set"><code class="xref py py-meth docutils literal notranslate">conformal_set()</code></a></span><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#id1">¶</a></div>
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.conformer.classification</span> <span class="kn">import</span> <span class="n">AdaptivePredictionConformalClassifier</span>
+<span class="n">conformal_sets</span> <span class="o">=</span> <span class="n">AdaptivePredictionConformalClassifier</span><span class="p">()</span><span class="o">.</span><span class="n">conformal_set</span><span class="p">(</span>
+    <span class="n">val_probs</span><span class="o">=</span><span class="n">val_probs</span><span class="p">,</span>
+    <span class="n">test_probs</span><span class="o">=</span><span class="n">test_probs</span><span class="p">,</span>
+    <span class="n">val_targets</span><span class="o">=</span><span class="n">val_targets</span>
+<span class="p">)</span>
+</code></pre></div></div>
+<p>You should usually expect your test predictions to be included in the conformal sets, as they contain the most probable
+labels according to your validation data and validation probability estimates.
+You should also expect, overall, smaller sets for well-classified inputs and larger sets for misclassified ones,
+as the latter are likely to be more uncertain. Notice that if your estimated probabilities are very uninformative or
+highly wrong, the conformal sets might include almost all labels, signalling high uncertainty in the model.</p>
+</section>
+</section>
+<section id="regression">
+<span id="conformal-regression"></span><h2>Regression<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#regression">¶</a></h2>
+<p>For regression tasks with scalar target variables, Fortuna offers conformal methods that construct
+conformal intervals. You can think of these as calibrated versions of confidence or credibility
+intervals. In the following examples, we show how you can use Fortuna to construct them.</p>
+<p>For both examples, you should usually expect your test predictions to be included in the
+conformal intervals,
+as they contain the range of most probable predictions according to your validation data and validation intervals.
+You should also expect, overall, smaller ranges for well-classified inputs and larger sets for misclassified ones,
+as the latter are likely to be more uncertain. Notice that if your intervals are uninformative or wrong,
+the conformal intervals might be large.</p>
+<section id="conformal-intervals-from-confidence-or-credibility-intervals">
+<span id="conformal-regression-example-credibility"></span><h3>Conformal intervals from confidence or credibility intervals<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#conformal-intervals-from-confidence-or-credibility-intervals">¶</a></h3>
+<p>For this example,
+we assume you have trained a model, and a way of estimating a confidence or credible interval for
+each of your predictions.
+We call <code class="code docutils literal notranslate">val_lower_bounds</code>, <code class="code docutils literal notranslate">val_upper_bounds</code>, <code class="code docutils literal notranslate">test_lower_bounds</code> and
+<code class="code docutils literal notranslate">test_upper_bounds</code> the lower and upper bounds of these intervals computed on some validation and
+test data sets. We suppose these have an error level given by <code class="code docutils literal notranslate">error</code>; for example, 95% intervals
+have <cite>error=0.05</cite>.
+We further require the array of validation target variables <code class="code docutils literal notranslate">val_targets</code> corresponding to the
+validation intervals.
+Then the following code provides a conformal interval with level <cite>error</cite> of error for each test input.
+Please see <a class="reference internal" href="../references/conformer.html#fortuna.conformer.regression.QuantileConformalRegressor" title="fortuna.conformer.regression.QuantileConformalRegressor"><code class="xref py py-class docutils literal notranslate">QuantileConformalRegressor</code></a> for reference.</p>
+<div class="code-wrapper" data-controller="code">
+<div class="code-header">
+<span class="caption-text"><strong>References:</strong> <a class="reference internal" href="../references/conformer.html#fortuna.conformer.regression.QuantileConformalRegressor.conformal_interval" title="fortuna.conformer.regression.QuantileConformalRegressor.conformal_interval"><code class="xref py py-meth docutils literal notranslate">conformal_interval()</code></a></span><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#id2">¶</a></div>
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.conformer.regression</span> <span class="kn">import</span> <span class="n">QuantileConformalRegressor</span>
+<span class="n">conformal_intervals</span> <span class="o">=</span> <span class="n">QuantileConformalRegressor</span><span class="p">()</span><span class="o">.</span><span class="n">conformal_interval</span><span class="p">(</span>
+    <span class="n">val_lower_bounds</span><span class="o">=</span><span class="n">val_lower_bounds</span><span class="p">,</span>
+    <span class="n">val_upper_bounds</span><span class="o">=</span><span class="n">val_upper_bounds</span><span class="p">,</span>
+    <span class="n">test_lower_bounds</span><span class="o">=</span><span class="n">test_lower_bounds</span><span class="p">,</span>
+    <span class="n">test_upper_bounds</span><span class="o">=</span><span class="n">test_upper_bounds</span><span class="p">,</span>
+    <span class="n">val_targets</span><span class="o">=</span><span class="n">val_targets</span><span class="p">,</span>
+    <span class="n">error</span><span class="o">=</span><span class="n">error</span>
+<span class="p">)</span>
+</code></pre></div></div>
+</section>
+<section id="conformal-intervals-from-confidence-or-scalar-uncertainty-estimates">
+<span id="conformal-regression-example-uncertainty"></span><h3>Conformal intervals from confidence or scalar uncertainty estimates<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#conformal-intervals-from-confidence-or-scalar-uncertainty-estimates">¶</a></h3>
+<p>For this example,
+we assume you have trained a model, you have a way of making predictions and estimating a scalar measure of
+predictive uncertainty,
+e.g. the standard deviation.
+We call <code class="code docutils literal notranslate">val_preds</code>, <code class="code docutils literal notranslate">val_uncertainties</code>, <code class="code docutils literal notranslate">test_preds</code> and
+<code class="code docutils literal notranslate">test_uncertainties</code> the predictions and uncertainties computed on some validation and test data sets.
+We further require the array of validation target variables <code class="code docutils literal notranslate">val_targets</code> corresponding to the
+validation predictions.
+Then the following code provides a 95% conformal interval for each test input.
+Please see <a class="reference internal" href="../references/conformer.html#fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor" title="fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor"><code class="xref py py-class docutils literal notranslate">OneDimensionalUncertaintyConformalRegressor</code></a> for reference.</p>
+<div class="code-wrapper" data-controller="code">
+<div class="code-header">
+<span class="caption-text"><strong>References:</strong> <a class="reference internal" href="../references/conformer.html#fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor.conformal_interval" title="fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor.conformal_interval"><code class="xref py py-meth docutils literal notranslate">conformal_interval()</code></a></span><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#id3">¶</a></div>
+<div class="highlight"><pre><code><span class="kn">from</span> <span class="nn">fortuna.conformer.regression</span> <span class="kn">import</span> <span class="n">OneDimensionalUncertaintyConformalRegressor</span>
+<span class="n">conformal_intervals</span> <span class="o">=</span> <span class="n">OneDimensionalUncertaintyConformalRegressor</span><span class="p">()</span><span class="o">.</span><span class="n">conformal_interval</span><span class="p">(</span>
+    <span class="n">val_preds</span><span class="o">=</span><span class="n">val_preds</span><span class="p">,</span>
+    <span class="n">val_uncertainties</span><span class="o">=</span><span class="n">val_uncertainties</span><span class="p">,</span>
+    <span class="n">test_preds</span><span class="o">=</span><span class="n">test_preds</span><span class="p">,</span>
+    <span class="n">test_uncertainties</span><span class="o">=</span><span class="n">test_uncertainties</span><span class="p">,</span>
+    <span class="n">val_targets</span><span class="o">=</span><span class="n">val_targets</span>
+<span class="p">)</span>
+</code></pre></div></div>
+</section>
+</section>
+</section>
+</article>
+<footer>
+<div class="mt-20 mb-4 text-sm text-gray-700 print:mt-4">© 2022, AWS Made with <a href="https://www.sphinx-doc.org">Sphinx 5.3.0</a></div>
+</footer></main>
+<button class="fixed bottom-0 right-0 z-20 opacity-0 p-4 m-4 tracking-wide bg-gray-900 text-gray-100 transition transform transform-gpu duration-500 translate-y-full" data-action="search#hideSnackbar" data-search-target="snackbar">
+  Clear highlights
+</button><div class="fixed hidden inset-0 bg-black bg-opacity-50" data-action="click-&gt;sidebar#close" data-sidebar-target="screen">
+</div>
+</div>
+<script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+<script src="../_static/jquery.js"></script>
+<script src="../_static/underscore.js"></script>
+<script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+<script src="../_static/doctools.js"></script>
+<script src="../_static/sphinx_highlight.js"></script>
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+<script src="../_static/theme.3051a0ec24cad00d4d88.js"></script>
+</body>
+</html>

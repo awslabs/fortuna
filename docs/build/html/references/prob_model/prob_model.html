@@ -1,0 +1,777 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta charset="utf-8"/>
+<meta content="Docutils 0.19: https://docutils.sourceforge.io/" name="generator"/>
+<title>Probabilistic model | Fortuna's documentation</title>
+<link href="../../_static/pygments.css" rel="stylesheet"/>
+<link href="../../_static/theme.9297a650d9dd3016d913.css" rel="stylesheet"/>
+<link href="../../_static/sg_gallery.css" rel="stylesheet"/>
+<link href="../../_static/sg_gallery.css" rel="stylesheet"/>
+<link href="../../search.html" rel="search" title="Search"/>
+<link href="../../genindex.html" rel="index" title="Index"/>
+<link href="predictive.html" rel="next" title="Predictive distribution"/>
+<link href="../references.html" rel="prev" title="API References"/>
+</head>
+<body class="antialiased text-gray scroll-smooth">
+<div class="min-h-screen xl:h-screen flex flex-col xl:grid xl:grid-layout print:block print:h-auto" data-action="keydown@window-&gt;search#focus " data-controller="sidebar search " id="page">
+<a class="block transition -translate-x-full focus:translate-x-0 opacity-0 focus:opacity-100 text-xl bg-white p-4 z-20 absolute top-0 left-0 h-14" href="#probabilistic-model" title="Skip navigation links">Skip to content</a>
+<header class="grid-area-header z-10 h-14 fixed w-full top-0 print:hidden">
+<div class="bg-gray-dark shadow-md flex items-center h-full xl:px-2 relative"><div class="flex items-center">
+<button class="xl:hidden h-14 w-14 leading-14 text-gray-100 hover:bg-gray-700 hover:text-brand focus:outline-none focus:bg-gray-700 focus:text-brand" data-action="sidebar#open" data-sidebar-target="hamburger">
+<span class="sr-only">Open navigation menu</span>
+<svg aria-hidden="true" class="fill-current h-8 w-8" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
+</button><a class="hover:bg-gray-700 focus:bg-gray-700 focus:outline-none" href="../../index.html" title="Back to homepage"><img alt="Logo" class="h-14 w-14 p-3 inline-block" src="../../_static/fortuna_symbol_white.png"/><span class="hidden lg:inline-block shrink-0 font-medium text-gray-100 mx-5 leading-14 tracking-wider">Fortuna's documentation</span>
+</a></div><div class="flex justify-end items-center flex-1"><form action="../../search.html" class="flex print:hidden justify-between items-center leading-14 md:ml-4 bg-gray-dark text-gray-300 focus-within:bg-gray-50 focus-within:text-gray-800 focus-within:absolute focus-within:inset-x-0 focus-within:top-0 md:focus-within:w-full md:focus-within:static z-10" data-action="click-&gt;search#focusSearchInput" id="searchbox" method="get">
+<button aria-label="Get search results" class="text-inherit h-14 w-14" tabindex="-1">
+<svg aria-hidden="true" class="fill-current stroke-current h-8 w-8" stroke-width="0.5" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+</button>
+<input aria-label="Search the docs" class="pr-2 bg-transparent text-inherit focus:outline-none w-0 md:w-auto focus:w-full transition-all duration-100" data-search-target="searchInput" id="search-input" name="q" placeholder="Search the docs" type="search"/>
+</form></div>
+</div>
+</header>
+<aside class="grid-area-sidebar h-full fixed pt-14 xl:relative inset-y-0 left-0 z-20 xl:z-0 print:hidden overflow-y-auto transition-all transform transform-gpu -translate-x-full opacity-0 duration-300 xl:translate-x-0 xl:opacity-100" data-sidebar-target="sidebar">
+<nav class="h-full overflow-y-auto bg-white text-gray-600 pt-8 flex flex-col" role="navigation">
+<div class="nav-toc flex-1 pl-6"><p class="caption" role="heading"><span class="caption-text">CONTENTS:</span></p>
+<ul class="current">
+<li class="toctree-l1"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../quickstart.html">Quickstart</a></div></li>
+<li class="toctree-l1"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../installation.html">Installation</a></div></li>
+<li class="toctree-l1"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/examples.html">Examples</a></div><ul>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html">MNIST Classification</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#Download-MNIST-data-from-TensorFlow">Download MNIST data from TensorFlow</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#Build-a-probabilistic-classifier">Build a probabilistic classifier</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#Conformal-prediction-sets">Conformal prediction sets</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/mnist_classification.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html">Sinusoidal regression</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#Generate-the-data">Generate the data</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#Build-a-probabilistic-regressor">Build a probabilistic regressor</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#Conformal-intervals">Conformal intervals</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/sinusoidal_regression.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html">Two-moons Classification</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html#Download-Two-Moons-data-from-scikit-learn">Download Two-Moons data from scikit-learn</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html#Convert-data-to-a-compatible-data-loader">Convert data to a compatible data loader</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html#Build-a-probabilistic-classifier">Build a probabilistic classifier</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html#Train-the-probabilistic-model:-posterior-fitting-and-calibration">Train the probabilistic model: posterior fitting and calibration</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html#Estimate-predictive-statistics">Estimate predictive statistics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html#Compute-metrics">Compute metrics</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/two_moons_classification.html#What-if-we-had-had-model-outputs-to-start-from?">What if we had had model outputs to start from?</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/tabular_regressions.html">Tabular regressions</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/tabular_regressions.html#Download-regression-datasets-from-UCI">Download regression datasets from UCI</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/tabular_regressions.html#Regression-on-each-data-set">Regression on each data set</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/bring_in_your_own.html">Bring in your own objects</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/bring_in_your_own.html#Bring-in-your-own-model">Bring in your own model</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/bring_in_your_own.html#Bring-in-your-own-prior-distribution">Bring in your own prior distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../examples/bring_in_your_own.html#Bring-in-your-own-output-calibrator">Bring in your own output calibrator</a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/usage_modes.html">Usage modes</a></div><ul>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/uncertainty_estimates.html">From uncertainty estimates</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/uncertainty_estimates.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/uncertainty_estimates.html#regression">Regression</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/model_outputs.html">From model outputs</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/model_outputs.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/model_outputs.html#regression">Regression</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/flax_models.html">From Flax models</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/flax_models.html#classification">Classification</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../../usage_modes/flax_models.html#regression">Regression</a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current expanded"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../references.html">API References</a></div><ul class="current">
+<li class="toctree-l2 current expanded"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="current reference internal" data-action="click-&gt;sidebar#close" href="#">Probabilistic model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#fortuna.prob_model.classification.ProbClassifier"><code class="docutils literal notranslate">ProbClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#fortuna.prob_model.regression.ProbRegressor"><code class="docutils literal notranslate">ProbRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="#fortuna.prob_model.base.ProbModel"><code class="docutils literal notranslate">ProbModel</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="predictive.html">Predictive distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="posterior/posterior.html">Posterior</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="joint.html">Joint distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="likelihood.html">Likelihood function</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="prior.html">Prior distribution</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="fit_config.html">Posterior fitting configuration</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../calib_model/calib_model.html">Calibration model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../calib_model/calib_model.html#fortuna.calib_model.classification.CalibClassifier"><code class="docutils literal notranslate">CalibClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../calib_model/calib_model.html#fortuna.calib_model.regression.CalibRegressor"><code class="docutils literal notranslate">CalibRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../calib_model/calib_model.html#fortuna.calib_model.base.CalibModel"><code class="docutils literal notranslate">CalibModel</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../calib_model/predictive.html">Predictive distribution</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../model/model.html">Model</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../model/builtin_models.html">Built-in models</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../model/linen_module.html">Flax Linen Module</a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../model/model_manager.html">Model manager</a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../output_calibrator.html">Output calibrator</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../output_calibrator.html#fortuna.output_calibrator.classification.ClassificationTemperatureScaler"><code class="docutils literal notranslate">ClassificationTemperatureScaler</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../output_calibrator.html#fortuna.output_calibrator.regression.RegressionTemperatureScaler"><code class="docutils literal notranslate">RegressionTemperatureScaler</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../output_calibrator.html#fortuna.training.calib_state.CalibState"><code class="docutils literal notranslate">CalibState</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../prob_output_layer.html">Probabilistic output layer</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../prob_output_layer.html#fortuna.prob_output_layer.base.ProbOutputLayer"><code class="docutils literal notranslate">ProbOutputLayer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../prob_output_layer.html#fortuna.prob_output_layer.classification.ClassificationProbOutputLayer"><code class="docutils literal notranslate">ClassificationProbOutputLayer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../prob_output_layer.html#fortuna.prob_output_layer.regression.RegressionProbOutputLayer"><code class="docutils literal notranslate">RegressionProbOutputLayer</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../calib_config.html">Calibration configuration</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../calib_config.html#fortuna.calib_config.base.CalibConfig"><code class="docutils literal notranslate">CalibConfig</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../conformer.html">Conformer</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../conformer.html#fortuna.conformer.classification.AdaptivePredictionConformalClassifier"><code class="docutils literal notranslate">AdaptivePredictionConformalClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../conformer.html#fortuna.conformer.classification.SimplePredictionConformalClassifier"><code class="docutils literal notranslate">SimplePredictionConformalClassifier</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../conformer.html#fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor"><code class="docutils literal notranslate">OneDimensionalUncertaintyConformalRegressor</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../conformer.html#fortuna.conformer.regression.QuantileConformalRegressor"><code class="docutils literal notranslate">QuantileConformalRegressor</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html">Data loader</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.DataLoader"><code class="docutils literal notranslate">DataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.InputsLoader"><code class="docutils literal notranslate">InputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.TargetsLoader"><code class="docutils literal notranslate">TargetsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.FromIterableToDataLoader"><code class="docutils literal notranslate">FromIterableToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.FromCallableIterableToDataLoader"><code class="docutils literal notranslate">FromCallableIterableToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.FromArrayDataToDataLoader"><code class="docutils literal notranslate">FromArrayDataToDataLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.FromArrayInputsToInputsLoader"><code class="docutils literal notranslate">FromArrayInputsToInputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.FromDataLoaderToInputsLoader"><code class="docutils literal notranslate">FromDataLoaderToInputsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.FromArrayTargetsToTargetsLoader"><code class="docutils literal notranslate">FromArrayTargetsToTargetsLoader</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../data_loader.html#fortuna.data.loader.FromDataLoaderToTargetsLoader"><code class="docutils literal notranslate">FromDataLoaderToTargetsLoader</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html">Metric</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.classification.accuracy"><code class="docutils literal notranslate">accuracy()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.classification.brier_score"><code class="docutils literal notranslate">brier_score()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.classification.ece"><code class="docutils literal notranslate">ece()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.classification.expected_calibration_error"><code class="docutils literal notranslate">expected_calibration_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.classification.maximum_calibration_error"><code class="docutils literal notranslate">maximum_calibration_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.classification.mce"><code class="docutils literal notranslate">mce()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.mae"><code class="docutils literal notranslate">mae()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.mean_absolute_error"><code class="docutils literal notranslate">mean_absolute_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.mean_squared_error"><code class="docutils literal notranslate">mean_squared_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.mse"><code class="docutils literal notranslate">mse()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.picp"><code class="docutils literal notranslate">picp()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.prediction_interval_coverage_probability"><code class="docutils literal notranslate">prediction_interval_coverage_probability()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.rmae"><code class="docutils literal notranslate">rmae()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.rmse"><code class="docutils literal notranslate">rmse()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.root_mean_absolute_error"><code class="docutils literal notranslate">root_mean_absolute_error()</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../metric.html#fortuna.metric.regression.root_mean_squared_error"><code class="docutils literal notranslate">root_mean_squared_error()</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../utils.html">Utils</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../utils.html#fortuna.utils.random.RandomNumberGenerator"><code class="docutils literal notranslate">RandomNumberGenerator</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../plot.html">Plot</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../plot.html#fortuna.plot.plot_reliability_diagram"><code class="docutils literal notranslate">plot_reliability_diagram()</code></a></div></li>
+</ul>
+</li>
+<li class="toctree-l2"><div class="nav-link"><svg class="expand" data-action="click-&gt;sidebar#expand keydown-&gt;sidebar#expandKeyPressed" tabindex="0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"></path></svg><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html">Typing</a></div><ul>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.Array"><code class="docutils literal notranslate">Array</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.Batch"><code class="docutils literal notranslate">Batch</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.Params"><code class="docutils literal notranslate">Params</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.Mutable"><code class="docutils literal notranslate">Mutable</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.Path"><code class="docutils literal notranslate">Path</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.OptaxOptimizer"><code class="docutils literal notranslate">OptaxOptimizer</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.CalibParams"><code class="docutils literal notranslate">CalibParams</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.CalibMutable"><code class="docutils literal notranslate">CalibMutable</code></a></div></li>
+<li class="toctree-l3"><div class="nav-link"><a class="reference internal" data-action="click-&gt;sidebar#close" href="../typing.html#fortuna.typing.Status"><code class="docutils literal notranslate">Status</code></a></div></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<button class="text-4xl text-gray-800 p-4 bottom-0 hover:text-brand xl:hidden focus:text-brand self-center" data-action="sidebar#close" title="Close navigation menu">
+<span class="sr-only">Close navigation menu</span>
+<svg aria-hidden="true" class="fill-current stroke-current h-6 w-6" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</aside>
+<main class="px-4 pt-14 xl:ml-fluid grid-area-main overflow-y-auto flex flex-col flex-1 h-full mx-0 md:mx-auto xl:mr-0"><nav aria-label="breadcrumbs" class="print:hidden mt-12 text-sm text-gray-light" role="navigation">
+<a class="text-gray-light text-sm hover:text-gray-dark font-medium focus:text-gray-dark" href="../../index.html">Fortuna's documentation</a>
+<span class="mr-1">/</span><a class="text-gray-light text-sm hover:text-gray-dark" href="../references.html">API References</a>
+<span class="mr-1">/</span><span aria-current="page">Probabilistic model</span>
+</nav>
+<article class="flex-1" role="main">
+<section id="probabilistic-model">
+<h1>Probabilistic model<a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#probabilistic-model">¶</a></h1>
+<p>We support a <a class="reference internal" href="#prob-classifier"><span class="std std-ref">probabilistic classifier</span></a> for classification
+and a <a class="reference internal" href="#prob-regressor"><span class="std std-ref">probabilistic regressor</span></a> for regression.
+Please find their references below.</p>
+<span class="target" id="module-fortuna.prob_model.classification"><span id="prob-classifier"></span></span><dl class="py class code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier">
+<em class="property">class<span class="w"> </span></em><code class="sig-prename descclassname">fortuna.prob_model.classification.</code><code class="sig-name descname">ProbClassifier</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">prior</span><span class="o">=</span><span class="default_value">IsotropicGaussianPrior()</span></em>, <em class="sig-param"><span class="n">posterior_approximator</span><span class="o">=</span><span class="default_value">SWAGPosteriorApproximator()</span></em>, <em class="sig-param"><span class="n">output_calibrator</span><span class="o">=</span><span class="default_value">ClassificationTemperatureScaler()</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/classification.html#ProbClassifier"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier">¶</a></dt>
+<dd>
+<p>A probabilistic classifier class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – A model describing the deterministic relation between inputs and outputs. The outputs must correspond to
+the logits of a softmax probability vector. The output dimension must be the same as the number of classes.
+Let <span class="math notranslate nohighlight">\(x\)</span> be input variables and <span class="math notranslate nohighlight">\(w\)</span> the random model parameters. Then the model is described by
+a function <span class="math notranslate nohighlight">\(f(w, x)\)</span>, where each component of <span class="math notranslate nohighlight">\(f\)</span> corresponds to one of the classes.</p></li>
+<li><p><strong>prior</strong> (<a class="reference internal" href="prior.html#fortuna.prob_model.prior.base.Prior" title="fortuna.prob_model.prior.base.Prior"><em>Prior</em></a>) – A prior distribution object. The default is an isotropic standard Gaussian. Let <span class="math notranslate nohighlight">\(w\)</span> be the random
+model parameters. Then the prior is defined by a distribution <span class="math notranslate nohighlight">\(p(w)\)</span>.</p></li>
+<li><p><strong>posterior_approximator</strong> (<a class="reference internal" href="posterior/posterior.html#fortuna.prob_model.posterior.base.PosteriorApproximator" title="fortuna.prob_model.posterior.base.PosteriorApproximator"><em>PosteriorApproximator</em></a>) – A posterior approximation method. The default method is SWAG.</p></li>
+<li><p><strong>output_calibrator</strong> (<em>Optional</em><em>[</em><em>nn.Module</em><em>]</em>) – An output calibrator object. The default is temperature scaling for classification, which rescales the
+logits with a scalar temperature parameter. Given outputs <span class="math notranslate nohighlight">\(o\)</span> of the model manager, the output
+calibrator is described by a function <span class="math notranslate nohighlight">\(g(\phi, o)\)</span>, where <cite>phi</cite> are deterministic
+calibration parameters.</p></li>
+<li><p><strong>seed</strong> (<em>int</em>) – A random seed.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.model">
+<code class="sig-name descname">model</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.model">¶</a></dt>
+<dd>
+<p>See <cite>model</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nn.Module</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.model_manager">
+<code class="sig-name descname">model_manager</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.model_manager">¶</a></dt>
+<dd>
+<p>This object orchestrates the model’s forward pass.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../model/model_manager.html#fortuna.model.model_manager.classification.ClassificationModelManager" title="fortuna.model.model_manager.classification.ClassificationModelManager">ClassificationModelManager</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.output_calibrator">
+<code class="sig-name descname">output_calibrator</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.output_calibrator">¶</a></dt>
+<dd>
+<p>See <cite>output_calibrator</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nn.Module</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.prob_output_layer">
+<code class="sig-name descname">prob_output_layer</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.prob_output_layer">¶</a></dt>
+<dd>
+<p>This object characterizes the distribution of target variable given the calibrated outputs. It is defined
+by <span class="math notranslate nohighlight">\(p(y|\omega)=\text{Categorical}(y|p=softmax(o))\)</span>,
+where <span class="math notranslate nohighlight">\(o\)</span> denote the outputs and <span class="math notranslate nohighlight">\(y\)</span> denotes a target variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../prob_output_layer.html#fortuna.prob_output_layer.classification.ClassificationProbOutputLayer" title="fortuna.prob_output_layer.classification.ClassificationProbOutputLayer">ClassificationProbOutputLayer</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.likelihood">
+<code class="sig-name descname">likelihood</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.likelihood">¶</a></dt>
+<dd>
+<p>The likelihood function. This is defined by
+<span class="math notranslate nohighlight">\(p(y|w, \phi, x) = \text{Categorical}(y|p=\text{softmax}(g(\phi, f(w, x)))\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="likelihood.html#fortuna.prob_model.likelihood.classification.ClassificationLikelihood" title="fortuna.prob_model.likelihood.classification.ClassificationLikelihood">ClassificationLikelihood</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.prior">
+<code class="sig-name descname">prior</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.prior">¶</a></dt>
+<dd>
+<p>See <cite>prior</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="prior.html#fortuna.prob_model.prior.base.Prior" title="fortuna.prob_model.prior.base.Prior">Prior</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.joint">
+<code class="sig-name descname">joint</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.joint">¶</a></dt>
+<dd>
+<p>This object describes the joint distribution of the target variables and the random parameters
+given the input variables and the calibration parameters, that is <span class="math notranslate nohighlight">\(p(y, w|x, \phi)\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="joint.html#fortuna.prob_model.joint.base.Joint" title="fortuna.prob_model.joint.base.Joint">Joint</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.posterior_approximator">
+<code class="sig-name descname">posterior_approximator</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.posterior_approximator">¶</a></dt>
+<dd>
+<p>See <cite>posterior_approximator</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="posterior/posterior.html#fortuna.prob_model.posterior.base.PosteriorApproximator" title="fortuna.prob_model.posterior.base.PosteriorApproximator">PosteriorApproximator</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.posterior">
+<code class="sig-name descname">posterior</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.posterior">¶</a></dt>
+<dd>
+<p>This is the posterior approximation of the random parameters given the training data and the
+calibration parameters, that is <span class="math notranslate nohighlight">\(p(w|\mathcal{D}, \phi)\)</span>, where <span class="math notranslate nohighlight">\(\mathcal{D}\)</span> denotes the
+training data set and <span class="math notranslate nohighlight">\(\phi\)</span> the calibration parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="posterior/posterior.html#fortuna.prob_model.posterior.base.Posterior" title="fortuna.prob_model.posterior.base.Posterior">Posterior</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.predictive">
+<code class="sig-name descname">predictive</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.predictive">¶</a></dt>
+<dd>
+<p>This denotes the predictive distribution, that is <span class="math notranslate nohighlight">\(p(y|\phi, x, \mathcal{D})\)</span>. Its statistics are
+approximated via a Monte Carlo approach by sampling from the posterior approximation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../calib_model/predictive.html#fortuna.calib_model.predictive.classification.ClassificationPredictive" title="fortuna.calib_model.predictive.classification.ClassificationPredictive">ClassificationPredictive</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.calibrate">
+<code class="sig-name descname">calibrate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_loader</span></em>, <em class="sig-param"><span class="n">calib_config</span><span class="o">=</span><span class="default_value">CalibConfig()</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/classification.html#ProbClassifier.calibrate"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.calibrate">¶</a></dt>
+<dd>
+<p>Calibrate the probabilistic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A data loader.</p></li>
+<li><p><strong>calib_config</strong> (<a class="reference internal" href="../calib_config.html#fortuna.calib_config.base.CalibConfig" title="fortuna.calib_config.base.CalibConfig"><em>CalibConfig</em></a>) – An object to configure the calibration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A calibration status object. It provides information about the calibration.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Status</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.load_state">
+<code class="sig-name descname">load_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint_path</span></em><span class="sig-paren">)</span><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.load_state">¶</a></dt>
+<dd>
+<p>Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
+probabilistic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>checkpoint_path</strong> (<em>Path</em>) – Path to a checkpoint file or directory to restore.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate">None</code></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.save_state">
+<code class="sig-name descname">save_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint_path</span></em>, <em class="sig-param"><span class="n">keep_top_n_checkpoints</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.save_state">¶</a></dt>
+<dd>
+<p>Save the posterior distribution state as a checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>checkpoint_path</strong> (<em>Path</em>) – Path to file or directory where to save the current state.</p></li>
+<li><p><strong>keep_top_n_checkpoints</strong> (<em>int</em>) – Number of past checkpoint files to keep.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate">None</code></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.classification.ProbClassifier.train">
+<code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_data_loader</span></em>, <em class="sig-param"><span class="n">val_data_loader</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">calib_data_loader</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fit_config</span><span class="o">=</span><span class="default_value">FitConfig()</span></em>, <em class="sig-param"><span class="n">calib_config</span><span class="o">=</span><span class="default_value">CalibConfig()</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">fit_kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/classification.html#ProbClassifier.train"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.classification.ProbClassifier.train">¶</a></dt>
+<dd>
+<p>Train the probabilistic model. This involves fitting the posterior distribution and calibrating the
+probabilistic model. Calibration is performed only if (1) <cite>calib_data_loader</cite> is passed and (2) the
+probabilistic model contains any calibrator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A training data loader.</p></li>
+<li><p><strong>val_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A validation data loader.</p></li>
+<li><p><strong>calib_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A calibration data loader. If this is not passed, no calibration is performed.</p></li>
+<li><p><strong>fit_config</strong> (<a class="reference internal" href="fit_config.html#fortuna.prob_model.fit_config.base.FitConfig" title="fortuna.prob_model.fit_config.base.FitConfig"><em>FitConfig</em></a>) – An object to configure the posterior distribution fitting.</p></li>
+<li><p><strong>calib_config</strong> (<a class="reference internal" href="../calib_config.html#fortuna.calib_config.base.CalibConfig" title="fortuna.calib_config.base.CalibConfig"><em>CalibConfig</em></a>) – An object to configure the calibration.</p></li>
+<li><p><strong>fit_kwargs</strong> (<em>dict</em>) – Other arguments relevant to fitting the posterior distribution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Status objects for both posterior fitting and calibration.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Status]</p>
+</dd>
+</dl>
+</dd></dl>
+</dd></dl>
+<span class="target" id="module-fortuna.prob_model.regression"><span id="prob-regressor"></span></span><dl class="py class code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor">
+<em class="property">class<span class="w"> </span></em><code class="sig-prename descclassname">fortuna.prob_model.regression.</code><code class="sig-name descname">ProbRegressor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model</span></em>, <em class="sig-param"><span class="n">likelihood_log_variance_model</span></em>, <em class="sig-param"><span class="n">prior</span><span class="o">=</span><span class="default_value">IsotropicGaussianPrior()</span></em>, <em class="sig-param"><span class="n">posterior_approximator</span><span class="o">=</span><span class="default_value">SWAGPosteriorApproximator()</span></em>, <em class="sig-param"><span class="n">output_calibrator</span><span class="o">=</span><span class="default_value">RegressionTemperatureScaler()</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/regression.html#ProbRegressor"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor">¶</a></dt>
+<dd>
+<p>A probabilistic regressor class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – A model describing the deterministic relation between inputs and outputs. It characterizes the mean model
+of the likelihood function. The outputs must belong to the same space as the target variables.
+Let <span class="math notranslate nohighlight">\(x\)</span> be input variables and <span class="math notranslate nohighlight">\(w\)</span> the random model parameters. Then the model is described by
+a function <span class="math notranslate nohighlight">\(\mu(w, x)\)</span>.</p></li>
+<li><p><strong>likelihood_log_variance_model</strong> (<em>nn.Module</em>) – A model characterizing the log-variance of a Gaussian likelihood function. The outputs must belong to the
+same space as the target variables. Let <span class="math notranslate nohighlight">\(x\)</span> be input variables and <span class="math notranslate nohighlight">\(w\)</span> the random model
+parameters. Then the model is described by a function <span class="math notranslate nohighlight">\(\log\sigma^2(w, x)\)</span>.</p></li>
+<li><p><strong>prior</strong> (<a class="reference internal" href="prior.html#fortuna.prob_model.prior.base.Prior" title="fortuna.prob_model.prior.base.Prior"><em>Prior</em></a>) – A prior distribution object. The default is an isotropic standard Gaussian. Let <span class="math notranslate nohighlight">\(w\)</span> be the random
+model parameters. Then the prior is defined by a distribution <span class="math notranslate nohighlight">\(p(w)\)</span>.</p></li>
+<li><p><strong>posterior_approximator</strong> (<a class="reference internal" href="posterior/posterior.html#fortuna.prob_model.posterior.base.PosteriorApproximator" title="fortuna.prob_model.posterior.base.PosteriorApproximator"><em>PosteriorApproximator</em></a>) – A posterior approximation method. The default method is SWAG.</p></li>
+<li><p><strong>output_calibrator</strong> (<em>Optional</em><em>[</em><em>nn.Module</em><em>]</em>) – An output calibrator object. The default is temperature scaling for regression, which inflates the variance
+of the likelihood with a scalar temperature parameter. Given outputs <span class="math notranslate nohighlight">\(o\)</span> of the model manager, the
+output calibrator is described by a function <span class="math notranslate nohighlight">\(g(\phi, o)\)</span>, where <cite>phi</cite> are deterministic
+calibration parameters.</p></li>
+<li><p><strong>seed</strong> (<em>int</em>) – A random seed.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.model">
+<code class="sig-name descname">model</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.model">¶</a></dt>
+<dd>
+<p>See <cite>model</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nn.Module</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.model_manager">
+<code class="sig-name descname">model_manager</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.model_manager">¶</a></dt>
+<dd>
+<p>This object orchestrates the model’s forward pass. Given a mean model <span class="math notranslate nohighlight">\(\mu(w, x)\)</span> and a log-variance
+model <span class="math notranslate nohighlight">\(\log\sigma^2\)</span>, the model manager concatenates the two into
+<span class="math notranslate nohighlight">\(f(w, x)=[\mu(w, x), \log\sigma^2(w, x)]\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../model/model_manager.html#fortuna.model.model_manager.regression.RegressionModelManager" title="fortuna.model.model_manager.regression.RegressionModelManager">RegressionModelManager</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.output_calibrator">
+<code class="sig-name descname">output_calibrator</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.output_calibrator">¶</a></dt>
+<dd>
+<p>See <cite>output_calibrator</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nn.Module</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.prob_output_layer">
+<code class="sig-name descname">prob_output_layer</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.prob_output_layer">¶</a></dt>
+<dd>
+<p>This object characterizes the distribution of the target variable given the calibrated outputs. It is
+defined by <span class="math notranslate nohighlight">\(p(y|\omega)=\text{Categorical}(p=softmax(\omega))\)</span>, where <span class="math notranslate nohighlight">\(\omega\)</span> denote the
+calibrated outputs and <span class="math notranslate nohighlight">\(y\)</span> denotes a target variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../prob_output_layer.html#fortuna.prob_output_layer.regression.RegressionProbOutputLayer" title="fortuna.prob_output_layer.regression.RegressionProbOutputLayer">RegressionProbOutputLayer</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.likelihood">
+<code class="sig-name descname">likelihood</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.likelihood">¶</a></dt>
+<dd>
+<p>The likelihood function. This is defined by
+<span class="math notranslate nohighlight">\(p(y|w, \phi, x) = \text{Categorical}(p=\text{softmax}(g(\phi, f(w, x)))\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="likelihood.html#fortuna.prob_model.likelihood.regression.RegressionLikelihood" title="fortuna.prob_model.likelihood.regression.RegressionLikelihood">RegressionLikelihood</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.prior">
+<code class="sig-name descname">prior</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.prior">¶</a></dt>
+<dd>
+<p>See <cite>prior</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="prior.html#fortuna.prob_model.prior.base.Prior" title="fortuna.prob_model.prior.base.Prior">Prior</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.joint">
+<code class="sig-name descname">joint</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.joint">¶</a></dt>
+<dd>
+<p>This object describes the joint distribution of the target variables and the random parameters
+given the input variables and the calibration parameters, that is <span class="math notranslate nohighlight">\(p(y, w|x, \phi)\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="joint.html#fortuna.prob_model.joint.base.Joint" title="fortuna.prob_model.joint.base.Joint">Joint</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.posterior_approximator">
+<code class="sig-name descname">posterior_approximator</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.posterior_approximator">¶</a></dt>
+<dd>
+<p>See <cite>posterior_approximator</cite> in <cite>Parameters</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="posterior/posterior.html#fortuna.prob_model.posterior.base.PosteriorApproximator" title="fortuna.prob_model.posterior.base.PosteriorApproximator">PosteriorApproximator</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.posterior">
+<code class="sig-name descname">posterior</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.posterior">¶</a></dt>
+<dd>
+<p>This is the posterior approximation of the random parameters given the training data and the
+calibration parameters, that is <span class="math notranslate nohighlight">\(p(w|\mathcal{D}, \phi)\)</span>, where <span class="math notranslate nohighlight">\(\mathcal{D}\)</span> denotes the
+training data set and <span class="math notranslate nohighlight">\(\phi\)</span> the calibration parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="posterior/posterior.html#fortuna.prob_model.posterior.base.Posterior" title="fortuna.prob_model.posterior.base.Posterior">Posterior</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py attribute code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.predictive">
+<code class="sig-name descname">predictive</code><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.predictive">¶</a></dt>
+<dd>
+<p>This denotes the predictive distribution, that is <span class="math notranslate nohighlight">\(p(y|\phi, x, \mathcal{D})\)</span>. Its statistics are
+approximated via a Monte Carlo approach by sampling from the posterior approximation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../calib_model/predictive.html#fortuna.calib_model.predictive.regression.RegressionPredictive" title="fortuna.calib_model.predictive.regression.RegressionPredictive">RegressionPredictive</a></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.calibrate">
+<code class="sig-name descname">calibrate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_loader</span></em>, <em class="sig-param"><span class="n">calib_config</span><span class="o">=</span><span class="default_value">CalibConfig()</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/regression.html#ProbRegressor.calibrate"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.calibrate">¶</a></dt>
+<dd>
+<p>Calibrate the probabilistic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A data loader.</p></li>
+<li><p><strong>calib_config</strong> (<a class="reference internal" href="../calib_config.html#fortuna.calib_config.base.CalibConfig" title="fortuna.calib_config.base.CalibConfig"><em>CalibConfig</em></a>) – An object to configure the calibration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A calibration status object. It provides information about the calibration.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Status</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.load_state">
+<code class="sig-name descname">load_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint_path</span></em><span class="sig-paren">)</span><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.load_state">¶</a></dt>
+<dd>
+<p>Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
+probabilistic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>checkpoint_path</strong> (<em>Path</em>) – Path to a checkpoint file or directory to restore.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate">None</code></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.save_state">
+<code class="sig-name descname">save_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint_path</span></em>, <em class="sig-param"><span class="n">keep_top_n_checkpoints</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.save_state">¶</a></dt>
+<dd>
+<p>Save the posterior distribution state as a checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>checkpoint_path</strong> (<em>Path</em>) – Path to file or directory where to save the current state.</p></li>
+<li><p><strong>keep_top_n_checkpoints</strong> (<em>int</em>) – Number of past checkpoint files to keep.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate">None</code></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.regression.ProbRegressor.train">
+<code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_data_loader</span></em>, <em class="sig-param"><span class="n">val_data_loader</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">calib_data_loader</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fit_config</span><span class="o">=</span><span class="default_value">FitConfig()</span></em>, <em class="sig-param"><span class="n">calib_config</span><span class="o">=</span><span class="default_value">CalibConfig()</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">fit_kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/regression.html#ProbRegressor.train"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.regression.ProbRegressor.train">¶</a></dt>
+<dd>
+<p>Train the probabilistic model. This involves fitting the posterior distribution and calibrating the
+probabilistic model. Calibration is performed only if (1) <cite>calib_data_loader</cite> is passed and (2) the
+probabilistic model contains any calibrator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A training data loader.</p></li>
+<li><p><strong>val_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A validation data loader.</p></li>
+<li><p><strong>calib_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A calibration data loader. If this is not passed, no calibration is performed.</p></li>
+<li><p><strong>fit_config</strong> (<a class="reference internal" href="fit_config.html#fortuna.prob_model.fit_config.base.FitConfig" title="fortuna.prob_model.fit_config.base.FitConfig"><em>FitConfig</em></a>) – An object to configure the posterior distribution fitting.</p></li>
+<li><p><strong>calib_config</strong> (<a class="reference internal" href="../calib_config.html#fortuna.calib_config.base.CalibConfig" title="fortuna.calib_config.base.CalibConfig"><em>CalibConfig</em></a>) – An object to configure the calibration.</p></li>
+<li><p><strong>fit_kwargs</strong> (<em>dict</em>) – Other arguments relevant to fitting the posterior distribution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Status objects for both posterior fitting and calibration.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Status]</p>
+</dd>
+</dl>
+</dd></dl>
+</dd></dl>
+<span class="target" id="module-fortuna.prob_model.base"><span id="prob-base"></span></span><dl class="py class code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.base.ProbModel">
+<em class="property">class<span class="w"> </span></em><code class="sig-prename descclassname">fortuna.prob_model.base.</code><code class="sig-name descname">ProbModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/base.html#ProbModel"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.base.ProbModel">¶</a></dt>
+<dd>
+<p>Abstract probabilistic model class.</p>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.base.ProbModel.calibrate">
+<code class="sig-name descname">calibrate</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data_loader</span></em>, <em class="sig-param"><span class="n">calib_config</span><span class="o">=</span><span class="default_value">CalibConfig()</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/base.html#ProbModel.calibrate"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.base.ProbModel.calibrate">¶</a></dt>
+<dd>
+<p>Calibrate the probabilistic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A data loader.</p></li>
+<li><p><strong>calib_config</strong> (<a class="reference internal" href="../calib_config.html#fortuna.calib_config.base.CalibConfig" title="fortuna.calib_config.base.CalibConfig"><em>CalibConfig</em></a>) – An object to configure the calibration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A calibration status object. It provides information about the calibration.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Status</p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.base.ProbModel.load_state">
+<code class="sig-name descname">load_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint_path</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/base.html#ProbModel.load_state"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.base.ProbModel.load_state">¶</a></dt>
+<dd>
+<p>Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
+probabilistic model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>checkpoint_path</strong> (<em>Path</em>) – Path to a checkpoint file or directory to restore.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate">None</code></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.base.ProbModel.save_state">
+<code class="sig-name descname">save_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint_path</span></em>, <em class="sig-param"><span class="n">keep_top_n_checkpoints</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/base.html#ProbModel.save_state"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.base.ProbModel.save_state">¶</a></dt>
+<dd>
+<p>Save the posterior distribution state as a checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>checkpoint_path</strong> (<em>Path</em>) – Path to file or directory where to save the current state.</p></li>
+<li><p><strong>keep_top_n_checkpoints</strong> (<em>int</em>) – Number of past checkpoint files to keep.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-obj docutils literal notranslate">None</code></p>
+</dd>
+</dl>
+</dd></dl>
+<dl class="py method code-definition">
+<dt class="sig sig-object py" id="fortuna.prob_model.base.ProbModel.train">
+<code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_data_loader</span></em>, <em class="sig-param"><span class="n">val_data_loader</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">calib_data_loader</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fit_config</span><span class="o">=</span><span class="default_value">FitConfig()</span></em>, <em class="sig-param"><span class="n">calib_config</span><span class="o">=</span><span class="default_value">CalibConfig()</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">fit_kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/fortuna/prob_model/base.html#ProbModel.train"><span class="viewcode-link">[source]</span></a><a aria-label="Click to copy this link" class="headerlink tooltipped tooltipped-ne" data-action="click-&gt;clipboard#copyHeaderLink" data-controller="clipboard" href="#fortuna.prob_model.base.ProbModel.train">¶</a></dt>
+<dd>
+<p>Train the probabilistic model. This involves fitting the posterior distribution and calibrating the
+probabilistic model. Calibration is performed only if (1) <cite>calib_data_loader</cite> is passed and (2) the
+probabilistic model contains any calibrator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A training data loader.</p></li>
+<li><p><strong>val_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A validation data loader.</p></li>
+<li><p><strong>calib_data_loader</strong> (<a class="reference internal" href="../data_loader.html#fortuna.data.loader.DataLoader" title="fortuna.data.loader.DataLoader"><em>DataLoader</em></a>) – A calibration data loader. If this is not passed, no calibration is performed.</p></li>
+<li><p><strong>fit_config</strong> (<a class="reference internal" href="fit_config.html#fortuna.prob_model.fit_config.base.FitConfig" title="fortuna.prob_model.fit_config.base.FitConfig"><em>FitConfig</em></a>) – An object to configure the posterior distribution fitting.</p></li>
+<li><p><strong>calib_config</strong> (<a class="reference internal" href="../calib_config.html#fortuna.calib_config.base.CalibConfig" title="fortuna.calib_config.base.CalibConfig"><em>CalibConfig</em></a>) – An object to configure the calibration.</p></li>
+<li><p><strong>fit_kwargs</strong> (<em>dict</em>) – Other arguments relevant to fitting the posterior distribution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Status objects for both posterior fitting and calibration.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Status]</p>
+</dd>
+</dl>
+</dd></dl>
+</dd></dl>
+
+</section>
+</article>
+<footer>
+<div class="mt-20 mb-4 text-sm text-gray-700 print:mt-4">© 2022, AWS Made with <a href="https://www.sphinx-doc.org">Sphinx 5.3.0</a></div>
+</footer></main>
+<button class="fixed bottom-0 right-0 z-20 opacity-0 p-4 m-4 tracking-wide bg-gray-900 text-gray-100 transition transform transform-gpu duration-500 translate-y-full" data-action="search#hideSnackbar" data-search-target="snackbar">
+  Clear highlights
+</button><div class="fixed hidden inset-0 bg-black bg-opacity-50" data-action="click-&gt;sidebar#close" data-sidebar-target="screen">
+</div>
+</div>
+<script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+<script src="../../_static/jquery.js"></script>
+<script src="../../_static/underscore.js"></script>
+<script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+<script src="../../_static/doctools.js"></script>
+<script src="../../_static/sphinx_highlight.js"></script>
+<script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+<script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+<script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script src="../../_static/theme.3051a0ec24cad00d4d88.js"></script>
+</body>
+</html>
