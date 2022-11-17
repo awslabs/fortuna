@@ -10,8 +10,13 @@ Fortuna provides calibrated uncertainty estimates of model predictions, in class
 It is designed to be easy-to-use,
 and to promote effortless estimation of uncertainty in production systems.
 
-.. include:: quickstart.rst
+Check the [documentation] for a quickstart instructions, examples and API references.
 
-.. include:: installation.rst
+License
+########
+This project is licensed under the Apache-2.0 License.
+See `LICENSE <https://github.com/awslabs/fortuna/blob/main/LICENSE>`_ for more information.
 
-.. include:: license.rst
+Security
+########
+See `CONTRIBUTING.md <https://github.com/awslabs/fortuna/blob/main/CONTRIBUTING.md>`_ for more information.
