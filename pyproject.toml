@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A Library for Uncertainty Quantification."
 authors = ["AWS <detomma@amazon.com>"]
 license = "Apache-2.0"
-readme = "README.md"
+readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
