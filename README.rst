@@ -37,12 +37,22 @@ You might prefer one usage mode or the other according to your own requirements.
   However, it enables you to replace standard training with scalable Bayesian inference procedures,
   which may significantly improve the quantification of predictive uncertainty.
 
+Installation
+============
+.. note::
+    Before installing Fortuna, you are required to `install JAX <https://github.com/google/jax#installation>`_ in your virtual environment.
+
+You can install Fortuna by typing
+
+.. code-block::
+
+    pip install aws-fortuna
 
 License
-########
+=======
 This project is licensed under the Apache-2.0 License.
 See `LICENSE <https://github.com/awslabs/fortuna/blob/main/LICENSE>`_ for more information.
 
 Security
-########
+========
 See `CONTRIBUTING.md <https://github.com/awslabs/fortuna/blob/main/CONTRIBUTING.md>`_ for more information.
