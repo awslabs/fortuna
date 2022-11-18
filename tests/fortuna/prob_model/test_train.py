@@ -25,7 +25,7 @@ from fortuna.prob_model.posterior.swag.swag_posterior import \
     SWAGPosteriorApproximator
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
-from sklearn.datasets import make_moons, make_regression
+from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
 
 logging.basicConfig(level=logging.INFO)
@@ -41,21 +41,13 @@ class TestApproximations(unittest.TestCase):
         self.reg_input_shape = (3,)
         self.reg_output_dim = 2
         bs = 32
-        x, y = make_regression(
-            n_samples=100,
-            n_features=self.reg_input_shape[0],
-            n_targets=self.reg_output_dim,
-            random_state=0,
-        )
+        x, y = make_array_random_data(n_data=100, shape_inputs=self.reg_input_shape,
+                                      output_dim=self.reg_output_dim, output_type="continuous")
         x /= x.max(0)
         y /= y.max(0)
         reg_train_data = x, y
-        reg_val_data = make_regression(
-            n_samples=10,
-            n_features=self.reg_input_shape[0],
-            n_targets=self.reg_output_dim,
-            random_state=1,
-        )
+        reg_val_data = make_array_random_data(n_data=10, shape_inputs=self.reg_input_shape,
+                                              output_dim=self.reg_output_dim, output_type="continuous")
         reg_train_data = [
             (reg_train_data[0][i : i + bs], reg_train_data[1][i : i + bs])
             for i in range(0, len(reg_train_data[0]), bs)
@@ -69,8 +61,10 @@ class TestApproximations(unittest.TestCase):
 
         self.class_input_shape = (2,)
         self.class_output_dim = 2
-        class_train_data = make_moons(n_samples=100, noise=0.07, random_state=0)
-        class_val_data = make_moons(n_samples=10, noise=0.07, random_state=1)
+        class_train_data = make_array_random_data(n_data=100, shape_inputs=self.class_input_shape,
+                                                  output_dim=self.class_output_dim, output_type="discrete")
+        class_val_data = make_array_random_data(n_data=10, shape_inputs=self.class_input_shape,
+                                                output_dim=self.class_output_dim, output_type="discrete")
         class_train_data = [
             (class_train_data[0][i : i + bs], class_train_data[1][i : i + bs])
             for i in range(0, len(class_train_data[0]), bs)
