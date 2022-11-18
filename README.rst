@@ -39,8 +39,7 @@ You might prefer one usage mode or the other according to your own requirements.
 
 Installation
 ============
-.. note::
-    Before installing Fortuna, you are required to `install JAX <https://github.com/google/jax#installation>`_ in your virtual environment.
+**NOTE:** Before installing Fortuna, you are required to `install JAX <https://github.com/google/jax#installation>`_ in your virtual environment.
 
 You can install Fortuna by typing
 
