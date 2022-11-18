@@ -1,4 +1,4 @@
-.. include:: ../../README.rst
+.. include:: landingpage.rst
 
 .. toctree::
    :maxdepth: 1

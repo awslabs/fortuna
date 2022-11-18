@@ -13,7 +13,7 @@ and to promote effortless estimation of uncertainty in production systems.
 Check the [documentation] for quickstart instructions, examples and API references.
 
 Usage modes
------------
+===========
 Fortuna offers several usage modes.
 Their pipeline is depicted in the figure below.
 You can start your journey with Fortuna from any of the green panels.

@@ -25,7 +25,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "nbsphinx",
     "sphinx_gallery.load_style",
-    "sphinx_mdinclude",
     "sphinxawesome_theme",
     "sphinx.ext.viewcode",
     "nbsphinx_link",
