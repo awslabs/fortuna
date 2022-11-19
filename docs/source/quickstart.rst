@@ -43,12 +43,9 @@ The next paragraphs offer more details about each of these usage modes.
 
        from fortuna.conformer.regression import QuantileConformalRegressor
        conformal_intervals = QuantileConformalRegressor().conformal_interval(
-            val_lower_bounds=val_lower_bounds,
-            val_upper_bounds=val_upper_bounds,
-            test_lower_bounds=test_lower_bounds,
-            test_upper_bounds=test_upper_bounds,
-            val_targets=val_targets,
-            error=error
+            val_lower_bounds=val_lower_bounds, val_upper_bounds=val_upper_bounds,
+            test_lower_bounds=test_lower_bounds, test_upper_bounds=test_upper_bounds,
+            val_targets=val_targets, error=error
        )
 
 :ref:`From model outputs <model_outputs>`.
@@ -61,54 +58,16 @@ The next paragraphs offer more details about each of these usage modes.
    respectively :code:`val_outputs` and :code:`test_outputs`.
    Furthermore, you have some arrays of validation and target variables,
    respectively :code:`val_targets` and :code:`test_targets`.
-   The following code provides a minimal classification example to get calibrated uncertainty estimates,
-   compute metrics and conformal sets.
+   The following code provides a minimal classification example to get calibrated predictive entropy estimates.
 
 
    .. code-block:: python
-      :caption: **References:** :class:`~fortuna.calib_model.classification.CalibClassifier`, :meth:`~fortuna.calib_model.classification.CalibClassifier.calibrate`, :meth:`~fortuna.calib_model.predictive.classification.ClassificationPredictive.mean`, :meth:`~fortuna.calib_model.predictive.classification.ClassificationPredictive.mode`, :func:`~fortuna.metric.classification.accuracy`, :func:`~fortuna.metric.classification.expected_calibration_error`, :meth:`~fortuna.conformer.classification.AdaptivePredictionConformalClassifier.conformal_set`
+      :caption: **References:** :class:`~fortuna.calib_model.classification.CalibClassifier`, :meth:`~fortuna.calib_model.classification.CalibClassifier.calibrate`, :meth:`~fortuna.calib_model.predictive.classification.ClassificationPredictive.entropy`
 
-      # define a calibrations model
       from fortuna.calib_model import CalibClassifier
       calib_model = CalibClassifier()
-
-      # calibrate the model outputs
-      status = calib_model.calibrate(
-            outputs=val_outputs,
-            targets=val_targets
-      )
-
-      # make predictions
-      test_means = calib_model.predictive.mean(
-            outputs=test_outputs
-      )
-      test_modes = calib_model.predictive.mode(
-            outputs=test_outputs
-      )
-
-      # compute metrics
-      from fortuna.metric.classification import accuracy, expected_calibration_error
-      acc = accuracy(
-            preds=test_modes,
-            targets=test_targets
-      )
-      ece = expected_calibration_error(
-            preds=test_modes,
-            probs=test_means,
-            targets=test_targets
-      )
-
-      # compute conformal sets
-      from fortuna.conformer.classification import AdaptivePredictionConformalClassifier
-      val_means = calib_model.predictive.mean(
-            outputs=val_outputs
-      )
-      conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
-            val_probs=val_means,
-            test_probs=test_means,
-            val_targets=val_targets
-      )
-
+      status = calib_model.calibrate(outputs=val_outputs, targets=val_targets)
+      test_entropies = calib_model.predictive.entropy(outputs=test_outputs)
 
 :ref:`From Flax models <flax_models>`.
    You bring data and a deep learning model written in `Flax <https://flax.readthedocs.io/>`__
@@ -120,64 +79,17 @@ The next paragraphs offer more details about each of these usage modes.
    dimension given by :code:`output_dim`. Furthermore,
    you have some training, validation and calibration TensorFlow data loader :code:`train_data_loader`, :code:`val_data_loader`
    and :code:`test_data_loader`, respectively.
-   The following code provides a minimal classification example to get calibrated uncertainty estimates,
-   compute metrics and conformal sets.
+   The following code provides a minimal classification example to get calibrated probability estimates.
 
    .. code-block:: python
-      :caption: **References:** :meth:`~fortuna.data.loader.DataLoader.from_tensorflow_data_loader`, :class:`~fortuna.prob_model.classification.ProbClassifier`, :meth:`~fortuna.prob_model.classification.ProbClassifier.train`, :meth:`~fortuna.prob_model.predictive.classification.ClassificationPredictive.mean`, :meth:`~fortuna.prob_model.predictive.classification.ClassificationPredictive.mode`, :func:`~fortuna.metric.classification.accuracy`, :func:`~fortuna.metric.classification.expected_calibration_error`, :meth:`~fortuna.conformer.classification.AdaptivePredictionConformalClassifier.conformal_set`
+      :caption: **References:** :meth:`~fortuna.data.loader.DataLoader.from_tensorflow_data_loader`, :class:`~fortuna.prob_model.classification.ProbClassifier`, :meth:`~fortuna.prob_model.classification.ProbClassifier.train`, :meth:`~fortuna.prob_model.predictive.classification.ClassificationPredictive.mean`
 
-      # convert data loaders
       from fortuna.data import DataLoader
-      train_data_loader = DataLoader.from_tensorflow_data_loader(
-            train_data_loader
-      )
-      calib_data_loader = DataLoader.from_tensorflow_data_loader(
-            val_data_loader
-      )
-      test_data_loader = DataLoader.from_tensorflow_data_loader(
-            test_data_loader
-      )
+      train_data_loader = DataLoader.from_tensorflow_data_loader(train_data_loader)
+      calib_data_loader = DataLoader.from_tensorflow_data_loader(val_data_loader)
+      test_data_loader = DataLoader.from_tensorflow_data_loader(test_data_loader)
 
-      # define a probabilistic model
       from fortuna.prob_model import ProbClassifier
-      prob_model = ProbClassifier(
-            model=model
-      )
-
-      # train the probabilistic model
-      status = prob_model.train(
-            train_data_loader=train_data_loader,
-            calib_data_loader=calib_data_loader
-      )
-
-      # make predictions
-      test_means = prob_model.predictive.mean(
-            inputs_loader=test_data_loader.to_inputs_loader()
-      )
-      test_modes = prob_model.predictive.mode(
-            inputs_loader=test_data_loader.to_inputs_loader()
-      )
-
-      # compute metrics
-      from fortuna.metric.classification import accuracy, expected_calibration_error
-      acc = accuracy(
-            preds=test_modes,
-            targets=test_data_loader.to_array_targets()
-      )
-      ece = expected_calibration_error(
-            preds=test_modes,
-            probs=test_means,
-            targets=test_data_loader.to_array_targets()
-      )
-
-      # compute conformal sets
-      from fortuna.conformer.classification import AdaptivePredictionConformalClassifier
-      val_means = prob_model.predictive.mean(
-            inputs_loader=val_data_loader.to_inputs_loader()
-      )
-      conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
-            val_probs=val_means,
-            test_probs=test_means,
-            val_targets=val_data_loader.to_array_targets()
-      )
-
+      prob_model = ProbClassifier(model=model)
+      status = prob_model.train(train_data_loader=train_data_loader, calib_data_loader=calib_data_loader)
+      test_means = prob_model.predictive.mean(inputs_loader=test_data_loader.to_inputs_loader())
