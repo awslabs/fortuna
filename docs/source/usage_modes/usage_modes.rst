@@ -2,7 +2,7 @@
 
 Usage modes
 ######################
-This section explains some of Fortuna's main functionalities.
+This section explains some of Fortuna's main usage modes.
 
 .. toctree::
    :maxdepth: 1

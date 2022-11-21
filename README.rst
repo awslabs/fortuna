@@ -21,7 +21,7 @@ Fortuna offers three different usage modes:
 These serve users according to the constraints dictated by their own applications.
 Their pipelines are depicted in the following figure, each starting from one of the green panels.
 
-.. figure:: docs/source/pipeline.png
+.. figure:: docs/source/_static/pipeline.png
 
 From uncertainty estimates
 ---------------------------
