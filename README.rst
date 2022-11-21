@@ -27,8 +27,8 @@ From uncertainty estimates
 ---------------------------
 Starting from uncertainty estimates has minimal compatibility requirements and it is the quickest level of interaction with the library.
 This usage mode offers conformal prediction methods for both classification and regression.
-These take uncertainty estimates in input, and return rigorous sets of predictions that are likely at a user-given probability level (e.g. 95%).
-In one-dimensional regression tasks, conformal sets may as well be thought as calibrated intervals of predictions.
+These take uncertainty estimates in input, and return rigorous sets of predictions.
+In one-dimensional regression tasks, conformal sets may be thought as calibrated intervals of confidence or credible intervals.
 
 Mind that if the uncertainty estimates that you provide in inputs are inaccurate,
 conformal sets might be large and unusable.
@@ -59,14 +59,13 @@ From model outputs
 Starting from model outputs assumes you have already trained a model in some framework,
 and arrive to Fortuna with model outputs in :code:`numpy.ndarray` format for each input data point.
 This usage mode allows you to calibrate your model outputs, estimate uncertainty,
-compute metrics and, like in the  before, obtain conformal sets.
+compute metrics and obtain conformal sets.
 
 Compared to the `From uncertainty estimates <https://github.com/awslabs/fortuna#from-uncertainty-estimates>`_ usage mode,
 this one offers better control,
 as it can make sure uncertainty estimates have been appropriately calibrated.
-However, if those estimates were obtained with classical training methods,
-they may not capture model epistemic uncertainty,
-thereby hindering the quality of the predictive uncertainty estimates overall.
+However, if the model had been trained with classical methods,
+the resulting quantification of model (a.k.a. epistemic) uncertainty may be poor.
 To mitigate this problem, please consider the `From Flax models <https://github.com/awslabs/fortuna#from-flax-models>`_
 usage mode.
 
@@ -84,13 +83,13 @@ The following code provides a minimal classification example to get calibrated p
   status = calib_model.calibrate(outputs=val_outputs, targets=val_targets)
   test_entropies = calib_model.predictive.entropy(outputs=test_outputs)
 
-Starting from Flax models
+From Flax models
 --------------------------
 Starting from Flax models has higher compatibility requirements than the
 `From uncertainty estimates <https://github.com/awslabs/fortuna#from-uncertainty-estimates>`_
 and `From model outputs <https://github.com/awslabs/fortuna#from-model-outputs>`_ usage modes,
-as it needs you to build or choose a deep learning model in `Flax <https://flax.readthedocs.io/en/latest/index.html>`_.
-However, it enables you to replace standard training with scalable Bayesian inference procedures,
+as it requires deep learning models written in `Flax <https://flax.readthedocs.io/en/latest/index.html>`_.
+However, it enables you to replace standard model training with scalable Bayesian inference procedures,
 which may significantly improve the quantification of predictive uncertainty.
 
 **Example.** Suppose you have a Flax classification deep learning model :code:`model` from inputs to logits, with output
