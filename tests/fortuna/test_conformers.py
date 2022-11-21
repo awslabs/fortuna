@@ -2,13 +2,13 @@ import unittest
 
 import jax.numpy as jnp
 import numpy as np
-from fortuna.conformer.classification import (
+from fortuna.conformal.classification import (
     AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier)
-from fortuna.conformer.regression import (
+from fortuna.conformal.regression import (
     OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor)
 
 
-class TestConformers(unittest.TestCase):
+class TestConformals(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -17,11 +17,11 @@ class TestConformers(unittest.TestCase):
         val_targets = np.array([1, 1, 0])
         test_probs = np.array([[0.5, 0.5], [0.8, 0.2]])
 
-        conformer = SimplePredictionConformalClassifier()
-        scores = conformer.score(val_probs, val_targets)
+        conformal = SimplePredictionConformalClassifier()
+        scores = conformal.score(val_probs, val_targets)
         assert scores.shape == (3,)
-        quantile = conformer.quantile(val_probs, val_targets, 0.5, scores=scores)
-        coverage_sets = conformer.conformal_set(
+        quantile = conformal.quantile(val_probs, val_targets, 0.5, scores=scores)
+        coverage_sets = conformal.conformal_set(
             val_probs=val_probs,
             test_probs=test_probs,
             val_targets=val_targets,
@@ -38,12 +38,12 @@ class TestConformers(unittest.TestCase):
         val_targets = np.array([1, 1, 2])
         test_probs = np.array([[0.2, 0.5, 0.3], [0.6, 0.01, 0.39]])
 
-        conformer = AdaptivePredictionConformalClassifier()
-        scores = conformer.score(val_probs, val_targets)
+        conformal = AdaptivePredictionConformalClassifier()
+        scores = conformal.score(val_probs, val_targets)
         assert jnp.allclose(scores, jnp.array([0.7, 0.9, 0.95]))
-        quantile = conformer.quantile(val_probs, val_targets, 0.5, scores=scores)
+        quantile = conformal.quantile(val_probs, val_targets, 0.5, scores=scores)
         assert (quantile > 0.9) * (quantile < 0.95)
-        coverage_sets = conformer.conformal_set(
+        coverage_sets = conformal.conformal_set(
             val_probs, test_probs, val_targets, quantile=quantile
         )
         assert np.allclose(coverage_sets[0], [1, 2, 0])
@@ -58,15 +58,15 @@ class TestConformers(unittest.TestCase):
         test_upper_quantiles = np.random.normal(size=n_test_inputs)
         val_targets = np.random.normal(size=(n_val_inputs, 1))
 
-        conformer = QuantileConformalRegressor()
-        scores = conformer.score(val_lower_quantiles, val_upper_quantiles, val_targets)
+        conformal = QuantileConformalRegressor()
+        scores = conformal.score(val_lower_quantiles, val_upper_quantiles, val_targets)
         assert scores.shape == (n_val_inputs,)
-        quantile = conformer.quantile(
+        quantile = conformal.quantile(
             val_lower_quantiles, val_upper_quantiles, val_targets, 0.05, scores=scores
         )
         assert jnp.min(scores) <= quantile <= jnp.max(scores)
         assert jnp.array([quantile]).shape == (1,)
-        coverage_sets = conformer.conformal_interval(
+        coverage_sets = conformal.conformal_interval(
             val_lower_quantiles,
             val_upper_quantiles,
             test_upper_quantiles,
@@ -89,11 +89,11 @@ class TestConformers(unittest.TestCase):
         test_uncertainties = np.exp(np.random.normal(size=n_test_inputs))[:, None]
         val_targets = np.random.normal(size=(n_val_inputs, 1))
 
-        conformer = OneDimensionalUncertaintyConformalRegressor()
-        scores = conformer.score(val_preds, val_uncertainties, val_targets)
+        conformal = OneDimensionalUncertaintyConformalRegressor()
+        scores = conformal.score(val_preds, val_uncertainties, val_targets)
         assert (scores >= 0).all()
         assert scores.shape == (n_val_inputs,)
-        quantile = conformer.quantile(
+        quantile = conformal.quantile(
             val_preds=val_preds,
             val_uncertainties=val_uncertainties,
             val_targets=val_targets,
@@ -102,7 +102,7 @@ class TestConformers(unittest.TestCase):
         )
         assert jnp.min(scores) <= quantile <= jnp.max(scores)
         assert jnp.array([quantile]).shape == (1,)
-        coverage_sets = conformer.conformal_interval(
+        coverage_sets = conformal.conformal_interval(
             val_preds=val_preds,
             val_uncertainties=val_uncertainties,
             test_preds=test_preds,

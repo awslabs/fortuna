@@ -55,7 +55,7 @@ class SimplePredictionConformalClassifier:
             Coverage error. This must be a scalar between 0 and 1, extremes included.
         scores: Optional[Array]
             The conformal scores. This should be the output of
-            :meth:`~fortuna.conformer.classification.SimplePredictionConformalClassifier.score`.
+            :meth:`~fortuna.conformal.classification.SimplePredictionConformalClassifier.score`.
 
         Returns
         -------
@@ -93,7 +93,7 @@ class SimplePredictionConformalClassifier:
             The coverage error. This must be a scalar between 0 and 1, extremes included.
         quantile: Optional[float]
             Conformal quantiles. This should be the output of
-            :meth:`~fortuna.conformer.classification.SimplePredictionConformalClassifier.quantile`.
+            :meth:`~fortuna.conformal.classification.SimplePredictionConformalClassifier.quantile`.
 
         Returns
         -------
@@ -164,7 +164,7 @@ class AdaptivePredictionConformalClassifier:
             Coverage error. This must be a scalar between 0 and 1, extremes included.
         scores: Optional[Array]
             The conformal scores. This should be the output of
-            :meth:`~fortuna.conformer.classification.AdaptivePredictionConformalClassifier.score`.
+            :meth:`~fortuna.conformal.classification.AdaptivePredictionConformalClassifier.score`.
 
         Returns
         -------
@@ -202,7 +202,7 @@ class AdaptivePredictionConformalClassifier:
             The coverage error. This must be a scalar between 0 and 1, extremes included.
         quantile: Optional[float]
             Conformal quantiles. This should be the output of
-            :meth:`~fortuna.conformer.classification.AdaptivePredictionConformalClassifier.quantile`.
+            :meth:`~fortuna.conformal.classification.AdaptivePredictionConformalClassifier.quantile`.
 
         Returns
         -------

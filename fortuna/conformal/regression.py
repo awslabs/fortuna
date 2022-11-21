@@ -70,7 +70,7 @@ class QuantileConformalRegressor:
             `test_upper_bounds` were computed.
         scores: Optional[float]
             Conformal scores. This should be the output of
-            :meth:`~fortuna.conformer.regression.QuantileConformalRegressor.score`.
+            :meth:`~fortuna.conformal.regression.QuantileConformalRegressor.score`.
 
         Returns
         -------
@@ -116,7 +116,7 @@ class QuantileConformalRegressor:
             `test_upper_bounds` were computed.
         quantile: Optional[float]
             Conformal quantiles. This should be the output of
-            :meth:`~fortuna.conformer.regression.QuantileConformalRegressor.quantile`.
+            :meth:`~fortuna.conformal.regression.QuantileConformalRegressor.quantile`.
 
         Returns
         -------
@@ -240,7 +240,7 @@ class OneDimensionalUncertaintyConformalRegressor:
             Coverage error. This must be a scalar between 0 and 1, extremes included.
         scores: Optional[float]
             Conformal scores. This should be the output of
-            :meth:`~fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor.score`.
+            :meth:`~fortuna.conformal.regression.OneDimensionalUncertaintyConformalRegressor.score`.
 
         Returns
         -------
@@ -286,7 +286,7 @@ class OneDimensionalUncertaintyConformalRegressor:
             Coverage error. This must be a scalar between 0 and 1, extremes included.
         quantile: Optional[float]
             Conformal quantile. This should be the output of
-            :meth:`~fortuna.conformer.regression.OneDimensionalUncertaintyConformalRegressor.quantile`.
+            :meth:`~fortuna.conformal.regression.OneDimensionalUncertaintyConformalRegressor.quantile`.
 
         Returns
         -------

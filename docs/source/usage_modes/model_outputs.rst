@@ -107,9 +107,9 @@ We denote :code:`val_outputs` to be validation model outputs,
 and :code:`val_targets` to be the corresponding validation target variables.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.conformer.classification.AdaptivePredictionConformalClassifier.conformal_set`
+    :caption: **References:** :meth:`~fortuna.conformal.classification.AdaptivePredictionConformalClassifier.conformal_set`
 
-    from fortuna.conformer.classification import AdaptivePredictionConformalClassifier
+    from fortuna.conformal.classification import AdaptivePredictionConformalClassifier
     val_means = calib_model.predictive.mean(
         outputs=val_outputs
     )
@@ -225,9 +225,9 @@ We denote :code:`val_outputs` to be validation model outputs,
 and :code:`val_targets` to be the corresponding validation target variables.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.conformer.regression.QuantileConformalRegressor.conformal_interval`
+    :caption: **References:** :meth:`~fortuna.conformal.regression.QuantileConformalRegressor.conformal_interval`
 
-    from fortuna.conformer.regression import QuantileConformalRegressor
+    from fortuna.conformal.regression import QuantileConformalRegressor
     val_cred_intervals = calib_model.predictive.credible_interval(
         outputs=val_outputs
     )

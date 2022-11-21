@@ -184,9 +184,9 @@ For simplicity, we will use the same calibration data loader as above,
 but a new one could be used.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.conformer.classification.AdaptivePredictionConformalClassifier.conformal_set`
+    :caption: **References:** :meth:`~fortuna.conformal.classification.AdaptivePredictionConformalClassifier.conformal_set`
 
-    from fortuna.conformer.classification import AdaptivePredictionConformalClassifier
+    from fortuna.conformal.classification import AdaptivePredictionConformalClassifier
     calib_inputs_loader = calib_data_loader.to_inputs_loader()
     calib_targets = calib_data_loader.to_array_targets()
     calib_means = prob_model.predictive.mean(
@@ -364,9 +364,9 @@ For simplicity, we will use the same calibration data loader as above,
 but a new one could be used.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.conformer.regression.QuantileConformalRegressor.conformal_interval`
+    :caption: **References:** :meth:`~fortuna.conformal.regression.QuantileConformalRegressor.conformal_interval`
 
-    from fortuna.conformer.regression import QuantileConformalRegressor
+    from fortuna.conformal.regression import QuantileConformalRegressor
     calib_inputs_loader = calib_data_loader.to_inputs_loader()
     calib_targets = calib_data_loader.to_array_targets()
     calib_cred_intervals = prob_model.predictive.credible_interval(

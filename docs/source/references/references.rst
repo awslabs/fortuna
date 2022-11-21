@@ -11,7 +11,7 @@ API References
    output_calibrator
    prob_output_layer
    calib_config
-   conformer
+   conformal
    data_loader
    metric
    utils

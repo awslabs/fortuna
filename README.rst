@@ -48,7 +48,7 @@ i.e. calibrated versions of you test credible intervals.
 
 .. code-block:: python
 
- from fortuna.conformer.regression import QuantileConformalRegressor
+ from fortuna.conformal.regression import QuantileConformalRegressor
  conformal_intervals = QuantileConformalRegressor().conformal_interval(
       val_lower_bounds=val_lower_bounds, val_upper_bounds=val_upper_bounds,
       test_lower_bounds=test_lower_bounds, test_upper_bounds=test_upper_bounds,

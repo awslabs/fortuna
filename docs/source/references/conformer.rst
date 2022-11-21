@@ -1,14 +1,15 @@
-Conformer
-===========
-Conformers are calibration methods that, starting from uncertainty estimates, provide *conformal sets*, i.e. rigorous
-sets of predictions with a user-chosen level of probability. We support some conformal methods for both
-:ref:`classification <conformer_classification>`
-and :ref:`regression <conformer_regression>`.
+Conformal prediction
+====================
+Conformal prediction methods are a type of calibration methods that, starting from uncertainty estimates,
+provide *conformal sets*, i.e. rigorous sets of predictions with a user-chosen level of probability.
+We support some conformal methods for both
+:ref:`classification <conformal_classification>`
+and :ref:`regression <conformal_regression>`.
 
-.. _conformer_classification:
+.. _conformal_classification:
 
-.. automodule:: fortuna.conformer.classification
+.. automodule:: fortuna.conformal.classification
 
-.. _conformer_regression:
+.. _conformal_regression:
 
-.. automodule:: fortuna.conformer.regression
+.. automodule:: fortuna.conformal.regression
