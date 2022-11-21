@@ -10,7 +10,7 @@ i.e. rigorous sets of predictions that are probable above a certain threshold.
     If you provide bad uncertainty estimates, the conformal prediction sets may be very large and uninformative.
     If possible, please consider letting Fortuna estimating uncertainty - see :ref:`flax_models`.
 
-.. _conformal_classification:
+.. _conformal_classification_usage_mode:
 
 Classification
 ==============
@@ -45,7 +45,7 @@ You should also expect, overall, smaller sets for well-classified inputs and lar
 as the latter are likely to be more uncertain. Notice that if your estimated probabilities are very uninformative or
 highly wrong, the conformal sets might include almost all labels, signalling high uncertainty in the model.
 
-.. _conformal_regression:
+.. _conformal_regression_usage_mode:
 
 Regression
 ==========

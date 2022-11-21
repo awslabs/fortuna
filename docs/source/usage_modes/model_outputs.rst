@@ -100,7 +100,7 @@ as the latter are compatible with metrics operating on :code:`numpy.ndarray`.
 Compute conformal sets
 -----------------------------
 Finally,
-like in :ref:`conformal_classification`,
+like in :ref:`conformal_classification_usage_mode`,
 starting from predictive statistics you can compute conformal sets.
 Again, we need model outputs and data for this purpose.
 We denote :code:`val_outputs` to be validation model outputs,
