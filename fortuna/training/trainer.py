@@ -9,6 +9,13 @@ import jax.numpy as jnp
 from flax import jax_utils
 from flax.core import FrozenDict
 from flax.training.common_utils import stack_forest
+from jax import lax, random, value_and_grad
+from jax._src.prng import PRNGKeyArray
+from jax.tree_util import tree_map
+from optax._src.base import PyTree
+from tqdm import trange
+from tqdm.std import tqdm as TqdmDecorator
+
 from fortuna.data.loader import DataLoader
 from fortuna.training.mixin import (InputValidatorMixin,
                                     WithCheckpointingMixin,
@@ -16,12 +23,6 @@ from fortuna.training.mixin import (InputValidatorMixin,
 from fortuna.training.train_state import TrainState
 from fortuna.typing import Array, Batch, Path, Status
 from fortuna.utils.builtins import HashableMixin
-from jax import lax, random, value_and_grad
-from jax._src.prng import PRNGKeyArray
-from jax.tree_util import tree_map
-from optax._src.base import PyTree
-from tqdm import trange
-from tqdm.std import tqdm as TqdmDecorator
 
 
 class TrainerABC(

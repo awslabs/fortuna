@@ -5,6 +5,11 @@ from typing import Dict, Optional
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax import hessian, lax, vjp
+from jax._src.prng import PRNGKeyArray
+from jax.flatten_util import ravel_pytree
+from jax.tree_util import tree_map
+
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -25,10 +30,6 @@ from fortuna.prob_model.prior.gaussian import (DiagonalGaussianPrior,
 from fortuna.typing import CalibMutable, CalibParams, Mutable, Params, Status
 from fortuna.utils.nested_dicts import nested_get, nested_set, nested_unpair
 from fortuna.utils.random import generate_random_normal_like_tree
-from jax import hessian, lax, vjp
-from jax._src.prng import PRNGKeyArray
-from jax.flatten_util import ravel_pytree
-from jax.tree_util import tree_map
 
 
 class LaplacePosterior(Posterior):
@@ -175,10 +176,10 @@ class LaplacePosterior(Posterior):
         val_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
         map_fit_config: Optional[FitConfig] = None,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Status]:
         if (
-            fit_config.checkpointer.save_state is True
+            fit_config.checkpointer.dump_state is True
             and not fit_config.checkpointer.save_checkpoint_dir
         ):
             raise ValueError(
@@ -197,8 +198,10 @@ class LaplacePosterior(Posterior):
                 rng=self.rng.get(),
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
-                fit_config=map_fit_config if map_fit_config is not None else FitConfig(),
-                **kwargs
+                fit_config=map_fit_config
+                if map_fit_config is not None
+                else FitConfig(),
+                **kwargs,
             )
             logging.info("Preliminary run with MAP completed.")
             state = map_posterior.state.get()
@@ -233,7 +236,7 @@ class LaplacePosterior(Posterior):
 
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.save_state is True
+            if fit_config.checkpointer.dump_state is True
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)

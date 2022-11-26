@@ -7,6 +7,7 @@ from typing import Any, Callable, Tuple
 
 import flax.linen as nn
 import jax.numpy as jnp
+
 from fortuna.typing import Array
 
 ModuleDef = Any

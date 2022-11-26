@@ -1,16 +1,18 @@
 import abc
-from typing import List, Optional, Tuple, Union, Any
+from typing import Any, List, Optional, Tuple, Union
 
 import jax.numpy as jnp
+from jax import jit
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params, Array
+from fortuna.typing import (Array, Batch, CalibMutable, CalibParams, Mutable,
+                            Params)
 from fortuna.utils.random import WithRNG
-from jax._src.prng import PRNGKeyArray
-from jax import jit
 
 
 class Likelihood(WithRNG):
@@ -411,20 +413,19 @@ class Likelihood(WithRNG):
         jnp.ndarray
             The calibrated outputs.
         """
+
         @jit
         def jit_get_batched_outputs(_inputs):
             return self._get_batched_outputs(params, _inputs, mutable)
-        return jnp.concatenate([jit_get_batched_outputs(inputs) for inputs in inputs_loader], 0)
+
+        return jnp.concatenate(
+            [jit_get_batched_outputs(inputs) for inputs in inputs_loader], 0
+        )
 
     def _get_batched_outputs(
-        self,
-        params: Params,
-        inputs: Array,
-        mutable: Optional[Mutable] = None,
+        self, params: Params, inputs: Array, mutable: Optional[Mutable] = None,
     ) -> jnp.ndarray:
-        return self.model_manager.apply(
-                params=params, inputs=inputs, mutable=mutable
-            )
+        return self.model_manager.apply(params=params, inputs=inputs, mutable=mutable)
 
     @abc.abstractmethod
     def mean(

@@ -1,6 +1,7 @@
 from typing import Optional
 
 import optax
+
 from fortuna.typing import OptaxOptimizer
 
 

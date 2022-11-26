@@ -2,12 +2,13 @@ from typing import List, Optional, Union
 
 import jax.numpy as jnp
 import jax.scipy as jsp
+from jax import lax, random, vmap
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.data.loader import InputsLoader
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.predictive.base import Predictive
 from fortuna.typing import Array
-from jax import lax, random, vmap
-from jax._src.prng import PRNGKeyArray
 
 
 class RegressionPredictive(Predictive):

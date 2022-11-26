@@ -1,14 +1,19 @@
 from typing import Callable, Optional, Tuple, Union
-from fortuna.typing import Array
 
 import jax.numpy as jnp
+
+from fortuna.typing import Array
 
 
 class CalibMonitor:
     def __init__(
         self,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Union[float, Array]], ...]] = None,
-        uncertainty_fn: Optional[Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray]] = None,
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Union[float, Array]], ...]
+        ] = None,
+        uncertainty_fn: Optional[
+            Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray]
+        ] = None,
         early_stopping_patience: int = 0,
         early_stopping_monitor: str = "val_loss",
         early_stopping_min_delta: float = 0.0,
@@ -56,9 +61,7 @@ class CalibMonitor:
                         f"All metrics in `metrics` must be callable objects, but {metric} is not."
                     )
         if uncertainty_fn is not None and not callable(uncertainty_fn):
-            raise ValueError(
-                f"`uncertainty_fn` must be a a callable function."
-            )
+            raise ValueError(f"`uncertainty_fn` must be a a callable function.")
 
         self.metrics = metrics
         self.uncertainty_fn = uncertainty_fn
@@ -66,5 +69,7 @@ class CalibMonitor:
         self.early_stopping_monitor = early_stopping_monitor
         self.early_stopping_min_delta = early_stopping_min_delta
         self.eval_every_n_epochs = eval_every_n_epochs
-        self.disable_calibration_metrics_computation = disable_calibration_metrics_computation
+        self.disable_calibration_metrics_computation = (
+            disable_calibration_metrics_computation
+        )
         self.verbose = verbose

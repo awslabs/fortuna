@@ -1,4 +1,5 @@
 import enum
+
 from fortuna.calibration.state import CalibState
 from fortuna.prob_model.posterior.laplace.laplace_state import LaplaceState
 from fortuna.prob_model.posterior.map.map_state import MAPState

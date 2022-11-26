@@ -2,6 +2,7 @@ from typing import Callable, Optional, Tuple
 
 import flax.linen as nn
 import jax.numpy as jnp
+
 from fortuna.typing import Array
 
 

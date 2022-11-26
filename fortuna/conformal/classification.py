@@ -2,8 +2,9 @@ from typing import List, Optional
 
 import jax.numpy as jnp
 import numpy as np
-from fortuna.typing import Array
 from jax import vmap
+
+from fortuna.typing import Array
 
 
 class SimplePredictionConformalClassifier:

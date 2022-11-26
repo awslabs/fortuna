@@ -6,14 +6,15 @@ from typing import Any, Callable, Dict, Optional, Tuple, Union
 import jax.numpy as jnp
 import numpy as np
 from flax.core import FrozenDict
-from fortuna.distribution.base import Distribution
-from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
-from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import Batch, CalibMutable, CalibParams, Params, Array
 from jax import random, vmap
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 from optax._src.base import PyTree
+
+from fortuna.distribution.base import Distribution
+from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
+from fortuna.prob_model.posterior.state import PosteriorState
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params
 
 
 class NormalizingFlowTrainer(PosteriorTrainerABC):

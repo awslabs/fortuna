@@ -6,11 +6,12 @@ from types import SimpleNamespace
 
 import flax.linen as nn
 import requests
+from jax import random
+from tqdm import tqdm
+
 from fortuna.model.cnn import CNN
 from fortuna.model.mlp import MLP
-from jax import random
 from tests.make_data import make_array_random_inputs
-from tqdm import tqdm
 
 
 def download(ckpt_dir, url):

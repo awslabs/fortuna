@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 import flax.linen as nn
 import numpy as np
-from fortuna.prob_model.calib_config.base import CalibConfig
+
 from fortuna.data.loader import DataLoader
 from fortuna.model.model_manager.classification import \
     ClassificationModelManager
@@ -11,6 +11,7 @@ from fortuna.output_calibrator.classification import \
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_model.base import ProbModel
+from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.likelihood.classification import \
@@ -156,7 +157,7 @@ class ProbClassifier(ProbModel):
         self,
         calib_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
-        calib_config: CalibConfig = CalibConfig()
+        calib_config: CalibConfig = CalibConfig(),
     ) -> Status:
         """
         Calibrate the probabilistic classifier.
@@ -179,9 +180,10 @@ class ProbClassifier(ProbModel):
         if val_data_loader is not None:
             self._check_output_dim(val_data_loader)
         return super()._calibrate(
-            uncertainty_fn=calib_config.monitor.uncertainty_fn if calib_config.monitor.uncertainty_fn is not None else
-            self.prob_output_layer.mean,
+            uncertainty_fn=calib_config.monitor.uncertainty_fn
+            if calib_config.monitor.uncertainty_fn is not None
+            else self.prob_output_layer.mean,
             calib_data_loader=calib_data_loader,
             val_data_loader=val_data_loader,
-            calib_config=calib_config
+            calib_config=calib_config,
         )

@@ -2,10 +2,12 @@ import logging
 import tempfile
 import unittest
 
+import jax.numpy as jnp
+
 from fortuna.calib_model.calib_config.base import CalibConfig
 from fortuna.calib_model.calib_config.checkpointer import CalibCheckpointer
-from fortuna.calib_model.calib_config.optimizer import CalibOptimizer
 from fortuna.calib_model.calib_config.monitor import CalibMonitor
+from fortuna.calib_model.calib_config.optimizer import CalibOptimizer
 from fortuna.calib_model.classification import CalibClassifier
 from fortuna.calib_model.regression import CalibRegressor
 from fortuna.data.loader import DataLoader
@@ -22,7 +24,6 @@ from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
-import jax.numpy as jnp
 
 logging.basicConfig(level=logging.INFO)
 
@@ -47,13 +48,21 @@ class TestApproximations(unittest.TestCase):
         self.class_input_shape = (2,)
         self.class_output_dim = 2
         bs = 32
-        x, y = make_array_random_data(n_data=100, shape_inputs=self.reg_input_shape,
-                                      output_dim=self.reg_output_dim, output_type="continuous")
+        x, y = make_array_random_data(
+            n_data=100,
+            shape_inputs=self.reg_input_shape,
+            output_dim=self.reg_output_dim,
+            output_type="continuous",
+        )
         x /= x.max(0)
         y /= y.max(0)
         reg_train_data = x, y
-        reg_val_data = make_array_random_data(n_data=100, shape_inputs=self.reg_input_shape,
-                                              output_dim=self.reg_output_dim, output_type="continuous")
+        reg_val_data = make_array_random_data(
+            n_data=100,
+            shape_inputs=self.reg_input_shape,
+            output_dim=self.reg_output_dim,
+            output_type="continuous",
+        )
         reg_train_data = [
             (reg_train_data[0][i : i + bs], reg_train_data[1][i : i + bs])
             for i in range(0, len(reg_train_data[0]), bs)
@@ -65,10 +74,18 @@ class TestApproximations(unittest.TestCase):
         self.reg_train_data_loader = DataLoader.from_iterable(reg_train_data)
         self.reg_val_data_loader = DataLoader.from_iterable(reg_val_data)
 
-        class_train_data = make_array_random_data(n_data=100, shape_inputs=self.class_input_shape,
-                                                  output_dim=self.class_output_dim, output_type="discrete")
-        class_val_data = make_array_random_data(n_data=100, shape_inputs=self.class_input_shape,
-                                                output_dim=self.class_output_dim, output_type="discrete")
+        class_train_data = make_array_random_data(
+            n_data=100,
+            shape_inputs=self.class_input_shape,
+            output_dim=self.class_output_dim,
+            output_type="discrete",
+        )
+        class_val_data = make_array_random_data(
+            n_data=100,
+            shape_inputs=self.class_input_shape,
+            output_dim=self.class_output_dim,
+            output_type="discrete",
+        )
         class_train_data = [
             (class_train_data[0][i : i + bs], class_train_data[1][i : i + bs])
             for i in range(0, len(class_train_data[0]), bs)
@@ -87,16 +104,21 @@ class TestApproximations(unittest.TestCase):
             optimizer=FitOptimizer(n_epochs=3), monitor=FitMonitor(metrics=(rmse,))
         )
         self.calib_config_dir_nodump = lambda directory, metric: CalibConfig(
-            optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(metric,)),
-            checkpointer=CalibCheckpointer(save_checkpoint_dir=directory)
+            optimizer=CalibOptimizer(n_epochs=3),
+            monitor=CalibMonitor(metrics=(metric,)),
+            checkpointer=CalibCheckpointer(save_checkpoint_dir=directory),
         )
         self.calib_config_dir_dump = lambda directory, metric: CalibConfig(
-            optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(metric,)),
-            checkpointer=CalibCheckpointer(save_checkpoint_dir=directory, save_state=True)
+            optimizer=CalibOptimizer(n_epochs=3),
+            monitor=CalibMonitor(metrics=(metric,)),
+            checkpointer=CalibCheckpointer(
+                save_checkpoint_dir=directory, dump_state=True
+            ),
         )
         self.calib_config_restore = lambda directory, metric: CalibConfig(
-            optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(metric,)),
-            checkpointer=CalibCheckpointer(restore_checkpoint_path=directory)
+            optimizer=CalibOptimizer(n_epochs=3),
+            monitor=CalibMonitor(metrics=(metric,)),
+            checkpointer=CalibCheckpointer(restore_checkpoint_path=directory),
         )
 
     def test_dryrun_reg_map(self):
@@ -211,4 +233,3 @@ class TestApproximations(unittest.TestCase):
 
             # save state
             calib_model.save_state(checkpoint_path=tmp_dir)
-

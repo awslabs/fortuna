@@ -4,6 +4,7 @@ import unittest.mock as mock
 
 import optax
 from flax.core import FrozenDict
+
 from fortuna.prob_model.posterior.posterior_mixin import \
     WithPosteriorCheckpointingMixin
 from fortuna.prob_model.posterior.state import PosteriorState

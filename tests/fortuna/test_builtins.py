@@ -2,6 +2,7 @@ import unittest
 
 import jax.numpy as jnp
 import numpy as np
+
 from fortuna.utils.builtins import HashableMixin
 
 

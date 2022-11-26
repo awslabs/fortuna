@@ -1,10 +1,11 @@
 import unittest
 
 import jax.numpy as jnp
+
+from fortuna.calibration.state import CalibState
 from fortuna.output_calibrator.output_calib_manager.state import \
     OutputCalibManagerState
 from fortuna.prob_model.joint.state import JointState
-from fortuna.calibration.state import CalibState
 
 
 class TestStates(unittest.TestCase):

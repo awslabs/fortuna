@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Optional, Tuple
 
 import jax.numpy as jnp
-from fortuna.utils.builtins import HashableMixin
 from jax import random
 from jax._src.prng import PRNGKeyArray
+
+from fortuna.utils.builtins import HashableMixin
 
 
 class ADVIArchitecture(HashableMixin):

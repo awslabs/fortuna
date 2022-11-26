@@ -4,9 +4,10 @@ from typing import Dict, Optional, Tuple, Union
 import jax.numpy as jnp
 from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.typing import Array, Mutable, Params
 from fortuna.utils.random import WithRNG
-from jax._src.prng import PRNGKeyArray
 
 
 class ModelManager(WithRNG, abc.ABC):

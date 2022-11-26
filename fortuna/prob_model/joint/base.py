@@ -2,6 +2,8 @@ from typing import List, Optional, Tuple, Union
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.data.loader import DataLoader
 from fortuna.model.model_manager.state import ModelManagerState
 from fortuna.output_calibrator.output_calib_manager.state import \
@@ -11,7 +13,6 @@ from fortuna.prob_model.likelihood.base import Likelihood
 from fortuna.prob_model.prior.base import Prior
 from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
 from fortuna.utils.random import WithRNG
-from jax._src.prng import PRNGKeyArray
 
 
 class Joint(WithRNG):

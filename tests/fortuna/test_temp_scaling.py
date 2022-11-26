@@ -2,6 +2,8 @@ import unittest
 
 import jax.numpy as jnp
 import optax
+from jax import random
+
 from fortuna.data.loader import DataLoader
 from fortuna.model.mlp import MLP
 from fortuna.output_calibrator.classification import \
@@ -9,7 +11,6 @@ from fortuna.output_calibrator.classification import \
 from fortuna.prob_model.classification import ProbClassifier
 from fortuna.prob_model.posterior.map.map_approximator import \
     MAPPosteriorApproximator
-from jax import random
 from tests.make_data import make_array_random_data
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Iterable, Optional, Union
 
 import numpy as np
+
 from fortuna.typing import Array, Batch
 
 
@@ -212,8 +213,10 @@ class InputsLoader:
     def __init__(
         self,
         inputs_loader: Union[
-            FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader, FromCallableIterableToInputsLoader,
-            FromIterableToInputsLoader
+            FromArrayInputsToInputsLoader,
+            FromDataLoaderToInputsLoader,
+            FromCallableIterableToInputsLoader,
+            FromIterableToInputsLoader,
         ],
     ):
         """
@@ -294,7 +297,9 @@ class InputsLoader:
         return np.concatenate(inputs, 0)
 
     @classmethod
-    def from_callable_iterable(cls, fun: Callable[[], Iterable[Array]],) -> InputsLoader:
+    def from_callable_iterable(
+        cls, fun: Callable[[], Iterable[Array]],
+    ) -> InputsLoader:
         """
         Transform a callable iterable into a :class:`~fortuna.data.loader.InputsLoader` object.
 
@@ -332,8 +337,10 @@ class TargetsLoader:
     def __init__(
         self,
         targets_loader: Union[
-            FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader, FromCallableIterableToTargetsLoader,
-            FromIterableToTargetsLoader
+            FromArrayTargetsToTargetsLoader,
+            FromDataLoaderToTargetsLoader,
+            FromCallableIterableToTargetsLoader,
+            FromIterableToTargetsLoader,
         ],
     ):
         """
@@ -414,7 +421,9 @@ class TargetsLoader:
         return np.concatenate(targets, 0)
 
     @classmethod
-    def from_callable_iterable(cls, fun: Callable[[], Iterable[Array]],) -> TargetsLoader:
+    def from_callable_iterable(
+        cls, fun: Callable[[], Iterable[Array]],
+    ) -> TargetsLoader:
         """
         Transform a callable iterable into a :class:`~fortuna.data.loader.TargetsLoader` object.
 

@@ -4,13 +4,15 @@ from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax._src.prng import PRNGKeyArray
+from optax._src.base import PyTree
+
 from fortuna.prob_model.posterior.map import *
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.training.trainer import JittedMixin, MultiGPUMixin
-from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params, Array
-from jax._src.prng import PRNGKeyArray
-from optax._src.base import PyTree
+from fortuna.typing import (Array, Batch, CalibMutable, CalibParams, Mutable,
+                            Params)
 
 
 class MAPTrainer(PosteriorTrainerABC):

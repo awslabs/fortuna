@@ -6,6 +6,8 @@ import pathlib
 from typing import List, Optional
 
 import numpy as np
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -22,7 +24,6 @@ from fortuna.prob_model.posterior.map.map_trainer import (JittedMAPTrainer,
                                                           MultiGPUMAPTrainer)
 from fortuna.typing import Path, Status
 from fortuna.utils.gpu import select_trainer_given_devices
-from jax._src.prng import PRNGKeyArray
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class DeepEnsemblePosterior(Posterior):
         **kwargs,
     ) -> List[Status]:
         if (
-            fit_config.checkpointer.save_state is True
+            fit_config.checkpointer.dump_state is True
             and not fit_config.checkpointer.save_checkpoint_dir
         ):
             raise ValueError(
@@ -125,12 +126,14 @@ class DeepEnsemblePosterior(Posterior):
         self.state = DeepEnsemblePosteriorStateRepository(
             ensemble_size=self.posterior_approximator.ensemble_size,
             checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.save_state is True
+            if fit_config.checkpointer.dump_state is True
             else None,
         )
         status = []
         for i in range(self.posterior_approximator.ensemble_size):
-            logging.info(f"Run {i+1} out of {self.posterior_approximator.ensemble_size}.")
+            logging.info(
+                f"Run {i+1} out of {self.posterior_approximator.ensemble_size}."
+            )
             state, _status = _fit(i)
             self.state.put(
                 state=state, i=i, keep=fit_config.checkpointer.keep_top_n_checkpoints

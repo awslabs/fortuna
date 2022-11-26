@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Params

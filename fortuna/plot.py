@@ -3,9 +3,6 @@ from typing import Callable, List, Optional, Tuple, Union
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from fortuna.data.loader import InputsLoader
-from fortuna.prob_model.regression import ProbRegressor
-from fortuna.typing import Array, Batch
 from matplotlib.collections import Collection
 from matplotlib.patches import Circle, RegularPolygon
 from matplotlib.path import Path
@@ -13,6 +10,10 @@ from matplotlib.projections import register_projection
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.spines import Spine
 from matplotlib.transforms import Affine2D
+
+from fortuna.data.loader import InputsLoader
+from fortuna.prob_model.regression import ProbRegressor
+from fortuna.typing import Array, Batch
 
 
 def plot_2d_classification_predictions_and_uncertainty(

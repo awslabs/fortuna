@@ -4,6 +4,10 @@ import logging
 from typing import Optional
 
 import jax.numpy as jnp
+from jax import random
+from jax._src.prng import PRNGKeyArray
+from jax.flatten_util import ravel_pytree
+
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -21,11 +25,8 @@ from fortuna.prob_model.posterior.swag.swag_approximator import \
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.prob_model.posterior.swag.swag_trainer import (
     JittedSWAGTrainer, MultiGPUSWAGTrainer, SWAGTrainer)
-from fortuna.typing import Status, Array
+from fortuna.typing import Array, Status
 from fortuna.utils.gpu import select_trainer_given_devices
-from jax import random
-from jax._src.prng import PRNGKeyArray
-from jax.flatten_util import ravel_pytree
 
 
 class SWAGPosterior(Posterior):
@@ -51,10 +52,10 @@ class SWAGPosterior(Posterior):
         val_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
         map_fit_config: Optional[FitConfig] = None,
-        *kwargs
+        *kwargs,
     ) -> Status:
         if (
-            fit_config.checkpointer.save_state is True
+            fit_config.checkpointer.dump_state is True
             and not fit_config.checkpointer.save_checkpoint_dir
         ):
             raise ValueError(
@@ -95,7 +96,9 @@ class SWAGPosterior(Posterior):
             status["map"] = map_posterior.fit(
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
-                fit_config=map_fit_config if map_fit_config is not None else FitConfig()
+                fit_config=map_fit_config
+                if map_fit_config is not None
+                else FitConfig(),
             )
             state = SWAGState.convert_from_map_state(
                 map_state=map_posterior.state.get(),
@@ -147,7 +150,7 @@ class SWAGPosterior(Posterior):
 
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.save_state is True
+            if fit_config.checkpointer.dump_state is True
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
@@ -211,17 +214,13 @@ class SWAGPosterior(Posterior):
                             batch_inputs,
                             mutable=state.mutable,
                             train=True,
-                            rng=rng
+                            rng=rng,
                         )[1]["mutable"]
                     )
             else:
                 state = state.replace(
                     mutable=self.joint.likelihood.model_manager.apply(
-                        state.params,
-                        inputs,
-                        mutable=state.mutable,
-                        train=True,
-                        rng=rng
+                        state.params, inputs, mutable=state.mutable, train=True, rng=rng
                     )[1]["mutable"]
                 )
 

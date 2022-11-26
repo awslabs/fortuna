@@ -5,12 +5,13 @@ from typing import Any, Callable, Dict, Optional, Tuple, Union
 import jax.random
 import numpy as np
 from flax.core import FrozenDict
-from fortuna.prob_model.joint.state import JointState
-from fortuna.training.train_state import TrainState
-from fortuna.training.trainer import TrainerABC
 from jax import numpy as jnp
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import GradientTransformation, PyTree
+
+from fortuna.prob_model.joint.state import JointState
+from fortuna.training.train_state import TrainState
+from fortuna.training.trainer import TrainerABC
 
 
 class FakeTrainState:

@@ -1,4 +1,5 @@
 import numpy as np
+
 from fortuna.data.loader import DataLoader
 
 

@@ -3,8 +3,9 @@ from typing import Optional
 import flax.linen as nn
 import jax.numpy as jnp
 import numpy as np
-from fortuna.calib_model.calib_config.base import CalibConfig
+
 from fortuna.calib_model.base import CalibModel
+from fortuna.calib_model.calib_config.base import CalibConfig
 from fortuna.calib_model.predictive.classification import \
     ClassificationPredictive
 from fortuna.output_calibrator.classification import \
@@ -59,12 +60,12 @@ class CalibClassifier(CalibModel):
         super().__init__(seed=seed)
 
     def calibrate(
-            self,
-            calib_outputs: Array,
-            calib_targets: Array,
-            val_outputs: Optional[Array] = None,
-            val_targets: Optional[Array] = None,
-            calib_config: CalibConfig = CalibConfig(),
+        self,
+        calib_outputs: Array,
+        calib_targets: Array,
+        val_outputs: Optional[Array] = None,
+        val_targets: Optional[Array] = None,
+        calib_config: CalibConfig = CalibConfig(),
     ) -> Status:
         """
         Calibrate the model outputs.
@@ -91,13 +92,14 @@ class CalibClassifier(CalibModel):
         if val_outputs is not None:
             self._check_output_dim(val_outputs, val_targets)
         return super()._calibrate(
-            uncertainty_fn=calib_config.monitor.uncertainty_fn if calib_config.monitor.uncertainty_fn is not None else
-            self.prob_output_layer.mean,
+            uncertainty_fn=calib_config.monitor.uncertainty_fn
+            if calib_config.monitor.uncertainty_fn is not None
+            else self.prob_output_layer.mean,
             calib_outputs=calib_outputs,
             calib_targets=calib_targets,
             val_outputs=val_outputs,
             val_targets=val_targets,
-            calib_config=calib_config
+            calib_config=calib_config,
         )
 
     def _check_output_dim(self, outputs: jnp.ndarray, targets: jnp.array):

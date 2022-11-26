@@ -2,6 +2,8 @@ import unittest
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax import random
+
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.model.mlp import MLP
 from fortuna.model.model_manager.classification import \
@@ -16,7 +18,6 @@ from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.utils.random import RandomNumberGenerator
-from jax import random
 from tests.make_data import (make_array_random_data,
                              make_generator_fun_random_data)
 

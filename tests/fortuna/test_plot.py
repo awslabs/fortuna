@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 import numpy as np
+
 from fortuna.plot import plot_reliability_diagram
 
 

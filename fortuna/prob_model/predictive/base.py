@@ -3,13 +3,14 @@ from typing import List, Optional, Tuple, Union
 
 import jax.numpy as jnp
 import jax.scipy as jsp
-from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
-from fortuna.prob_model.posterior.base import Posterior
-from fortuna.typing import CalibMutable, CalibParams, Batch
-from fortuna.utils.random import WithRNG
 from jax import lax, random
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
+
+from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
+from fortuna.prob_model.posterior.base import Posterior
+from fortuna.typing import Batch, CalibMutable, CalibParams
+from fortuna.utils.random import WithRNG
 
 
 class Predictive(WithRNG):
@@ -352,7 +353,7 @@ class Predictive(WithRNG):
             return self.likelihood._get_outputs(
                 params=sample.params,
                 inputs_loader=inputs_loader,
-                mutable=sample.mutable
+                mutable=sample.mutable,
             )
 
         return lax.map(_sample, keys)
@@ -362,7 +363,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
-        return_size: bool = False
+        return_size: bool = False,
     ) -> Union[TargetsLoader, Tuple[TargetsLoader, int]]:
         if rng is None:
             rng = self.rng.get()
@@ -371,9 +372,7 @@ class Predictive(WithRNG):
         def _sample(key, _inputs):
             sample = self.posterior.sample(inputs=_inputs, rng=key)
             return self.likelihood._get_batched_outputs(
-                params=sample.params,
-                inputs=_inputs,
-                mutable=sample.mutable
+                params=sample.params, inputs=_inputs, mutable=sample.mutable
             )
 
         iterable = []

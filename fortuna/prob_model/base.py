@@ -1,17 +1,20 @@
 import abc
 import logging
-from typing import Dict, Optional, Callable
+from typing import Callable, Dict, Optional
+
 import jax.numpy as jnp
-from fortuna.prob_model.calib_config.base import CalibConfig
-from fortuna.data.loader import DataLoader
-from fortuna.prob_model.fit_config import FitConfig
-from fortuna.typing import Path, Status, Array
-from fortuna.utils.data import check_data_loader_is_not_random
-from fortuna.prob_model.prob_model_calibrator import ProbModelCalibrator, JittedProbModelCalibrator, \
-    MultiGPUProbModelCalibrator
-from fortuna.utils.random import RandomNumberGenerator
+
 from fortuna.calibration.state import CalibState
+from fortuna.data.loader import DataLoader
+from fortuna.prob_model.calib_config.base import CalibConfig
+from fortuna.prob_model.fit_config import FitConfig
+from fortuna.prob_model.prob_model_calibrator import (
+    JittedProbModelCalibrator, MultiGPUProbModelCalibrator,
+    ProbModelCalibrator)
+from fortuna.typing import Array, Path, Status
+from fortuna.utils.data import check_data_loader_is_not_random
 from fortuna.utils.gpu import select_trainer_given_devices
+from fortuna.utils.random import RandomNumberGenerator
 
 
 class ProbModel(abc.ABC):
@@ -40,7 +43,7 @@ class ProbModel(abc.ABC):
         calib_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
         calib_config: CalibConfig = CalibConfig(),
-        map_fit_config: Optional[FitConfig] = None
+        map_fit_config: Optional[FitConfig] = None,
     ) -> Dict[str, Status]:
         """
         Train the probabilistic model. This involves fitting the posterior distribution and calibrating the
@@ -86,7 +89,9 @@ class ProbModel(abc.ABC):
         calib_status = None
         if calib_data_loader:
             calib_status = self.calibrate(
-                calib_data_loader=calib_data_loader, val_data_loader=val_data_loader, calib_config=calib_config
+                calib_data_loader=calib_data_loader,
+                val_data_loader=val_data_loader,
+                calib_config=calib_config,
             )
             logging.info("Calibration completed.")
         return dict(fit_status=fit_status, calib_status=calib_status)
@@ -112,20 +117,31 @@ class ProbModel(abc.ABC):
                 `self.train`), or set a state from an existing checkpoint (see `self.set_state`)."""
                 )
             if calib_config.monitor.verbose:
-                logging.info("Pre-compute ensemble of outputs on the calibration data loader.")
+                logging.info(
+                    "Pre-compute ensemble of outputs on the calibration data loader."
+                )
 
-            calib_ensemble_outputs_loader, calib_size = self.predictive._sample_outputs_loader(
+            (
+                calib_ensemble_outputs_loader,
+                calib_size,
+            ) = self.predictive._sample_outputs_loader(
                 inputs_loader=calib_data_loader.to_inputs_loader(),
                 n_output_samples=calib_config.processor.n_posterior_samples,
-                return_size=True
+                return_size=True,
             )
             if calib_config.monitor.verbose:
-                logging.info("Pre-compute ensemble of outputs on the validation data loader.")
-            val_ensemble_outputs_loader, val_size = self.predictive._sample_outputs_loader(
-                inputs_loader=val_data_loader.to_inputs_loader(),
-                n_output_samples=calib_config.processor.n_posterior_samples,
-                return_size=True
-            ) if val_data_loader is not None else (None, None)
+                logging.info(
+                    "Pre-compute ensemble of outputs on the validation data loader."
+                )
+            val_ensemble_outputs_loader, val_size = (
+                self.predictive._sample_outputs_loader(
+                    inputs_loader=val_data_loader.to_inputs_loader(),
+                    n_output_samples=calib_config.processor.n_posterior_samples,
+                    return_size=True,
+                )
+                if val_data_loader is not None
+                else (None, None)
+            )
 
             trainer_cls = select_trainer_given_devices(
                 gpus=calib_config.processor.gpus,
@@ -153,12 +169,12 @@ class ProbModel(abc.ABC):
                 state = CalibState.init(
                     params=calib_dict["calib_params"],
                     mutable=calib_dict["calib_mutable"],
-                    optimizer=calib_config.optimizer.method
+                    optimizer=calib_config.optimizer.method,
                 )
             else:
                 state = self.posterior.restore_checkpoint(
                     calib_config.checkpointer.restore_checkpoint_path,
-                    optimizer=calib_config.optimizer.method
+                    optimizer=calib_config.optimizer.method,
                 )
 
             if calib_config.monitor.verbose:
@@ -176,12 +192,19 @@ class ProbModel(abc.ABC):
                 verbose=calib_config.monitor.verbose,
             )
 
-            self.posterior.state.update(variables=dict(calib_params=state.params, calib_mutable=state.mutable))
+            self.posterior.state.update(
+                variables=dict(calib_params=state.params, calib_mutable=state.mutable)
+            )
 
-            if calib_config.checkpointer.save_state and calib_config.checkpointer.save_checkpoint_dir is not None:
+            if (
+                calib_config.checkpointer.dump_state
+                and calib_config.checkpointer.save_checkpoint_dir is not None
+            ):
                 if calib_config.monitor.verbose:
                     logging.info("Dump state to disk.")
-                self.save_state(checkpoint_path=calib_config.checkpointer.save_checkpoint_dir)
+                self.save_state(
+                    checkpoint_path=calib_config.checkpointer.save_checkpoint_dir
+                )
 
             if calib_config.monitor.verbose:
                 logging.info("Calibration completed.")

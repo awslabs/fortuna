@@ -2,6 +2,8 @@ from typing import Optional
 
 import jax
 import jax.numpy as jnp
+from jax import vmap
+
 from fortuna.data.loader import InputsLoader
 from fortuna.model.model_manager.classification import \
     ClassificationModelManager
@@ -11,7 +13,6 @@ from fortuna.prob_model.likelihood.base import Likelihood
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
 from fortuna.typing import CalibMutable, CalibParams, Mutable, Params
-from jax import vmap
 
 
 class ClassificationLikelihood(Likelihood):

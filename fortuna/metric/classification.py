@@ -2,6 +2,7 @@ from typing import Tuple, Union
 
 import jax.nn
 import jax.numpy as jnp
+
 from fortuna.data.loader import TargetsLoader
 from fortuna.plot import plot_reliability_diagram
 from fortuna.typing import Array

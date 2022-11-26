@@ -2,6 +2,9 @@ from typing import Optional, Union
 
 import jax.numpy as jnp
 import numpy as np
+from jax import vmap
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.data.loader import InputsLoader
 from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
@@ -9,8 +12,6 @@ from fortuna.output_calibrator.output_calib_manager.base import \
 from fortuna.prob_model.likelihood.base import Likelihood
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.typing import CalibMutable, CalibParams, Mutable, Params
-from jax import vmap
-from jax._src.prng import PRNGKeyArray
 
 
 class RegressionLikelihood(Likelihood):

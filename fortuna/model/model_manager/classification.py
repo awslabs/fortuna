@@ -4,10 +4,11 @@ import flax.linen as nn
 import jax.numpy as jnp
 from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
-from fortuna.model.model_manager.base import ModelManager
-from fortuna.typing import Array, Mutable, Params
 from jax import random
 from jax._src.prng import PRNGKeyArray
+
+from fortuna.model.model_manager.base import ModelManager
+from fortuna.typing import Array, Mutable, Params
 
 
 class ClassificationModelManager(ModelManager):

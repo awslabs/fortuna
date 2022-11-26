@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+
 from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
 from tests.make_data import (make_generator_fun_random_data,
                              make_generator_random_data)

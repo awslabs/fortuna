@@ -1,8 +1,6 @@
 class CalibProcessor:
     def __init__(
-            self,
-            gpus: int = -1,
-            disable_jit: bool = False,
+        self, gpus: int = -1, disable_jit: bool = False,
     ):
         """
         An object to configure computational aspects of the calibration process.

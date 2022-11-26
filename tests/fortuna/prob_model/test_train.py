@@ -2,17 +2,18 @@ import tempfile
 import unittest
 
 from fortuna.data.loader import DataLoader
-from fortuna.metric.classification import accuracy
+from fortuna.metric.classification import accuracy, brier_score
 from fortuna.metric.regression import rmse
 from fortuna.model.mlp import MLP
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
+from fortuna.prob_model.calib_config import (CalibConfig, CalibMonitor,
+                                             CalibOptimizer)
 from fortuna.prob_model.classification import ProbClassifier
 from fortuna.prob_model.fit_config import FitConfig, FitMonitor
 from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
-from fortuna.prob_model.calib_config import CalibConfig, CalibMonitor, CalibOptimizer
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_posterior import \
     DeepEnsemblePosteriorApproximator
 from fortuna.prob_model.posterior.laplace.laplace_posterior import \
@@ -27,7 +28,6 @@ from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
-from fortuna.metric.classification import brier_score
 
 
 def brier(dummy, p, y):
@@ -44,13 +44,21 @@ class TestApproximations(unittest.TestCase):
         self.reg_input_shape = (3,)
         self.reg_output_dim = 2
         bs = 32
-        x, y = make_array_random_data(n_data=100, shape_inputs=self.reg_input_shape,
-                                      output_dim=self.reg_output_dim, output_type="continuous")
+        x, y = make_array_random_data(
+            n_data=100,
+            shape_inputs=self.reg_input_shape,
+            output_dim=self.reg_output_dim,
+            output_type="continuous",
+        )
         x /= x.max(0)
         y /= y.max(0)
         reg_train_data = x, y
-        reg_val_data = make_array_random_data(n_data=10, shape_inputs=self.reg_input_shape,
-                                              output_dim=self.reg_output_dim, output_type="continuous")
+        reg_val_data = make_array_random_data(
+            n_data=10,
+            shape_inputs=self.reg_input_shape,
+            output_dim=self.reg_output_dim,
+            output_type="continuous",
+        )
         reg_train_data = [
             (reg_train_data[0][i : i + bs], reg_train_data[1][i : i + bs])
             for i in range(0, len(reg_train_data[0]), bs)
@@ -64,10 +72,18 @@ class TestApproximations(unittest.TestCase):
 
         self.class_input_shape = (2,)
         self.class_output_dim = 2
-        class_train_data = make_array_random_data(n_data=100, shape_inputs=self.class_input_shape,
-                                                  output_dim=self.class_output_dim, output_type="discrete")
-        class_val_data = make_array_random_data(n_data=10, shape_inputs=self.class_input_shape,
-                                                output_dim=self.class_output_dim, output_type="discrete")
+        class_train_data = make_array_random_data(
+            n_data=100,
+            shape_inputs=self.class_input_shape,
+            output_dim=self.class_output_dim,
+            output_type="discrete",
+        )
+        class_val_data = make_array_random_data(
+            n_data=10,
+            shape_inputs=self.class_input_shape,
+            output_dim=self.class_output_dim,
+            output_type="discrete",
+        )
         class_train_data = [
             (class_train_data[0][i : i + bs], class_train_data[1][i : i + bs])
             for i in range(0, len(class_train_data[0]), bs)
@@ -85,7 +101,7 @@ class TestApproximations(unittest.TestCase):
         self.class_fit_config_nodir_dump = FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
             monitor=FitMonitor(metrics=(accuracy,)),
-            checkpointer=FitCheckpointer(save_state=True),
+            checkpointer=FitCheckpointer(dump_state=True),
         )
         self.class_fit_config_dir_nodump = lambda save_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
@@ -95,7 +111,7 @@ class TestApproximations(unittest.TestCase):
         self.class_fit_config_dir_dump = lambda save_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
             monitor=FitMonitor(metrics=(accuracy,)),
-            checkpointer=FitCheckpointer(save_checkpoint_dir=save_dir, save_state=True),
+            checkpointer=FitCheckpointer(save_checkpoint_dir=save_dir, dump_state=True),
         )
         self.class_fit_config_restore = lambda restore_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
@@ -107,7 +123,7 @@ class TestApproximations(unittest.TestCase):
         self.reg_fit_config_nodir_dump = FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
             monitor=FitMonitor(metrics=(rmse,)),
-            checkpointer=FitCheckpointer(save_state=True),
+            checkpointer=FitCheckpointer(dump_state=True),
         )
         self.reg_fit_config_dir_nodump = lambda save_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
@@ -117,7 +133,7 @@ class TestApproximations(unittest.TestCase):
         self.reg_fit_config_dir_dump = lambda save_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
             monitor=FitMonitor(metrics=(rmse,)),
-            checkpointer=FitCheckpointer(save_checkpoint_dir=save_dir, save_state=True),
+            checkpointer=FitCheckpointer(save_checkpoint_dir=save_dir, dump_state=True),
         )
         self.reg_fit_config_restore = lambda restore_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
@@ -587,7 +603,8 @@ class TestApproximations(unittest.TestCase):
                     val_data_loader=self.reg_val_data_loader,
                     map_fit_config=self.reg_fit_config_nodir_nodump,
                     fit_config=self.reg_fit_config_nodir_dump,
-                    calib_config=self.reg_calib_config_nodir_nodump)
+                    calib_config=self.reg_calib_config_nodir_nodump,
+                )
 
             # save dir, no dump
             status = prob_reg.train(
@@ -772,7 +789,7 @@ class TestApproximations(unittest.TestCase):
                     val_data_loader=self.reg_val_data_loader,
                     map_fit_config=self.reg_fit_config_nodir_nodump,
                     fit_config=self.reg_fit_config_nodir_dump,
-                    calib_config=self.reg_calib_config_nodir_nodump
+                    calib_config=self.reg_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump

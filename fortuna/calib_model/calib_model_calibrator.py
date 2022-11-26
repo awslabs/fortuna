@@ -8,18 +8,19 @@ import jax
 import jax.numpy as jnp
 from flax import jax_utils
 from flax.training.common_utils import stack_forest
-from fortuna.data.loader import DataLoader, TargetsLoader
-from fortuna.training.mixin import (InputValidatorMixin,
-                                    WithCheckpointingMixin,
-                                    WithEarlyStoppingMixin)
-from fortuna.calibration.state import CalibState
-from fortuna.typing import Array, Path, Status, CalibParams, CalibMutable
-from fortuna.utils.builtins import HashableMixin
 from jax import lax, random, value_and_grad
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 from tqdm import trange
 from tqdm.std import tqdm as TqdmDecorator
+
+from fortuna.calibration.state import CalibState
+from fortuna.data.loader import DataLoader, TargetsLoader
+from fortuna.training.mixin import (InputValidatorMixin,
+                                    WithCheckpointingMixin,
+                                    WithEarlyStoppingMixin)
+from fortuna.typing import Array, CalibMutable, CalibParams, Path, Status
+from fortuna.utils.builtins import HashableMixin
 
 
 class CalibModelCalibrator(
@@ -65,8 +66,10 @@ class CalibModelCalibrator(
         state: CalibState,
         fun: Callable,
         n_epochs: int = 1,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]] = None,
-        verbose: bool = True
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ] = None,
+        verbose: bool = True,
     ) -> Tuple[CalibState, Status]:
         training_losses_and_metrics = collections.defaultdict(list)
         val_losses_and_metrics = collections.defaultdict(list)
@@ -75,7 +78,7 @@ class CalibModelCalibrator(
             state,
             [self._calib_targets, self._val_targets],
             [self._calib_outputs, self._val_outputs],
-            rng
+            rng,
         )
         calib_targets, val_targets = targets
         calib_outputs, val_outputs = outputs
@@ -121,9 +124,7 @@ class CalibModelCalibrator(
                     verbose=verbose,
                 )
                 if verbose:
-                    logging.info(
-                        f"Epoch: {epoch + 1} | " + val_epoch_metrics_str
-                    )
+                    logging.info(f"Epoch: {epoch + 1} | " + val_epoch_metrics_str)
                 # keep track of training losses and metrics [granularity=epoch] and check for early stopping
                 for k in val_losses_and_metrics_current_epoch.keys():
                     val_losses_and_metrics[k].append(
@@ -138,9 +139,7 @@ class CalibModelCalibrator(
         training_status = {
             k: jnp.array(v) for k, v in training_losses_and_metrics.items()
         }
-        val_status = {
-            k: jnp.array(v) for k, v in val_losses_and_metrics.items()
-        }
+        val_status = {k: jnp.array(v) for k, v in val_losses_and_metrics.items()}
         status = dict(**training_status, **val_status)
 
         state = self.on_train_end(state)
@@ -150,7 +149,9 @@ class CalibModelCalibrator(
         self,
         current_epoch: int,
         fun: Callable,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]],
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ],
         rng: PRNGKeyArray,
         state: CalibState,
         targets: Array,
@@ -161,9 +162,7 @@ class CalibModelCalibrator(
         training_losses_and_metrics_epoch_all_steps = []
         training_batch_metrics_str = ""
         # forward and backward pass
-        state, aux = self.training_step(
-            state, targets, outputs, fun, rng
-        )
+        state, aux = self.training_step(state, targets, outputs, fun, rng)
         # compute training losses and metrics for the current batch
         training_losses_and_metrics_current_batch = self.training_step_end(
             current_epoch=current_epoch,
@@ -213,12 +212,7 @@ class CalibModelCalibrator(
 
         grad_fn = value_and_grad(
             lambda params: self.training_loss_step(
-                fun,
-                params,
-                targets,
-                outputs,
-                state.mutable,
-                model_key,
+                fun, params, targets, outputs, state.mutable, model_key,
             ),
             has_aux=True,
         )
@@ -272,7 +266,9 @@ class CalibModelCalibrator(
         state: CalibState,
         aux: Dict[str, Any],
         targets: Array,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]],
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ],
     ) -> Dict[str, jnp.ndarray]:
         if (
             self.save_checkpoint_dir
@@ -294,14 +290,19 @@ class CalibModelCalibrator(
             if self.multi_gpu:
                 training_batch_metrics = self.compute_metrics(
                     preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
-                    uncertainties.reshape((uncertainties.shape[0] * uncertainties.shape[1],) + uncertainties.shape[2:]),
+                    uncertainties.reshape(
+                        (uncertainties.shape[0] * uncertainties.shape[1],)
+                        + uncertainties.shape[2:]
+                    ),
                     targets.reshape(
                         (targets.shape[0] * targets.shape[1],) + targets.shape[2:]
                     ),
                     metrics,
                 )
             else:
-                training_batch_metrics = self.compute_metrics(preds, uncertainties, targets, metrics)
+                training_batch_metrics = self.compute_metrics(
+                    preds, uncertainties, targets, metrics
+                )
             for k, v in training_batch_metrics.items():
                 training_losses_and_metrics[k] = v
         return training_losses_and_metrics
@@ -309,7 +310,9 @@ class CalibModelCalibrator(
     def _val_loop(
         self,
         fun: Callable,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]],
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ],
         rng: PRNGKeyArray,
         state: CalibState,
         targets: Array,
@@ -319,12 +322,7 @@ class CalibModelCalibrator(
         val_losses_and_metrics_epoch_all_steps = []
         val_epoch_metrics_str = ""
         val_losses_and_metrics_current_batch = self.val_step(
-            state,
-            targets,
-            outputs,
-            fun,
-            rng,
-            metrics,
+            state, targets, outputs, fun, rng, metrics,
         )
         val_losses_and_metrics_epoch_all_steps.append(
             val_losses_and_metrics_current_batch
@@ -350,7 +348,9 @@ class CalibModelCalibrator(
         outputs: Array,
         fun: Callable,
         rng: PRNGKeyArray,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]] = None,
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ] = None,
     ) -> Dict[str, jnp.ndarray]:
         val_loss, aux = self.val_loss_step(state, targets, outputs, fun, rng)
         val_metrics = self.val_metrics_step(aux, targets, metrics)
@@ -370,7 +370,7 @@ class CalibModelCalibrator(
             outputs=outputs,
             mutable=state.mutable,
             rng=rng,
-            return_aux=["outputs"]
+            return_aux=["outputs"],
         )
         return -log_probs, aux
 
@@ -378,11 +378,16 @@ class CalibModelCalibrator(
         self,
         aux: Dict[str, jnp.ndarray],
         targets: Array,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]] = None,
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ] = None,
     ) -> Dict[str, jnp.ndarray]:
         if metrics is not None:
             val_metrics = self.compute_metrics(
-                self.predict_fn(aux["outputs"]), self.uncertainty_fn(aux["outputs"]), targets, metrics
+                self.predict_fn(aux["outputs"]),
+                self.uncertainty_fn(aux["outputs"]),
+                targets,
+                metrics,
             )
             return {f"val_{m}": v for m, v in val_metrics.items()}
         else:
@@ -404,9 +409,7 @@ class CalibModelCalibrator(
             val_losses_and_metrics_current_epoch
         )
         # early stopping
-        improved = self.early_stopping_update(
-            val_losses_and_metrics_current_epoch
-        )
+        improved = self.early_stopping_update(val_losses_and_metrics_current_epoch)
         if improved and self.save_checkpoint_dir:
             self.save_checkpoint(state, self.save_checkpoint_dir, force_save=True)
         return val_losses_and_metrics_current_epoch
@@ -434,8 +437,11 @@ class CalibModelCalibrator(
         return grad, loss
 
     def on_train_start(
-        self, state: CalibState, targets: List[Array], outputs: List[Array],
-            rng: PRNGKeyArray,
+        self,
+        state: CalibState,
+        targets: List[Array],
+        outputs: List[Array],
+        rng: PRNGKeyArray,
     ) -> Tuple[CalibState, List[Array], List[Array], PRNGKeyArray]:
         return state, targets, outputs, rng
 
@@ -456,7 +462,9 @@ class CalibModelCalibrator(
         preds: Array,
         uncertainties: Array,
         targets: Array,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]],
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ],
     ) -> Dict[str, Array]:
         metrics_vals = {}
         for metric in metrics:
@@ -485,9 +493,7 @@ class JittedMixin:
         fun: Callable,
         rng: PRNGKeyArray,
     ) -> Dict[str, jnp.ndarray]:
-        return super().val_loss_step(
-            state, targets, outputs, fun, rng
-        )
+        return super().val_loss_step(state, targets, outputs, fun, rng)
 
 
 class MultiGPUMixin:
@@ -538,18 +544,23 @@ class MultiGPUMixin:
         )
 
     def on_train_start(
-        self, state: CalibState, targets: List[Array], outputs: List[Array],
-            rng: PRNGKeyArray
+        self,
+        state: CalibState,
+        targets: List[Array],
+        outputs: List[Array],
+        rng: PRNGKeyArray,
     ) -> Tuple[CalibState, List[DataLoader], List[TargetsLoader], PRNGKeyArray]:
         state, targets, outputs, rng = super(MultiGPUMixin, self).on_train_start(
             state, targets, outputs, rng
         )
         state = jax_utils.replicate(state)
         targets = [
-            self._add_device_dim_to_array(arr) if arr is not None else arr for arr in targets
+            self._add_device_dim_to_array(arr) if arr is not None else arr
+            for arr in targets
         ]
         outputs = [
-            self._add_device_dim_to_array(arr) if arr is not None else arr for arr in outputs
+            self._add_device_dim_to_array(arr) if arr is not None else arr
+            for arr in outputs
         ]
         model_key = random.split(rng, jax.local_device_count())
         return state, targets, outputs, model_key
@@ -575,7 +586,7 @@ class MultiGPUMixin:
         state: CalibState,
         aux: Dict[str, Any],
         targets: Array,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], Array], ...]]
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], Array], ...]],
     ) -> Dict[str, jnp.ndarray]:
         training_losses_and_metrics = super(MultiGPUMixin, self).training_step_end(
             current_epoch, state, aux, targets, metrics
@@ -597,16 +608,16 @@ class MultiGPUMixin:
         fun: Callable,
         rng: PRNGKeyArray,
     ) -> Dict[str, jnp.ndarray]:
-        val_losses = super().val_loss_step(
-            state, targets, outputs, fun, rng
-        )
+        val_losses = super().val_loss_step(state, targets, outputs, fun, rng)
         return lax.pmean(val_losses, axis_name="batch")
 
     def val_metrics_step(
         self,
         aux: Dict[str, jnp.ndarray],
         targets: Array,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]] = None,
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
+        ] = None,
     ) -> Dict[str, jnp.ndarray]:
         outputs = aux["outputs"]
         outputs = outputs.reshape(outputs.shape[0] * outputs.shape[1], -1)

@@ -5,6 +5,9 @@ from typing import Optional, Tuple
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax._src.prng import PRNGKeyArray
+from jax.flatten_util import ravel_pytree
+
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.distribution.gaussian import DiagGaussian
 from fortuna.prob_model.fit_config import FitConfig
@@ -25,8 +28,6 @@ from fortuna.prob_model.posterior.posterior_state_repository import \
 from fortuna.training.trainer import JittedMixin, MultiGPUMixin
 from fortuna.typing import Status
 from fortuna.utils.gpu import select_trainer_given_devices
-from jax._src.prng import PRNGKeyArray
-from jax.flatten_util import ravel_pytree
 
 
 class JittedADVITrainer(JittedMixin, ADVITrainer):
@@ -64,7 +65,7 @@ class ADVIPosterior(Posterior):
         **kwargs,
     ) -> Status:
         if (
-            fit_config.checkpointer.save_state is True
+            fit_config.checkpointer.dump_state is True
             and not fit_config.checkpointer.save_checkpoint_dir
         ):
             raise ValueError(
@@ -149,7 +150,7 @@ class ADVIPosterior(Posterior):
         )
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.save_state is True
+            if fit_config.checkpointer.dump_state is True
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)

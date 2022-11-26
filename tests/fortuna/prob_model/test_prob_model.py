@@ -1,6 +1,8 @@
 import unittest
 
 import jax.numpy as jnp
+from jax import random
+
 from fortuna.data.loader import DataLoader
 from fortuna.model.mlp import MLP
 from fortuna.output_calibrator.classification import \
@@ -9,7 +11,6 @@ from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_model.classification import ProbClassifier
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
-from jax import random
 from tests.make_data import make_array_random_data
 
 

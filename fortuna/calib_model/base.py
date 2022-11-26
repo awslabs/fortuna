@@ -1,19 +1,22 @@
 import abc
 import logging
+from typing import Callable, Optional
 
 import jax.numpy as jnp
+from flax.core import FrozenDict
+
 from fortuna.calib_model.calib_config.base import CalibConfig
-from fortuna.calib_model.calib_model_calibrator import CalibModelCalibrator, JittedCalibModelCalibrator, \
-    MultiGPUCalibModelCalibrator
+from fortuna.calib_model.calib_model_calibrator import (
+    CalibModelCalibrator, JittedCalibModelCalibrator,
+    MultiGPUCalibModelCalibrator)
+from fortuna.calibration.state import CalibState
+from fortuna.output_calibrator.output_calib_manager.state import \
+    OutputCalibManagerState
 from fortuna.training.mixin import WithCheckpointingMixin
 from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.typing import Array, Path, Status
-from fortuna.utils.random import RandomNumberGenerator
-from typing import Callable, Optional
 from fortuna.utils.gpu import select_trainer_given_devices
-from flax.core import FrozenDict
-from fortuna.calibration.state import CalibState
-from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
+from fortuna.utils.random import RandomNumberGenerator
 
 
 class CalibModel(WithCheckpointingMixin, abc.ABC):
@@ -32,16 +35,20 @@ class CalibModel(WithCheckpointingMixin, abc.ABC):
         self.predictive.rng = self.rng
 
     def _calibrate(
-            self,
-            uncertainty_fn: Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray],
-            calib_outputs: Array,
-            calib_targets: Array,
-            val_outputs: Optional[Array] = None,
-            val_targets: Optional[Array] = None,
-            calib_config: CalibConfig = CalibConfig(),
+        self,
+        uncertainty_fn: Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray],
+        calib_outputs: Array,
+        calib_targets: Array,
+        val_outputs: Optional[Array] = None,
+        val_targets: Optional[Array] = None,
+        calib_config: CalibConfig = CalibConfig(),
     ) -> Status:
-        if (val_targets is not None and val_outputs is None) or (val_targets is None and val_outputs is not None):
-            raise ValueError("For validation, both `val_outputs` and `val_targets` must be passed as arguments.")
+        if (val_targets is not None and val_outputs is None) or (
+            val_targets is None and val_outputs is not None
+        ):
+            raise ValueError(
+                "For validation, both `val_outputs` and `val_targets` must be passed as arguments."
+            )
         trainer_cls = select_trainer_given_devices(
             gpus=calib_config.processor.gpus,
             BaseTrainer=CalibModelCalibrator,
@@ -75,12 +82,12 @@ class CalibModel(WithCheckpointingMixin, abc.ABC):
             state = CalibState.init(
                 params=state.params,
                 mutable=state.mutable,
-                optimizer=calib_config.optimizer.method
+                optimizer=calib_config.optimizer.method,
             )
         else:
             state = self.restore_checkpoint(
                 calib_config.checkpointer.restore_checkpoint_path,
-                optimizer=calib_config.optimizer.method
+                optimizer=calib_config.optimizer.method,
             )
 
         if calib_config.monitor.verbose:
@@ -96,10 +103,12 @@ class CalibModel(WithCheckpointingMixin, abc.ABC):
 
         self.predictive.state = TrainStateRepository(
             calib_config.checkpointer.save_checkpoint_dir
-            if calib_config.checkpointer.save_state is True
+            if calib_config.checkpointer.dump_state is True
             else None
         )
-        self.predictive.state.put(state, keep=calib_config.checkpointer.keep_top_n_checkpoints)
+        self.predictive.state.put(
+            state, keep=calib_config.checkpointer.keep_top_n_checkpoints
+        )
         return status
 
     def load_state(self, checkpoint_path: Path) -> None:

@@ -1,14 +1,14 @@
 import abc
-from typing import Optional, Tuple, Union, Any, List
+from typing import Any, List, Optional, Tuple, Union
 
 import jax.numpy as jnp
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import Array
+from fortuna.typing import Array, CalibMutable, CalibParams
 from fortuna.utils.random import WithRNG
-from jax._src.prng import PRNGKeyArray
-from fortuna.typing import CalibMutable, CalibParams
 
 
 class Predictive(WithRNG, abc.ABC):
@@ -252,13 +252,13 @@ class Predictive(WithRNG, abc.ABC):
             )
 
     def _log_prob(
-            self,
-            params: CalibParams,
-            targets: Array,
-            outputs: Array,
-            mutable: Optional[CalibMutable] = None,
-            rng: Optional[PRNGKeyArray] = None,
-            return_aux: Optional[List[str]] = None
+        self,
+        params: CalibParams,
+        targets: Array,
+        outputs: Array,
+        mutable: Optional[CalibMutable] = None,
+        rng: Optional[PRNGKeyArray] = None,
+        return_aux: Optional[List[str]] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
         if return_aux is None:
             return_aux = []
@@ -277,7 +277,7 @@ class Predictive(WithRNG, abc.ABC):
             outputs=outputs,
             mutable=mutable["output_calibrator"],
             rng=rng,
-            calib="mutable" in return_aux
+            calib="mutable" in return_aux,
         )
         if (
             mutable is not None
@@ -298,4 +298,3 @@ class Predictive(WithRNG, abc.ABC):
             if "outputs" in return_aux:
                 aux["outputs"] = outputs
             return log_prob, aux
-

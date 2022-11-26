@@ -1,6 +1,8 @@
 import logging
 from typing import Optional
 
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -17,7 +19,6 @@ from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.typing import Status
 from fortuna.utils.gpu import select_trainer_given_devices
-from jax._src.prng import PRNGKeyArray
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ class MAPPosterior(Posterior):
         **kwargs
     ) -> Status:
         if (
-            fit_config.checkpointer.save_state is True
+            fit_config.checkpointer.dump_state is True
             and not fit_config.checkpointer.save_checkpoint_dir
         ):
             raise ValueError(
@@ -107,7 +108,7 @@ class MAPPosterior(Posterior):
         )
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.save_state is True
+            if fit_config.checkpointer.dump_state is True
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)

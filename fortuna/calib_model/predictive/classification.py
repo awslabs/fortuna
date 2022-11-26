@@ -1,6 +1,7 @@
 from typing import Optional
 
 import jax.numpy as jnp
+
 from fortuna.calib_model.predictive.base import Predictive
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager

@@ -2,11 +2,12 @@ import unittest
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax import random
+
 from fortuna.model.mlp import MLP
 from fortuna.model.model_manager.classification import \
     ClassificationModelManager
 from fortuna.model.model_manager.regression import RegressionModelManager
-from jax import random
 from tests.make_data import make_array_random_inputs
 
 

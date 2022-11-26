@@ -1,9 +1,10 @@
 import abc
 from typing import Optional
 
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.typing import Params
 from fortuna.utils.random import WithRNG
-from jax._src.prng import PRNGKeyArray
 
 
 class Prior(WithRNG, abc.ABC):

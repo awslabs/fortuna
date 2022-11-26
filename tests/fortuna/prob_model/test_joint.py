@@ -2,6 +2,8 @@ import unittest
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax import random
+
 from fortuna.data.loader import DataLoader
 from fortuna.model.mlp import MLP
 from fortuna.model.model_manager.regression import RegressionModelManager
@@ -11,7 +13,6 @@ from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.likelihood.regression import RegressionLikelihood
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from jax import random
 from tests.make_data import make_array_random_data
 
 

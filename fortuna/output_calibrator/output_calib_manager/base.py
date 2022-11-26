@@ -4,10 +4,11 @@ import flax.linen as nn
 import jax.numpy as jnp
 from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
-from fortuna.typing import Array, CalibMutable, CalibParams
-from fortuna.utils.random import WithRNG
 from jax import random
 from jax._src.prng import PRNGKeyArray
+
+from fortuna.typing import Array, CalibMutable, CalibParams
+from fortuna.utils.random import WithRNG
 
 
 class OutputCalibManager(WithRNG):

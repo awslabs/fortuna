@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (CalibMutable, CalibParams, Mutable, OptaxOptimizer,
                             Params)

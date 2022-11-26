@@ -1,14 +1,17 @@
-from fortuna.calibration.calibrator import CalibratorABC, JittedMixin, MultiGPUMixin
-from fortuna.calibration.state import CalibState
-from typing import Callable, Any, Union, Tuple, Optional, Dict
-import jax.numpy as jnp
-from fortuna.typing import CalibMutable, CalibParams, Batch, Array
-from jax._src.prng import PRNGKeyArray
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
 import jax
+import jax.numpy as jnp
 from flax import jax_utils
-from fortuna.data import DataLoader, TargetsLoader
 from jax import lax
+from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
+
+from fortuna.calibration.calibrator import (CalibratorABC, JittedMixin,
+                                            MultiGPUMixin)
+from fortuna.calibration.state import CalibState
+from fortuna.data import DataLoader, TargetsLoader
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams
 
 
 class ProbModelCalibrator(CalibratorABC):
@@ -71,7 +74,9 @@ class ProbModelCalibrator(CalibratorABC):
 
 class ProbModelMultiGPUMixin(MultiGPUMixin):
     @staticmethod
-    def _add_device_dim_to_outputs_loader(outputs_loader: TargetsLoader) -> TargetsLoader:
+    def _add_device_dim_to_outputs_loader(
+        outputs_loader: TargetsLoader,
+    ) -> TargetsLoader:
         def _reshape_batch(batch):
             n_devices = jax.local_device_count()
             if batch.shape[1] % n_devices != 0:
@@ -81,9 +86,11 @@ class ProbModelMultiGPUMixin(MultiGPUMixin):
                     f"Please set an appropriate batch size."
                 )
             shape = batch.shape
-            return batch.swapaxes(0, 1)\
-                        .reshape(n_devices, shape[1] // n_devices, shape[0], shape[2])\
-                        .swapaxes(1, 2)
+            return (
+                batch.swapaxes(0, 1)
+                .reshape(n_devices, shape[1] // n_devices, shape[0], shape[2])
+                .swapaxes(1, 2)
+            )
 
         class TargetsLoaderWrapper:
             def __init__(self, outputs_loader: TargetsLoader):
@@ -96,7 +103,11 @@ class ProbModelMultiGPUMixin(MultiGPUMixin):
                 outputs_loader = jax_utils.prefetch_to_device(outputs_loader, 2)
                 yield from outputs_loader
 
-        return TargetsLoaderWrapper(outputs_loader) if outputs_loader is not None else outputs_loader
+        return (
+            TargetsLoaderWrapper(outputs_loader)
+            if outputs_loader is not None
+            else outputs_loader
+        )
 
 
 class JittedProbModelCalibrator(JittedMixin, ProbModelCalibrator):

@@ -1,13 +1,16 @@
 from typing import Callable, Optional, Tuple, Union
-from fortuna.typing import Array
 
 import jax.numpy as jnp
+
+from fortuna.typing import Array
 
 
 class FitMonitor:
     def __init__(
         self,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], Union[float, Array]], ...]] = None,
+        metrics: Optional[
+            Tuple[Callable[[jnp.ndarray, Array], Union[float, Array]], ...]
+        ] = None,
         early_stopping_patience: int = 0,
         early_stopping_monitor: str = "val_loss",
         early_stopping_min_delta: float = 0.0,

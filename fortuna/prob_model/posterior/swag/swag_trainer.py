@@ -2,12 +2,13 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax.flatten_util import ravel_pytree
+from jax.tree_util import tree_map
+
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.training.trainer import JittedMixin, MultiGPUMixin
-from fortuna.typing import Batch, Array
-from jax.flatten_util import ravel_pytree
-from jax.tree_util import tree_map
+from fortuna.typing import Array, Batch
 
 
 class SWAGTrainer(MAPTrainer):

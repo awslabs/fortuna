@@ -1,10 +1,11 @@
 from typing import List, Optional, Union
 
 import jax.numpy as jnp
-from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import Array
 from jax import random, vmap
 from jax._src.prng import PRNGKeyArray
+
+from fortuna.prob_output_layer.base import ProbOutputLayer
+from fortuna.typing import Array
 
 
 class RegressionProbOutputLayer(ProbOutputLayer):

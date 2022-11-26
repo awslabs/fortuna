@@ -1,11 +1,12 @@
 from typing import Optional
 
 import jax.numpy as jnp
-from fortuna.prob_model.prior.base import Prior
-from fortuna.typing import Params
 from jax import random
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+
+from fortuna.prob_model.prior.base import Prior
+from fortuna.typing import Params
 
 
 class IsotropicGaussianPrior(Prior):

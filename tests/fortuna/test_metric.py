@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+
 from fortuna.metric.classification import brier_score
 
 

@@ -1,6 +1,8 @@
 import abc
 from typing import Optional, Tuple, Union
 
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -11,7 +13,6 @@ from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.typing import Path, Status
 from fortuna.utils.random import WithRNG
-from jax._src.prng import PRNGKeyArray
 
 
 class PosteriorApproximator(abc.ABC):
