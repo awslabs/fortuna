@@ -26,7 +26,7 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import \
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.training.trainer import JittedMixin, MultiGPUMixin
-from fortuna.typing import Status
+from fortuna.typing import Status, Array
 from fortuna.utils.gpu import select_trainer_given_devices
 
 
@@ -162,6 +162,7 @@ class ADVIPosterior(Posterior):
         rng: Optional[PRNGKeyArray] = None,
         input_shape: Optional[Tuple[int, ...]] = None,
         inputs_loader: Optional[InputsLoader] = None,
+        inputs: Optional[Array] = None,
         **kwargs,
     ) -> JointState:
         """
@@ -174,7 +175,9 @@ class ADVIPosterior(Posterior):
         input_shape: Optional[Tuple[int, ...]]
             Shape of a single input.
         inputs_loader: Optional[InputsLoader]
-            Input data loader. If `input_shape` is passed, then `_inputs_loader` is ignored.
+            Input data loader. If `input_shape` is passed, then `inputs` and `inputs_loader` are ignored.
+        inputs: Optional[Array]
+            Input variables.
 
         Returns
         -------
@@ -197,14 +200,17 @@ class ADVIPosterior(Posterior):
             )
 
         if not hasattr(self, "unravel"):
-            if not input_shape:
-                if not inputs_loader:
-                    raise ValueError(
-                        "Either `input_shape` or `_inputs_loader` must be passed."
-                    )
-                for x in inputs_loader:
-                    input_shape = x.shape[1:]
-                    break
+            if input_shape is None:
+                if inputs is not None:
+                    input_shape = inputs.shape[1:]
+                else:
+                    if inputs_loader is None:
+                        raise ValueError(
+                            "Either `input_shape` or `inputs_loader` or `inputs` must be passed."
+                        )
+                    for x in inputs_loader:
+                        input_shape = x.shape[1:]
+                        break
             model_manager_state = self.joint.likelihood.model_manager.init(input_shape)
             self.unravel = ravel_pytree(model_manager_state.params)[1]
         sample_params = self.unravel(
