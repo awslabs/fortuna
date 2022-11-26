@@ -1,16 +1,16 @@
 import abc
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Any
 
 import jax.numpy as jnp
-import numpy as np
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params, Array
 from fortuna.utils.random import WithRNG
 from jax._src.prng import PRNGKeyArray
+from jax import jit
 
 
 class Likelihood(WithRNG):
@@ -56,7 +56,7 @@ class Likelihood(WithRNG):
         outputs: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
         **kwargs
-    ) -> Union[float, Tuple[float, dict]]:
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
         """
         Evaluate the batched log-likelihood function.
 
@@ -87,7 +87,7 @@ class Likelihood(WithRNG):
 
         Returns
         -------
-        Union[float, Tuple[float, dict]]
+        Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]
             The evaluation of the batched log-likelihood function. If `return_aux` is given, the corresponding
             auxiliary objects are also returned.
         """
@@ -149,13 +149,16 @@ class Likelihood(WithRNG):
             calib="calib_mutable" in return_aux,
         )
         if (
-            calib_mutable
-            and calib_mutable["output_calibrator"]
+            calib_mutable is not None
+            and calib_mutable["output_calibrator"] is not None
             and "calib_mutable" in return_aux
         ):
             outputs, aux["calib_mutable"] = outs
+            aux["calib_mutable"] = dict(output_calibrator=aux["calib_mutable"])
         else:
             outputs = outs
+            if "calib_mutable" in return_aux:
+                aux["calib_mutable"] = dict(output_calibrator=None)
 
         log_prob = jnp.sum(self.prob_output_layer.log_prob(outputs, targets, **kwargs))
         batch_weight = n_data / targets.shape[0]
@@ -384,6 +387,44 @@ class Likelihood(WithRNG):
                 **kwargs
             )
         return outputs
+
+    def _get_outputs(
+        self,
+        params: Params,
+        inputs_loader: InputsLoader,
+        mutable: Optional[Mutable] = None,
+    ) -> jnp.ndarray:
+        """
+        Compute the outputs and their calibrated version.
+
+        Parameters
+        ----------
+        params : Params
+            The random parameters of the probabilistic model.
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        mutable : Optional[Mutable]
+            The mutable objects used to evaluate the models.
+
+        Returns
+        -------
+        jnp.ndarray
+            The calibrated outputs.
+        """
+        @jit
+        def jit_get_batched_outputs(_inputs):
+            return self._get_batched_outputs(params, _inputs, mutable)
+        return jnp.concatenate([jit_get_batched_outputs(inputs) for inputs in inputs_loader], 0)
+
+    def _get_batched_outputs(
+        self,
+        params: Params,
+        inputs: Array,
+        mutable: Optional[Mutable] = None,
+    ) -> jnp.ndarray:
+        return self.model_manager.apply(
+                params=params, inputs=inputs, mutable=mutable
+            )
 
     @abc.abstractmethod
     def mean(

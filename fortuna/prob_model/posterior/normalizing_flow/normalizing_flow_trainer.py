@@ -9,7 +9,7 @@ from flax.core import FrozenDict
 from fortuna.distribution.base import Distribution
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import Batch, CalibMutable, CalibParams, Params
+from fortuna.typing import Batch, CalibMutable, CalibParams, Params, Array
 from jax import random, vmap
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
@@ -117,7 +117,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         state: PosteriorState,
         aux: Dict[str, Any],
         batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         """
@@ -132,7 +132,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             contains the model's prediction for the given `batch`.
         :param batch: Batch
             The input data and the targets.
-        :param metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]]
+        :param metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]]
             A tuple of metrics.
         :param kwargs: FrozenDict[str, Any]
             Any other extra argument. They have to be explicitly passed within a dictionary and cannot be provided as
@@ -191,7 +191,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         rng: PRNGKeyArray,
         n_data: int,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float]], ...] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float]], ...] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:

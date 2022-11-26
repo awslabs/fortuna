@@ -139,5 +139,5 @@ class DeepEnsemblePosteriorStateRepository:
         **kwargs
     ) -> Dict:
         return self.extract(
-            ["calib_params", "calib_keys"], 0, checkpoint_path, prefix, **kwargs
+            ["calib_params", "calib_mutable"], 0, checkpoint_path, prefix, **kwargs
         )

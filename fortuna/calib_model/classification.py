@@ -3,7 +3,7 @@ from typing import Optional
 import flax.linen as nn
 import jax.numpy as jnp
 import numpy as np
-from fortuna.calib_config.base import CalibConfig
+from fortuna.calib_model.calib_config.base import CalibConfig
 from fortuna.calib_model.base import CalibModel
 from fortuna.calib_model.predictive.classification import \
     ClassificationPredictive
@@ -59,10 +59,46 @@ class CalibClassifier(CalibModel):
         super().__init__(seed=seed)
 
     def calibrate(
-        self, outputs: Array, targets: Array, calib_config: CalibConfig = CalibConfig(),
+            self,
+            calib_outputs: Array,
+            calib_targets: Array,
+            val_outputs: Optional[Array] = None,
+            val_targets: Optional[Array] = None,
+            calib_config: CalibConfig = CalibConfig(),
     ) -> Status:
-        self._check_output_dim(outputs, targets)
-        return super().calibrate(outputs, targets, calib_config)
+        """
+        Calibrate the model outputs.
+
+        Parameters
+        ----------
+        calib_outputs: Array
+            Calibration model outputs.
+        calib_targets: Array
+            Calibration target variables.
+        val_outputs: Optional[Array]
+            Validation model outputs.
+        val_targets: Optional[Array]
+            Validation target variables.
+        calib_config : CalibConfig
+            An object to configure the calibration.
+
+        Returns
+        -------
+        Status
+            A calibration status object. It provides information about the calibration.
+        """
+        self._check_output_dim(calib_outputs, calib_targets)
+        if val_outputs is not None:
+            self._check_output_dim(val_outputs, val_targets)
+        return super()._calibrate(
+            uncertainty_fn=calib_config.monitor.uncertainty_fn if calib_config.monitor.uncertainty_fn is not None else
+            self.prob_output_layer.mean,
+            calib_outputs=calib_outputs,
+            calib_targets=calib_targets,
+            val_outputs=val_outputs,
+            val_targets=val_targets,
+            calib_config=calib_config
+        )
 
     def _check_output_dim(self, outputs: jnp.ndarray, targets: jnp.array):
         n_classes = len(np.unique(targets))

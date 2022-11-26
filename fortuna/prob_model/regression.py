@@ -2,7 +2,7 @@ from typing import Dict, Optional
 
 import flax.linen as nn
 import numpy as np
-from fortuna.calib_config.base import CalibConfig
+from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.data.loader import DataLoader
 from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
@@ -159,7 +159,35 @@ class ProbRegressor(ProbModel):
         )
 
     def calibrate(
-        self, data_loader: DataLoader, calib_config: CalibConfig = CalibConfig(),
+        self,
+        calib_data_loader: DataLoader,
+        val_data_loader: Optional[DataLoader] = None,
+        calib_config: CalibConfig = CalibConfig()
     ) -> Status:
-        self._check_output_dim(data_loader)
-        return super().calibrate(data_loader, calib_config)
+        """
+        Calibrate the probabilistic classifier.
+
+        Parameters
+        ----------
+        calib_data_loader : DataLoader
+            A calibration data loader.
+        val_data_loader : DataLoader
+            A validation data loader.
+        calib_config : CalibConfig
+            An object to configure the calibration.
+
+        Returns
+        -------
+        Status
+            A calibration status object. It provides information about the calibration.
+        """
+        self._check_output_dim(calib_data_loader)
+        if val_data_loader is not None:
+            self._check_output_dim(val_data_loader)
+        return super()._calibrate(
+            uncertainty_fn=calib_config.monitor.uncertainty_fn if calib_config.monitor.uncertainty_fn is not None else
+            self.prob_output_layer.variance,
+            calib_data_loader=calib_data_loader,
+            val_data_loader=val_data_loader,
+            calib_config=calib_config
+        )

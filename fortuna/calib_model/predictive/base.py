@@ -1,5 +1,5 @@
 import abc
-from typing import Optional
+from typing import Optional, Tuple, Union, Any, List
 
 import jax.numpy as jnp
 from fortuna.output_calibrator.output_calib_manager.base import \
@@ -8,6 +8,7 @@ from fortuna.prob_output_layer.base import ProbOutputLayer
 from fortuna.typing import Array
 from fortuna.utils.random import WithRNG
 from jax._src.prng import PRNGKeyArray
+from fortuna.typing import CalibMutable, CalibParams
 
 
 class Predictive(WithRNG, abc.ABC):
@@ -249,3 +250,52 @@ class Predictive(WithRNG, abc.ABC):
             raise ValueError(
                 "No calibration state was found. The model must be calibrated beforehand."
             )
+
+    def _log_prob(
+            self,
+            params: CalibParams,
+            targets: Array,
+            outputs: Array,
+            mutable: Optional[CalibMutable] = None,
+            rng: Optional[PRNGKeyArray] = None,
+            return_aux: Optional[List[str]] = None
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
+        if return_aux is None:
+            return_aux = []
+        supported_aux = ["outputs", "mutable"]
+        unsupported_aux = [s for s in return_aux if s not in supported_aux]
+        if sum(unsupported_aux) > 0:
+            raise AttributeError(
+                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux` 
+                            belong to the following list: {}""".format(
+                    unsupported_aux, supported_aux
+                )
+            )
+        aux = dict()
+        outs = self.output_calib_manager.apply(
+            params=params["output_calibrator"],
+            outputs=outputs,
+            mutable=mutable["output_calibrator"],
+            rng=rng,
+            calib="mutable" in return_aux
+        )
+        if (
+            mutable is not None
+            and mutable["output_calibrator"] is not None
+            and "mutable" in return_aux
+        ):
+            outputs, aux["mutable"] = outs
+            aux["mutable"] = dict(output_calibrator=aux["mutable"])
+        else:
+            outputs = outs
+            if "mutable" in return_aux:
+                aux["mutable"] = dict(output_calibrator=None)
+        log_prob = self.prob_output_layer.log_prob(outputs, targets).sum()
+
+        if len(return_aux) == 0:
+            return log_prob
+        else:
+            if "outputs" in return_aux:
+                aux["outputs"] = outputs
+            return log_prob, aux
+

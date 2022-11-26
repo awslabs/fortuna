@@ -2,17 +2,18 @@ import abc
 import logging
 
 import jax.numpy as jnp
-import jax.scipy.optimize as jspo
-from flax.core import FrozenDict
-from fortuna.calib_config.base import CalibConfig
-from fortuna.output_calibrator.output_calib_manager.state import \
-    OutputCalibManagerState
-from fortuna.training.calib_state import CalibState
+from fortuna.calib_model.calib_config.base import CalibConfig
+from fortuna.calib_model.calib_model_calibrator import CalibModelCalibrator, JittedCalibModelCalibrator, \
+    MultiGPUCalibModelCalibrator
 from fortuna.training.mixin import WithCheckpointingMixin
 from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.typing import Array, Path, Status
 from fortuna.utils.random import RandomNumberGenerator
-from jax.flatten_util import ravel_pytree
+from typing import Callable, Optional
+from fortuna.utils.gpu import select_trainer_given_devices
+from flax.core import FrozenDict
+from fortuna.calibration.state import CalibState
+from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
 
 
 class CalibModel(WithCheckpointingMixin, abc.ABC):
@@ -30,93 +31,76 @@ class CalibModel(WithCheckpointingMixin, abc.ABC):
         self.prob_output_layer.rng = self.rng
         self.predictive.rng = self.rng
 
-    def calibrate(
-        self, outputs: Array, targets: Array, calib_config: CalibConfig = CalibConfig(),
+    def _calibrate(
+            self,
+            uncertainty_fn: Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray],
+            calib_outputs: Array,
+            calib_targets: Array,
+            val_outputs: Optional[Array] = None,
+            val_targets: Optional[Array] = None,
+            calib_config: CalibConfig = CalibConfig(),
     ) -> Status:
-        """
-        Calibrate the model outputs.
-
-        Parameters
-        ----------
-        outputs: Array
-            Model outputs.
-        targets: Array
-            Array of target variables.
-        calib_config : CalibConfig
-            An object to configure the calibration.
-
-        Returns
-        -------
-        Status
-            A calibration status object. It provides information about the calibration.
-        """
-        if (
-            not calib_config.checkpointer.start_from_current_state
-            and calib_config.checkpointer.restore_checkpoint_path is None
-        ):
-            calib_state = OutputCalibManagerState.init_from_dict(
-                FrozenDict(
-                    output_calibrator=self.output_calib_manager.init(
-                        output_dim=outputs.shape[-1]
-                    )
-                )
-            )
-        elif calib_config.checkpointer.start_from_current_state:
-            calib_state = self.predictive.state.get()
-        else:
-            calib_state = self.restore_checkpoint(
-                restore_checkpoint_path=calib_config.checkpointer.restore_checkpoint_path
-            )
-        calib_params = calib_state.params
-        calib_mutable = calib_state.mutable
-
-        if calib_mutable is not None and any(
-            [v is not None for v in calib_mutable.values()]
-        ):
-            raise NotImplementedError(
-                f"This does not currently support calibration models that include mutable "
-                f"objects. However, the following calibration mutable objects were found: "
-                f"{calib_mutable}"
-            )
-
-        rav, unravel = ravel_pytree(calib_params)
-
-        def loss_fn(rav_calib_params):
-            calib_params = unravel(rav_calib_params)
-            calib_outputs = self.output_calib_manager.apply(
-                params=calib_params["output_calibrator"],
-                outputs=outputs,
-                # mutable=calib_mutable, # TODO: allow updating calibration mutable
-                calib=True,
-            )
-            logp = jnp.sum(
-                self.prob_output_layer.log_prob(outputs=calib_outputs, targets=targets,)
-            )
-            return -logp
-
-        logging.info("Calibrate the model...")
-        if calib_config.optimizer.minimizer_kwargs is None:
-            calib_config.optimizer.minimizer_kwargs = dict()
-        result = jspo.minimize(
-            loss_fn, rav, method="BFGS", **calib_config.optimizer.minimizer_kwargs
+        if (val_targets is not None and val_outputs is None) or (val_targets is None and val_outputs is not None):
+            raise ValueError("For validation, both `val_outputs` and `val_targets` must be passed as arguments.")
+        trainer_cls = select_trainer_given_devices(
+            gpus=calib_config.processor.gpus,
+            BaseTrainer=CalibModelCalibrator,
+            JittedTrainer=JittedCalibModelCalibrator,
+            MultiGPUTrainer=MultiGPUCalibModelCalibrator,
+            disable_jit=calib_config.processor.disable_jit,
         )
-        logging.info("Calibration completed.")
-        if result.success is False:
-            logging.warning(
-                """The calibration algorithm did not successfully converge. Please use the solution with caution."""
+
+        calibrator = trainer_cls(
+            calib_outputs=calib_outputs,
+            calib_targets=calib_targets,
+            val_outputs=val_outputs,
+            val_targets=val_targets,
+            predict_fn=self.prob_output_layer.predict,
+            uncertainty_fn=uncertainty_fn,
+            save_checkpoint_dir=calib_config.checkpointer.save_checkpoint_dir,
+            save_every_n_steps=calib_config.checkpointer.save_every_n_steps,
+            keep_top_n_checkpoints=calib_config.checkpointer.keep_top_n_checkpoints,
+            disable_training_metrics_computation=calib_config.monitor.disable_calibration_metrics_computation,
+            eval_every_n_epochs=calib_config.monitor.eval_every_n_epochs,
+        )
+
+        if calib_config.checkpointer.restore_checkpoint_path is None:
+            state = OutputCalibManagerState.init_from_dict(
+                d=FrozenDict(
+                    output_calibrator=self.output_calib_manager.init(
+                        output_dim=calib_outputs.shape[-1]
+                    )
+                ),
             )
-        calib_params = unravel(result.x)
-        calib_status = {
-            k: getattr(result, k) for k in result._fields if k not in ["x", "status"]
-        }
+            state = CalibState.init(
+                params=state.params,
+                mutable=state.mutable,
+                optimizer=calib_config.optimizer.method
+            )
+        else:
+            state = self.restore_checkpoint(
+                calib_config.checkpointer.restore_checkpoint_path,
+                optimizer=calib_config.optimizer.method
+            )
+
+        if calib_config.monitor.verbose:
+            logging.info("Start calibration.")
+        state, status = calibrator.train(
+            rng=self.rng.get(),
+            state=state,
+            fun=self.predictive._log_prob,
+            n_epochs=calib_config.optimizer.n_epochs,
+            metrics=calib_config.monitor.metrics,
+            verbose=calib_config.monitor.verbose,
+        )
 
         self.predictive.state = TrainStateRepository(
-            checkpoint_dir=calib_config.checkpointer.save_state_path
+            calib_config.checkpointer.save_checkpoint_dir
+            if calib_config.checkpointer.save_state is True
+            else None
         )
-        self.predictive.state.put(
-            state=CalibState.init(params=calib_params, mutable=calib_mutable),
-        )
-        return calib_status
+        self.predictive.state.put(state, keep=calib_config.checkpointer.keep_top_n_checkpoints)
+        return status
 
     def load_state(self, checkpoint_path: Path) -> None:
         """

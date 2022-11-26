@@ -5,20 +5,20 @@ from typing import Any, Dict, Optional, Union
 import jax.numpy as jnp
 from flax.core import FrozenDict
 from fortuna.training.train_state import TrainState
-from fortuna.typing import Mutable, OptaxOptimizer, Params
+from fortuna.typing import CalibMutable, OptaxOptimizer, CalibParams
 from fortuna.utils.strings import convert_string_to_jnp_array
 
 
 class CalibState(TrainState):
-    params: Params
-    mutable: Optional[Mutable] = None
+    params: CalibParams
+    mutable: Optional[CalibMutable] = None
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("CalibState")
 
     @classmethod
     def init(
         cls,
-        params: Params,
-        mutable: Optional[Mutable] = None,
+        params: CalibParams,
+        mutable: Optional[CalibMutable] = None,
         optimizer: Optional[OptaxOptimizer] = None,
         **kwargs,
     ) -> Any:
@@ -27,11 +27,11 @@ class CalibState(TrainState):
 
         Parameters
         ----------
-        params : Params
+        params : CalibParams
             The calibration parameters.
         optimizer : Optional[OptaxOptimizer]
             An Optax optimizer associated with the calibration state.
-        mutable : Optional[Mutable]
+        mutable : Optional[CalibMutable]
             The calibration mutable objects.
 
         Returns
@@ -79,9 +79,22 @@ class CalibState(TrainState):
         CalibState
             A calibration state.
         """
+        kwargs = {
+            **kwargs,
+            **{
+                k: v
+                for k, v in d.items()
+                if k
+                not in [
+                    "params",
+                    "mutable",
+                    "optimizer",
+                ]
+            },
+        }
         return cls.init(
-            params=FrozenDict(d["params"]),
-            mutable=FrozenDict(d["mutable"]),
-            optimizer=optimizer,
+            FrozenDict(d["params"]),
+            FrozenDict(d["mutable"]),
+            optimizer,
             **kwargs,
         )

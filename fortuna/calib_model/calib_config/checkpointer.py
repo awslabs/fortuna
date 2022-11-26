@@ -3,7 +3,7 @@ from typing import Optional
 from fortuna.typing import Path
 
 
-class FitCheckpointer:
+class CalibCheckpointer:
     def __init__(
         self,
         save_checkpoint_dir: Optional[Path] = None,
@@ -13,7 +13,7 @@ class FitCheckpointer:
         save_state: bool = False,
     ):
         """
-        An object to configure saving and restoring of checkpoints during the posterior fitting.
+        An object to configure saving and restoring of checkpoints during the calibration process.
 
         Parameters
         ----------
@@ -27,8 +27,8 @@ class FitCheckpointer:
         keep_top_n_checkpoints: int
             Number of past checkpoint files to keep.
         save_state: bool
-            Dump the fitted posterior state as a checkpoint in `save_checkpoint_dir`. Any future call to the state will
-            internally involve restoring it from memory.
+            Dump the fitted calibration state as a checkpoint in `save_checkpoint_dir`.
+            Any future call to the state will internally involve restoring it from memory.
         """
         self.save_checkpoint_dir = save_checkpoint_dir
         self.save_every_n_steps = save_every_n_steps

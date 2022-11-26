@@ -3,9 +3,9 @@ from typing import List, Optional, Tuple, Union
 
 import jax.numpy as jnp
 import jax.scipy as jsp
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
 from fortuna.prob_model.posterior.base import Posterior
-from fortuna.typing import CalibMutable, CalibParams
+from fortuna.typing import CalibMutable, CalibParams, Batch
 from fortuna.utils.random import WithRNG
 from jax import lax, random
 from jax._src.prng import PRNGKeyArray
@@ -33,7 +33,6 @@ class Predictive(WithRNG):
         ensemble_outputs: Optional[jnp.ndarray] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        calib: bool = False,
         rng: Optional[PRNGKeyArray] = None,
         **kwargs
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
@@ -63,8 +62,6 @@ class Predictive(WithRNG):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
-        calib : bool
-            Whether this method is called during calibration.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
@@ -99,7 +96,6 @@ class Predictive(WithRNG):
                     data_loader,
                     mutable=sample.mutable,
                     return_aux=return_aux,
-                    calib=calib,
                     calib_params=calib_params
                     if calib_params is not None
                     else sample.calib_params,
@@ -123,7 +119,86 @@ class Predictive(WithRNG):
                     mutable=None,
                     outputs=outputs,
                     return_aux=return_aux,
-                    calib=calib,
+                    calib_params=calib_params,
+                    calib_mutable=calib_mutable,
+                    **kwargs
+                )
+
+            outs = lax.map(_lik_log_prob, ensemble_outputs)
+
+        if len(return_aux):
+            ensemble_log_lik, aux = outs
+            aux = tree_map(lambda v: jnp.mean(v, 0), aux)
+        else:
+            ensemble_log_lik = outs
+        log_pred = jsp.special.logsumexp(ensemble_log_lik) - jnp.log(
+            len(ensemble_log_lik)
+        )
+        if len(return_aux):
+            return log_pred, aux
+        return log_pred
+
+    def _batched_log_prob(
+        self,
+        batch: Batch,
+        n_data: int,
+        n_posterior_samples: int = 30,
+        return_aux: Optional[List[str]] = None,
+        ensemble_outputs: Optional[jnp.ndarray] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
+        if return_aux is None:
+            return_aux = []
+        supported_aux = ["outputs", "calib_mutable"]
+        unsupported_aux = [s for s in return_aux if s not in supported_aux]
+        if sum(unsupported_aux) > 0:
+            raise Exception(
+                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux` 
+                            belong to the following list: {}""".format(
+                    unsupported_aux, supported_aux
+                )
+            )
+
+        if ensemble_outputs is None:
+            if rng is None:
+                rng = self.rng.get()
+            keys = random.split(rng, n_posterior_samples)
+
+            def _lik_log_prob(key):
+                sample = self.posterior.sample(inputs=batch[0], rng=key)
+                return self.likelihood._batched_log_prob(
+                    sample.params,
+                    batch,
+                    n_data,
+                    mutable=sample.mutable,
+                    return_aux=return_aux,
+                    calib_params=calib_params
+                    if calib_params is not None
+                    else sample.calib_params,
+                    calib_mutable=calib_mutable
+                    if calib_mutable is not None
+                    else sample.calib_mutable,
+                    **kwargs
+                )
+
+            outs = lax.map(_lik_log_prob, keys)
+        else:
+            if calib_params is None:
+                d = self.posterior.state.extract_calib_keys()
+                calib_params = d["calib_params"]
+                calib_mutable = d["calib_mutable"]
+
+            def _lik_log_prob(outputs):
+                return self.likelihood._batched_log_prob(
+                    None,
+                    batch,
+                    n_data,
+                    mutable=None,
+                    outputs=outputs,
+                    return_aux=return_aux,
                     calib_params=calib_params,
                     calib_mutable=calib_mutable,
                     **kwargs
@@ -244,6 +319,72 @@ class Predictive(WithRNG):
             )
 
         return lax.map(_sample, keys)
+
+    def _sample_outputs(
+        self,
+        inputs_loader: InputsLoader,
+        n_output_samples: int = 1,
+        rng: Optional[PRNGKeyArray] = None,
+    ) -> jnp.ndarray:
+        r"""
+        Sample parameters from the posterior distribution state and compute calibrated outputs.
+
+        Parameters
+        ----------
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        n_output_samples : int
+            Number of output samples to draw for each input.
+        rng: Optional[PRNGKeyArray]
+            A random number generator. If not passed, this will be taken from the attributes of this class.
+
+        Returns
+        -------
+        jnp.ndarray
+            Samples of calibrated outputs.
+        """
+        if rng is None:
+            rng = self.rng.get()
+        keys = random.split(rng, n_output_samples)
+
+        def _sample(key):
+            sample = self.posterior.sample(inputs_loader=inputs_loader, rng=key)
+            return self.likelihood._get_outputs(
+                params=sample.params,
+                inputs_loader=inputs_loader,
+                mutable=sample.mutable
+            )
+
+        return lax.map(_sample, keys)
+
+    def _sample_outputs_loader(
+        self,
+        inputs_loader: InputsLoader,
+        n_output_samples: int = 1,
+        rng: Optional[PRNGKeyArray] = None,
+        return_size: bool = False
+    ) -> Union[TargetsLoader, Tuple[TargetsLoader, int]]:
+        if rng is None:
+            rng = self.rng.get()
+        keys = random.split(rng, n_output_samples)
+
+        def _sample(key, _inputs):
+            sample = self.posterior.sample(inputs=_inputs, rng=key)
+            return self.likelihood._get_batched_outputs(
+                params=sample.params,
+                inputs=_inputs,
+                mutable=sample.mutable
+            )
+
+        iterable = []
+        size = 0
+        for inputs in inputs_loader:
+            size += inputs.shape[0]
+            iterable.append(lax.map(lambda key: _sample(key, inputs), keys))
+        iterable = TargetsLoader.from_iterable(iterable=iterable)
+        if return_size:
+            return iterable, size
+        return iterable
 
     def mean(
         self,

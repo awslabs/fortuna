@@ -2,11 +2,10 @@ import abc
 import collections
 import logging
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 from flax import jax_utils
 from flax.core import FrozenDict
 from flax.training.common_utils import stack_forest
@@ -98,11 +97,11 @@ class TrainerABC(
     def validation_step(
         self,
         state: TrainState,
-        batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
+        batch: Batch,
         fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
@@ -114,7 +113,7 @@ class TrainerABC(
         state: TrainState,
         aux: Dict[str, Any],
         batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]],
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         if (
@@ -178,7 +177,7 @@ class TrainerABC(
         training_dataloader: DataLoader,
         training_dataset_size: int,
         n_epochs: int = 1,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         validation_dataloader: Optional[DataLoader] = None,
         validation_dataset_size: Optional[int] = None,
         verbose: bool = True,
@@ -273,7 +272,7 @@ class TrainerABC(
         self,
         current_epoch: int,
         fun: Callable,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]],
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
         training_dataloader: DataLoader,
@@ -330,7 +329,7 @@ class TrainerABC(
     def _validation_loop(
         self,
         fun: Callable,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]],
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
         training_kwargs: FrozenDict[str, Any],
@@ -412,7 +411,7 @@ class TrainerABC(
         self,
         preds: Array,
         targets: Array,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]],
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
     ) -> Dict[str, float]:
         metrics_vals = {}
         for metric in metrics:
@@ -425,7 +424,7 @@ class JittedMixin:
     def training_step(
         self,
         state: TrainState,
-        batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
+        batch: Batch,
         fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
@@ -438,11 +437,11 @@ class JittedMixin:
     def validation_step(
         self,
         state: TrainState,
-        batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
+        batch: Batch,
         fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
@@ -535,7 +534,7 @@ class MultiGPUMixin:
     def training_step(
         self,
         state: TrainState,
-        batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
+        batch: Batch,
         fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
@@ -550,7 +549,7 @@ class MultiGPUMixin:
         state: TrainState,
         aux: Dict[str, Any],
         batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]],
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         training_losses_and_metrics = super(MultiGPUMixin, self).training_step_end(
@@ -567,11 +566,11 @@ class MultiGPUMixin:
     def validation_step(
         self,
         state: TrainState,
-        batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
+        batch: Batch,
         fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:

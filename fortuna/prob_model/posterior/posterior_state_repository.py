@@ -14,5 +14,5 @@ class PosteriorStateRepository(WithPosteriorCheckpointingMixin, TrainStateReposi
         **kwargs
     ) -> Dict:
         return super().extract(
-            ["calib_params", "calib_keys"], checkpoint_path, prefix, **kwargs
+            ["calib_params", "calib_mutable"], checkpoint_path, prefix, **kwargs
         )

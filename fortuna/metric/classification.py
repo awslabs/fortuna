@@ -7,7 +7,7 @@ from fortuna.plot import plot_reliability_diagram
 from fortuna.typing import Array
 
 
-def accuracy(preds: Array, targets: Array) -> float:
+def accuracy(preds: Array, targets: Array) -> jnp.ndarray:
     """
     Compute the accuracy given predictions and target variables.
 
@@ -86,7 +86,7 @@ def compute_counts_confs_accs(
 
 def expected_calibration_error(
     preds: Array, probs: Array, targets: Array, plot: bool = False, **plot_options
-) -> float:
+) -> jnp.ndarray:
     """
     Compute the Expected Calibration Error (ECE)
     (see `Naeini et al., 2015 <https://people.cs.pitt.edu/~milos/research/AAAI_Calibration.pdf>`__ and
@@ -127,7 +127,7 @@ def ece(
 
 def maximum_calibration_error(
     preds: Array, probs: Array, targets: Array, plot: bool = False, **plot_options
-) -> float:
+) -> jnp.ndarray:
     """
     Compute the Maximum Calibration Error (MCE)
     (see `Naeini et al., 2015 <https://people.cs.pitt.edu/~milos/research/AAAI_Calibration.pdf>`__). Optionally, plot
@@ -165,7 +165,7 @@ def mce(
     return maximum_calibration_error(preds, probs, targets, plot, **plot_options)
 
 
-def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> float:
+def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> jnp.ndarray:
     """
     Brier score (see `Brier, 1950 <https://web.archive.org/web/20171023012737/
     https://docs.lib.noaa.gov/rescue/mwr/078/mwr-078-01-0001.pdf>`__). This can be used for both binary and multi-class

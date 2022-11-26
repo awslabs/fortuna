@@ -2,12 +2,14 @@ import logging
 import tempfile
 import unittest
 
-from fortuna.calib_config.base import CalibConfig
-from fortuna.calib_config.checkpointer import CalibCheckpointer
+from fortuna.calib_model.calib_config.base import CalibConfig
+from fortuna.calib_model.calib_config.checkpointer import CalibCheckpointer
+from fortuna.calib_model.calib_config.optimizer import CalibOptimizer
+from fortuna.calib_model.calib_config.monitor import CalibMonitor
 from fortuna.calib_model.classification import CalibClassifier
 from fortuna.calib_model.regression import CalibRegressor
 from fortuna.data.loader import DataLoader
-from fortuna.metric.classification import accuracy
+from fortuna.metric.classification import accuracy, brier_score
 from fortuna.metric.regression import rmse
 from fortuna.model.mlp import MLP
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
@@ -20,8 +22,17 @@ from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
+import jax.numpy as jnp
 
 logging.basicConfig(level=logging.INFO)
+
+
+def brier(dummy, p, y):
+    return brier_score(p, y)
+
+
+def standard_error(m, v, y):
+    return jnp.sum((y - m) ** 2 / v) / m.shape[0]
 
 
 class TestApproximations(unittest.TestCase):
@@ -75,6 +86,18 @@ class TestApproximations(unittest.TestCase):
         self.reg_fit_config_nodir_nodump = FitConfig(
             optimizer=FitOptimizer(n_epochs=3), monitor=FitMonitor(metrics=(rmse,))
         )
+        self.calib_config_dir_nodump = lambda directory, metric: CalibConfig(
+            optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(metric,)),
+            checkpointer=CalibCheckpointer(save_checkpoint_dir=directory)
+        )
+        self.calib_config_dir_dump = lambda directory, metric: CalibConfig(
+            optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(metric,)),
+            checkpointer=CalibCheckpointer(save_checkpoint_dir=directory, save_state=True)
+        )
+        self.calib_config_restore = lambda directory, metric: CalibConfig(
+            optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(metric,)),
+            checkpointer=CalibCheckpointer(restore_checkpoint_path=directory)
+        )
 
     def test_dryrun_reg_map(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -97,40 +120,34 @@ class TestApproximations(unittest.TestCase):
                 inputs=self.reg_val_data_loader.to_array_inputs(),
                 mutable=state.mutable,
             )
+            targets = self.reg_val_data_loader.to_array_targets()
 
-            # calibrate from initialized state
+            # calibrate from initialized state, save checkpoint
             calib_model = CalibRegressor()
             calib_status = calib_model.calibrate(
-                outputs,
-                self.reg_val_data_loader.to_array_targets(),
-                calib_config=CalibConfig(
-                    checkpointer=CalibCheckpointer(save_state_path=tmp_dir)
-                ),
+                calib_outputs=outputs,
+                calib_targets=targets,
+                val_outputs=outputs,
+                val_targets=targets,
+                calib_config=self.calib_config_dir_nodump(tmp_dir, standard_error),
             )
 
-            # calibrate from current state
+            # calibrate from restored checkpoint
             calib_status = calib_model.calibrate(
-                outputs,
-                self.reg_val_data_loader.to_array_targets(),
-                calib_config=CalibConfig(
-                    checkpointer=CalibCheckpointer(start_from_current_state=True)
-                ),
+                calib_outputs=outputs,
+                calib_targets=targets,
+                val_outputs=outputs,
+                val_targets=targets,
+                calib_config=self.calib_config_restore(tmp_dir, standard_error),
             )
 
+            # calibrate from restored checkpoint, save checkpoint and dump
             calib_status = calib_model.calibrate(
-                outputs,
-                self.reg_val_data_loader.to_array_targets(),
-                calib_config=CalibConfig(
-                    checkpointer=CalibCheckpointer(start_from_current_state=True)
-                ),
-            )
-
-            calib_status = calib_model.calibrate(
-                outputs,
-                self.reg_val_data_loader.to_array_targets(),
-                calib_config=CalibConfig(
-                    checkpointer=CalibCheckpointer(restore_checkpoint_path=tmp_dir)
-                ),
+                calib_outputs=outputs,
+                calib_targets=targets,
+                val_outputs=outputs,
+                val_targets=targets,
+                calib_config=self.calib_config_dir_dump(tmp_dir, standard_error),
             )
 
             # load state
@@ -159,32 +176,34 @@ class TestApproximations(unittest.TestCase):
                 inputs=self.class_val_data_loader.to_array_inputs(),
                 mutable=state.mutable,
             )
+            targets = self.class_val_data_loader.to_array_targets()
 
-            # calibrate from initialized state
+            # calibrate from initialized state, save checkpoint
             calib_model = CalibClassifier()
             calib_status = calib_model.calibrate(
-                outputs,
-                self.class_val_data_loader.to_array_targets(),
-                calib_config=CalibConfig(
-                    checkpointer=CalibCheckpointer(save_state_path=tmp_dir)
-                ),
+                calib_outputs=outputs,
+                calib_targets=targets,
+                val_outputs=outputs,
+                val_targets=targets,
+                calib_config=self.calib_config_dir_nodump(tmp_dir, brier),
             )
 
-            # calibrate from current state
+            # calibrate from restored checkpoint
             calib_status = calib_model.calibrate(
-                outputs,
-                self.class_val_data_loader.to_array_targets(),
-                calib_config=CalibConfig(
-                    checkpointer=CalibCheckpointer(start_from_current_state=True)
-                ),
+                calib_outputs=outputs,
+                calib_targets=targets,
+                val_outputs=outputs,
+                val_targets=targets,
+                calib_config=self.calib_config_restore(tmp_dir, brier),
             )
 
+            # calibrate from restored checkpoint, save checkpoint and dump
             calib_status = calib_model.calibrate(
-                outputs,
-                self.class_val_data_loader.to_array_targets(),
-                calib_config=CalibConfig(
-                    checkpointer=CalibCheckpointer(restore_checkpoint_path=tmp_dir)
-                ),
+                calib_outputs=outputs,
+                calib_targets=targets,
+                val_outputs=outputs,
+                val_targets=targets,
+                calib_config=self.calib_config_dir_dump(tmp_dir, brier),
             )
 
             # load state
@@ -192,3 +211,4 @@ class TestApproximations(unittest.TestCase):
 
             # save state
             calib_model.save_state(checkpoint_path=tmp_dir)
+

@@ -8,7 +8,7 @@ from fortuna.prob_model.posterior.map import *
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.training.trainer import JittedMixin, MultiGPUMixin
-from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params, Array
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
 
@@ -59,7 +59,7 @@ class MAPTrainer(PosteriorTrainerABC):
         fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         rng: PRNGKeyArray,
         n_data: int,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:

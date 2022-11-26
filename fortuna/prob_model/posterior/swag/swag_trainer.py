@@ -5,7 +5,7 @@ from flax.core import FrozenDict
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.training.trainer import JittedMixin, MultiGPUMixin
-from fortuna.typing import Batch
+from fortuna.typing import Batch, Array
 from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_map
 
@@ -36,7 +36,7 @@ class SWAGTrainer(MAPTrainer):
         state: SWAGState,
         aux: Dict[str, Any],
         batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray], float], ...]] = None,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         if "rank" not in kwargs:
@@ -67,7 +67,7 @@ class SWAGTrainer(MAPTrainer):
             )
         if (
             self.save_checkpoint_dir
-            and self.save_every_n_steps
+            and self.save_every_n_steps is not None
             and current_epoch % self.save_every_n_steps
         ):
             state = self._update_state_with_stats(state)
@@ -75,14 +75,22 @@ class SWAGTrainer(MAPTrainer):
             current_epoch, state, aux, batch, metrics, kwargs
         )
 
+
+class SWAGJittedMixin(JittedMixin):
     def on_train_end(self, state: SWAGState) -> SWAGState:
         state = super().on_train_end(state)
         return self._update_state_with_stats(state)
 
 
-class JittedSWAGTrainer(JittedMixin, SWAGTrainer):
+class SWAGMultiGPUMixin(JittedMixin):
+    def on_train_end(self, state: SWAGState) -> SWAGState:
+        state = self._update_state_with_stats(state)
+        return super().on_train_end(state)
+
+
+class JittedSWAGTrainer(SWAGJittedMixin, SWAGTrainer):
     pass
 
 
-class MultiGPUSWAGTrainer(MultiGPUMixin, SWAGTrainer):
+class MultiGPUSWAGTrainer(SWAGMultiGPUMixin, SWAGTrainer):
     pass

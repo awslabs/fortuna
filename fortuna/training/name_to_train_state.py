@@ -1,6 +1,6 @@
 import enum
 
-from fortuna.training.calib_state import CalibState
+from fortuna.calibration.state import CalibState
 from fortuna.training.train_state import TrainState
 
 

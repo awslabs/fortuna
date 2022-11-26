@@ -1,4 +1,3 @@
-import logging
 import tempfile
 import unittest
 
@@ -13,6 +12,7 @@ from fortuna.prob_model.classification import ProbClassifier
 from fortuna.prob_model.fit_config import FitConfig, FitMonitor
 from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
+from fortuna.prob_model.calib_config import CalibConfig, CalibMonitor, CalibOptimizer
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_posterior import \
     DeepEnsemblePosteriorApproximator
 from fortuna.prob_model.posterior.laplace.laplace_posterior import \
@@ -27,8 +27,11 @@ from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
+from fortuna.metric.classification import brier_score
 
-logging.basicConfig(level=logging.INFO)
+
+def brier(dummy, p, y):
+    return brier_score(p, y)
 
 
 class TestApproximations(unittest.TestCase):
@@ -120,6 +123,12 @@ class TestApproximations(unittest.TestCase):
             optimizer=FitOptimizer(n_epochs=3),
             checkpointer=FitCheckpointer(restore_checkpoint_path=restore_dir),
         )
+        self.class_calib_config_nodir_nodump = CalibConfig(
+            optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(brier,))
+        )
+        self.reg_calib_config_nodir_nodump = CalibConfig(
+            optimizer=CalibOptimizer(n_epochs=3)
+        )
 
     def test_dryrun_reg_map(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -133,7 +142,9 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_nodir_nodump,
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
 
@@ -142,14 +153,18 @@ class TestApproximations(unittest.TestCase):
                 status = prob_reg.train(
                     train_data_loader=self.reg_train_data_loader,
                     calib_data_loader=self.reg_val_data_loader,
+                    val_data_loader=self.reg_val_data_loader,
                     fit_config=self.reg_fit_config_nodir_dump,
+                    calib_config=self.reg_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -158,7 +173,9 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -167,7 +184,9 @@ class TestApproximations(unittest.TestCase):
             prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # load state
@@ -186,7 +205,10 @@ class TestApproximations(unittest.TestCase):
             # no save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
 
@@ -194,13 +216,19 @@ class TestApproximations(unittest.TestCase):
             with self.assertRaises(ValueError):
                 status = prob_class.train(
                     train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
                     fit_config=self.class_fit_config_nodir_dump,
+                    calib_config=self.class_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -208,7 +236,10 @@ class TestApproximations(unittest.TestCase):
             # save dir and dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -216,7 +247,10 @@ class TestApproximations(unittest.TestCase):
             # restore
             prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # load state
@@ -237,7 +271,9 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_nodir_nodump,
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
 
@@ -246,14 +282,18 @@ class TestApproximations(unittest.TestCase):
                 status = prob_reg.train(
                     train_data_loader=self.reg_train_data_loader,
                     calib_data_loader=self.reg_val_data_loader,
+                    val_data_loader=self.reg_val_data_loader,
                     fit_config=self.reg_fit_config_nodir_dump,
+                    calib_config=self.reg_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -262,7 +302,9 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -271,7 +313,9 @@ class TestApproximations(unittest.TestCase):
             prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # restore from map
@@ -284,12 +328,16 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg_map.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # load state
@@ -308,7 +356,10 @@ class TestApproximations(unittest.TestCase):
             # no save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
 
@@ -316,13 +367,19 @@ class TestApproximations(unittest.TestCase):
             with self.assertRaises(ValueError):
                 status = prob_class.train(
                     train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
                     fit_config=self.class_fit_config_nodir_dump,
+                    calib_config=self.class_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -330,7 +387,10 @@ class TestApproximations(unittest.TestCase):
             # save dir and dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -338,7 +398,10 @@ class TestApproximations(unittest.TestCase):
             # restore from advi
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # restore from map
@@ -349,11 +412,17 @@ class TestApproximations(unittest.TestCase):
             )
             status = prob_class_map.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # load state
@@ -374,7 +443,9 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_nodir_nodump,
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
 
@@ -383,14 +454,18 @@ class TestApproximations(unittest.TestCase):
                 status = prob_reg.train(
                     train_data_loader=self.reg_train_data_loader,
                     calib_data_loader=self.reg_val_data_loader,
+                    val_data_loader=self.reg_val_data_loader,
                     fit_config=self.reg_fit_config_nodir_dump,
+                    calib_config=self.reg_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -399,7 +474,9 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -408,7 +485,9 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # load state
@@ -427,7 +506,10 @@ class TestApproximations(unittest.TestCase):
             # no save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
 
@@ -435,13 +517,19 @@ class TestApproximations(unittest.TestCase):
             with self.assertRaises(ValueError):
                 status = prob_class.train(
                     train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
                     fit_config=self.class_fit_config_nodir_dump,
+                    calib_config=self.class_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -449,7 +537,10 @@ class TestApproximations(unittest.TestCase):
             # save dir and dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -457,7 +548,10 @@ class TestApproximations(unittest.TestCase):
             # restore
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # load state
@@ -478,8 +572,10 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_nodir_nodump,
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
 
@@ -488,16 +584,19 @@ class TestApproximations(unittest.TestCase):
                 status = prob_reg.train(
                     train_data_loader=self.reg_train_data_loader,
                     calib_data_loader=self.reg_val_data_loader,
+                    val_data_loader=self.reg_val_data_loader,
                     map_fit_config=self.reg_fit_config_nodir_nodump,
                     fit_config=self.reg_fit_config_nodir_dump,
-                )
+                    calib_config=self.reg_fit_config_nodir_dump)
 
             # save dir, no dump
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -506,8 +605,10 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -516,8 +617,10 @@ class TestApproximations(unittest.TestCase):
             prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # restore from map
@@ -530,14 +633,18 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg_map.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # load state
@@ -556,8 +663,11 @@ class TestApproximations(unittest.TestCase):
             # no save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
 
@@ -565,15 +675,21 @@ class TestApproximations(unittest.TestCase):
             with self.assertRaises(ValueError):
                 status = prob_class.train(
                     train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
                     map_fit_config=self.class_fit_config_nodir_nodump,
                     fit_config=self.class_fit_config_nodir_dump,
+                calib_config=self.class_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -581,8 +697,11 @@ class TestApproximations(unittest.TestCase):
             # save dir and dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -590,8 +709,11 @@ class TestApproximations(unittest.TestCase):
             # restore from laplace
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # restore from map
@@ -602,13 +724,19 @@ class TestApproximations(unittest.TestCase):
             )
             status = prob_class_map.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # load state
@@ -629,8 +757,10 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_nodir_nodump,
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
 
@@ -639,16 +769,20 @@ class TestApproximations(unittest.TestCase):
                 status = prob_reg.train(
                     train_data_loader=self.reg_train_data_loader,
                     calib_data_loader=self.reg_val_data_loader,
+                    val_data_loader=self.reg_val_data_loader,
                     map_fit_config=self.reg_fit_config_nodir_nodump,
                     fit_config=self.reg_fit_config_nodir_dump,
+                    calib_config=self.reg_fit_config_nodir_dump
                 )
 
             # save dir, no dump
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -657,8 +791,10 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             sample = prob_reg.posterior.sample()
             prob_reg.posterior.load_state(tmp_dir)
@@ -667,8 +803,10 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # restore from map
@@ -681,14 +819,18 @@ class TestApproximations(unittest.TestCase):
             status = prob_reg_map.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
             status = prob_reg.train(
                 train_data_loader=self.reg_train_data_loader,
                 calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
                 map_fit_config=self.reg_fit_config_nodir_nodump,
                 fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
             )
 
             # load state
@@ -707,8 +849,11 @@ class TestApproximations(unittest.TestCase):
             # no save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
 
@@ -716,15 +861,21 @@ class TestApproximations(unittest.TestCase):
             with self.assertRaises(ValueError):
                 status = prob_class.train(
                     train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
                     map_fit_config=self.class_fit_config_nodir_nodump,
                     fit_config=self.class_fit_config_nodir_dump,
+                    calib_config=self.class_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -732,8 +883,11 @@ class TestApproximations(unittest.TestCase):
             # save dir and dump
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             sample = prob_class.posterior.sample()
             prob_class.posterior.load_state(tmp_dir)
@@ -741,8 +895,11 @@ class TestApproximations(unittest.TestCase):
             # restore from swag
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # restore from map
@@ -753,13 +910,17 @@ class TestApproximations(unittest.TestCase):
             )
             status = prob_class_map.train(
                 train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
                 fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
             )
 
             # load state

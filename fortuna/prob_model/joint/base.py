@@ -9,7 +9,6 @@ from fortuna.output_calibrator.output_calib_manager.state import \
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.likelihood.base import Likelihood
 from fortuna.prob_model.prior.base import Prior
-from fortuna.training.calib_state import CalibState
 from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
 from fortuna.utils.random import WithRNG
 from jax._src.prng import PRNGKeyArray

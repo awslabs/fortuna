@@ -212,7 +212,8 @@ class InputsLoader:
     def __init__(
         self,
         inputs_loader: Union[
-            FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader
+            FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader, FromCallableIterableToInputsLoader,
+            FromIterableToInputsLoader
         ],
     ):
         """
@@ -292,12 +293,47 @@ class InputsLoader:
             inputs.append(batch_inputs)
         return np.concatenate(inputs, 0)
 
+    @classmethod
+    def from_callable_iterable(cls, fun: Callable[[], Iterable[Array]],) -> InputsLoader:
+        """
+        Transform a callable iterable into a :class:`~fortuna.data.loader.InputsLoader` object.
+
+        Parameters
+        ----------
+        fun: Callable[[], Iterable[Array]]
+            A callable iterable of input arrays.
+
+        Returns
+        -------
+        InputsLoader
+            An inputs loader object.
+        """
+        return cls(inputs_loader=FromCallableIterableToInputsLoader(fun))
+
+    @classmethod
+    def from_iterable(cls, iterable: Iterable[Array],) -> InputsLoader:
+        """
+        Transform an iterable into a :class:`~fortuna.data.loader.InputsLoader` object.
+
+        Parameters
+        ----------
+        iterable: Iterable[Array]
+            An iterable of input arrays.
+
+        Returns
+        -------
+        InputsLoader
+            An inputs loader object.
+        """
+        return cls(inputs_loader=FromIterableToInputsLoader(iterable))
+
 
 class TargetsLoader:
     def __init__(
         self,
         targets_loader: Union[
-            FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader
+            FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader, FromCallableIterableToTargetsLoader,
+            FromIterableToTargetsLoader
         ],
     ):
         """
@@ -308,10 +344,10 @@ class TargetsLoader:
         targets_loader : Union[FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader]
             A targets loader.
         """
-        self.targets_loader = targets_loader
+        self._targets_loader = targets_loader
 
     def __iter__(self):
-        yield from self.targets_loader()
+        yield from self._targets_loader()
 
     @classmethod
     def from_data_loader(cls, data_loader: DataLoader) -> TargetsLoader:
@@ -373,9 +409,43 @@ class TargetsLoader:
             Array of target data.
         """
         targets = []
-        for batch_targets in self.targets_loader():
+        for batch_targets in self._targets_loader():
             targets.append(batch_targets)
         return np.concatenate(targets, 0)
+
+    @classmethod
+    def from_callable_iterable(cls, fun: Callable[[], Iterable[Array]],) -> TargetsLoader:
+        """
+        Transform a callable iterable into a :class:`~fortuna.data.loader.TargetsLoader` object.
+
+        Parameters
+        ----------
+        fun: Callable[[], Iterable[Array]]
+            A callable iterable of target arrays.
+
+        Returns
+        -------
+        TargetsLoader
+            A targets loader object.
+        """
+        return cls(targets_loader=FromCallableIterableToTargetsLoader(fun))
+
+    @classmethod
+    def from_iterable(cls, iterable: Iterable[Array],) -> TargetsLoader:
+        """
+        Transform an iterable into a :class:`~fortuna.data.loader.TargetsLoader` object.
+
+        Parameters
+        ----------
+        iterable: Iterable[Array]
+            An iterable of target arrays.
+
+        Returns
+        -------
+        TargetsLoader
+            A targets loader object.
+        """
+        return cls(targets_loader=FromIterableToTargetsLoader(iterable))
 
 
 class FromDataLoaderToArrayData:
@@ -447,6 +517,26 @@ class FromCallableIterableToDataLoader:
         return self.fun()
 
 
+class FromCallableIterableToInputsLoader:
+    def __init__(
+        self, fun: Callable[[], Iterable[Array]],
+    ):
+        self.fun = fun
+
+    def __call__(self, *args, **kwargs):
+        return self.fun()
+
+
+class FromCallableIterableToTargetsLoader:
+    def __init__(
+        self, fun: Callable[[], Iterable[Array]],
+    ):
+        self.fun = fun
+
+    def __call__(self, *args, **kwargs):
+        return self.fun()
+
+
 class FromIterableToDataLoader:
     def __init__(
         self, batched_data: Iterable[Batch],
@@ -455,6 +545,26 @@ class FromIterableToDataLoader:
 
     def __call__(self, *args, **kwargs):
         return self.batched_data
+
+
+class FromIterableToInputsLoader:
+    def __init__(
+        self, batched_inputs: Iterable[Array],
+    ):
+        self.batched_inputs = batched_inputs
+
+    def __call__(self, *args, **kwargs):
+        return self.batched_inputs
+
+
+class FromIterableToTargetsLoader:
+    def __init__(
+        self, batched_targets: Iterable[Array],
+    ):
+        self.batched_targets = batched_targets
+
+    def __call__(self, *args, **kwargs):
+        return self.batched_targets
 
 
 class FromTensorFlowDataLoaderToDataLoader:

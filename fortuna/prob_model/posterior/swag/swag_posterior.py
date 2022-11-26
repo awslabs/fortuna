@@ -21,7 +21,7 @@ from fortuna.prob_model.posterior.swag.swag_approximator import \
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.prob_model.posterior.swag.swag_trainer import (
     JittedSWAGTrainer, MultiGPUSWAGTrainer, SWAGTrainer)
-from fortuna.typing import Status
+from fortuna.typing import Status, Array
 from fortuna.utils.gpu import select_trainer_given_devices
 from jax import random
 from jax._src.prng import PRNGKeyArray
@@ -91,7 +91,7 @@ class SWAGPosterior(Posterior):
                 self.joint, posterior_approximator=MAPPosteriorApproximator()
             )
             map_posterior.rng = self.rng
-            logging.info("First, fit posterior with MAP...")
+            logging.info("First, run MAP.")
             status["map"] = map_posterior.fit(
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
@@ -131,7 +131,7 @@ class SWAGPosterior(Posterior):
         )
 
         kwargs = dict(rank=self.posterior_approximator.rank)
-        logging.info("Then start SWAG...")
+        logging.info("Run SWAG.")
         state, status["swag"] = trainer.train(
             rng=self.rng.get(),
             state=state,
@@ -158,6 +158,7 @@ class SWAGPosterior(Posterior):
         self,
         rng: Optional[PRNGKeyArray] = None,
         inputs_loader: Optional[InputsLoader] = None,
+        inputs: Optional[Array] = None,
         **kwargs,
     ) -> JointState:
         """
@@ -168,7 +169,9 @@ class SWAGPosterior(Posterior):
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         inputs_loader: Optional[InputsLoader]
-            Input data loader. This is required if the posterior state includes mutable objects.
+            Input data loader. This or `inputs` is required if the posterior state includes mutable objects.
+        inputs: Optional[Array]
+            Input variables. This or `inputs_loader` is required if the posterior state includes mutable objects.
 
         Returns
         -------
@@ -178,9 +181,9 @@ class SWAGPosterior(Posterior):
         if rng is None:
             rng = self.rng.get()
         state = self.state.get()
-        if state.mutable and not inputs_loader:
+        if state.mutable is not None and inputs_loader is None and inputs is None:
             raise ValueError(
-                "The posterior state contains mutable objects. Please pass a valid `_inputs_loader`."
+                "The posterior state contains mutable objects. Please pass `inputs_loader` or `inputs`."
             )
 
         n_params = len(state.mean)
@@ -188,7 +191,7 @@ class SWAGPosterior(Posterior):
         coeff1 = 1 / jnp.sqrt(2)
         coeff2 = coeff1 / jnp.sqrt(self.posterior_approximator.rank - 1)
 
-        key1, key2 = random.split(rng)
+        rng, key1, key2 = random.split(rng, 3)
         z1 = random.normal(key1, shape=(n_params,))
         z2 = random.normal(key2, shape=(self.posterior_approximator.rank,))
         state = state.replace(
@@ -200,13 +203,25 @@ class SWAGPosterior(Posterior):
         )
 
         if state.mutable:
-            for batch_inputs in inputs_loader:
+            if inputs_loader is not None:
+                for batch_inputs in inputs_loader:
+                    state = state.replace(
+                        mutable=self.joint.likelihood.model_manager.apply(
+                            state.params,
+                            batch_inputs,
+                            mutable=state.mutable,
+                            train=True,
+                            rng=rng
+                        )[1]["mutable"]
+                    )
+            else:
                 state = state.replace(
                     mutable=self.joint.likelihood.model_manager.apply(
-                        state["params"],
-                        batch_inputs,
-                        mutable=state["mutable"],
+                        state.params,
+                        inputs,
+                        mutable=state.mutable,
                         train=True,
+                        rng=rng
                     )[1]["mutable"]
                 )
 

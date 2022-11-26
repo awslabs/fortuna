@@ -1,17 +1,17 @@
 import abc
 import logging
-from typing import Dict, Optional
-
-import jax.scipy.optimize as jspo
-from fortuna.calib_config.base import CalibConfig
+from typing import Dict, Optional, Callable
+import jax.numpy as jnp
+from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.data.loader import DataLoader
-from fortuna.output_calibrator.output_calib_manager.state import \
-    OutputCalibManagerState
 from fortuna.prob_model.fit_config import FitConfig
-from fortuna.typing import Path, Status
+from fortuna.typing import Path, Status, Array
 from fortuna.utils.data import check_data_loader_is_not_random
+from fortuna.prob_model.prob_model_calibrator import ProbModelCalibrator, JittedProbModelCalibrator, \
+    MultiGPUProbModelCalibrator
 from fortuna.utils.random import RandomNumberGenerator
-from jax.flatten_util import ravel_pytree
+from fortuna.calibration.state import CalibState
+from fortuna.utils.gpu import select_trainer_given_devices
 
 
 class ProbModel(abc.ABC):
@@ -52,7 +52,7 @@ class ProbModel(abc.ABC):
         train_data_loader : DataLoader
             A training data loader.
         val_data_loader : DataLoader
-            A validation data loader.
+            A validation data loader. This is used to validate both posterior fitting and calibration.
         calib_data_loader : DataLoader
             A calibration data loader. If this is not passed, no calibration is performed.
         fit_config : FitConfig
@@ -80,115 +80,107 @@ class ProbModel(abc.ABC):
         calib_status = None
         if calib_data_loader:
             calib_status = self.calibrate(
-                data_loader=calib_data_loader, calib_config=calib_config
+                calib_data_loader=calib_data_loader, val_data_loader=val_data_loader, calib_config=calib_config
             )
             logging.info("Calibration completed.")
         return dict(fit_status=fit_status, calib_status=calib_status)
 
-    def calibrate(
-        self, data_loader: DataLoader, calib_config: CalibConfig = CalibConfig(),
+    def _calibrate(
+        self,
+        calib_data_loader: DataLoader,
+        uncertainty_fn: Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray],
+        val_data_loader: Optional[DataLoader] = None,
+        calib_config: CalibConfig = CalibConfig(),
     ) -> Status:
-        """
-        Calibrate the probabilistic model.
-
-        Parameters
-        ----------
-        data_loader : DataLoader
-            A data loader.
-        calib_config : CalibConfig
-            An object to configure the calibration.
-
-        Returns
-        -------
-        Status
-            A calibration status object. It provides information about the calibration.
-        """
-        check_data_loader_is_not_random(data_loader)
+        check_data_loader_is_not_random(calib_data_loader)
+        if val_data_loader is not None:
+            check_data_loader_is_not_random(val_data_loader)
         if self.output_calib_manager is None:
             logging.warning(
                 """Nothing to calibrate. No calibrator was passed to the probabilistic model."""
             )
         else:
-            if calib_config.optimizer.minimizer_kwargs is None:
-                calib_config.optimizer.minimizer_kwargs = dict()
-
             if self.posterior.state is None:
                 raise ValueError(
                     """Before calibration, you must either train the probabilistic model (see 
                 `self.train`), or set a state from an existing checkpoint (see `self.set_state`)."""
                 )
+            if calib_config.monitor.verbose:
+                logging.info("Pre-compute ensemble of outputs on the calibration data loader.")
 
-            ensemble_outputs = self.predictive._sample_calibrated_outputs(
-                inputs_loader=data_loader.to_inputs_loader(),
+            calib_ensemble_outputs_loader, calib_size = self.predictive._sample_outputs_loader(
+                inputs_loader=calib_data_loader.to_inputs_loader(),
                 n_output_samples=calib_config.processor.n_posterior_samples,
+                return_size=True
+            )
+            if calib_config.monitor.verbose:
+                logging.info("Pre-compute ensemble of outputs on the validation data loader.")
+            val_ensemble_outputs_loader, val_size = self.predictive._sample_outputs_loader(
+                inputs_loader=val_data_loader.to_inputs_loader(),
+                n_output_samples=calib_config.processor.n_posterior_samples,
+                return_size=True
+            ) if val_data_loader is not None else (None, None)
+
+            trainer_cls = select_trainer_given_devices(
+                gpus=calib_config.processor.gpus,
+                BaseTrainer=ProbModelCalibrator,
+                JittedTrainer=JittedProbModelCalibrator,
+                MultiGPUTrainer=MultiGPUProbModelCalibrator,
+                disable_jit=calib_config.processor.disable_jit,
             )
 
-            if not calib_config.checkpointer.start_from_current_state:
-                if calib_config.monitor.verbose:
-                    logging.info("Initialize a calibration state.")
-                ocms = OutputCalibManagerState.init_from_dict(
-                    dict(
-                        output_calibrator=self.output_calib_manager.init(
-                            output_dim=ensemble_outputs.shape[-1]
-                        )
-                    )
+            calibrator = trainer_cls(
+                calib_outputs_loader=calib_ensemble_outputs_loader,
+                val_outputs_loader=val_ensemble_outputs_loader,
+                predict_fn=self.prob_output_layer.predict,
+                uncertainty_fn=uncertainty_fn,
+                save_checkpoint_dir=calib_config.checkpointer.save_checkpoint_dir,
+                save_every_n_steps=calib_config.checkpointer.save_every_n_steps,
+                keep_top_n_checkpoints=calib_config.checkpointer.keep_top_n_checkpoints,
+                disable_training_metrics_computation=calib_config.monitor.disable_calibration_metrics_computation,
+                eval_every_n_epochs=calib_config.monitor.eval_every_n_epochs,
+            )
+
+            if calib_config.checkpointer.restore_checkpoint_path is None:
+                calib_dict = self.posterior.state.extract_calib_keys()
+
+                state = CalibState.init(
+                    params=calib_dict["calib_params"],
+                    mutable=calib_dict["calib_mutable"],
+                    optimizer=calib_config.optimizer.method
                 )
-                calib_params = ocms.params
-                calib_mutable = ocms.mutable
             else:
+                state = self.posterior.restore_checkpoint(
+                    calib_config.checkpointer.restore_checkpoint_path,
+                    optimizer=calib_config.optimizer.method
+                )
+
+            if calib_config.monitor.verbose:
+                logging.info("Start calibration.")
+            state, status = calibrator.train(
+                rng=self.rng.get(),
+                state=state,
+                fun=self.predictive._batched_log_prob,
+                training_data_loader=calib_data_loader,
+                training_dataset_size=calib_size,
+                n_epochs=calib_config.optimizer.n_epochs,
+                metrics=calib_config.monitor.metrics,
+                val_data_loader=val_data_loader,
+                val_dataset_size=val_size,
+                verbose=calib_config.monitor.verbose,
+            )
+
+            self.posterior.state.update(variables=dict(calib_params=state.params, calib_mutable=state.mutable))
+
+            if calib_config.checkpointer.save_state and calib_config.checkpointer.save_checkpoint_dir is not None:
                 if calib_config.monitor.verbose:
-                    logging.info(
-                        "Start from the current calibration state of the probabilistic model."
-                    )
-                d = self.posterior.state.extract_calib_keys()
-                calib_params = d["calib_params"]
-                calib_mutable = d["calib_mutable"]
+                    logging.info("Dump state to disk.")
+                self.save_state(checkpoint_path=calib_config.checkpointer.save_checkpoint_dir)
 
-            if calib_mutable is not None and any(
-                [v is not None for v in calib_mutable.values()]
-            ):
-                raise NotImplementedError(
-                    f"This does not currently support calibration models that include mutable "
-                    f"objects. However, the following calibration mutable objects were found: "
-                    f"{calib_mutable}"
-                )
+            if calib_config.monitor.verbose:
+                logging.info("Calibration completed.")
 
-            rav, unravel = ravel_pytree(calib_params)
-
-            def loss_fn(rav_calib_params):
-                calib_params = unravel(rav_calib_params)
-                logp, aux = self.predictive.log_prob(
-                    data_loader=data_loader,
-                    n_posterior_samples=calib_config.processor.n_posterior_samples,
-                    ensemble_outputs=ensemble_outputs,
-                    calib_params=calib_params,
-                    # calib_mutable=calib_mutable, # TODO: allow updating calibration mutable
-                    return_aux=["calib_mutable"],
-                )
-                return -logp
-
-            logging.info("Calibrate the probabilistic model...")
-            result = jspo.minimize(
-                loss_fn, rav, method="BFGS", **calib_config.optimizer.minimizer_kwargs
-            )
-            logging.info("Calibration completed.")
-            if result.success is False:
-                logging.warning(
-                    """The calibration algorithm did not successfully converge. Please use the solution with caution."""
-                )
-            calib_params = unravel(result.x)
-            calib_status = {
-                k: getattr(result, k)
-                for k in result._fields
-                if k not in ["x", "status"]
-            }
-
-            self.posterior.state.update(
-                dict(calib_params=calib_params, calib_mutable=calib_mutable),
-                checkpoint_path=calib_config.checkpointer.save_state_path,
-                keep=calib_config.checkpointer.keep_top_n_checkpoints,
-            )
-            return calib_status
+            return status
 
     def load_state(self, checkpoint_path: Path) -> None:
         """

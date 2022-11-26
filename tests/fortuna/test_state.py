@@ -4,7 +4,7 @@ import jax.numpy as jnp
 from fortuna.output_calibrator.output_calib_manager.state import \
     OutputCalibManagerState
 from fortuna.prob_model.joint.state import JointState
-from fortuna.training.calib_state import CalibState
+from fortuna.calibration.state import CalibState
 
 
 class TestStates(unittest.TestCase):
