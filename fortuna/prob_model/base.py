@@ -114,7 +114,9 @@ class ProbModel(abc.ABC):
             if self.posterior.state is None:
                 raise ValueError(
                     """Before calibration, you must either train the probabilistic model (see 
-                `self.train`), or set a state from an existing checkpoint (see `self.set_state`)."""
+                        :meth:`~fortuna.prob_model.base.ProbModel.train`), 
+                        or load a state from an existing checkpoint 
+                        (see :meth:`~fortuna.prob_model.base.ProbModel.load_state`)."""
                 )
             if calib_config.monitor.verbose:
                 logging.info(

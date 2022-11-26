@@ -91,7 +91,7 @@ def expected_calibration_error(
     """
     Compute the Expected Calibration Error (ECE)
     (see `Naeini et al., 2015 <https://people.cs.pitt.edu/~milos/research/AAAI_Calibration.pdf>`__ and
-    `Guo et al., 2017 <http://proceedings.mlr.press/v70/guo17a/guo17a.pdf>`__). Optionally, plot and save a reliable
+    `Guo et al., 2017 <http://proceedings.mlr.press/v70/guo17a/guo17a.pdf>`__). Optionally, plot and save a reliability
     diagram.
 
     Parameters
@@ -120,19 +120,19 @@ def expected_calibration_error(
 
 
 def ece(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, **plot_options
+    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
 ) -> float:
     """See :func:`.expected_calibration_error`."""
-    return expected_calibration_error(preds, probs, targets, plot, **plot_options)
+    return expected_calibration_error(preds, probs, targets, plot, plot_options)
 
 
 def maximum_calibration_error(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, **plot_options
+    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
 ) -> jnp.ndarray:
     """
     Compute the Maximum Calibration Error (MCE)
     (see `Naeini et al., 2015 <https://people.cs.pitt.edu/~milos/research/AAAI_Calibration.pdf>`__). Optionally, plot
-    and save a reliable diagram.
+    and save a reliability diagram.
 
     Parameters
     ----------
@@ -153,17 +153,17 @@ def maximum_calibration_error(
         The value of the MCE.
     """
     counts, confs, accs = compute_counts_confs_accs(
-        preds, probs, targets, plot, **plot_options
+        preds, probs, targets, plot, plot_options
     )
     mce = jnp.max(counts * (accs - confs) ** 2)
     return mce
 
 
 def mce(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, **plot_options
+    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
 ) -> float:
     """See :func:`.maximum_calibration_error`."""
-    return maximum_calibration_error(preds, probs, targets, plot, **plot_options)
+    return maximum_calibration_error(preds, probs, targets, plot, plot_options)
 
 
 def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> jnp.ndarray:
