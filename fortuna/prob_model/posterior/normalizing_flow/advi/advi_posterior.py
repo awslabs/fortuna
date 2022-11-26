@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Optional, Tuple
 
 import jax.numpy as jnp
@@ -131,7 +132,7 @@ class ADVIPosterior(Posterior):
                 getattr(state, "calib_params", init_prob_model_state.calib_params),
                 getattr(state, "calib_mutable", init_prob_model_state.calib_mutable),
             )
-
+        logging.info("Run ADVI.")
         state, status = trainer.train(
             rng=self.rng.get(),
             state=state,
@@ -152,6 +153,7 @@ class ADVIPosterior(Posterior):
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+        logging.info("Fit completed.")
         return status
 
     def sample(

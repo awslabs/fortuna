@@ -40,7 +40,7 @@ class ProbModel(abc.ABC):
         calib_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
         calib_config: CalibConfig = CalibConfig(),
-        **fit_kwargs,
+        map_fit_config: Optional[FitConfig] = None
     ) -> Dict[str, Status]:
         """
         Train the probabilistic model. This involves fitting the posterior distribution and calibrating the
@@ -59,8 +59,14 @@ class ProbModel(abc.ABC):
             An object to configure the posterior distribution fitting.
         calib_config : CalibConfig
             An object to configure the calibration.
-        fit_kwargs : dict
-            Other arguments relevant to fitting the posterior distribution.
+        map_fit_config : Optional[FitConfig] = None
+            An object to configure a preliminary posterior distribution fitting via the Maximum-A-Posteriori (MAP)
+            method.
+            The fit of several supported posterior approximation methods,
+            like :class:`~fortuna.prob_model.posterior.swag.swag_posterior.SWAGPosterior.fit` and
+            :class:`~fortuna.prob_model.posterior.swag.swag_posterior.LaplacePosterior.fit`, start from a preliminary
+            run of MAP, which can be configured via this object. If the method does not start from MAP, this argument is
+            ignored.
 
         Returns
         -------
@@ -73,7 +79,7 @@ class ProbModel(abc.ABC):
             train_data_loader=train_data_loader,
             val_data_loader=val_data_loader,
             fit_config=fit_config,
-            **fit_kwargs,
+            map_fit_config=map_fit_config,
         )
         logging.info("Fit completed.")
 

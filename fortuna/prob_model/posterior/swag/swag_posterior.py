@@ -50,8 +50,8 @@ class SWAGPosterior(Posterior):
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
-        map_fit_config: FitConfig = FitConfig(),
-        **kwargs,
+        map_fit_config: Optional[FitConfig] = None,
+        *kwargs
     ) -> Status:
         if (
             fit_config.checkpointer.save_state is True
@@ -91,18 +91,17 @@ class SWAGPosterior(Posterior):
                 self.joint, posterior_approximator=MAPPosteriorApproximator()
             )
             map_posterior.rng = self.rng
-            logging.info("First, run MAP.")
+            logging.info("Do a preliminary run of MAP.")
             status["map"] = map_posterior.fit(
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
-                fit_config=map_fit_config,
-                **kwargs,
+                fit_config=map_fit_config if map_fit_config is not None else FitConfig()
             )
             state = SWAGState.convert_from_map_state(
                 map_state=map_posterior.state.get(),
                 optimizer=fit_config.optimizer.method,
             )
-            logging.info("Fit completed.")
+            logging.info("Preliminary run with MAP completed.")
         else:
             state = self.restore_checkpoint(
                 restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
@@ -145,13 +144,14 @@ class SWAGPosterior(Posterior):
             verbose=fit_config.monitor.verbose,
             **kwargs,
         )
-        logging.info("Fit completed.")
+
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
             if fit_config.checkpointer.save_state is True
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+        logging.info("Fit completed.")
         return status
 
     def sample(

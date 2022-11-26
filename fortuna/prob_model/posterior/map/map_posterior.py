@@ -92,7 +92,7 @@ class MAPPosterior(Posterior):
                 calib_params=init_prob_model_state.calib_params,
                 calib_mutable=init_prob_model_state.calib_mutable,
             )
-
+        logging.info("Run MAP.")
         state, status = trainer.train(
             rng=self.rng.get(),
             state=state,
@@ -111,6 +111,7 @@ class MAPPosterior(Posterior):
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+        logging.info("Fit completed.")
         return status
 
     def sample(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:

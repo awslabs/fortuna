@@ -91,7 +91,6 @@ class DeepEnsemblePosterior(Posterior):
                 early_stopping_patience=fit_config.monitor.early_stopping_patience,
             )
 
-            state = None
             if fit_config.checkpointer.restore_checkpoint_path:
                 state = self.restore_checkpoint(
                     restore_checkpoint_path=str(
@@ -131,15 +130,17 @@ class DeepEnsemblePosterior(Posterior):
         )
         status = []
         for i in range(self.posterior_approximator.ensemble_size):
+            logging.info(f"Run {i+1} out of {self.posterior_approximator.ensemble_size}.")
             state, _status = _fit(i)
             self.state.put(
                 state=state, i=i, keep=fit_config.checkpointer.keep_top_n_checkpoints
             )
             status.append(_status)
+        logging.info("Fit completed.")
         return status
 
     def sample(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:
-        # FIXME: Bug issue in Flax: https://github.com/google/flax/issues/2580
+        # FIXME: Bug issue in JAX: https://github.com/google/jax/issues/13098
         # if rng is None:
         #     rng = self.rng.get()
         # state = pure_callback(

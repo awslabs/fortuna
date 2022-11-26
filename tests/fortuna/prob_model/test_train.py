@@ -587,7 +587,7 @@ class TestApproximations(unittest.TestCase):
                     val_data_loader=self.reg_val_data_loader,
                     map_fit_config=self.reg_fit_config_nodir_nodump,
                     fit_config=self.reg_fit_config_nodir_dump,
-                    calib_config=self.reg_fit_config_nodir_dump)
+                    calib_config=self.reg_calib_config_nodir_nodump)
 
             # save dir, no dump
             status = prob_reg.train(
@@ -679,7 +679,7 @@ class TestApproximations(unittest.TestCase):
                     val_data_loader=self.class_val_data_loader,
                     map_fit_config=self.class_fit_config_nodir_nodump,
                     fit_config=self.class_fit_config_nodir_dump,
-                calib_config=self.class_calib_config_nodir_nodump,
+                    calib_config=self.class_calib_config_nodir_nodump,
                 )
 
             # save dir, no dump
@@ -772,7 +772,7 @@ class TestApproximations(unittest.TestCase):
                     val_data_loader=self.reg_val_data_loader,
                     map_fit_config=self.reg_fit_config_nodir_nodump,
                     fit_config=self.reg_fit_config_nodir_dump,
-                    calib_config=self.reg_fit_config_nodir_dump
+                    calib_config=self.reg_calib_config_nodir_nodump
                 )
 
             # save dir, no dump

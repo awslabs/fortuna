@@ -164,7 +164,7 @@ class LaplacePosterior(Posterior):
         h = jnp.exp(-self.joint.prior.log_var)
         for i, (batch_inputs, batch_targets) in enumerate(train_data_loader):
             if verbose:
-                logging.info(f"Batch: {i + 1}.")
+                logging.info(f"Hessian approximation for batch {i + 1}.")
             h += compute_hess_batch(batch_inputs, batch_targets)
 
         return unravel(1 / jnp.sqrt(h))
@@ -174,8 +174,8 @@ class LaplacePosterior(Posterior):
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
-        map_fit_config: FitConfig = FitConfig(),
-        **kwargs,
+        map_fit_config: Optional[FitConfig] = None,
+        **kwargs
     ) -> Dict[str, Status]:
         if (
             fit_config.checkpointer.save_state is True
@@ -192,13 +192,15 @@ class LaplacePosterior(Posterior):
                 self.joint, posterior_approximator=MAPPosteriorApproximator()
             )
             map_posterior.rng = self.rng
+            logging.info("Do a preliminary run of MAP.")
             status["map"] = map_posterior.fit(
                 rng=self.rng.get(),
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
-                fit_config=map_fit_config,
-                **kwargs,
+                fit_config=map_fit_config if map_fit_config is not None else FitConfig(),
+                **kwargs
             )
+            logging.info("Preliminary run with MAP completed.")
             state = map_posterior.state.get()
         else:
             state = self.restore_checkpoint(
@@ -206,6 +208,7 @@ class LaplacePosterior(Posterior):
             )
 
         if type(state) == MAPState:
+            logging.info("Run the Laplace approximation.")
             std_params = self._gnn_approx(
                 state.params,
                 train_data_loader,
@@ -234,6 +237,7 @@ class LaplacePosterior(Posterior):
             else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+        logging.info("Fit completed.")
         return status
 
     def sample(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:
