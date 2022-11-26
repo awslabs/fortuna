@@ -1,15 +1,16 @@
 import abc
 from typing import List, Optional, Tuple, Union
 
+import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import lax, random
+from jax import lax, random, pmap, jit
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
-from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
+from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader, DeviceDimensionAugmentedInputsLoader
 from fortuna.prob_model.posterior.base import Posterior
-from fortuna.typing import Batch, CalibMutable, CalibParams
+from fortuna.typing import Batch, CalibMutable, CalibParams, Array
 from fortuna.utils.random import WithRNG
 
 
@@ -35,6 +36,7 @@ class Predictive(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
         **kwargs
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         r"""
@@ -65,6 +67,8 @@ class Predictive(WithRNG):
             The calibration mutable objects used to evaluate the calibrators.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -103,6 +107,7 @@ class Predictive(WithRNG):
                     calib_mutable=calib_mutable
                     if calib_mutable is not None
                     else sample.calib_mutable,
+                    distribute=distribute,
                     **kwargs
                 )
 
@@ -122,6 +127,7 @@ class Predictive(WithRNG):
                     return_aux=return_aux,
                     calib_params=calib_params,
                     calib_mutable=calib_mutable,
+                    distribute=distribute,
                     **kwargs
                 )
 
@@ -225,6 +231,7 @@ class Predictive(WithRNG):
         n_target_samples: int = 1,
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -248,6 +255,8 @@ class Predictive(WithRNG):
             Return auxiliary objects. We currently support 'outputs'.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -273,6 +282,7 @@ class Predictive(WithRNG):
                 calib_mutable=_post_sample.calib_mutable,
                 return_aux=return_aux,
                 rng=key2,
+                distribute=distribute,
                 **kwargs
             )
             if len(return_aux) > 0:
@@ -282,11 +292,12 @@ class Predictive(WithRNG):
 
         return lax.map(_sample, keys)
 
-    def _sample_calibrated_outputs(
+    def sample_calibrated_outputs(
         self,
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Sample parameters from the posterior distribution state and compute calibrated outputs.
@@ -299,6 +310,8 @@ class Predictive(WithRNG):
             Number of output samples to draw for each input.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -311,12 +324,13 @@ class Predictive(WithRNG):
 
         def _sample(key):
             sample = self.posterior.sample(inputs_loader=inputs_loader, rng=key)
-            return self.likelihood._get_calibrated_outputs(
+            return self.likelihood.get_calibrated_outputs(
                 params=sample.params,
                 inputs_loader=inputs_loader,
                 mutable=sample.mutable,
                 calib_params=sample.calib_params,
                 calib_mutable=sample.calib_mutable,
+                distribute=distribute
             )
 
         return lax.map(_sample, keys)
@@ -326,6 +340,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Sample parameters from the posterior distribution state and compute calibrated outputs.
@@ -338,6 +353,8 @@ class Predictive(WithRNG):
             Number of output samples to draw for each input.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -350,10 +367,11 @@ class Predictive(WithRNG):
 
         def _sample(key):
             sample = self.posterior.sample(inputs_loader=inputs_loader, rng=key)
-            return self.likelihood._get_outputs(
+            return self.likelihood.get_outputs(
                 params=sample.params,
                 inputs_loader=inputs_loader,
                 mutable=sample.mutable,
+                distribute=distribute
             )
 
         return lax.map(_sample, keys)
@@ -364,14 +382,22 @@ class Predictive(WithRNG):
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
         return_size: bool = False,
+        distribute: bool = True,
     ) -> Union[TargetsLoader, Tuple[TargetsLoader, int]]:
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_output_samples)
 
+        if distribute and jax.local_device_count() <= 1:
+            distribute = False
+
+        if distribute:
+            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+
+        @jit
         def _sample(key, _inputs):
             sample = self.posterior.sample(inputs=_inputs, rng=key)
-            return self.likelihood._get_batched_outputs(
+            return self.likelihood.model_manager.apply(
                 params=sample.params, inputs=_inputs, mutable=sample.mutable
             )
 
@@ -379,7 +405,12 @@ class Predictive(WithRNG):
         size = 0
         for inputs in inputs_loader:
             size += inputs.shape[0]
-            iterable.append(lax.map(lambda key: _sample(key, inputs), keys))
+            if distribute:
+                outputs = pmap(lambda _inputs: lax.map(lambda key: _sample(key, _inputs), keys))(inputs)
+                outputs = self._unshard_ensemble_arrays(outputs)
+            else:
+                outputs = lax.map(lambda key: _sample(key, inputs), keys)
+            iterable.append(outputs)
         iterable = TargetsLoader.from_iterable(iterable=iterable)
         if return_size:
             return iterable, size
@@ -390,6 +421,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive mean of the target variable, that is
@@ -411,6 +443,8 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -429,6 +463,7 @@ class Predictive(WithRNG):
                 _sample.mutable,
                 calib_params=_sample.calib_params,
                 calib_mutable=_sample.calib_mutable,
+                distribute=distribute
             )
             return _curr_sum
 
@@ -443,6 +478,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int = 30,
         means: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive mode of the target variable, that is
@@ -465,6 +501,8 @@ class Predictive(WithRNG):
             An estimate of the predictive mean.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -478,6 +516,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric variance of the target variable, that is
@@ -499,6 +538,8 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -517,6 +558,7 @@ class Predictive(WithRNG):
                 _sample.mutable,
                 calib_params=_sample.calib_params,
                 calib_mutable=_sample.calib_mutable,
+                distribute=distribute
             )
             return _curr_sum
 
@@ -529,6 +571,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic variance of the one-hot encoded target variable, that is
@@ -550,6 +593,8 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -569,6 +614,7 @@ class Predictive(WithRNG):
                 _sample.mutable,
                 calib_params=_sample.calib_params,
                 calib_mutable=_sample.calib_mutable,
+                distribute=distribute
             )
             _curr_sum += mean
             _curr_sum_sq += mean ** 2
@@ -589,6 +635,7 @@ class Predictive(WithRNG):
         aleatoric_variances: Optional[jnp.ndarray] = None,
         epistemic_variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive variance of the target variable, that is
@@ -615,6 +662,8 @@ class Predictive(WithRNG):
             An estimate of the epistemic predictive variance for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -629,6 +678,7 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=key,
+                distribute=distribute
             )
         if epistemic_variances is None:
             rng, key = random.split(rng)
@@ -636,6 +686,7 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=key,
+                distribute=distribute
             )
         return aleatoric_variances + epistemic_variances
 
@@ -645,6 +696,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int = 30,
         variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive standard deviation of the target variable, that is
@@ -667,6 +719,8 @@ class Predictive(WithRNG):
             An estimate of the predictive variance.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -678,5 +732,12 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=rng,
+                distribute=distribute
             )
         return jnp.sqrt(variances)
+
+    @staticmethod
+    def _unshard_ensemble_arrays(arr: Array) -> Array:
+        arr = arr.swapaxes(1, 2)
+        arr = arr.reshape((arr.shape[0] * arr.shape[1],) + arr.shape[2:])
+        return arr.swapaxes(0, 1)

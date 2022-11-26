@@ -27,6 +27,7 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive mean of the one-hot encoded target variable, that is
@@ -48,13 +49,15 @@ class ClassificationPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the predictive mean for each input.
         """
-        return super().mean(inputs_loader, n_posterior_samples, rng)
+        return super().mean(inputs_loader, n_posterior_samples, rng, distribute)
 
     def mode(
         self,
@@ -62,12 +65,14 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples: int = 30,
         means: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         if means is None:
             means = self.mean(
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=rng,
+                distribute=distribute
             )
         return jnp.argmax(means, -1)
 
@@ -76,6 +81,7 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric variance of the one-hot encoded target variable, that is
@@ -97,19 +103,22 @@ class ClassificationPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the predictive aleatoric variance for each input.
         """
-        return super().aleatoric_variance(inputs_loader, n_posterior_samples, rng)
+        return super().aleatoric_variance(inputs_loader, n_posterior_samples, rng, distribute)
 
     def epistemic_variance(
         self,
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic variance of the one-hot encoded target variable, that is
@@ -131,13 +140,15 @@ class ClassificationPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the predictive epistemic variance for each input.
         """
-        return super().epistemic_variance(inputs_loader, n_posterior_samples, rng)
+        return super().epistemic_variance(inputs_loader, n_posterior_samples, rng, distribute)
 
     def variance(
         self,
@@ -146,6 +157,7 @@ class ClassificationPredictive(Predictive):
         aleatoric_variances: Optional[jnp.ndarray] = None,
         epistemic_variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive variance of the one-hot encoded target variable, that is
@@ -170,6 +182,8 @@ class ClassificationPredictive(Predictive):
             An estimate of the epistemic predictive variance.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -182,6 +196,7 @@ class ClassificationPredictive(Predictive):
             aleatoric_variances,
             epistemic_variances,
             rng,
+            distribute
         )
 
     def std(
@@ -190,6 +205,7 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples: int = 30,
         variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive standard deviation of the one-hot encoded target variable, that is
@@ -212,19 +228,22 @@ class ClassificationPredictive(Predictive):
             An estimate of the predictive variance.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the predictive standard deviation for each input.
         """
-        return super().std(inputs_loader, n_posterior_samples, variances, rng)
+        return super().std(inputs_loader, n_posterior_samples, variances, rng, distribute)
 
     def aleatoric_entropy(
         self,
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric entropy, that is
@@ -246,14 +265,16 @@ class ClassificationPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the predictive aleatoric entropy for each input.
         """
-        ensemble_outputs = self._sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng
+        ensemble_outputs = self.sample_calibrated_outputs(
+            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng, distribute=distribute
         )
         n_classes = ensemble_outputs.shape[-1]
 
@@ -274,6 +295,7 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic entropy, that is
@@ -299,14 +321,16 @@ class ClassificationPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the predictive epistemic entropy for each input.
         """
-        ensemble_outputs = self._sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng
+        ensemble_outputs = self.sample_calibrated_outputs(
+            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng, distribute=distribute
         )
         n_classes = ensemble_outputs.shape[-1]
 
@@ -332,6 +356,7 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive entropy, that is
@@ -353,14 +378,16 @@ class ClassificationPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the predictive entropy for each input.
         """
-        ensemble_outputs = self._sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng
+        ensemble_outputs = self.sample_calibrated_outputs(
+            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng, distribute=distribute
         )
         n_classes = ensemble_outputs.shape[-1]
 

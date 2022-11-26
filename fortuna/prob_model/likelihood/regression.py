@@ -51,25 +51,10 @@ class RegressionLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = []
-        for batch_inputs in inputs_loader:
-            outputs.append(
-                self.model_manager.apply(params, batch_inputs, mutable, **kwargs)
-            )
-        outputs = jnp.concatenate(outputs, 0)
-
-        if self.output_calib_manager is not None:
-            outputs = self.output_calib_manager.apply(
-                params=calib_params["output_calibrator"]
-                if calib_params is not None
-                else None,
-                mutable=calib_mutable["output_calibrator"]
-                if calib_mutable is not None
-                else None,
-                outputs=outputs,
-            )
+        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
         return outputs[:, : outputs.shape[1] // 2]
 
     def mode(
@@ -79,6 +64,7 @@ class RegressionLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         return self.mean(
@@ -87,6 +73,7 @@ class RegressionLikelihood(Likelihood):
             mutable,
             calib_params=calib_params,
             calib_mutable=calib_mutable,
+            distribute=distribute,
             **kwargs
         )
 
@@ -97,24 +84,10 @@ class RegressionLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = []
-        for batch_inputs in inputs_loader:
-            outputs.append(
-                self.model_manager.apply(params, batch_inputs, mutable, **kwargs)
-            )
-        outputs = jnp.concatenate(outputs, 0)
-
-        outputs = self.output_calib_manager.apply(
-            params=calib_params["output_calibrator"]
-            if calib_params is not None
-            else None,
-            mutable=calib_mutable["output_calibrator"]
-            if calib_mutable is not None
-            else None,
-            outputs=outputs,
-        )
+        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
         return jnp.exp(outputs[:, outputs.shape[1] // 2 :])
 
     def entropy(
@@ -126,6 +99,7 @@ class RegressionLikelihood(Likelihood):
         calib_mutable: Optional[CalibMutable] = None,
         n_target_samples: Optional[int] = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         samples, aux = self.sample(
@@ -137,6 +111,7 @@ class RegressionLikelihood(Likelihood):
             calib_mutable=calib_mutable,
             return_aux=["outputs"],
             rng=rng,
+            distribute=distribute
         )
         outputs = aux["outputs"]
 
@@ -157,6 +132,7 @@ class RegressionLikelihood(Likelihood):
         n_target_samples: Optional[int] = 30,
         target_samples: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
         **kwargs
     ) -> Union[float, jnp.ndarray]:
         """
@@ -182,6 +158,8 @@ class RegressionLikelihood(Likelihood):
             Samples of the target variable for each input, used to estimate the quantiles.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -192,7 +170,7 @@ class RegressionLikelihood(Likelihood):
         if target_samples is None:
             if params is None or inputs_loader is None:
                 raise ValueError(
-                    "if `samples` is not passed, then `params`, and `_inputs_loader` must be passed."
+                    "if `samples` is not passed, then `params` and `inputs_loader` must be passed."
                 )
             target_samples = self.sample(
                 n_target_samples,
@@ -202,6 +180,7 @@ class RegressionLikelihood(Likelihood):
                 calib_params=calib_params,
                 calib_mutable=calib_mutable,
                 rng=rng,
+                distribute=distribute,
                 **kwargs
             )
         return jnp.quantile(target_samples, q, axis=0)

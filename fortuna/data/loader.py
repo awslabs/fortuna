@@ -5,6 +5,9 @@ from typing import Callable, Iterable, Optional, Union
 import numpy as np
 
 from fortuna.typing import Array, Batch
+import jax
+from flax import jax_utils
+from jax.tree_util import tree_map
 
 
 class DataLoader:
@@ -747,3 +750,49 @@ class PrefetchedGenerator:
         if not self._ready:
             self._batch = self._generator.__next__()
             self._ready = True
+
+
+class DeviceDimensionAugmentedDataLoader:
+    def __init__(self, data_loader: DataLoader):
+        self._data_loader = data_loader
+
+    @staticmethod
+    def _reshape_batch(batch):
+        n_devices = jax.local_device_count()
+        if batch.shape[0] % n_devices != 0:
+            raise ValueError(
+                f"The size of all batches must be a multiple of {n_devices}, that is the number of "
+                f"available devices. However, a batch with shape {batch.shape[0]} was found. "
+                f"Please set an appropriate batch size."
+            )
+        return batch.reshape((n_devices, -1) + batch.shape[1:])
+
+    def __iter__(self, *args, **kwargs):
+        data_loader = map(
+            lambda batch: tree_map(self._reshape_batch, batch), self._data_loader
+        )
+        data_loader = jax_utils.prefetch_to_device(data_loader, 2)
+        yield from data_loader
+
+
+class DeviceDimensionAugmentedInputsLoader:
+    def __init__(self, inputs_loader: InputsLoader):
+        self._inputs_loader = inputs_loader
+
+    @staticmethod
+    def _reshape_inputs(inputs):
+        n_devices = jax.local_device_count()
+        if inputs.shape[0] % n_devices != 0:
+            raise ValueError(
+                f"The size of all batches of inputs must be a multiple of {n_devices}, that is the number of "
+                f"available devices. However, a batch of inputs with shape {inputs.shape[0]} was found. "
+                f"Please set an appropriate batch size."
+            )
+        return inputs.reshape((n_devices, -1) + inputs.shape[1:])
+
+    def __iter__(self, *args, **kwargs):
+        inputs_loader = map(
+            lambda inputs: self._reshape_inputs(inputs), self._inputs_loader
+        )
+        inputs_loader = jax_utils.prefetch_to_device(inputs_loader, 2)
+        yield from inputs_loader

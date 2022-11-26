@@ -29,6 +29,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         means: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         if means is not None:
             return means
@@ -36,6 +37,7 @@ class RegressionPredictive(Predictive):
             inputs_loader=inputs_loader,
             n_posterior_samples=n_posterior_samples,
             rng=rng,
+            distribute=distribute
         )
 
     def aleatoric_entropy(
@@ -44,6 +46,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         n_target_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric entropy, that is
@@ -67,6 +70,8 @@ class RegressionPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -77,8 +82,8 @@ class RegressionPredictive(Predictive):
             rng = self.rng.get()
         key1, *keys = random.split(rng, 1 + n_posterior_samples)
 
-        ensemble_outputs = self._sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1
+        ensemble_outputs = self.sample_calibrated_outputs(
+            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1, distribute=distribute
         )
 
         ensemble_target_samples = lax.map(
@@ -105,6 +110,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         n_target_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic entropy, that is
@@ -132,6 +138,8 @@ class RegressionPredictive(Predictive):
             Number of target samples to draw for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -142,8 +150,8 @@ class RegressionPredictive(Predictive):
             rng = self.rng.get()
         key1, *keys = random.split(rng, 1 + n_posterior_samples)
 
-        ensemble_outputs = self._sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1
+        ensemble_outputs = self.sample_calibrated_outputs(
+            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1, distribute=distribute
         )
 
         ensemble_target_samples = lax.map(
@@ -178,6 +186,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         n_target_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive entropy, that is
@@ -201,6 +210,8 @@ class RegressionPredictive(Predictive):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -211,8 +222,8 @@ class RegressionPredictive(Predictive):
             rng = self.rng.get()
         key1, *keys = random.split(rng, 1 + n_posterior_samples)
 
-        ensemble_outputs = self._sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1
+        ensemble_outputs = self.sample_calibrated_outputs(
+            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1, distribute=distribute
         )
 
         ensemble_target_samples = lax.map(
@@ -245,6 +256,7 @@ class RegressionPredictive(Predictive):
         error: float = 0.05,
         interval_type: str = "two-tailed",
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         r"""
         Estimate credible intervals for the target variable. This is supported only if the target variable is scalar.
@@ -262,6 +274,8 @@ class RegressionPredictive(Predictive):
             The interval type. We support "two-tailed" (default), "right-tailed" and "left-tailed".
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -283,7 +297,7 @@ class RegressionPredictive(Predictive):
             else 1 - error
         )
         qq = self.quantile(
-            q=q, inputs_loader=inputs_loader, n_target_samples=n_target_samples, rng=rng
+            q=q, inputs_loader=inputs_loader, n_target_samples=n_target_samples, rng=rng, distribute=distribute
         )
         if qq.shape[-1] != 1:
             raise ValueError(
@@ -301,6 +315,7 @@ class RegressionPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_target_samples: Optional[int] = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True
     ) -> Union[float, jnp.ndarray]:
         r"""
         Estimate the `q`-th quantiles of the predictive probability density function.
@@ -315,6 +330,8 @@ class RegressionPredictive(Predictive):
             Number of target samples to sample for each input data point.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -325,6 +342,6 @@ class RegressionPredictive(Predictive):
         if type(q) == list:
             q = jnp.array(q)
         samples = self.sample(
-            inputs_loader=inputs_loader, n_target_samples=n_target_samples, rng=rng
+            inputs_loader=inputs_loader, n_target_samples=n_target_samples, rng=rng, distribute=distribute
         )
         return jnp.quantile(samples, q, axis=0)

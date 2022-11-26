@@ -52,6 +52,7 @@ class ClassificationLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -77,28 +78,15 @@ class ClassificationLikelihood(Likelihood):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             An estimate of the likelihood mean for each input.
         """
-        outputs = []
-        for batch_inputs in inputs_loader:
-            outputs.append(
-                self.model_manager.apply(params, batch_inputs, mutable, **kwargs)
-            )
-        outputs = jnp.concatenate(outputs, 0)
-
-        outputs = self.output_calib_manager.apply(
-            params=calib_params["output_calibrator"]
-            if calib_params is not None
-            else None,
-            mutable=calib_mutable["output_calibrator"]
-            if calib_mutable is not None
-            else None,
-            outputs=outputs,
-        )
+        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
         return jax.nn.softmax(outputs, -1)
 
     def mode(
@@ -108,24 +96,10 @@ class ClassificationLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = []
-        for batch_inputs in inputs_loader:
-            outputs.append(
-                self.model_manager.apply(params, batch_inputs, mutable, **kwargs)
-            )
-        outputs = jnp.concatenate(outputs, 0)
-
-        outputs = self.output_calib_manager.apply(
-            params=calib_params["output_calibrator"]
-            if calib_params is not None
-            else None,
-            mutable=calib_mutable["output_calibrator"]
-            if calib_mutable is not None
-            else None,
-            outputs=outputs,
-        )
+        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
         return jnp.argmax(outputs, -1)
 
     def variance(
@@ -135,6 +109,7 @@ class ClassificationLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -160,6 +135,8 @@ class ClassificationLikelihood(Likelihood):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -172,6 +149,7 @@ class ClassificationLikelihood(Likelihood):
             mutable=mutable,
             calib_params=calib_params,
             calib_mutable=calib_mutable,
+            distribute=distribute
         )
         return means * (1 - means)
 
@@ -182,25 +160,11 @@ class ClassificationLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = []
-        for batch_inputs in inputs_loader:
-            outputs.append(
-                self.model_manager.apply(params, batch_inputs, mutable, **kwargs)
-            )
-        outputs = jnp.concatenate(outputs, 0)
+        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
         n_classes = outputs.shape[-1]
-
-        outputs = self.output_calib_manager.apply(
-            params=calib_params["output_calibrator"]
-            if calib_params is not None
-            else None,
-            mutable=calib_mutable["output_calibrator"]
-            if calib_mutable is not None
-            else None,
-            outputs=outputs,
-        )
 
         @vmap
         def _entropy_term(i: int):

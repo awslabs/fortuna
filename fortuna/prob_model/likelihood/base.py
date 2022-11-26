@@ -1,11 +1,13 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union, Dict
 
+import jax
 import jax.numpy as jnp
-from jax import jit
+from jax import jit, lax, pmap
 from jax._src.prng import PRNGKeyArray
 
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import DataLoader, InputsLoader, DeviceDimensionAugmentedDataLoader, \
+    DeviceDimensionAugmentedInputsLoader
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
@@ -185,8 +187,9 @@ class Likelihood(WithRNG):
         return_aux: Optional[List[str]] = None,
         calib: bool = False,
         outputs: Optional[jnp.ndarray] = None,
+        distribute: bool = True,
         **kwargs
-    ) -> Union[float, Tuple[float, dict]]:
+    ) -> Union[Array, Tuple[Array, Dict]]:
         """
         Evaluate the log-likelihood function.
 
@@ -209,10 +212,12 @@ class Likelihood(WithRNG):
             Whether this method is called during calibration.
         outputs : Optional[jnp.ndarray]
             Pre-computed batch of outputs.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
-        Union[float, Tuple[float, dict]]
+        Union[Array, Tuple[Array, Dict]]
             The evaluation of the log-likelihood function. If `return_aux` is given, the corresponding auxiliary
             objects are also returned.
         """
@@ -231,12 +236,20 @@ class Likelihood(WithRNG):
         if "outputs" in return_aux:
             aux_outputs = []
         aux_calib_mutable = None
-        curr_idx = 0
-        for batch in data_loader:
-            outs = self._batched_log_prob(
+        count = 0
+
+        if distribute and jax.local_device_count() <= 1:
+            distribute = False
+
+        if distribute:
+            data_loader = DeviceDimensionAugmentedDataLoader(data_loader)
+
+        @jit
+        def fun(_batch):
+            return self._batched_log_prob(
                 params,
-                batch,
-                n_data=batch[1].shape[0],
+                _batch,
+                n_data=_batch[1].shape[0],
                 mutable=mutable,
                 calib_params=calib_params,
                 calib_mutable=aux_calib_mutable
@@ -244,22 +257,40 @@ class Likelihood(WithRNG):
                 else calib_mutable,
                 return_aux=return_aux,
                 calib=calib,
-                outputs=outputs[curr_idx : curr_idx + batch[0].shape[0]]
+                outputs=outputs[count: count + _batch[0].shape[0]]
                 if outputs is not None
                 else None,
                 **kwargs
             )
-            curr_idx += batch[0].shape[0]
 
-            if len(return_aux) > 0:
-                batched_log_prob, aux = outs
-                if "outputs" in aux:
-                    aux_outputs.append(aux["outputs"])
-                if "calib_mutable" in aux:
-                    aux_calib_mutable = aux["calib_mutable"]
+        sharded_mean = pmap(lambda v: lax.pmean(v, "batch"), "batch")
+
+        for batch in data_loader:
+            if distribute:
+                outs = pmap(fun, axis_name="batch")(batch)
+                count += batch[0].shape[0] * batch[0].shape[1]
+                if len(return_aux) > 0:
+                    batched_log_prob, aux = outs
+                    if "outputs" in aux:
+                        aux_outputs.append(self._unshard_array(aux["outputs"]))
+                    if "calib_mutable" in aux:
+                        aux_calib_mutable = sharded_mean(aux["calib_mutable"]) if aux["calib_mutable"]["output_calibrator"] is not None else aux["calib_mutable"]
+                else:
+                    batched_log_prob = outs
+                batched_log_prob = jnp.sum(batched_log_prob)
             else:
-                batched_log_prob = outs
+                outs = fun(batch)
+                count += batch[0].shape[0]
+                if len(return_aux) > 0:
+                    batched_log_prob, aux = outs
+                    if "outputs" in aux:
+                        aux_outputs.append(aux["outputs"])
+                    if "calib_mutable" in aux:
+                        aux_calib_mutable = aux["calib_mutable"]
+                else:
+                    batched_log_prob = outs
             log_prob += batched_log_prob
+        log_prob /= count
 
         aux = {}
         if "outputs" in return_aux:
@@ -281,6 +312,7 @@ class Likelihood(WithRNG):
         calib_mutable: Optional[CalibMutable] = None,
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
         **kwargs
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         """
@@ -305,6 +337,8 @@ class Likelihood(WithRNG):
             is returned.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -314,11 +348,29 @@ class Likelihood(WithRNG):
         """
         if return_aux is None:
             return_aux = []
-        outputs = []
-        for batch_inputs in inputs_loader:
-            outputs.append(
-                self.model_manager.apply(params, batch_inputs, mutable, **kwargs)
+        supported_aux = ["outputs"]
+        unsupported_aux = [s for s in return_aux if s not in supported_aux]
+        if sum(unsupported_aux) > 0:
+            raise Exception(
+                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux` 
+                            belong to the following list: {}""".format(
+                    unsupported_aux, supported_aux
+                )
             )
+
+        if distribute and jax.local_device_count() <= 1:
+            distribute = False
+
+        if distribute:
+            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+
+        @jit
+        def fun(_inputs):
+            return self.model_manager.apply(params, _inputs, mutable, **kwargs)
+
+        outputs = []
+        for inputs in inputs_loader:
+            outputs.append(self._unshard_array(pmap(fun)(inputs)) if distribute else fun(inputs))
         outputs = jnp.concatenate(outputs, 0)
 
         if self.output_calib_manager is not None:
@@ -339,13 +391,14 @@ class Likelihood(WithRNG):
             return samples, dict(outputs=outputs)
         return samples
 
-    def _get_calibrated_outputs(
+    def get_calibrated_outputs(
         self,
         params: Params,
         inputs_loader: InputsLoader,
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         """
@@ -363,20 +416,29 @@ class Likelihood(WithRNG):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             The calibrated outputs.
         """
+        if distribute and jax.local_device_count() <= 1:
+            distribute = False
+
+        if distribute:
+            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+
+        @jit
+        def fun(_inputs):
+            return self.model_manager.apply(params, _inputs, mutable, **kwargs)
+
         outputs = []
-        for batch_inputs in inputs_loader:
-            outputs.append(
-                self.model_manager.apply(
-                    params=params, inputs=batch_inputs, mutable=mutable, **kwargs
-                )
-            )
+        for inputs in inputs_loader:
+            outputs.append(self._unshard_array(pmap(fun)(inputs)) if distribute else fun(inputs))
         outputs = jnp.concatenate(outputs, 0)
+
         if self.output_calib_manager is not None:
             outputs = self.output_calib_manager.apply(
                 params=calib_params["output_calibrator"]
@@ -390,11 +452,12 @@ class Likelihood(WithRNG):
             )
         return outputs
 
-    def _get_outputs(
+    def get_outputs(
         self,
         params: Params,
         inputs_loader: InputsLoader,
         mutable: Optional[Mutable] = None,
+        distribute: bool = True
     ) -> jnp.ndarray:
         """
         Compute the outputs and their calibrated version.
@@ -407,25 +470,28 @@ class Likelihood(WithRNG):
             A loader of input data points.
         mutable : Optional[Mutable]
             The mutable objects used to evaluate the models.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
             The calibrated outputs.
         """
+        if distribute and jax.local_device_count() <= 1:
+            distribute = False
+
+        if distribute:
+            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
 
         @jit
-        def jit_get_batched_outputs(_inputs):
-            return self._get_batched_outputs(params, _inputs, mutable)
+        def fun(_inputs):
+            return self.model_manager.apply(params, _inputs, mutable)
 
-        return jnp.concatenate(
-            [jit_get_batched_outputs(inputs) for inputs in inputs_loader], 0
-        )
-
-    def _get_batched_outputs(
-        self, params: Params, inputs: Array, mutable: Optional[Mutable] = None,
-    ) -> jnp.ndarray:
-        return self.model_manager.apply(params=params, inputs=inputs, mutable=mutable)
+        outputs = []
+        for inputs in inputs_loader:
+            outputs.append(self._unshard_array(pmap(fun)(inputs)) if distribute else fun(inputs))
+        return jnp.concatenate(outputs, 0)
 
     @abc.abstractmethod
     def mean(
@@ -435,6 +501,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -460,6 +527,8 @@ class Likelihood(WithRNG):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -476,6 +545,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -501,6 +571,8 @@ class Likelihood(WithRNG):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -517,6 +589,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -542,6 +615,8 @@ class Likelihood(WithRNG):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -558,6 +633,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         variance: Optional[jnp.ndarray] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -585,6 +661,8 @@ class Likelihood(WithRNG):
             The calibration mutable objects used to evaluate the calibrators.
         variance : Optional[jnp.ndarray]
             An estimate of the likelihood variance for each input.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -598,6 +676,7 @@ class Likelihood(WithRNG):
                 mutable,
                 calib_params=calib_params,
                 calib_mutable=calib_mutable,
+                distribute=distribute,
                 **kwargs
             )
         return jnp.sqrt(variance)
@@ -610,6 +689,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
         r"""
@@ -635,6 +715,8 @@ class Likelihood(WithRNG):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects used to evaluate the calibrators.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
@@ -642,3 +724,7 @@ class Likelihood(WithRNG):
             An estimate of the likelihood entropy for each input.
         """
         pass
+
+    @staticmethod
+    def _unshard_array(arr: Array) -> Array:
+        return arr.reshape((arr.shape[0] * arr.shape[1],) + arr.shape[2:])

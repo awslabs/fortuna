@@ -2,6 +2,7 @@ import abc
 import logging
 from typing import Callable, Dict, Optional
 
+import jax
 import jax.numpy as jnp
 
 from fortuna.calibration.state import CalibState
@@ -123,6 +124,8 @@ class ProbModel(abc.ABC):
                     "Pre-compute ensemble of outputs on the calibration data loader."
                 )
 
+            distribute = jax.local_device_count() > 1
+
             (
                 calib_ensemble_outputs_loader,
                 calib_size,
@@ -130,6 +133,7 @@ class ProbModel(abc.ABC):
                 inputs_loader=calib_data_loader.to_inputs_loader(),
                 n_output_samples=calib_config.processor.n_posterior_samples,
                 return_size=True,
+                distribute=distribute
             )
             if calib_config.monitor.verbose:
                 logging.info(
@@ -140,6 +144,7 @@ class ProbModel(abc.ABC):
                     inputs_loader=val_data_loader.to_inputs_loader(),
                     n_output_samples=calib_config.processor.n_posterior_samples,
                     return_size=True,
+                    distribute=distribute
                 )
                 if val_data_loader is not None
                 else (None, None)
