@@ -83,7 +83,7 @@ class SWAGJittedMixin(JittedMixin):
         return self._update_state_with_stats(state)
 
 
-class SWAGMultiGPUMixin(JittedMixin):
+class SWAGMultiGPUMixin(MultiGPUMixin):
     def on_train_end(self, state: SWAGState) -> SWAGState:
         state = self._update_state_with_stats(state)
         return super().on_train_end(state)
