@@ -39,7 +39,7 @@ class DiagGaussian(Distribution):
         _, key = random.split(rng)
         return self.mean + self.std * random.normal(key, (n_samples, self.dim))
 
-    def log_prob(self, x: Union[float, Array]) -> Union[float, jnp.ndarray]:
+    def log_joint_prob(self, x: Union[float, Array]) -> Union[float, jnp.ndarray]:
         """
         Evaluate log-probability density function.
 
@@ -83,7 +83,7 @@ class MultGaussian(Distribution):
             keys
         )
 
-    def log_prob(self, x: Array) -> Union[float, jnp.ndarray]:
+    def log_joint_prob(self, x: Array) -> Union[float, jnp.ndarray]:
         """
         Evaluate log-probability density function.
 

@@ -26,7 +26,7 @@ class IsotropicGaussianPrior(Prior):
         self.std = jnp.exp(0.5 * self.log_var)
         self.log2pi = jnp.log(2 * jnp.pi)
 
-    def log_prob(self, params: Params) -> float:
+    def log_joint_prob(self, params: Params) -> float:
         rav = ravel_pytree(params)[0]
         n = len(rav)
         return -0.5 * (self.prec * jnp.sum(rav ** 2) + n * (self.log2pi + self.log_var))
@@ -54,7 +54,7 @@ class DiagonalGaussianPrior(Prior):
         self.log_var = log_var
         self.log2pi = jnp.log(2 * jnp.pi)
 
-    def log_prob(self, params: Params) -> float:
+    def log_joint_prob(self, params: Params) -> float:
         rav = ravel_pytree(params)[0]
         return -0.5 * jnp.sum(
             jnp.exp(-self.log_var) * rav ** 2 + self.log2pi + self.log_var

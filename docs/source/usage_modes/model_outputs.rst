@@ -40,7 +40,7 @@ Let's calibrate the model outputs.
 Fortuna needs an array of model outputs computed over some validation inputs,
 and a corresponding array of validation target variables.
 We denote these as :code:`val_outputs` and :code:`val_targets`, respectively.
-You can configure the calibration process using a :ref:`calibration configuration <calib_config>` object.
+You can configure the calibration process using a :ref:`calibration configuration <calib_model_calib_config>` object.
 In this example, we will stick with the default configuration options.
 
 .. code-block:: python
@@ -159,7 +159,7 @@ Let's calibrate the model outputs.
 Fortuna needs an array of model outputs computed over some validation inputs,
 and a corresponding array of validation target variables.
 We denote these as :code:`val_outputs` and :code:`val_targets`, respectively.
-You can configure the calibration process using a :ref:`calibration configuration <calib_config>` object.
+You can configure the calibration process using a :ref:`calibration configuration <calib_model_calib_config>` object.
 In this example, we will stick with the default configuration options.
 
 .. code-block:: python

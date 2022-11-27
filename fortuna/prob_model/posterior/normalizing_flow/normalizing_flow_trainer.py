@@ -31,7 +31,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             Base distribution. It must include the following methods:
                 - sample(rng: jnp.array, n_samples: int) -> jnp.array
                     It draws `n_samples` samples from the distribution.
-                - log_prob(x: jnp.array) -> float
+                - log_joint_prob(x: jnp.array) -> float
                     It evaluates the log-probability density function at `x`.
             Common distribution are already available in `prob.distribution`.
         :param architecture: object
@@ -46,7 +46,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         super(NormalizingFlowTrainer, self).__init__(**kwargs)
         # base distribution
         self.sample_base = base.sample
-        self.base_log_prob = base.log_prob
+        self.base_log_joint_prob = base.log_joint_prob
 
         # architecture
         self.forward = architecture.forward

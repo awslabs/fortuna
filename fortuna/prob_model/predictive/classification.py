@@ -118,7 +118,8 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
+        **kwargs
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic variance of the one-hot encoded target variable, that is

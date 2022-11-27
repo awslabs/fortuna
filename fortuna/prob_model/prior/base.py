@@ -13,7 +13,7 @@ class Prior(WithRNG, abc.ABC):
     """
 
     @abc.abstractmethod
-    def log_prob(self, params: Params) -> float:
+    def log_joint_prob(self, params: Params) -> float:
         """
         Evaluate the prior log-probability density function (a.k.a. log-pdf).
 

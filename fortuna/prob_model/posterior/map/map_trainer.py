@@ -65,7 +65,7 @@ class MAPTrainer(PosteriorTrainerABC):
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
-        log_probabilities, aux = fun(
+        log_joint_probabilities, aux = fun(
             state.params,
             batch,
             n_data=n_data,
@@ -81,10 +81,10 @@ class MAPTrainer(PosteriorTrainerABC):
                 self.predict_fn(aux["outputs"]), batch[1], metrics
             )
             return {
-                "val_loss": -log_probabilities,
+                "val_loss": -log_joint_probabilities,
                 **{f"val_{m}": v for m, v in val_metrics.items()},
             }
-        return dict(val_loss=-log_probabilities)
+        return dict(val_loss=-log_joint_probabilities)
 
     def __str__(self):
         return MAP_NAME

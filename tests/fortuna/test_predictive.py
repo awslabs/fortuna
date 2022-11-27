@@ -70,21 +70,17 @@ class TestPredictives(unittest.TestCase):
                 optimizer=optax.adam(1e-2),
                 n_epochs=2,
             )
-            log_prob, aux = self.prob_class.predictive.log_prob(
+            log_probs = self.prob_class.predictive.log_prob(
                 self.class_data_loader,
-                return_aux=["outputs"],
                 n_posterior_samples=self.n_post_samples,
             )
-            assert jnp.array([log_prob]).shape == (1,)
-            assert aux["outputs"].shape == (self.n_inputs, self.output_dim)
+            assert log_probs.shape == (self.n_inputs,)
 
-            log_prob, aux = self.prob_reg.predictive.log_prob(
+            log_probs = self.prob_reg.predictive.log_prob(
                 self.reg_data_loader,
-                return_aux=["outputs"],
                 n_posterior_samples=self.n_post_samples,
             )
-            assert jnp.array([log_prob]).shape == (1,)
-            assert aux["outputs"].shape == (self.n_inputs, 2 * self.output_dim)
+            assert log_probs.shape == (self.n_inputs,)
 
             sample = self.prob_class.predictive.sample(
                 self.class_inputs_loader, n_target_samples=self.n_post_samples,

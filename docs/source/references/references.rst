@@ -10,7 +10,6 @@ API References
    model/model
    output_calibrator
    prob_output_layer
-   calib_config
    conformal
    data_loader
    metric

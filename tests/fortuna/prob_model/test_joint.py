@@ -55,17 +55,10 @@ class TestJoints(unittest.TestCase):
             )
         )
 
-    def test_lik_batched_log_prob(self):
-        log_prob, aux = self.joint.log_prob(
-            self.params, self.data_arr, return_aux=["outputs"]
-        )
-        assert jnp.array([log_prob]).shape == (1,)
-        assert aux["outputs"].shape == (self.n_inputs, 2 * self.output_dim)
-
-    def test_lik_log_prob(self):
+    def test_lik_log_batched_joint_prob(self):
         for batch in self.data_arr:
-            log_prob, aux = self.joint.batched_log_prob(
+            log_joint_prob, aux = self.joint._batched_log_joint_prob(
                 self.params, batch, n_data=batch[1].shape[0], return_aux=["outputs"]
             )
-            assert jnp.array([log_prob]).shape == (1,)
+            assert jnp.array([log_joint_prob]).shape == (1,)
             assert aux["outputs"].shape == (self.n_inputs, 2 * self.output_dim)

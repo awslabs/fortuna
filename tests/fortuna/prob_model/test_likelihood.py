@@ -98,7 +98,7 @@ class TestLikelihoods(unittest.TestCase):
             self.class_data_gen_fun
         )
 
-    def test_lik_batched_log_prob(self):
+    def test_lik_batched_log_joint_prob(self):
         params = FrozenDict(
             dict(
                 model=self.reg_lik.model_manager.model.init(
@@ -111,16 +111,16 @@ class TestLikelihoods(unittest.TestCase):
         )
 
         for batch_data in self.reg_data_arr:
-            batched_log_prob1 = self.reg_lik._batched_log_prob(
+            batched_log_joint_prob1 = self.reg_lik._batched_log_joint_prob(
                 params, batch_data, n_data=batch_data[1].shape[0]
             )
-            batched_log_prob2 = self.reg_lik._batched_log_prob(
+            batched_log_joint_prob2 = self.reg_lik._batched_log_joint_prob(
                 params, batch_data, n_data=2 * batch_data[1].shape[0]
             )
-            assert jnp.allclose(batched_log_prob2, 2 * batched_log_prob1)
-            assert jnp.array([batched_log_prob1]).shape == (1,)
+            assert jnp.allclose(batched_log_joint_prob2, 2 * batched_log_joint_prob1)
+            assert jnp.array([batched_log_joint_prob1]).shape == (1,)
 
-            _, aux = self.reg_lik._batched_log_prob(
+            _, aux = self.reg_lik._batched_log_joint_prob(
                 params,
                 batch_data,
                 n_data=batch_data[1].shape[0],
@@ -128,7 +128,7 @@ class TestLikelihoods(unittest.TestCase):
             )
             assert aux["outputs"].shape == (self.n_inputs, 2 * self.output_dim)
 
-    def test_lik_log_prob(self):
+    def test_lik_log_joint_prob(self):
         params = FrozenDict(
             dict(
                 model=self.reg_lik.model_manager.model.init(
@@ -140,16 +140,11 @@ class TestLikelihoods(unittest.TestCase):
             )
         )
 
-        log_prob = self.reg_lik.log_prob(params, self.reg_data_arr)
-        assert jnp.array([log_prob]).shape == (1,)
+        log_probs = self.reg_lik.log_prob(params, self.reg_data_arr)
+        assert log_probs.shape == (self.n_inputs,)
 
-        log_prob = self.reg_lik.log_prob(params, self.reg_data_gen_fun)
-        assert jnp.array([log_prob]).shape == (1,)
-
-        log_prob, aux = self.reg_lik.log_prob(
-            params, self.reg_data_arr, return_aux=["outputs"]
-        )
-        assert aux["outputs"].shape == (self.n_inputs, 2 * self.output_dim)
+        log_probs = self.reg_lik.log_prob(params, self.reg_data_gen_fun)
+        assert log_probs.shape == (self.n_batches * self.batch_size,)
 
     def test_sample(self):
         params = FrozenDict(

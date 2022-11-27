@@ -39,7 +39,7 @@ class FakeTrainer(TrainerABC):
         self,
         state: TrainState,
         batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
-        log_prob: Callable[[Any], Union[float, Tuple[float, dict]]],
+        log_joint_prob: Callable[[Any], Union[float, Tuple[float, dict]]],
         rng: jnp.ndarray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
@@ -50,7 +50,7 @@ class FakeTrainer(TrainerABC):
 
     def training_loss_step(
         self,
-        log_prob: Callable[[Any], Union[float, Tuple[float, dict]]],
+        log_joint_prob: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: Union[PyTree, jnp.ndarray, Tuple[jnp.ndarray, ...]],
         batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
         mutable: FrozenDict[str, FrozenDict],
@@ -65,7 +65,7 @@ class FakeTrainer(TrainerABC):
         self,
         state: TrainState,
         batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
-        log_prob: Callable[[Any], Union[float, Tuple[float, dict]]],
+        log_joint_prob: Callable[[Any], Union[float, Tuple[float, dict]]],
         rng: jnp.ndarray,
         n_data: int,
         metrics: Optional[Tuple[str]] = None,

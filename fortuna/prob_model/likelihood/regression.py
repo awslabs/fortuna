@@ -11,7 +11,7 @@ from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_model.likelihood.base import Likelihood
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.typing import CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import CalibMutable, CalibParams, Mutable, Params, Array
 
 
 class RegressionLikelihood(Likelihood):
@@ -44,50 +44,46 @@ class RegressionLikelihood(Likelihood):
             model_manager, prob_output_layer, output_calib_manager=output_calib_manager
         )
 
-    def mean(
+    def _batched_mean(
         self,
         params: Params,
-        inputs_loader: InputsLoader,
+        inputs: Array,
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
+        outputs = super()._get_batched_calibrated_outputs(params, inputs, mutable, calib_params, calib_mutable, **kwargs)
         return outputs[:, : outputs.shape[1] // 2]
 
-    def mode(
+    def _batched_mode(
         self,
         params: Params,
-        inputs_loader: InputsLoader,
+        inputs: Array,
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        return self.mean(
+        return self._batched_mean(
             params,
-            inputs_loader,
+            inputs,
             mutable,
             calib_params=calib_params,
             calib_mutable=calib_mutable,
-            distribute=distribute,
             **kwargs
         )
 
-    def variance(
+    def _batched_variance(
         self,
         params: Params,
-        inputs_loader: InputsLoader,
+        inputs: Array,
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
+        outputs = super()._get_batched_calibrated_outputs(params, inputs, mutable, calib_params, calib_mutable, **kwargs)
         return jnp.exp(outputs[:, outputs.shape[1] // 2 :])
 
     def entropy(

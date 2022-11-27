@@ -95,7 +95,7 @@ class CalibModel(WithCheckpointingMixin, abc.ABC):
         state, status = calibrator.train(
             rng=self.rng.get(),
             state=state,
-            fun=self.predictive._log_prob,
+            fun=self.predictive._log_joint_prob,
             n_epochs=calib_config.optimizer.n_epochs,
             metrics=calib_config.monitor.metrics,
             verbose=calib_config.monitor.verbose,

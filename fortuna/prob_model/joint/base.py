@@ -40,60 +40,7 @@ class Joint(WithRNG):
         self.prior = prior
         self.likelihood = likelihood
 
-    def log_prob(
-        self,
-        params: Params,
-        data_loader: DataLoader,
-        mutable: Optional[any] = None,
-        calib_params: Optional[CalibParams] = None,
-        calib_mutable: Optional[CalibMutable] = None,
-        return_aux: Optional[List[str]] = None,
-        **kwargs
-    ) -> Union[float, Tuple[float, dict]]:
-        """
-        Evaluate the joint log-probability density function (a.k.a. log-pdf).
-
-        Parameters
-        ----------
-        params : Params
-            The random parameters of the probabilistic model.
-        data_loader : DataLoader
-            A data loader.
-        mutable : Optional[Mutable]
-            The mutable objects used to evaluate the models.
-        calib_params : Optional[CalibParams]
-            The calibration parameters of the probabilistic model.
-        calib_mutable : Optional[CalibMutable]
-            The calibration mutable objects used to evaluate the calibrators.
-        return_aux : Optional[List[str]]
-            The auxiliary objects to return. We support 'outputs' and 'calib_mutable'. If this argument is not given,
-            no auxiliary object is returned.
-
-        Returns
-        -------
-        Union[float, Tuple[float, dict]]
-            The evaluation of the joint log-pdf. If `return_aux` is given, the corresponding auxiliary objects are
-            also returned.
-        """
-        if return_aux is None:
-            return_aux = []
-        log_prior = self.prior.log_prob(params)
-        outs = self.likelihood.log_prob(
-            params,
-            data_loader,
-            mutable=mutable,
-            return_aux=return_aux,
-            calib_params=calib_params,
-            calib_mutable=calib_mutable,
-            **kwargs
-        )
-        if len(return_aux) > 0:
-            log_lik, aux = outs
-            return log_lik + log_prior, aux
-        log_lik = outs
-        return log_lik + log_prior
-
-    def batched_log_prob(
+    def _batched_log_joint_prob(
         self,
         params: Params,
         batch: Batch,
@@ -143,8 +90,8 @@ class Joint(WithRNG):
         """
         if return_aux is None:
             return_aux = []
-        log_prior = self.prior.log_prob(params)
-        outs = self.likelihood._batched_log_prob(
+        log_prior = self.prior.log_joint_prob(params)
+        outs = self.likelihood._batched_log_joint_prob(
             params,
             batch,
             n_data,

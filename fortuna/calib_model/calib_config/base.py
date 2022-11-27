@@ -13,7 +13,7 @@ class CalibConfig:
         processor: CalibProcessor = CalibProcessor(),
     ):
         """
-        Configure the probabilistic model calibration.
+        Configure the calibration of the calibration model.
 
         Parameters
         ----------

@@ -8,5 +8,5 @@ class Distribution(HashableMixin, abc.ABC):
     def sample(self, *args, **kwargs):
         pass
 
-    def log_prob(self, *args, **kwargs):
+    def log_joint_prob(self, *args, **kwargs):
         pass

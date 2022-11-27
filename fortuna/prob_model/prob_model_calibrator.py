@@ -57,7 +57,7 @@ class ProbModelCalibrator(CalibratorABC):
         rng: PRNGKeyArray,
         n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
-        log_probs, aux = fun(
+        log_joint_probs, aux = fun(
             batch,
             n_data=n_data,
             return_aux=["outputs"],
@@ -66,7 +66,7 @@ class ProbModelCalibrator(CalibratorABC):
             calib_mutable=state.mutable,
             rng=rng,
         )
-        return -log_probs, aux
+        return -log_joint_probs, aux
 
     def __str__(self):
         return "calibration"

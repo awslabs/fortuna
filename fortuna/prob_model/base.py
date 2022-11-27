@@ -66,9 +66,9 @@ class ProbModel(abc.ABC):
         map_fit_config : Optional[FitConfig] = None
             An object to configure a preliminary posterior distribution fitting via the Maximum-A-Posteriori (MAP)
             method.
-            The fit of several supported posterior approximation methods,
-            like :class:`~fortuna.prob_model.posterior.swag.swag_posterior.SWAGPosterior.fit` and
-            :class:`~fortuna.prob_model.posterior.swag.swag_posterior.LaplacePosterior.fit`, start from a preliminary
+            The fit methods of several supported posterior approximations, like the ones of
+            :class:`~fortuna.prob_model.posterior.swag.swag_posterior.SWAGPosterior` and
+            :class:`~fortuna.prob_model.posterior.laplace.laplace_posterior.LaplacePosterior`, start from a preliminary
             run of MAP, which can be configured via this object. If the method does not start from MAP, this argument is
             ignored.
 
@@ -189,7 +189,7 @@ class ProbModel(abc.ABC):
             state, status = calibrator.train(
                 rng=self.rng.get(),
                 state=state,
-                fun=self.predictive._batched_log_prob,
+                fun=self.predictive._batched_log_joint_prob,
                 training_data_loader=calib_data_loader,
                 training_dataset_size=calib_size,
                 n_epochs=calib_config.optimizer.n_epochs,

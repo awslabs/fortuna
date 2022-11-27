@@ -30,7 +30,7 @@ class Predictive(WithRNG, abc.ABC):
         self, outputs: Array, targets: Array, calibrated: bool = True, **kwargs
     ) -> jnp.ndarray:
         """
-        Evaluate the join log-probability density function (a.k.a. log-pdf) given all the outputs and target data.
+        Evaluate the log-probability density function (a.k.a. log-pdf) given the outputs and target data.
 
         Parameters
         ----------
@@ -45,7 +45,7 @@ class Predictive(WithRNG, abc.ABC):
         Returns
         -------
         jnp.ndarray
-            An evaluation of the log-pdf.
+            An evaluation of the log-pdf for each data point.
         """
         if calibrated:
             self._check_calibrated()
@@ -55,7 +55,7 @@ class Predictive(WithRNG, abc.ABC):
                 outputs=outputs,
                 mutable=state.mutable["output_calibrator"],
             )
-        return self.prob_output_layer.log_prob(outputs, targets, **kwargs).sum()
+        return self.prob_output_layer.log_prob(outputs, targets, **kwargs)
 
     def sample(
         self,
@@ -251,7 +251,7 @@ class Predictive(WithRNG, abc.ABC):
                 "No calibration state was found. The model must be calibrated beforehand."
             )
 
-    def _log_prob(
+    def _log_joint_prob(
         self,
         params: CalibParams,
         targets: Array,
@@ -290,11 +290,11 @@ class Predictive(WithRNG, abc.ABC):
             outputs = outs
             if "mutable" in return_aux:
                 aux["mutable"] = dict(output_calibrator=None)
-        log_prob = self.prob_output_layer.log_prob(outputs, targets).sum()
+        log_joint_prob = self.prob_output_layer.log_prob(outputs, targets).sum()
 
         if len(return_aux) == 0:
-            return log_prob
+            return log_joint_prob
         else:
             if "outputs" in return_aux:
                 aux["outputs"] = outputs
-            return log_prob, aux
+            return log_joint_prob, aux

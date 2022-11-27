@@ -16,10 +16,10 @@ class TestIsotropicDiagGaussianPrior(unittest.TestCase):
         self.prior.rng = RandomNumberGenerator(seed=0)
         self.params = dict(model=jnp.arange(3), lik_log_var=jnp.arange(4, 7))
 
-    def test_log_prob(self):
-        assert jnp.array([self.prior.log_prob(self.params)]).shape == (1,)
+    def test_log_joint_prob(self):
+        assert jnp.array([self.prior.log_joint_prob(self.params)]).shape == (1,)
         assert jnp.allclose(
-            self.prior.log_prob(jnp.zeros(2)), -(jnp.log(2 * jnp.pi) + self.log_var)
+            self.prior.log_joint_prob(jnp.zeros(2)), -(jnp.log(2 * jnp.pi) + self.log_var)
         )
 
     def test_sample(self):
@@ -37,10 +37,10 @@ class TestDiagGaussianPrior(unittest.TestCase):
         self.params = dict(model=jnp.arange(3), lik_log_var=jnp.arange(4, 7))
         self.n_samples = 3
 
-    def test_log_prob(self):
-        assert jnp.array([self.prior.log_prob(self.params)]).shape == (1,)
+    def test_log_joint_prob(self):
+        assert jnp.array([self.prior.log_joint_prob(self.params)]).shape == (1,)
         assert jnp.allclose(
-            self.prior.log_prob(jnp.zeros(len(self.log_var))),
+            self.prior.log_joint_prob(jnp.zeros(len(self.log_var))),
             -0.5 * jnp.sum(jnp.log(2 * jnp.pi) + self.log_var),
         )
 

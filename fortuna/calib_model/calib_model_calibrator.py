@@ -364,7 +364,7 @@ class CalibModelCalibrator(
         fun: Callable,
         rng: PRNGKeyArray,
     ) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
-        log_probs, aux = fun(
+        log_joint_probs, aux = fun(
             params=state.params,
             targets=targets,
             outputs=outputs,
@@ -372,7 +372,7 @@ class CalibModelCalibrator(
             rng=rng,
             return_aux=["outputs"],
         )
-        return -log_probs, aux
+        return -log_joint_probs, aux
 
     def val_metrics_step(
         self,
