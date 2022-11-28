@@ -119,7 +119,9 @@ You can install Fortuna by typing
 
 .. code-block::
 
-    pip install aws-fortuna
+    pip install fortuna-uq
+
+Alternatively, you can build the package using `Poetry <https://python-poetry.org/docs/>`_.
 
 Examples
 ========

@@ -1,10 +1,12 @@
 [tool.poetry]
-name = "fortuna"
+name = "fortuna-uq"
 version = "0.1.0"
 description = "A Library for Uncertainty Quantification."
-authors = ["AWS <detomma@amazon.com>"]
+authors = ["Gianluca Detommaso <gianluca.detommaso@gmail.com>"]
 license = "Apache-2.0"
 readme = "README.rst"
+documentation = "https://aws-fortuna.readthedocs.io/en/latest/"
+packages = [{include = "fortuna"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
