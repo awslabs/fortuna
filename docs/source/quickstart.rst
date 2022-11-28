@@ -18,7 +18,8 @@ From uncertainty estimates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Starting from uncertainty estimates has minimal compatibility requirements and it is the quickest level of interaction with the library.
 This usage mode offers conformal prediction methods for both classification and regression.
-These take uncertainty estimates in input, and return rigorous sets of predictions.
+These take uncertainty estimates in input,
+and return rigorous sets of predictions that retain a user-given level of probability.
 In one-dimensional regression tasks, conformal sets may be thought as calibrated intervals of confidence or credible intervals.
 
 Mind that if the uncertainty estimates that you provide in inputs are inaccurate,

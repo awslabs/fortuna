@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "fortuna-uq"
+name = "aws-fortuna"
 version = "0.1.0"
 description = "A Library for Uncertainty Quantification."
 authors = ["Gianluca Detommaso <gianluca.detommaso@gmail.com>"]
@@ -24,7 +24,7 @@ sphinxawesome-theme = "^3.3.7"
 nbsphinx-link = "^1.3.0"
 tqdm = "^4.64.1"
 numpy = "^1.23.4"
-tensorflow = "^2.11.0"
+tensorflow-cpu = "^2.11.0"
 
 [tool.poetry.group.dev.dependencies]
 tensorstore = "^0.1.28"
