@@ -262,7 +262,7 @@ class Predictive(WithRNG):
         else:
             fun = jit(fun)
             if return_aux is None or len(return_aux) == 0:
-                return jnp.concatenate([fun(inputs) for inputs in inputs_loader], 0)
+                return jnp.concatenate([fun(inputs) for inputs in inputs_loader], 1)
             else:
                 samples, aux_outputs = [], []
                 for inputs in inputs_loader:
