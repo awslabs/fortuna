@@ -55,7 +55,7 @@ class CalibratorABC(
         self.keep_top_n_checkpoints = keep_top_n_checkpoints
         self.disable_training_metrics_computation = disable_training_metrics_computation
         self.eval_every_n_epochs = eval_every_n_epochs
-        self.multi_gpu = False
+        self.multi_device = False
 
     def train(
         self,
@@ -279,7 +279,7 @@ class CalibratorABC(
         if not self.disable_training_metrics_computation and metrics is not None:
             preds = self.predict_fn(aux["outputs"])
             uncertainties = self.uncertainty_fn(aux["outputs"])
-            if self.multi_gpu:
+            if self.multi_device:
                 training_batch_metrics = self.compute_metrics(
                     preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
                     uncertainties.reshape(
@@ -487,12 +487,12 @@ class JittedMixin:
         return super().val_loss_step(state, batch, outputs, fun, rng, n_data)
 
 
-class MultiGPUMixin:
+class MultiDeviceMixin:
     all_reduce_mean = jax.pmap(lambda x: lax.pmean(x, "x"), "x")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.multi_gpu = True
+        self.multi_device = True
 
     @staticmethod
     def _add_device_dim_to_data_loader(data_loader: DataLoader) -> DataLoader:
@@ -555,7 +555,7 @@ class MultiGPUMixin:
     @staticmethod
     def sync_mutable(state: CalibState) -> CalibState:
         return (
-            state.replace(mutable=MultiGPUMixin.all_reduce_mean(state.mutable))
+            state.replace(mutable=MultiDeviceMixin.all_reduce_mean(state.mutable))
             if state.mutable["output_calibrator"] is not None
             else state
         )
@@ -578,7 +578,7 @@ class MultiGPUMixin:
     ) -> None:
         state = self.sync_mutable(state)
         state = jax.device_get(tree_map(lambda x: x[0], state))
-        return super(MultiGPUMixin, self).save_checkpoint(
+        return super(MultiDeviceMixin, self).save_checkpoint(
             state, save_checkpoint_dir, keep, force_save, prefix
         )
 
@@ -590,7 +590,7 @@ class MultiGPUMixin:
         rng: PRNGKeyArray,
     ) -> Tuple[CalibState, List[DataLoader], List[TargetsLoader], PRNGKeyArray]:
         state, data_loaders, outputs_loaders, rng = super(
-            MultiGPUMixin, self
+            MultiDeviceMixin, self
         ).on_train_start(state, data_loaders, outputs_loaders, rng)
         state = jax_utils.replicate(state)
         data_loaders = [
@@ -605,7 +605,7 @@ class MultiGPUMixin:
         return state, data_loaders, outputs_loaders, model_key
 
     def on_train_end(self, state: CalibState) -> CalibState:
-        state = super(MultiGPUMixin, self).on_train_end(state)
+        state = super(MultiDeviceMixin, self).on_train_end(state)
         return jax.device_get(tree_map(lambda x: x[0], state))
 
     @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 4, 6))
@@ -628,13 +628,13 @@ class MultiGPUMixin:
         batch: Batch,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
     ) -> Dict[str, jnp.ndarray]:
-        training_losses_and_metrics = super(MultiGPUMixin, self).training_step_end(
+        training_losses_and_metrics = super(MultiDeviceMixin, self).training_step_end(
             current_epoch, state, aux, batch, metrics
         )
         return tree_map(lambda x: x.mean(), training_losses_and_metrics)
 
     def on_val_start(self, state: CalibState) -> CalibState:
-        state = super(MultiGPUMixin, self).on_val_start(state)
+        state = super(MultiDeviceMixin, self).on_val_start(state)
         if state.mutable["output_calibrator"] is not None:
             state = self.sync_mutable(state)
         return state

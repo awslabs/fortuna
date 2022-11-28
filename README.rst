@@ -8,7 +8,7 @@ or decide whether a model can be safely deployed in the wild.
 
 Fortuna is a library for uncertainty quantification that makes it easy for users to run benchmarks and bring uncertainty to production systems.
 Fortuna provides calibration and conformal methods starting from pre-trained models written in any framework,
-and it further supports several Bayesian inference methods starting from Flax deep learning models.
+and it further supports several Bayesian inference methods starting from deep learning models written in `Flax <https://flax.readthedocs.io/en/latest/index.html>`_.
 The language is designed to be intuitive for practitioners unfamiliar with uncertainty quantification,
 and is highly configurable.
 

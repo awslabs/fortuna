@@ -158,7 +158,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
 
         if not self.disable_training_metrics_computation and metrics is not None:
             preds = self.predict_fn(aux["outputs"])
-            if self.multi_gpu:
+            if self.multi_device:
                 training_batch_metrics = vmap(
                     lambda p: self.compute_metrics(
                         p,

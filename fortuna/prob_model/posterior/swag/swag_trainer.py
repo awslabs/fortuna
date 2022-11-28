@@ -7,7 +7,7 @@ from jax.tree_util import tree_map
 
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
-from fortuna.training.trainer import JittedMixin, MultiGPUMixin
+from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
 from fortuna.typing import Array, Batch
 
 
@@ -22,11 +22,11 @@ class SWAGTrainer(MAPTrainer):
         return state.update(
             dict(
                 mean=self._mean_rav_params
-                if not self.multi_gpu
+                if not self.multi_device
                 else self._mean_rav_params[None],
-                std=jnp.sqrt(var) if not self.multi_gpu else jnp.sqrt(var)[None],
+                std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
                 dev=self._deviation_rav_params
-                if not self.multi_gpu
+                if not self.multi_device
                 else self._deviation_rav_params[None],
             )
         )
@@ -45,7 +45,7 @@ class SWAGTrainer(MAPTrainer):
                 """`rank` must be available in `kwargs` during training."""
             )
         rav_params = ravel_pytree(
-            tree_map(lambda x: x[0], state.params) if self.multi_gpu else state.params
+            tree_map(lambda x: x[0], state.params) if self.multi_device else state.params
         )[0]
         if self._mean_rav_params is None:
             self._mean_rav_params = rav_params
@@ -83,7 +83,7 @@ class SWAGJittedMixin(JittedMixin):
         return self._update_state_with_stats(state)
 
 
-class SWAGMultiGPUMixin(MultiGPUMixin):
+class SWAGMultiDeviceMixin(MultiDeviceMixin):
     def on_train_end(self, state: SWAGState) -> SWAGState:
         state = self._update_state_with_stats(state)
         return super().on_train_end(state)
@@ -93,5 +93,5 @@ class JittedSWAGTrainer(SWAGJittedMixin, SWAGTrainer):
     pass
 
 
-class MultiGPUSWAGTrainer(SWAGMultiGPUMixin, SWAGTrainer):
+class MultiDeviceSWAGTrainer(SWAGMultiDeviceMixin, SWAGTrainer):
     pass

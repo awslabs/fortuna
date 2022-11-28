@@ -8,7 +8,7 @@ from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
 from fortuna.calibration.calibrator import (CalibratorABC, JittedMixin,
-                                            MultiGPUMixin)
+                                            MultiDeviceMixin)
 from fortuna.calibration.state import CalibState
 from fortuna.data import DataLoader, TargetsLoader
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams
@@ -72,7 +72,7 @@ class ProbModelCalibrator(CalibratorABC):
         return "calibration"
 
 
-class ProbModelMultiGPUMixin(MultiGPUMixin):
+class ProbModelMultiDeviceMixin(MultiDeviceMixin):
     @staticmethod
     def _add_device_dim_to_outputs_loader(
         outputs_loader: TargetsLoader,
@@ -114,5 +114,5 @@ class JittedProbModelCalibrator(JittedMixin, ProbModelCalibrator):
     pass
 
 
-class MultiGPUProbModelCalibrator(ProbModelMultiGPUMixin, ProbModelCalibrator):
+class MultiDeviceProbModelCalibrator(ProbModelMultiDeviceMixin, ProbModelCalibrator):
     pass

@@ -10,11 +10,11 @@ from fortuna.data.loader import DataLoader
 from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.prob_model_calibrator import (
-    JittedProbModelCalibrator, MultiGPUProbModelCalibrator,
+    JittedProbModelCalibrator, MultiDeviceProbModelCalibrator,
     ProbModelCalibrator)
 from fortuna.typing import Array, Path, Status
 from fortuna.utils.data import check_data_loader_is_not_random
-from fortuna.utils.gpu import select_trainer_given_devices
+from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
 
 
@@ -151,10 +151,10 @@ class ProbModel(abc.ABC):
             )
 
             trainer_cls = select_trainer_given_devices(
-                gpus=calib_config.processor.gpus,
+                devices=calib_config.processor.devices,
                 BaseTrainer=ProbModelCalibrator,
                 JittedTrainer=JittedProbModelCalibrator,
-                MultiGPUTrainer=MultiGPUProbModelCalibrator,
+                MultiDeviceTrainer=MultiDeviceProbModelCalibrator,
                 disable_jit=calib_config.processor.disable_jit,
             )
 

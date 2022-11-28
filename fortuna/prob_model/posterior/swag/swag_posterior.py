@@ -24,9 +24,9 @@ from fortuna.prob_model.posterior.swag.swag_approximator import \
     SWAGPosteriorApproximator
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.prob_model.posterior.swag.swag_trainer import (
-    JittedSWAGTrainer, MultiGPUSWAGTrainer, SWAGTrainer)
+    JittedSWAGTrainer, MultiDeviceSWAGTrainer, SWAGTrainer)
 from fortuna.typing import Array, Status
-from fortuna.utils.gpu import select_trainer_given_devices
+from fortuna.utils.device import select_trainer_given_devices
 
 
 class SWAGPosterior(Posterior):
@@ -116,10 +116,10 @@ class SWAGPosterior(Posterior):
                 )
 
         trainer_cls = select_trainer_given_devices(
-            gpus=fit_config.processor.gpus,
+            devices=fit_config.processor.devices,
             BaseTrainer=SWAGTrainer,
             JittedTrainer=JittedSWAGTrainer,
-            MultiGPUTrainer=MultiGPUSWAGTrainer,
+            MultiDeviceTrainer=MultiDeviceSWAGTrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
         trainer = trainer_cls(

@@ -14,11 +14,11 @@ from fortuna.prob_model.posterior.map.map_approximator import \
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (JittedMAPTrainer,
                                                           MAPTrainer,
-                                                          MultiGPUMAPTrainer)
+                                                          MultiDeviceMAPTrainer)
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.typing import Status
-from fortuna.utils.gpu import select_trainer_given_devices
+from fortuna.utils.device import select_trainer_given_devices
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +61,10 @@ class MAPPosterior(Posterior):
         )
 
         trainer_cls = select_trainer_given_devices(
-            gpus=fit_config.processor.gpus,
+            devices=fit_config.processor.devices,
             BaseTrainer=MAPTrainer,
             JittedTrainer=JittedMAPTrainer,
-            MultiGPUTrainer=MultiGPUMAPTrainer,
+            MultiDeviceTrainer=MultiDeviceMAPTrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
 

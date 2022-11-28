@@ -8,14 +8,14 @@ from flax.core import FrozenDict
 from fortuna.calib_model.calib_config.base import CalibConfig
 from fortuna.calib_model.calib_model_calibrator import (
     CalibModelCalibrator, JittedCalibModelCalibrator,
-    MultiGPUCalibModelCalibrator)
+    MultiDeviceCalibModelCalibrator)
 from fortuna.calibration.state import CalibState
 from fortuna.output_calibrator.output_calib_manager.state import \
     OutputCalibManagerState
 from fortuna.training.mixin import WithCheckpointingMixin
 from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.typing import Array, Path, Status
-from fortuna.utils.gpu import select_trainer_given_devices
+from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
 
 
@@ -50,10 +50,10 @@ class CalibModel(WithCheckpointingMixin, abc.ABC):
                 "For validation, both `val_outputs` and `val_targets` must be passed as arguments."
             )
         trainer_cls = select_trainer_given_devices(
-            gpus=calib_config.processor.gpus,
+            devices=calib_config.processor.devices,
             BaseTrainer=CalibModelCalibrator,
             JittedTrainer=JittedCalibModelCalibrator,
-            MultiGPUTrainer=MultiGPUCalibModelCalibrator,
+            MultiDeviceTrainer=MultiDeviceCalibModelCalibrator,
             disable_jit=calib_config.processor.disable_jit,
         )
 

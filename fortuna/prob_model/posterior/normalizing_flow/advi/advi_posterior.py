@@ -25,16 +25,16 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import \
     ADVITrainer
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
-from fortuna.training.trainer import JittedMixin, MultiGPUMixin
+from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
 from fortuna.typing import Status, Array
-from fortuna.utils.gpu import select_trainer_given_devices
+from fortuna.utils.device import select_trainer_given_devices
 
 
 class JittedADVITrainer(JittedMixin, ADVITrainer):
     pass
 
 
-class MultiGPUADVITrainer(MultiGPUMixin, ADVITrainer):
+class MultiDeviceADVITrainer(MultiDeviceMixin, ADVITrainer):
     pass
 
 
@@ -87,10 +87,10 @@ class ADVIPosterior(Posterior):
         )
 
         trainer_cls = select_trainer_given_devices(
-            gpus=fit_config.processor.gpus,
+            devices=fit_config.processor.devices,
             BaseTrainer=ADVITrainer,
             JittedTrainer=JittedADVITrainer,
-            MultiGPUTrainer=MultiGPUADVITrainer,
+            MultiDeviceTrainer=MultiDeviceADVITrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
 
