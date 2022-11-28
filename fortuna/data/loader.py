@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from typing import Callable, Iterable, Optional, Union
 
-import numpy as np
-
-from fortuna.typing import Array, Batch
 import jax
+import numpy as np
 from flax import jax_utils
 from jax.tree_util import tree_map
+
+from fortuna.typing import Array, Batch
 
 
 class DataLoader:

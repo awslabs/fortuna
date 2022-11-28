@@ -1,6 +1,9 @@
 class CalibProcessor:
     def __init__(
-        self, devices: int = -1, disable_jit: bool = False, n_posterior_samples: int = 30
+        self,
+        devices: int = -1,
+        disable_jit: bool = False,
+        n_posterior_samples: int = 30,
     ):
         """
         An object to configure computational aspects of the calibration process.

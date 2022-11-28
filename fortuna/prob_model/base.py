@@ -133,7 +133,7 @@ class ProbModel(abc.ABC):
                 inputs_loader=calib_data_loader.to_inputs_loader(),
                 n_output_samples=calib_config.processor.n_posterior_samples,
                 return_size=True,
-                distribute=distribute
+                distribute=distribute,
             )
             if calib_config.monitor.verbose:
                 logging.info(
@@ -144,7 +144,7 @@ class ProbModel(abc.ABC):
                     inputs_loader=val_data_loader.to_inputs_loader(),
                     n_output_samples=calib_config.processor.n_posterior_samples,
                     return_size=True,
-                    distribute=distribute
+                    distribute=distribute,
                 )
                 if val_data_loader is not None
                 else (None, None)

@@ -11,7 +11,7 @@ from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_model.likelihood.base import Likelihood
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.typing import CalibMutable, CalibParams, Mutable, Params, Array
+from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
 
 
 class RegressionLikelihood(Likelihood):
@@ -53,7 +53,9 @@ class RegressionLikelihood(Likelihood):
         calib_mutable: Optional[CalibMutable] = None,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = super()._get_batched_calibrated_outputs(params, inputs, mutable, calib_params, calib_mutable, **kwargs)
+        outputs = super()._get_batched_calibrated_outputs(
+            params, inputs, mutable, calib_params, calib_mutable, **kwargs
+        )
         return outputs[:, : outputs.shape[1] // 2]
 
     def _batched_mode(
@@ -83,7 +85,9 @@ class RegressionLikelihood(Likelihood):
         calib_mutable: Optional[CalibMutable] = None,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = super()._get_batched_calibrated_outputs(params, inputs, mutable, calib_params, calib_mutable, **kwargs)
+        outputs = super()._get_batched_calibrated_outputs(
+            params, inputs, mutable, calib_params, calib_mutable, **kwargs
+        )
         return jnp.exp(outputs[:, outputs.shape[1] // 2 :])
 
     def entropy(
@@ -107,7 +111,7 @@ class RegressionLikelihood(Likelihood):
             calib_mutable=calib_mutable,
             return_aux=["outputs"],
             rng=rng,
-            distribute=distribute
+            distribute=distribute,
         )
         outputs = aux["outputs"]
 

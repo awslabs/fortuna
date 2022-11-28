@@ -19,9 +19,8 @@ from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_approximator impor
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_repositories import \
     DeepEnsemblePosteriorStateRepository
 from fortuna.prob_model.posterior.map.map_posterior import MAPState
-from fortuna.prob_model.posterior.map.map_trainer import (JittedMAPTrainer,
-                                                          MAPTrainer,
-                                                          MultiDeviceMAPTrainer)
+from fortuna.prob_model.posterior.map.map_trainer import (
+    JittedMAPTrainer, MAPTrainer, MultiDeviceMAPTrainer)
 from fortuna.typing import Path, Status
 from fortuna.utils.device import select_trainer_given_devices
 

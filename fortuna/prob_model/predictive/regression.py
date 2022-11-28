@@ -29,7 +29,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         means: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         if means is not None:
             return means
@@ -37,7 +37,7 @@ class RegressionPredictive(Predictive):
             inputs_loader=inputs_loader,
             n_posterior_samples=n_posterior_samples,
             rng=rng,
-            distribute=distribute
+            distribute=distribute,
         )
 
     def aleatoric_entropy(
@@ -46,7 +46,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         n_target_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric entropy, that is
@@ -83,7 +83,10 @@ class RegressionPredictive(Predictive):
         key1, *keys = random.split(rng, 1 + n_posterior_samples)
 
         ensemble_outputs = self.sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1, distribute=distribute
+            inputs_loader=inputs_loader,
+            n_output_samples=n_posterior_samples,
+            rng=key1,
+            distribute=distribute,
         )
 
         ensemble_target_samples = lax.map(
@@ -110,7 +113,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         n_target_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic entropy, that is
@@ -151,7 +154,10 @@ class RegressionPredictive(Predictive):
         key1, *keys = random.split(rng, 1 + n_posterior_samples)
 
         ensemble_outputs = self.sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1, distribute=distribute
+            inputs_loader=inputs_loader,
+            n_output_samples=n_posterior_samples,
+            rng=key1,
+            distribute=distribute,
         )
 
         ensemble_target_samples = lax.map(
@@ -186,7 +192,7 @@ class RegressionPredictive(Predictive):
         n_posterior_samples: int = 30,
         n_target_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive entropy, that is
@@ -223,7 +229,10 @@ class RegressionPredictive(Predictive):
         key1, *keys = random.split(rng, 1 + n_posterior_samples)
 
         ensemble_outputs = self.sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=key1, distribute=distribute
+            inputs_loader=inputs_loader,
+            n_output_samples=n_posterior_samples,
+            rng=key1,
+            distribute=distribute,
         )
 
         ensemble_target_samples = lax.map(
@@ -256,7 +265,7 @@ class RegressionPredictive(Predictive):
         error: float = 0.05,
         interval_type: str = "two-tailed",
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate credible intervals for the target variable. This is supported only if the target variable is scalar.
@@ -297,7 +306,11 @@ class RegressionPredictive(Predictive):
             else 1 - error
         )
         qq = self.quantile(
-            q=q, inputs_loader=inputs_loader, n_target_samples=n_target_samples, rng=rng, distribute=distribute
+            q=q,
+            inputs_loader=inputs_loader,
+            n_target_samples=n_target_samples,
+            rng=rng,
+            distribute=distribute,
         )
         if qq.shape[-1] != 1:
             raise ValueError(
@@ -315,7 +328,7 @@ class RegressionPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_target_samples: Optional[int] = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> Union[float, jnp.ndarray]:
         r"""
         Estimate the `q`-th quantiles of the predictive probability density function.
@@ -342,6 +355,9 @@ class RegressionPredictive(Predictive):
         if type(q) == list:
             q = jnp.array(q)
         samples = self.sample(
-            inputs_loader=inputs_loader, n_target_samples=n_target_samples, rng=rng, distribute=distribute
+            inputs_loader=inputs_loader,
+            n_target_samples=n_target_samples,
+            rng=rng,
+            distribute=distribute,
         )
         return jnp.quantile(samples, q, axis=0)

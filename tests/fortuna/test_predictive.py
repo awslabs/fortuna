@@ -71,14 +71,12 @@ class TestPredictives(unittest.TestCase):
                 n_epochs=2,
             )
             log_probs = self.prob_class.predictive.log_prob(
-                self.class_data_loader,
-                n_posterior_samples=self.n_post_samples,
+                self.class_data_loader, n_posterior_samples=self.n_post_samples,
             )
             assert log_probs.shape == (self.n_inputs,)
 
             log_probs = self.prob_reg.predictive.log_prob(
-                self.reg_data_loader,
-                n_posterior_samples=self.n_post_samples,
+                self.reg_data_loader, n_posterior_samples=self.n_post_samples,
             )
             assert log_probs.shape == (self.n_inputs,)
 

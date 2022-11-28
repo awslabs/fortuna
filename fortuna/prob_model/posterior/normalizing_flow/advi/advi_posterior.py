@@ -26,7 +26,7 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import \
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
-from fortuna.typing import Status, Array
+from fortuna.typing import Array, Status
 from fortuna.utils.device import select_trainer_given_devices
 
 

@@ -1,4 +1,4 @@
-from typing import Tuple, Union, Optional, Dict
+from typing import Dict, Optional, Tuple, Union
 
 import jax.nn
 import jax.numpy as jnp
@@ -36,7 +36,11 @@ def accuracy(preds: Array, targets: Array) -> jnp.ndarray:
 
 
 def compute_counts_confs_accs(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
+    preds: Array,
+    probs: Array,
+    targets: Array,
+    plot: bool = False,
+    plot_options: Optional[Dict] = None,
 ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
     """
     Bin the confidence scores (maximum probability) and for each of them compute:
@@ -86,7 +90,11 @@ def compute_counts_confs_accs(
 
 
 def expected_calibration_error(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
+    preds: Array,
+    probs: Array,
+    targets: Array,
+    plot: bool = False,
+    plot_options: Optional[Dict] = None,
 ) -> jnp.ndarray:
     """
     Compute the Expected Calibration Error (ECE)
@@ -120,14 +128,22 @@ def expected_calibration_error(
 
 
 def ece(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
+    preds: Array,
+    probs: Array,
+    targets: Array,
+    plot: bool = False,
+    plot_options: Optional[Dict] = None,
 ) -> float:
     """See :func:`.expected_calibration_error`."""
     return expected_calibration_error(preds, probs, targets, plot, plot_options)
 
 
 def maximum_calibration_error(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
+    preds: Array,
+    probs: Array,
+    targets: Array,
+    plot: bool = False,
+    plot_options: Optional[Dict] = None,
 ) -> jnp.ndarray:
     """
     Compute the Maximum Calibration Error (MCE)
@@ -160,7 +176,11 @@ def maximum_calibration_error(
 
 
 def mce(
-    preds: Array, probs: Array, targets: Array, plot: bool = False, plot_options: Optional[Dict] = None
+    preds: Array,
+    probs: Array,
+    targets: Array,
+    plot: bool = False,
+    plot_options: Optional[Dict] = None,
 ) -> float:
     """See :func:`.maximum_calibration_error`."""
     return maximum_calibration_error(preds, probs, targets, plot, plot_options)

@@ -19,7 +19,8 @@ class TestIsotropicDiagGaussianPrior(unittest.TestCase):
     def test_log_joint_prob(self):
         assert jnp.array([self.prior.log_joint_prob(self.params)]).shape == (1,)
         assert jnp.allclose(
-            self.prior.log_joint_prob(jnp.zeros(2)), -(jnp.log(2 * jnp.pi) + self.log_var)
+            self.prior.log_joint_prob(jnp.zeros(2)),
+            -(jnp.log(2 * jnp.pi) + self.log_var),
         )
 
     def test_sample(self):

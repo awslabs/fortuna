@@ -12,7 +12,7 @@ from fortuna.output_calibrator.output_calib_manager.base import \
 from fortuna.prob_model.likelihood.base import Likelihood
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
-from fortuna.typing import CalibMutable, CalibParams, Mutable, Params, Array
+from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
 
 
 class ClassificationLikelihood(Likelihood):
@@ -86,7 +86,15 @@ class ClassificationLikelihood(Likelihood):
         jnp.ndarray
             An estimate of the likelihood mean for each input.
         """
-        return super().mean(params, inputs_loader, mutable, calib_params, calib_mutable, distribute, **kwargs)
+        return super().mean(
+            params,
+            inputs_loader,
+            mutable,
+            calib_params,
+            calib_mutable,
+            distribute,
+            **kwargs
+        )
 
     def _batched_mean(
         self,
@@ -97,7 +105,9 @@ class ClassificationLikelihood(Likelihood):
         calib_mutable: Optional[CalibMutable] = None,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = self._get_batched_calibrated_outputs(params, inputs, mutable, calib_params, calib_mutable, **kwargs)
+        outputs = self._get_batched_calibrated_outputs(
+            params, inputs, mutable, calib_params, calib_mutable, **kwargs
+        )
         return jax.nn.softmax(outputs, -1)
 
     def _batched_mode(
@@ -109,7 +119,9 @@ class ClassificationLikelihood(Likelihood):
         calib_mutable: Optional[CalibMutable] = None,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = self._get_batched_calibrated_outputs(params, inputs, mutable, calib_params, calib_mutable, **kwargs)
+        outputs = self._get_batched_calibrated_outputs(
+            params, inputs, mutable, calib_params, calib_mutable, **kwargs
+        )
         return jnp.argmax(outputs, -1)
 
     def variance(
@@ -153,7 +165,15 @@ class ClassificationLikelihood(Likelihood):
         jnp.ndarray
             An estimate of the likelihood variance for each input.
         """
-        return super().variance(params, inputs_loader, mutable, calib_params, calib_mutable, distribute, **kwargs)
+        return super().variance(
+            params,
+            inputs_loader,
+            mutable,
+            calib_params,
+            calib_mutable,
+            distribute,
+            **kwargs
+        )
 
     def _batched_variance(
         self,
@@ -185,7 +205,9 @@ class ClassificationLikelihood(Likelihood):
         distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = super().get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute)
+        outputs = super().get_calibrated_outputs(
+            params, inputs_loader, mutable, calib_params, calib_mutable, distribute
+        )
         n_classes = outputs.shape[-1]
 
         @vmap

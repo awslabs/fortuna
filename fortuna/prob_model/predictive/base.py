@@ -1,17 +1,19 @@
 import abc
-from typing import List, Optional, Tuple, Union, Callable, Dict
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import lax, random, pmap, jit
+from jax import jit, lax, pmap, random
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
-from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader, DeviceDimensionAugmentedInputsLoader, \
-    DeviceDimensionAugmentedDataLoader
+from fortuna.data.loader import (DataLoader,
+                                 DeviceDimensionAugmentedDataLoader,
+                                 DeviceDimensionAugmentedInputsLoader,
+                                 InputsLoader, TargetsLoader)
 from fortuna.prob_model.posterior.base import Posterior
-from fortuna.typing import Batch, CalibMutable, CalibParams, Array
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams
 from fortuna.utils.random import WithRNG
 
 
@@ -27,7 +29,7 @@ class Predictive(WithRNG):
         """
         self.likelihood = posterior.joint.likelihood
         self.posterior = posterior
-        
+
     def log_prob(
         self,
         data_loader: DataLoader,
@@ -68,8 +70,15 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_data_loader(self._batched_log_prob, data_loader, n_posterior_samples, rng, distribute, **kwargs)
-    
+        return self._loop_fun_through_data_loader(
+            self._batched_log_prob,
+            data_loader,
+            n_posterior_samples,
+            rng,
+            distribute,
+            **kwargs
+        )
+
     def _batched_log_prob(
         self,
         batch: Batch,
@@ -92,7 +101,9 @@ class Predictive(WithRNG):
                 **kwargs
             )
 
-        return jsp.special.logsumexp(lax.map(_lik_log_batched_prob, keys), axis=0) - jnp.log(n_posterior_samples)
+        return jsp.special.logsumexp(
+            lax.map(_lik_log_batched_prob, keys), axis=0
+        ) - jnp.log(n_posterior_samples)
 
     def _batched_log_joint_prob(
         self,
@@ -219,20 +230,30 @@ class Predictive(WithRNG):
             distribute = False
 
         def fun(_inputs):
-            return self._batched_sample(_inputs, n_target_samples, return_aux, rng, **kwargs)
+            return self._batched_sample(
+                _inputs, n_target_samples, return_aux, rng, **kwargs
+            )
 
         if distribute:
             inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
             fun = pmap(fun)
             if return_aux is None or len(return_aux) == 0:
-                return jnp.concatenate([self.likelihood._unshard_array(fun(inputs)) for inputs in inputs_loader], 0)
+                return jnp.concatenate(
+                    [
+                        self.likelihood._unshard_array(fun(inputs))
+                        for inputs in inputs_loader
+                    ],
+                    0,
+                )
             else:
                 samples, aux_outputs = [], []
                 for inputs in inputs_loader:
                     _samples, _aux = fun(inputs)
                     samples.append(self.likelihood._unshard_array(_samples))
                     if "outputs" in _aux:
-                        aux_outputs.append(self.likelihood._unshard_array(_aux["outputs"]))
+                        aux_outputs.append(
+                            self.likelihood._unshard_array(_aux["outputs"])
+                        )
                 samples = jnp.concatenate(samples, axis=0)
                 aux = dict()
                 if "outputs" in aux:
@@ -320,7 +341,13 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(self._sample_batched_calibrated_outputs, inputs_loader, n_output_samples, rng, distribute)
+        return self._loop_fun_through_inputs_loader(
+            self._sample_batched_calibrated_outputs,
+            inputs_loader,
+            n_output_samples,
+            rng,
+            distribute,
+        )
 
     def _sample_batched_calibrated_outputs(
         self,
@@ -339,7 +366,7 @@ class Predictive(WithRNG):
                 inputs=inputs,
                 mutable=sample.mutable,
                 calib_params=sample.calib_params,
-                calib_mutable=sample.calib_mutable
+                calib_mutable=sample.calib_mutable,
             )
 
         return lax.map(_sample, keys)
@@ -354,7 +381,13 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(self._sample_batched_outputs, inputs_loader, n_output_samples, rng, distribute)
+        return self._loop_fun_through_inputs_loader(
+            self._sample_batched_outputs,
+            inputs_loader,
+            n_output_samples,
+            rng,
+            distribute,
+        )
 
     def _sample_batched_outputs(
         self,
@@ -369,9 +402,7 @@ class Predictive(WithRNG):
         def _sample(key):
             sample = self.posterior.sample(inputs=inputs, rng=key)
             return self.likelihood.model_manager.apply(
-                params=sample.params,
-                inputs=inputs,
-                mutable=sample.mutable
+                params=sample.params, inputs=inputs, mutable=sample.mutable
             )
 
         return lax.map(_sample, keys)
@@ -406,7 +437,9 @@ class Predictive(WithRNG):
         for inputs in inputs_loader:
             size += inputs.shape[0]
             if distribute:
-                outputs = pmap(lambda _inputs: lax.map(lambda key: _sample(key, _inputs), keys))(inputs)
+                outputs = pmap(
+                    lambda _inputs: lax.map(lambda key: _sample(key, _inputs), keys)
+                )(inputs)
                 outputs = self._unshard_ensemble_arrays(outputs)
             else:
                 outputs = lax.map(lambda key: _sample(key, inputs), keys)
@@ -454,7 +487,9 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(self._batched_mean, inputs_loader, n_posterior_samples, rng, distribute)
+        return self._loop_fun_through_inputs_loader(
+            self._batched_mean, inputs_loader, n_posterior_samples, rng, distribute
+        )
 
     def _batched_mean(
         self,
@@ -526,7 +561,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric variance of the target variable, that is
@@ -559,7 +594,13 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(self._batched_aleatoric_variance, inputs_loader, n_posterior_samples, rng, distribute)
+        return self._loop_fun_through_inputs_loader(
+            self._batched_aleatoric_variance,
+            inputs_loader,
+            n_posterior_samples,
+            rng,
+            distribute,
+        )
 
     def _batched_aleatoric_variance(
         self,
@@ -624,7 +665,13 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(self._batched_epistemic_variance, inputs_loader, n_posterior_samples, rng, distribute)
+        return self._loop_fun_through_inputs_loader(
+            self._batched_epistemic_variance,
+            inputs_loader,
+            n_posterior_samples,
+            rng,
+            distribute,
+        )
 
     def _batched_epistemic_variance(
         self,
@@ -708,7 +755,7 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=key,
-                distribute=distribute
+                distribute=distribute,
             )
         if epistemic_variances is None:
             rng, key = random.split(rng)
@@ -716,7 +763,7 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=key,
-                distribute=distribute
+                distribute=distribute,
             )
         return aleatoric_variances + epistemic_variances
 
@@ -762,7 +809,7 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=rng,
-                distribute=distribute
+                distribute=distribute,
             )
         return jnp.sqrt(variances)
 
@@ -773,13 +820,13 @@ class Predictive(WithRNG):
         return arr.swapaxes(0, 1)
 
     def _loop_fun_through_inputs_loader(
-            self,
-            fun: Callable,
-            inputs_loader: InputsLoader,
-            n_posterior_samples: int,
-            rng: PRNGKeyArray,
-            distribute: bool = True,
-            **kwargs
+        self,
+        fun: Callable,
+        inputs_loader: InputsLoader,
+        n_posterior_samples: int,
+        rng: PRNGKeyArray,
+        distribute: bool = True,
+        **kwargs
     ) -> Array:
         if distribute and jax.local_device_count() <= 1:
             distribute = False
@@ -790,18 +837,24 @@ class Predictive(WithRNG):
         if distribute:
             inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
             fun2 = pmap(fun2)
-            return jnp.concatenate([self.likelihood._unshard_array(fun2(inputs)) for inputs in inputs_loader], 0)
+            return jnp.concatenate(
+                [
+                    self.likelihood._unshard_array(fun2(inputs))
+                    for inputs in inputs_loader
+                ],
+                0,
+            )
         fun2 = jit(fun2)
         return jnp.concatenate([fun2(inputs) for inputs in inputs_loader], 0)
 
     def _loop_fun_through_data_loader(
-            self,
-            fun: Callable,
-            data_loader: DataLoader,
-            n_posterior_samples: int,
-            rng: PRNGKeyArray,
-            distribute: bool = True,
-            **kwargs
+        self,
+        fun: Callable,
+        data_loader: DataLoader,
+        n_posterior_samples: int,
+        rng: PRNGKeyArray,
+        distribute: bool = True,
+        **kwargs
     ) -> Array:
         if distribute and jax.local_device_count() <= 1:
             distribute = False
@@ -812,7 +865,9 @@ class Predictive(WithRNG):
         if distribute:
             data_loader = DeviceDimensionAugmentedDataLoader(data_loader)
             fun2 = pmap(fun2)
-            return jnp.concatenate([self.likelihood._unshard_array(fun2(batch)) for batch in data_loader], 0)
+            return jnp.concatenate(
+                [self.likelihood._unshard_array(fun2(batch)) for batch in data_loader],
+                0,
+            )
         fun2 = jit(fun2)
         return jnp.concatenate([fun2(batch) for batch in data_loader], 0)
-

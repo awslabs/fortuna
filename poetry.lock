@@ -1710,21 +1710,6 @@ python-versions = ">=3.7"
 sphinx = ">=3"
 
 [[package]]
-name = "sphinx-rtd-theme"
-version = "1.1.1"
-description = "Read the Docs theme for Sphinx"
-category = "main"
-optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,>=2.7"
-
-[package.dependencies]
-docutils = "<0.18"
-sphinx = ">=1.6,<6"
-
-[package.extras]
-dev = ["bump2version", "sphinxcontrib-httpdomain", "transifex-client", "wheel"]
-
-[[package]]
 name = "sphinxawesome-theme"
 version = "3.3.7"
 description = "An awesome theme for the Sphinx documentation generator"
@@ -2211,7 +2196,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "93cb0b59aec7d1d5c8f49e07beddef4836ad1b8dee900dfe18addde858e69f37"
+content-hash = "8963abaa76381daa13b563a395284970d2bcae00034a2bba38e9fde3a12d2190"
 
 [metadata.files]
 absl-py = [
@@ -3475,10 +3460,6 @@ sphinx-autodoc-typehints = [
 sphinx-gallery = [
     {file = "sphinx-gallery-0.11.1.tar.gz", hash = "sha256:56ccb29a0c2c4767d2a66617ba6ea7893e3a3885b6d972c62783a3b45b583ea5"},
     {file = "sphinx_gallery-0.11.1-py3-none-any.whl", hash = "sha256:b165cb366a5768a0f36e60e5bc6828fbf55fd1831e71645310167375223aa25c"},
-]
-sphinx-rtd-theme = [
-    {file = "sphinx_rtd_theme-1.1.1-py2.py3-none-any.whl", hash = "sha256:31faa07d3e97c8955637fc3f1423a5ab2c44b74b8cc558a51498c202ce5cbda7"},
-    {file = "sphinx_rtd_theme-1.1.1.tar.gz", hash = "sha256:6146c845f1e1947b3c3dd4432c28998a1693ccc742b4f9ad7c63129f0757c103"},
 ]
 sphinxawesome-theme = [
     {file = "sphinxawesome-theme-3.3.7.tar.gz", hash = "sha256:464a1b4980cef42d75d659df7137a1c4cac765835d49528a7da9484f5a4ceb29"},

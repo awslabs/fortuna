@@ -27,7 +27,7 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive mean of the one-hot encoded target variable, that is
@@ -65,14 +65,14 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples: int = 30,
         means: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         if means is None:
             means = self.mean(
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=rng,
-                distribute=distribute
+                distribute=distribute,
             )
         return jnp.argmax(means, -1)
 
@@ -111,7 +111,9 @@ class ClassificationPredictive(Predictive):
         jnp.ndarray
             An estimate of the predictive aleatoric variance for each input.
         """
-        return super().aleatoric_variance(inputs_loader, n_posterior_samples, rng, distribute)
+        return super().aleatoric_variance(
+            inputs_loader, n_posterior_samples, rng, distribute
+        )
 
     def epistemic_variance(
         self,
@@ -149,7 +151,9 @@ class ClassificationPredictive(Predictive):
         jnp.ndarray
             An estimate of the predictive epistemic variance for each input.
         """
-        return super().epistemic_variance(inputs_loader, n_posterior_samples, rng, distribute)
+        return super().epistemic_variance(
+            inputs_loader, n_posterior_samples, rng, distribute
+        )
 
     def variance(
         self,
@@ -158,7 +162,7 @@ class ClassificationPredictive(Predictive):
         aleatoric_variances: Optional[jnp.ndarray] = None,
         epistemic_variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive variance of the one-hot encoded target variable, that is
@@ -197,7 +201,7 @@ class ClassificationPredictive(Predictive):
             aleatoric_variances,
             epistemic_variances,
             rng,
-            distribute
+            distribute,
         )
 
     def std(
@@ -206,7 +210,7 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples: int = 30,
         variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive standard deviation of the one-hot encoded target variable, that is
@@ -237,14 +241,16 @@ class ClassificationPredictive(Predictive):
         jnp.ndarray
             An estimate of the predictive standard deviation for each input.
         """
-        return super().std(inputs_loader, n_posterior_samples, variances, rng, distribute)
+        return super().std(
+            inputs_loader, n_posterior_samples, variances, rng, distribute
+        )
 
     def aleatoric_entropy(
         self,
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric entropy, that is
@@ -275,7 +281,10 @@ class ClassificationPredictive(Predictive):
             An estimate of the predictive aleatoric entropy for each input.
         """
         ensemble_outputs = self.sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng, distribute=distribute
+            inputs_loader=inputs_loader,
+            n_output_samples=n_posterior_samples,
+            rng=rng,
+            distribute=distribute,
         )
         n_classes = ensemble_outputs.shape[-1]
 
@@ -296,7 +305,7 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic entropy, that is
@@ -331,7 +340,10 @@ class ClassificationPredictive(Predictive):
             An estimate of the predictive epistemic entropy for each input.
         """
         ensemble_outputs = self.sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng, distribute=distribute
+            inputs_loader=inputs_loader,
+            n_output_samples=n_posterior_samples,
+            rng=rng,
+            distribute=distribute,
         )
         n_classes = ensemble_outputs.shape[-1]
 
@@ -357,7 +369,7 @@ class ClassificationPredictive(Predictive):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True
+        distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive entropy, that is
@@ -388,7 +400,10 @@ class ClassificationPredictive(Predictive):
             An estimate of the predictive entropy for each input.
         """
         ensemble_outputs = self.sample_calibrated_outputs(
-            inputs_loader=inputs_loader, n_output_samples=n_posterior_samples, rng=rng, distribute=distribute
+            inputs_loader=inputs_loader,
+            n_output_samples=n_posterior_samples,
+            rng=rng,
+            distribute=distribute,
         )
         n_classes = ensemble_outputs.shape[-1]
 

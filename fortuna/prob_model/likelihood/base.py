@@ -1,13 +1,15 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union, Callable
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 from jax import jit, pmap
 from jax._src.prng import PRNGKeyArray
 
-from fortuna.data.loader import DataLoader, InputsLoader, DeviceDimensionAugmentedDataLoader, \
-    DeviceDimensionAugmentedInputsLoader
+from fortuna.data.loader import (DataLoader,
+                                 DeviceDimensionAugmentedDataLoader,
+                                 DeviceDimensionAugmentedInputsLoader,
+                                 InputsLoader)
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
@@ -80,8 +82,16 @@ class Likelihood(WithRNG):
         jnp.ndarray
             The evaluation of the log-likelihood function. 
         """
-        return self._loop_fun_through_data_loader(self._batched_log_prob, params, data_loader, mutable, calib_params,
-                                                  calib_mutable, distribute, **kwargs)
+        return self._loop_fun_through_data_loader(
+            self._batched_log_prob,
+            params,
+            data_loader,
+            mutable,
+            calib_params,
+            calib_mutable,
+            distribute,
+            **kwargs
+        )
 
     def _batched_log_prob(
         self,
@@ -92,7 +102,9 @@ class Likelihood(WithRNG):
         calib_mutable: Optional[CalibMutable] = None,
         **kwargs
     ) -> jnp.ndarray:
-        outputs = self._get_batched_calibrated_outputs(params, batch[0], mutable, calib_params, calib_mutable, **kwargs)
+        outputs = self._get_batched_calibrated_outputs(
+            params, batch[0], mutable, calib_params, calib_mutable, **kwargs
+        )
         return self.prob_output_layer.log_prob(outputs, batch[1], **kwargs)
 
     def _batched_log_joint_prob(
@@ -212,7 +224,9 @@ class Likelihood(WithRNG):
             if "calib_mutable" in return_aux:
                 aux["calib_mutable"] = dict(output_calibrator=None)
 
-        log_joint_prob = jnp.sum(self.prob_output_layer.log_prob(outputs, targets, **kwargs))
+        log_joint_prob = jnp.sum(
+            self.prob_output_layer.log_prob(outputs, targets, **kwargs)
+        )
         batch_weight = n_data / targets.shape[0]
         log_joint_prob *= batch_weight
 
@@ -281,7 +295,15 @@ class Likelihood(WithRNG):
                 )
             )
 
-        outputs = self.get_calibrated_outputs(params, inputs_loader, mutable, calib_params, calib_mutable, distribute, **kwargs)
+        outputs = self.get_calibrated_outputs(
+            params,
+            inputs_loader,
+            mutable,
+            calib_params,
+            calib_mutable,
+            distribute,
+            **kwargs
+        )
 
         samples = self.prob_output_layer.sample(
             n_target_samples, outputs, rng=rng, **kwargs
@@ -314,7 +336,9 @@ class Likelihood(WithRNG):
                 )
             )
 
-        outputs = self._get_batched_calibrated_outputs(params, inputs, mutable, calib_params, calib_mutable, **kwargs)
+        outputs = self._get_batched_calibrated_outputs(
+            params, inputs, mutable, calib_params, calib_mutable, **kwargs
+        )
 
         samples = self.prob_output_layer.sample(
             n_target_samples, outputs, rng=rng, **kwargs
@@ -434,7 +458,9 @@ class Likelihood(WithRNG):
 
         outputs = []
         for inputs in inputs_loader:
-            outputs.append(self._unshard_array(pmap(fun)(inputs)) if distribute else fun(inputs))
+            outputs.append(
+                self._unshard_array(pmap(fun)(inputs)) if distribute else fun(inputs)
+            )
         return jnp.concatenate(outputs, 0)
 
     def mean(
@@ -478,7 +504,16 @@ class Likelihood(WithRNG):
         jnp.ndarray
             An estimate of the likelihood mean for each input.
         """
-        return self._loop_fun_through_inputs_loader(self._batched_mean, params, inputs_loader, mutable, calib_params, calib_mutable, distribute, **kwargs)
+        return self._loop_fun_through_inputs_loader(
+            self._batched_mean,
+            params,
+            inputs_loader,
+            mutable,
+            calib_params,
+            calib_mutable,
+            distribute,
+            **kwargs
+        )
 
     @abc.abstractmethod
     def _batched_mean(
@@ -533,7 +568,16 @@ class Likelihood(WithRNG):
         jnp.ndarray
             An estimate of the likelihood mode for each input.
         """
-        return self._loop_fun_through_inputs_loader(self._batched_mode, params, inputs_loader, mutable, calib_params, calib_mutable, distribute, **kwargs)
+        return self._loop_fun_through_inputs_loader(
+            self._batched_mode,
+            params,
+            inputs_loader,
+            mutable,
+            calib_params,
+            calib_mutable,
+            distribute,
+            **kwargs
+        )
 
     @abc.abstractmethod
     def _batched_mode(
@@ -588,7 +632,16 @@ class Likelihood(WithRNG):
         jnp.ndarray
             An estimate of the likelihood variance for each input.
         """
-        return self._loop_fun_through_inputs_loader(self._batched_variance, params, inputs_loader, mutable, calib_params, calib_mutable, distribute, **kwargs)
+        return self._loop_fun_through_inputs_loader(
+            self._batched_variance,
+            params,
+            inputs_loader,
+            mutable,
+            calib_params,
+            calib_mutable,
+            distribute,
+            **kwargs
+        )
 
     @abc.abstractmethod
     def _batched_variance(
@@ -707,15 +760,15 @@ class Likelihood(WithRNG):
         return arr.reshape((arr.shape[0] * arr.shape[1],) + arr.shape[2:])
 
     def _loop_fun_through_inputs_loader(
-            self,
-            fun: Callable,
-            params: Params,
-            inputs_loader: InputsLoader,
-            mutable: Optional[Mutable] = None,
-            calib_params: Optional[CalibParams] = None,
-            calib_mutable: Optional[CalibMutable] = None,
-            distribute: bool = True,
-            **kwargs
+        self,
+        fun: Callable,
+        params: Params,
+        inputs_loader: InputsLoader,
+        mutable: Optional[Mutable] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
+        **kwargs
     ) -> Array:
         if distribute and jax.local_device_count() <= 1:
             distribute = False
@@ -726,20 +779,22 @@ class Likelihood(WithRNG):
         if distribute:
             inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
             fun2 = pmap(fun2)
-            return jnp.concatenate([self._unshard_array(fun2(inputs)) for inputs in inputs_loader], 0)
+            return jnp.concatenate(
+                [self._unshard_array(fun2(inputs)) for inputs in inputs_loader], 0
+            )
         fun2 = jit(fun2)
         return jnp.concatenate([fun2(inputs) for inputs in inputs_loader], 0)
 
     def _loop_fun_through_data_loader(
-            self,
-            fun: Callable,
-            params: Params,
-            data_loader: DataLoader,
-            mutable: Optional[Mutable] = None,
-            calib_params: Optional[CalibParams] = None,
-            calib_mutable: Optional[CalibMutable] = None,
-            distribute: bool = True,
-            **kwargs
+        self,
+        fun: Callable,
+        params: Params,
+        data_loader: DataLoader,
+        mutable: Optional[Mutable] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        distribute: bool = True,
+        **kwargs
     ) -> Array:
         if distribute and jax.local_device_count() <= 1:
             distribute = False
@@ -750,6 +805,8 @@ class Likelihood(WithRNG):
         if distribute:
             data_loader = DeviceDimensionAugmentedDataLoader(data_loader)
             fun2 = pmap(fun2)
-            return jnp.concatenate([self._unshard_array(fun2(batch)) for batch in data_loader], 0)
+            return jnp.concatenate(
+                [self._unshard_array(fun2(batch)) for batch in data_loader], 0
+            )
         fun2 = jit(fun2)
         return jnp.concatenate([fun2(batch) for batch in data_loader], 0)

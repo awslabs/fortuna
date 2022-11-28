@@ -45,7 +45,9 @@ class SWAGTrainer(MAPTrainer):
                 """`rank` must be available in `kwargs` during training."""
             )
         rav_params = ravel_pytree(
-            tree_map(lambda x: x[0], state.params) if self.multi_device else state.params
+            tree_map(lambda x: x[0], state.params)
+            if self.multi_device
+            else state.params
         )[0]
         if self._mean_rav_params is None:
             self._mean_rav_params = rav_params
