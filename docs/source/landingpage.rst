@@ -10,6 +10,8 @@ Fortuna provides calibrated uncertainty estimates of model predictions, in class
 It is designed to be easy-to-use,
 and to promote effortless estimation of uncertainty in production systems.
 
+Check the `documentation <https://aws-fortuna.readthedocs.io/en/latest/>`_ for a quickstart, examples and references.
+
 .. include:: quickstart.rst
 
 .. include:: installation.rst

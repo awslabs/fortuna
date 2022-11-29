@@ -12,6 +12,8 @@ and it further supports several Bayesian inference methods starting from deep le
 The language is designed to be intuitive for practitioners unfamiliar with uncertainty quantification,
 and is highly configurable.
 
+Check the `documentation <https://aws-fortuna.readthedocs.io/en/latest/>`_ for a quickstart, examples and references.
+
 Usage modes
 ===========
 Fortuna offers three different usage modes:
@@ -21,8 +23,8 @@ Fortuna offers three different usage modes:
 These serve users according to the constraints dictated by their own applications.
 Their pipelines are depicted in the following figure, each starting from one of the green panels.
 
-.. image:: docs/source/_static/pipeline.png
-    :target: docs/source/_static/pipeline.png
+.. image:: https://github.com/awslabs/fortuna/raw/main/docs/source/_static/pipeline.png
+    :target: https://github.com/awslabs/fortuna/raw/main/docs/source/_static/pipeline.png
 
 From uncertainty estimates
 ---------------------------
@@ -30,7 +32,7 @@ Starting from uncertainty estimates has minimal compatibility requirements and i
 This usage mode offers conformal prediction methods for both classification and regression.
 These take uncertainty estimates in input,
 and return rigorous sets of predictions that retain a user-given level of probability.
-In one-dimensional regression tasks, conformal sets may be thought as calibrated intervals of confidence or credible intervals.
+In one-dimensional regression tasks, conformal sets may be thought as calibrated versions of confidence or credible intervals.
 
 Mind that if the uncertainty estimates that you provide in inputs are inaccurate,
 conformal sets might be large and unusable.

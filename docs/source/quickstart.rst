@@ -20,7 +20,7 @@ Starting from uncertainty estimates has minimal compatibility requirements and i
 This usage mode offers conformal prediction methods for both classification and regression.
 These take uncertainty estimates in input,
 and return rigorous sets of predictions that retain a user-given level of probability.
-In one-dimensional regression tasks, conformal sets may be thought as calibrated intervals of confidence or credible intervals.
+In one-dimensional regression tasks, conformal sets may be thought as calibrated versions of confidence or credible intervals.
 
 Mind that if the uncertainty estimates that you provide in inputs are inaccurate,
 conformal sets might be large and unusable.
