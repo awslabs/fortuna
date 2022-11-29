@@ -22,7 +22,7 @@ def select_trainer_given_devices(
         logging.info("Training on all available devices.")
         trainer_cls = (
             MultiDeviceTrainer
-            if len([d for d in jax.devices() if d.platform == "device"]) > 0
+            if len([d for d in jax.devices() if d.platform == "gpu"]) > 0
             else JittedTrainer
         )
 
