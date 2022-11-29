@@ -104,11 +104,11 @@ class WithEarlyStoppingMixin:
                     f"`early_stopping_mode={early_stopping_mode}` is not a valid. Early stopping will be disabled."
                 )
         else:
-            self.early_stopping = EarlyStopping(
+            self._early_stopping = EarlyStopping(
                 min_delta=early_stopping_min_delta, patience=early_stopping_patience
             )
             if early_stopping_verbose:
-                logging.info("Early Stopping is enabled. ")
+                logging.info("If validation data are provided, early stopping will be enabled.")
 
     @property
     def is_early_stopping_active(self) -> bool:
@@ -128,7 +128,7 @@ class WithEarlyStoppingMixin:
             early_stopping_monitor = validation_metrics[self.early_stopping_monitor]
             if self.early_stopping_mode == "max":
                 early_stopping_monitor = -early_stopping_monitor
-            improved, self.early_stopping = self.early_stopping.update(
+            improved, self._early_stopping = self._early_stopping.update(
                 early_stopping_monitor
             )
         return improved

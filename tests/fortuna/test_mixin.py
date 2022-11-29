@@ -125,7 +125,7 @@ class TestEarlyStoppingMixins(unittest.TestCase):
     def test_early_stopping_is_not_active(self):
         trainer = FakeTrainerWithEarlyStopping()
         with self.assertRaises(AttributeError):
-            _ = trainer.early_stopping
+            _ = trainer._early_stopping
         self.assertFalse(trainer.is_early_stopping_active)
 
         trainer = FakeTrainerWithEarlyStopping(
@@ -135,7 +135,7 @@ class TestEarlyStoppingMixins(unittest.TestCase):
             early_stopping_mode="min",
         )
         with self.assertRaises(AttributeError):
-            _ = trainer.early_stopping
+            _ = trainer._early_stopping
         self.assertFalse(trainer.is_early_stopping_active)
 
         trainer = FakeTrainerWithEarlyStopping(
@@ -145,7 +145,7 @@ class TestEarlyStoppingMixins(unittest.TestCase):
             early_stopping_mode="not_valid",
         )
         with self.assertRaises(AttributeError):
-            _ = trainer.early_stopping
+            _ = trainer._early_stopping
         self.assertFalse(trainer.is_early_stopping_active)
 
         trainer = FakeTrainerWithEarlyStopping(
@@ -155,7 +155,7 @@ class TestEarlyStoppingMixins(unittest.TestCase):
             early_stopping_mode="not_valid",
         )
         with self.assertRaises(AttributeError):
-            _ = trainer.early_stopping
+            _ = trainer._early_stopping
         self.assertFalse(trainer.is_early_stopping_active)
 
     def test_is_early_stopping_active(self):
@@ -207,10 +207,10 @@ class TestEarlyStoppingMixins(unittest.TestCase):
         self.assertTrue(improved)
         improved = trainer.early_stopping_update(validation_metrics_step4)
         self.assertFalse(improved)
-        self.assertFalse(trainer.early_stopping.should_stop)
+        self.assertFalse(trainer._early_stopping.should_stop)
         improved = trainer.early_stopping_update(validation_metrics_step5)
         self.assertFalse(improved)
-        self.assertTrue(trainer.early_stopping.should_stop)
+        self.assertTrue(trainer._early_stopping.should_stop)
 
         trainer = FakeTrainerWithEarlyStopping(
             early_stopping_monitor="metric1",
@@ -226,13 +226,13 @@ class TestEarlyStoppingMixins(unittest.TestCase):
         self.assertTrue(improved)
         improved = trainer.early_stopping_update(validation_metrics_step4)
         self.assertFalse(improved)
-        self.assertFalse(trainer.early_stopping.should_stop)
+        self.assertFalse(trainer._early_stopping.should_stop)
         improved = trainer.early_stopping_update(validation_metrics_step5)
         self.assertFalse(improved)
-        self.assertFalse(trainer.early_stopping.should_stop)
+        self.assertFalse(trainer._early_stopping.should_stop)
         improved = trainer.early_stopping_update(validation_metrics_step5)
         self.assertFalse(improved)
-        self.assertTrue(trainer.early_stopping.should_stop)
+        self.assertTrue(trainer._early_stopping.should_stop)
 
     def test_early_stopping_update_ok_max(self):
         validation_metrics_step1 = {"metric1": 1, "metric2": 2}
@@ -255,10 +255,10 @@ class TestEarlyStoppingMixins(unittest.TestCase):
         self.assertTrue(improved)
         improved = trainer.early_stopping_update(validation_metrics_step4)
         self.assertFalse(improved)
-        self.assertFalse(trainer.early_stopping.should_stop)
+        self.assertFalse(trainer._early_stopping.should_stop)
         improved = trainer.early_stopping_update(validation_metrics_step5)
         self.assertFalse(improved)
-        self.assertFalse(trainer.early_stopping.should_stop)
+        self.assertFalse(trainer._early_stopping.should_stop)
         improved = trainer.early_stopping_update(validation_metrics_step5)
         self.assertFalse(improved)
-        self.assertTrue(trainer.early_stopping.should_stop)
+        self.assertTrue(trainer._early_stopping.should_stop)

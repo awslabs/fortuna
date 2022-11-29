@@ -168,6 +168,9 @@ class ProbModel(abc.ABC):
                 keep_top_n_checkpoints=calib_config.checkpointer.keep_top_n_checkpoints,
                 disable_training_metrics_computation=calib_config.monitor.disable_calibration_metrics_computation,
                 eval_every_n_epochs=calib_config.monitor.eval_every_n_epochs,
+                early_stopping_monitor=calib_config.monitor.early_stopping_monitor,
+                early_stopping_min_delta=calib_config.monitor.early_stopping_min_delta,
+                early_stopping_patience=calib_config.monitor.early_stopping_patience,
             )
 
             if calib_config.checkpointer.restore_checkpoint_path is None:

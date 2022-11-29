@@ -253,7 +253,7 @@ class TrainerABC(
                         validation_losses_and_metrics_current_epoch[k]
                     )
                 # check for early stopping
-                if self.is_early_stopping_active and self.early_stopping.should_stop:
+                if self.is_early_stopping_active and self._early_stopping.should_stop:
                     logging.info("[Early Stopping] Stopping training...")
                     break
 
