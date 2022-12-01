@@ -3,7 +3,7 @@ Fortuna
 A Library for Uncertainty Quantification
 ========================================
 Proper estimation of predictive uncertainty is fundamental in applications that involve critical decisions.
-It can be used to assess reliability of model predictions, trigger human intervention,
+Uncertainty can be used to assess reliability of model predictions, trigger human intervention,
 or decide whether a model can be safely deployed in the wild.
 
 Fortuna is a library for uncertainty quantification that makes it easy for users to run benchmarks and bring uncertainty to production systems.
@@ -126,6 +126,18 @@ You can install Fortuna by typing
     pip install aws-fortuna
 
 Alternatively, you can build the package using `Poetry <https://python-poetry.org/docs/>`_.
+If you choose to pursue this way, first install Poetry and add it to your PATH
+(see `here <https://python-poetry.org/docs/#installation>`_). Then type
+
+.. code-block::
+
+    poetry install
+
+All the dependecies will be installed at their required versions.
+If you also want to install the optional Sphinx dependencies to build the documentation,
+add the flag :code:`-E docs` to the command above.
+Finally, you can either access the virtualenv that Poetry created by typing :code:`poetry shell`,
+or execute commands within the virtualenv using the :code:`run` command, e.g. :code:`poetry run python`.
 
 Examples
 ========

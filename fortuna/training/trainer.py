@@ -118,8 +118,8 @@ class TrainerABC(
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         if (
-            self.save_checkpoint_dir
-            and self.save_every_n_steps
+            self.save_checkpoint_dir is not None
+            and self.save_every_n_steps is not None
             and current_epoch % self.save_every_n_steps == 0
         ):
             self.save_checkpoint(

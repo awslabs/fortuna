@@ -19,6 +19,7 @@ class DataLoader:
             FromArrayDataToDataLoader,
             FromTensorFlowDataLoaderToDataLoader,
             FromTorchDataLoaderToDataLoader,
+            ChoppedDataLoader
         ],
     ):
         """
@@ -211,6 +212,26 @@ class DataLoader:
         """
         return TargetsLoader.from_data_loader(DataLoader(data_loader=self._data_loader))
 
+    @classmethod
+    def chop(cls, data_loader: DataLoader, divisor: int) -> DataLoader:
+        """
+        Chop the last part of each batch of the data loader, to make sure the number od data points per batch divides
+        `divisor`.
+
+        Parameters
+        ----------
+        data_loader : DataLoader
+            A data loader
+        divisor : int
+            Number of data points that each batched must divide.
+
+        Returns
+        -------
+        DataLoader
+            A data loader with chopped batches.
+        """
+        return cls(data_loader=ChoppedDataLoader(data_loader=data_loader, divisor=divisor))
+
 
 class InputsLoader:
     def __init__(
@@ -220,6 +241,7 @@ class InputsLoader:
             FromDataLoaderToInputsLoader,
             FromCallableIterableToInputsLoader,
             FromIterableToInputsLoader,
+            ChoppedInputsLoader
         ],
     ):
         """
@@ -335,6 +357,26 @@ class InputsLoader:
         """
         return cls(inputs_loader=FromIterableToInputsLoader(iterable))
 
+    @classmethod
+    def chop(cls, inputs_loader: InputsLoader, divisor: int) -> InputsLoader:
+        """
+        Chop the last part of each batch of the inputs loader, to make sure the number od data points per batch divides
+        `divisor`.
+
+        Parameters
+        ----------
+        inputs_loader : InputsLoader
+            An inputs loader.
+        divisor : int
+            Number of data points that each batched must divide.
+
+        Returns
+        -------
+        InputsLoader
+            An inputs loader with chopped batches.
+        """
+        return cls(inputs_loader=ChoppedInputsLoader(inputs_loader=inputs_loader, divisor=divisor))
+
 
 class TargetsLoader:
     def __init__(
@@ -344,6 +386,7 @@ class TargetsLoader:
             FromDataLoaderToTargetsLoader,
             FromCallableIterableToTargetsLoader,
             FromIterableToTargetsLoader,
+            ChoppedTargetsLoader
         ],
     ):
         """
@@ -459,24 +502,44 @@ class TargetsLoader:
         """
         return cls(targets_loader=FromIterableToTargetsLoader(iterable))
 
+    @classmethod
+    def chop(cls, targets_loader: TargetsLoader, divisor: int) -> TargetsLoader:
+        """
+        Chop the last part of each batch of the targets loader, to make sure the number od data points per batch divides
+        `divisor`.
+
+        Parameters
+        ----------
+        targets_loader : TargetsLoader
+            A targets loader.
+        divisor : int
+            Number of data points that each batched must divide.
+
+        Returns
+        -------
+        InputsLoader
+            A targets loader with chopped batches.
+        """
+        return cls(targets_loader=ChoppedTargetsLoader(targets_loader=targets_loader, divisor=divisor))
+
 
 class FromDataLoaderToArrayData:
     def __init__(self, data_loader: DataLoader):
-        self.data_loader = data_loader
+        self._data_loader = data_loader
 
     def __call__(self, *args, **kwargs):
         data = []
-        for batch in self.data_loader:
+        for batch in self._data_loader:
             data.append(batch)
         return np.concatenate(data, 0)
 
 
 class FromDataLoaderToInputsTargetsLoaders:
     def __init__(self, data_loader: DataLoader):
-        self.data_loader = data_loader
+        self._data_loader = data_loader
 
     def __call__(self, *args, **kwargs):
-        for x_batch, y_batch in self.data_loader:
+        for x_batch, y_batch in self._data_loader:
             yield x_batch, y_batch
 
 
@@ -488,27 +551,27 @@ class FromArrayDataToDataLoader:
         shuffle: bool = False,
         prefetch: bool = False,
     ):
-        self.data = data
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.prefetch = prefetch
+        self._data = data
+        self._batch_size = batch_size
+        self._shuflle = shuffle
+        self._prefetch = prefetch
 
     def __call__(self, *args, **kwargs):
-        if self.shuffle:
+        if self._shuflle:
             perm = np.random.choice(
-                self.data[0].shape[0], self.data[0].shape[0], replace=False
+                self._data[0].shape[0], self._data[0].shape[0], replace=False
             )
-        if self.batch_size is None:
-            yield self.data
+        if self._batch_size is None:
+            yield self._data
         else:
             x_batches = np.split(
-                self.data[0][perm] if self.shuffle else self.data[0],
-                np.arange(self.batch_size, self.data[0].shape[0], self.batch_size),
+                self._data[0][perm] if self._shuflle else self._data[0],
+                np.arange(self._batch_size, self._data[0].shape[0], self._batch_size),
                 axis=0,
             )
             y_batches = np.split(
-                self.data[1][perm] if self.shuffle else self.data[1],
-                np.arange(self.batch_size, self.data[1].shape[0], self.batch_size),
+                self._data[1][perm] if self._shuflle else self._data[1],
+                np.arange(self._batch_size, self._data[1].shape[0], self._batch_size),
                 axis=0,
             )
 
@@ -516,116 +579,116 @@ class FromArrayDataToDataLoader:
                 for x_batch, y_batch in zip(x_batches, y_batches):
                     yield x_batch, y_batch
 
-            yield from PrefetchedGenerator(make_gen()) if self.prefetch else make_gen()
+            yield from PrefetchedGenerator(make_gen()) if self._prefetch else make_gen()
 
 
 class FromCallableIterableToDataLoader:
     def __init__(
         self, fun: Callable[[], Iterable[Batch],],
     ):
-        self.fun = fun
+        self._fun = fun
 
     def __call__(self, *args, **kwargs):
-        return self.fun()
+        return self._fun()
 
 
 class FromCallableIterableToInputsLoader:
     def __init__(
         self, fun: Callable[[], Iterable[Array]],
     ):
-        self.fun = fun
+        self._fun = fun
 
     def __call__(self, *args, **kwargs):
-        return self.fun()
+        return self._fun()
 
 
 class FromCallableIterableToTargetsLoader:
     def __init__(
         self, fun: Callable[[], Iterable[Array]],
     ):
-        self.fun = fun
+        self._fun = fun
 
     def __call__(self, *args, **kwargs):
-        return self.fun()
+        return self._fun()
 
 
 class FromIterableToDataLoader:
     def __init__(
         self, batched_data: Iterable[Batch],
     ):
-        self.batched_data = batched_data
+        self._batched_data = batched_data
 
     def __call__(self, *args, **kwargs):
-        return self.batched_data
+        return self._batched_data
 
 
 class FromIterableToInputsLoader:
     def __init__(
         self, batched_inputs: Iterable[Array],
     ):
-        self.batched_inputs = batched_inputs
+        self._batched_inputs = batched_inputs
 
     def __call__(self, *args, **kwargs):
-        return self.batched_inputs
+        return self._batched_inputs
 
 
 class FromIterableToTargetsLoader:
     def __init__(
         self, batched_targets: Iterable[Array],
     ):
-        self.batched_targets = batched_targets
+        self._batched_targets = batched_targets
 
     def __call__(self, *args, **kwargs):
-        return self.batched_targets
+        return self._batched_targets
 
 
 class FromTensorFlowDataLoaderToDataLoader:
     def __init__(self, tf_data_loader):
-        self.tf_data_loader = tf_data_loader
+        self._tf_data_loader = tf_data_loader
 
     def __call__(self, *args, **kwargs):
-        for batch_inputs, batch_targets in self.tf_data_loader:
+        for batch_inputs, batch_targets in self._tf_data_loader:
             yield batch_inputs.numpy(), batch_targets.numpy()
 
 
 class FromTorchDataLoaderToDataLoader:
     def __init__(self, torch_data_loader):
-        self.torch_data_loader = torch_data_loader
+        self._torch_data_loader = torch_data_loader
 
     def __call__(self, *args, **kwargs):
-        for batch_inputs, batch_targets in self.torch_data_loader:
+        for batch_inputs, batch_targets in self._torch_data_loader:
             yield batch_inputs.numpy(), batch_targets.numpy()
 
 
 class FromDataLoaderToArrayInputs:
     def __init__(self, data_loader: DataLoader):
-        self.data_loader = data_loader
+        self._data_loader = data_loader
 
     def __call__(self, *args, **kwargs):
         inputs = []
-        for batch_inputs, batch_targets in self.data_loader:
+        for batch_inputs, batch_targets in self._data_loader:
             inputs.append(batch_inputs)
         return np.concatenate(inputs, 0)
 
 
 class FromDataLoaderToArrayTargets:
     def __init__(self, data_loader: DataLoader):
-        self.data_loader = data_loader
+        self._data_loader = data_loader
 
     def __call__(self, *args, **kwargs):
         targets = []
-        for batch_inputs, batch_targets in self.data_loader:
+        for batch_inputs, batch_targets in self._data_loader:
             targets.append(batch_targets)
         return np.concatenate(targets, 0)
 
 
 class FromInputsLoaderToArrayInputs:
     def __init__(self, inputs_loader: InputsLoader):
-        self.inputs_loader = inputs_loader
+        self._inputs_loader = inputs_loader
 
     def __call__(self, *args, **kwargs):
         inputs = []
-        for batch_inputs in self.inputs_loader:
+        for batch_inputs in self._inputs_loader:
             inputs.append(batch_inputs)
         return np.concatenate(inputs, 0)
 
@@ -638,22 +701,22 @@ class FromArrayInputsToInputsLoader:
         shuffle: bool = False,
         prefetch: bool = False,
     ):
-        self.inputs = inputs
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.prefetch = prefetch
+        self._inputs = inputs
+        self._batch_size = batch_size
+        self._shuflle = shuffle
+        self._prefetch = prefetch
 
     def __call__(self, *args, **kwargs):
-        if self.shuffle:
+        if self._shuflle:
             perm = np.random.choice(
-                self.inputs.shape[0], self.inputs.shape[0], replace=False
+                self._inputs.shape[0], self._inputs.shape[0], replace=False
             )
-        if self.batch_size is None:
-            yield self.inputs
+        if self._batch_size is None:
+            yield self._inputs
         else:
             x_batches = np.split(
-                self.inputs[perm] if self.shuffle else self.inputs,
-                np.arange(self.batch_size, self.inputs.shape[0], self.batch_size),
+                self._inputs[perm] if self._shuflle else self._inputs,
+                np.arange(self._batch_size, self._inputs.shape[0], self._batch_size),
                 axis=0,
             )
 
@@ -661,17 +724,17 @@ class FromArrayInputsToInputsLoader:
                 for x_batch in x_batches:
                     yield x_batch
 
-            yield from PrefetchedGenerator(make_gen()) if self.prefetch else make_gen()
+            yield from PrefetchedGenerator(make_gen()) if self._prefetch else make_gen()
 
 
 class FromDataLoaderToInputsLoader:
     def __init__(
         self, data_loader: DataLoader,
     ):
-        self.data_loader = data_loader
+        self._data_loader = data_loader
 
     def __call__(self, *args, **kwargs):
-        for inputs, targets in self.data_loader:
+        for inputs, targets in self._data_loader:
             yield inputs
 
 
@@ -679,20 +742,20 @@ class FromDataLoaderToTargetsLoader:
     def __init__(
         self, data_loader: DataLoader,
     ):
-        self.data_loader = data_loader
+        self._data_loader = data_loader
 
     def __call__(self, *args, **kwargs):
-        for inputs, targets in self.data_loader:
+        for inputs, targets in self._data_loader:
             yield targets
 
 
 class FromTargetsLoaderToArrayTargets:
     def __init__(self, targets_loader: TargetsLoader):
-        self.targets_loader = targets_loader
+        self._targets_loader = targets_loader
 
     def __call__(self, *args, **kwargs):
         targets = []
-        for batch_targets in self.targets_loader:
+        for batch_targets in self._targets_loader:
             targets.append(batch_targets)
         return np.concatenate(targets, 0)
 
@@ -705,22 +768,22 @@ class FromArrayTargetsToTargetsLoader:
         shuffle: bool = False,
         prefetch: bool = False,
     ):
-        self.targets = targets
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.prefetch = prefetch
+        self._targets = targets
+        self._batch_size = batch_size
+        self._shuflle = shuffle
+        self._prefetch = prefetch
 
     def __call__(self, *args, **kwargs):
-        if self.shuffle:
+        if self._shuflle:
             perm = np.random.choice(
-                self.targets.shape[0], self.targets.shape[0], replace=False
+                self._targets.shape[0], self._targets.shape[0], replace=False
             )
-        if self.batch_size is None:
-            yield self.targets
+        if self._batch_size is None:
+            yield self._targets
         else:
             x_batches = np.split(
-                self.targets[perm] if self.shuffle else self.targets,
-                np.arange(self.batch_size, self.targets.shape[0], self.batch_size),
+                self._targets[perm] if self._shuflle else self._targets,
+                np.arange(self._batch_size, self._targets.shape[0], self._batch_size),
                 axis=0,
             )
 
@@ -728,7 +791,7 @@ class FromArrayTargetsToTargetsLoader:
                 for x_batch in x_batches:
                     yield x_batch
 
-            yield from PrefetchedGenerator(make_gen()) if self.prefetch else make_gen()
+            yield from PrefetchedGenerator(make_gen()) if self._prefetch else make_gen()
 
 
 class PrefetchedGenerator:
@@ -742,7 +805,7 @@ class PrefetchedGenerator:
 
     def __next__(self):
         if not self._ready:
-            self.prefetch()
+            self._prefetch()
         self._ready = False
         return self._batch
 
@@ -750,6 +813,48 @@ class PrefetchedGenerator:
         if not self._ready:
             self._batch = self._generator.__next__()
             self._ready = True
+
+
+class ChoppedDataLoader:
+    def __init__(self, data_loader: DataLoader, divisor: int):
+        self._data_loader = data_loader
+        self._divisor = divisor
+
+    def __call__(self, *args, **kwargs):
+        for inputs, targets in self._data_loader:
+            reminder = targets.shape[0] % self._divisor
+            if reminder == 0:
+                yield inputs, targets
+            else:
+                yield inputs[:-reminder], targets[:-reminder]
+
+
+class ChoppedInputsLoader:
+    def __init__(self, inputs_loader: InputsLoader, divisor: int):
+        self._inputs_loader = inputs_loader
+        self._divisor = divisor
+
+    def __call__(self, *args, **kwargs):
+        for inputs in self._inputs_loader:
+            reminder = inputs.shape[0] % self._divisor
+            if reminder == 0:
+                yield inputs
+            else:
+                yield inputs[:-reminder]
+
+
+class ChoppedTargetsLoader:
+    def __init__(self, targets_loader: TargetsLoader, divisor: int):
+        self._targets_loader = targets_loader
+        self._divisor = divisor
+
+    def __call__(self, *args, **kwargs):
+        for targets in self._targets_loader:
+            reminder = targets.shape[0] % self._divisor
+            if reminder == 0:
+                yield targets
+            else:
+                yield targets[:-reminder]
 
 
 class DeviceDimensionAugmentedDataLoader:
