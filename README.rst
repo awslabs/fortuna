@@ -133,7 +133,7 @@ If you choose to pursue this way, first install Poetry and add it to your PATH
 
     poetry install
 
-All the dependecies will be installed at their required versions.
+All the dependencies will be installed at their required versions.
 If you also want to install the optional Sphinx dependencies to build the documentation,
 add the flag :code:`-E docs` to the command above.
 Finally, you can either access the virtualenv that Poetry created by typing :code:`poetry shell`,
