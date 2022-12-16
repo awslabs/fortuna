@@ -25,9 +25,9 @@ extensions = [
     "sphinx.ext.mathjax",
     "nbsphinx",
     "sphinx_gallery.load_style",
-    "sphinxawesome_theme",
     "sphinx.ext.viewcode",
     "nbsphinx_link",
+    "IPython.sphinxext.ipython_console_highlighting"
 ]
 
 napoleon_google_docstring = False
@@ -44,8 +44,6 @@ autodoc_default_options = {
 }
 autoclass_content = "both"
 
-html_logo = "_static/fortuna_symbol_white.png"
-
 nbsphinx_allow_errors = True
 nbsphinx_execute = "never"
 
@@ -53,14 +51,37 @@ nbsphinx_execute = "never"
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "sphinxawesome_theme"
-html_static_path = ["_static"]
-html_css_files = ["sg_gallery.css"]
-html_show_sourcelink = False
-html_awesome_code_headers = False
-
 html_title = "Fortuna's documentation"
+html_theme = "pydata_sphinx_theme"
+html_static_path = ["_static"]
+html_sidebars = {"**": ["sidebar-nav-bs"]}
+html_theme_options = {
+    "primary_sidebar_end": [],
+    "footer_items": ["copyright"],
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/awslabs/Fortuna",
+            "icon": "fa-brands fa-square-github",
+            "type": "fontawesome",
+        }
+    ],
+    "use_edit_page_button": False,
+    "collapse_navigation": True,
+    "logo": {
+        "image_light": "fortuna_symbol.png",
+        "image_dark": "fortuna_symbol_white.png",
+        "text": html_title,
+        "alt_text": "Fortuna's logo"
+    }
+}
+html_context = {
+    "github_user": "awslabs",
+    "github_repo": "Fortuna",
+    "github_version": "dev",
+    "doc_path": "docs",
+    "default_mode": "light",
+}
+htmlhelp_basename = "Fortuna's documentation"
+html_show_sourcelink = False
 
-# html_collapsible_definitions = True
-
-pygments_style = "default"
