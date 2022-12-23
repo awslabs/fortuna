@@ -162,6 +162,10 @@ Several usage examples are found in the
 `/examples <https://github.com/awslabs/fortuna/tree/main/examples>`_
 directory.
 
+Material
+========
+- `AWS launch blog post <https://aws.amazon.com/blogs/machine-learning/introducing-fortuna-a-library-for-uncertainty-quantification/>`_
+
 Contributing
 ============
 If you wish to contribute to the project, please refer to our `contribution guidelines <https://github.com/awslabs/fortuna/blob/main/CONTRIBUTING.md>`_.
