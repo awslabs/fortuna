@@ -809,7 +809,7 @@ class PrefetchedGenerator:
         self._ready = False
         return self._batch
 
-    def prefetch(self):
+    def _prefetch(self):
         if not self._ready:
             self._batch = self._generator.__next__()
             self._ready = True
