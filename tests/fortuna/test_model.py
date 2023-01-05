@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from fortuna.model.cnn import CNN
 from fortuna.model.mlp import MLP
+from fortuna.model.linear import Linear
 from tests.make_data import make_array_random_inputs
 
 
@@ -89,6 +90,24 @@ class TestMLP(unittest.TestCase):
         )
         self.assertRaises(Exception, mlp.init, self.rng, self.inputs)
 
+
+class TestLinear(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape_inputs = (3,)
+        self.output_dim = 2
+        self.n_inputs = 10
+        self.inputs = make_array_random_inputs(
+            n_inputs=self.n_inputs, shape_inputs=self.shape_inputs
+        )
+        self.rng = random.PRNGKey(0)
+
+    def test_linear(self):
+        mlp = Linear(output_dim=self.output_dim)
+        params = mlp.init(self.rng, self.inputs)
+        outputs = mlp.apply(params, self.inputs)
+        assert outputs.shape == (self.n_inputs, self.output_dim)
+        assert mlp.output_dim == self.output_dim
 
 class TestCNN(unittest.TestCase):
     def __init__(self, *args, **kwargs):
