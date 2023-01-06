@@ -6,7 +6,8 @@ import numpy as np
 from fortuna.conformal.classification import (
     AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier)
 from fortuna.conformal.regression import (
-    OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor)
+    OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, CVPlusConformalRegressor,
+    JackknifeMinmaxConformalRegressor, JackknifePlusConformalRegressor)
 
 
 class TestConformals(unittest.TestCase):
@@ -116,3 +117,62 @@ class TestConformals(unittest.TestCase):
             coverage_sets[:, 0].shape == coverage_sets[:, 1].shape == (n_test_inputs,)
         )
         assert (coverage_sets[:, 0] < coverage_sets[:, 1]).all()
+
+    def test_cvplus_conformal_regressor(self):
+        k1, k2, k3 = 100, 101, 102
+        m = 99
+        cross_val_outputs = [
+            np.random.normal(size=(k1, 1)),
+            np.random.normal(size=(k2, 1)),
+            np.random.normal(size=(k3, 1)),
+        ]
+        cross_val_targets = [
+            np.random.normal(size=(k1, 1)),
+            np.random.normal(size=(k2, 1)),
+            np.random.normal(size=(k3, 1)),
+        ]
+        cross_test_outputs = [
+            np.random.normal(size=(m, 1)),
+            np.random.normal(size=(m, 1)),
+            np.random.normal(size=(m, 1)),
+        ]
+
+        interval = CVPlusConformalRegressor().conformal_interval(cross_val_outputs, cross_val_targets, cross_test_outputs, 0.05)
+        assert interval.ndim == 2
+        assert interval.shape[0] == m
+        assert interval.shape[1] == 2
+        assert (interval[:, 0] < interval[:, 1]).all()
+        assert len(np.unique(interval[:, 0])) > 1
+        assert len(np.unique(interval[:, 1])) > 1
+
+    def test_jackknifeplus_conformal_regressor(self):
+        n = 100
+        m = 99
+        loo_val_outputs = np.random.normal(size=(n, 1))
+        loo_val_targets = np.random.normal(size=(n, 1))
+        loo_test_outputs = np.random.normal(size=(n, m, 1))
+
+        interval = JackknifePlusConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
+                                                                        loo_test_outputs, 0.05)
+        assert interval.ndim == 2
+        assert interval.shape[0] == m
+        assert interval.shape[1] == 2
+        assert (interval[:, 0] < interval[:, 1]).all()
+        assert len(np.unique(interval[:, 0])) > 1
+        assert len(np.unique(interval[:, 1])) > 1
+
+    def test_jackknife_minmax_conformal_regressor(self):
+        n = 100
+        m = 99
+        loo_val_outputs = np.random.normal(size=(n, 1))
+        loo_val_targets = np.random.normal(size=(n, 1))
+        loo_test_outputs = np.random.normal(size=(n, m, 1))
+
+        interval = JackknifeMinmaxConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
+                                                                          loo_test_outputs, 0.05)
+        assert interval.ndim == 2
+        assert interval.shape[0] == m
+        assert interval.shape[1] == 2
+        assert (interval[:, 0] < interval[:, 1]).all()
+        assert len(np.unique(interval[:, 0])) > 1
+        assert len(np.unique(interval[:, 1])) > 1
