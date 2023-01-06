@@ -27,7 +27,7 @@ def rmse(preds: Array, targets: Array) -> float:
     return root_mean_squared_error(preds, targets)
 
 
-def mean_squared_error(preds: Array, targets: Array) -> float:
+def mean_squared_error(preds: Array, targets: Array) -> Array:
     """
     Compute the mean-squared error (MSE).
 
@@ -40,7 +40,7 @@ def mean_squared_error(preds: Array, targets: Array) -> float:
 
     Returns
     -------
-    float
+    Array
         The computed MSE.
     """
     return jnp.mean(jnp.sum((preds - targets) ** 2, axis=1))
@@ -75,7 +75,7 @@ def rmae(preds: Array, targets: Array) -> float:
     return root_mean_absolute_error(preds, targets)
 
 
-def mean_absolute_error(preds: Array, targets: Array) -> float:
+def mean_absolute_error(preds: Array, targets: Array) -> Array:
     """
     Compute the mean-absolute error (MAE).
 
@@ -88,7 +88,7 @@ def mean_absolute_error(preds: Array, targets: Array) -> float:
 
     Returns
     -------
-    float
+    Array
         The computed MAE.
     """
     return jnp.mean(jnp.sum(jnp.abs(preds - targets), axis=1))
@@ -101,7 +101,7 @@ def mae(preds: Array, targets: Array) -> float:
 
 def prediction_interval_coverage_probability(
     lower_bounds: Array, upper_bounds: Array, targets: Array
-) -> float:
+) -> Array:
     """
     Compute the prediction interval coverage probability (PICP). This is the fraction of data points for which the
     true targets lie within the estimated interval. This is supported only for scalar target data.
@@ -117,14 +117,16 @@ def prediction_interval_coverage_probability(
         be a one-dimensional array with entry corresponding to different data points, or a two-dimensional array
         with first axis corresponding to different data points, and second axis with only one dimension.
     targets: Array
-        A two-dimensional array of target variables.
+        A two-dimensional array of target variables, or a one-dimensional array with second dimension of size 1.
 
     Returns
     -------
-    float
+    Array
         The computed PICP.
     """
-    if targets.shape[1] > 1:
+    if targets.ndim == 1:
+        targets = targets[:, None]
+    elif targets.shape[1] > 1:
         raise ValueError(
             """This metric is supported only for target data such that `target.shape[1] == 1`, but 
         `target.shape[1] == {}` was found.""".format(

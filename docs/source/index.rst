@@ -10,3 +10,4 @@
    examples/examples
    usage_modes/usage_modes
    references/references
+   methods
