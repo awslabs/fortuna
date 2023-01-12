@@ -67,8 +67,7 @@ usage mode.
 **Example.**
 Suppose you have calibration and test model outputs,
 respectively :code:`calib_outputs` and :code:`test_outputs`.
-Furthermore, you have some arrays of calibration and target variables,
-respectively :code:`calib_targets` and :code:`test_targets`.
+Furthermore, you have some arrays of calibration target variables :code:`calib_targets`.
 The following code provides a minimal classification example to get calibrated predictive entropy estimates.
 
 .. code-block:: python
