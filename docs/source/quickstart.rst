@@ -65,10 +65,10 @@ To mitigate this problem, please consider the :ref:`from_flax_models`
 usage mode.
 
 **Example.**
-Suppose you have validation and test model outputs,
-respectively :code:`val_outputs` and :code:`test_outputs`.
-Furthermore, you have some arrays of validation and target variables,
-respectively :code:`val_targets` and :code:`test_targets`.
+Suppose you have calibration and test model outputs,
+respectively :code:`calib_outputs` and :code:`test_outputs`.
+Furthermore, you have some arrays of calibration and target variables,
+respectively :code:`calib_targets` and :code:`test_targets`.
 The following code provides a minimal classification example to get calibrated predictive entropy estimates.
 
 .. code-block:: python
@@ -76,7 +76,7 @@ The following code provides a minimal classification example to get calibrated p
 
       from fortuna.calib_model import CalibClassifier
       calib_model = CalibClassifier()
-      status = calib_model.calibrate(outputs=val_outputs, targets=val_targets)
+      status = calib_model.calibrate(calib_outputs=calib_outputs, calib_targets=calib_targets)
       test_entropies = calib_model.predictive.entropy(outputs=test_outputs)
 
 .. _from_flax_models:
