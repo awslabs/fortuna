@@ -21,7 +21,7 @@ def accuracy(preds: Array, targets: Array) -> jnp.ndarray:
 
     Returns
     -------
-    float
+    jnp.ndarray
         The computed accuracy.
     """
     if preds.ndim > 1:
@@ -117,13 +117,13 @@ def expected_calibration_error(
 
     Returns
     -------
-    float
+    jnp.ndarray
         The value of the ECE.
     """
     counts, confs, accs = compute_counts_confs_accs(
         preds, probs, targets, plot, plot_options
     )
-    ece = jnp.sum(counts * (accs - confs) ** 2) / preds.shape[0]
+    ece = jnp.sum(counts * jnp.abs(accs - confs)) / preds.shape[0]
     return ece
 
 
@@ -133,7 +133,7 @@ def ece(
     targets: Array,
     plot: bool = False,
     plot_options: Optional[Dict] = None,
-) -> float:
+) -> jnp.ndarray:
     """See :func:`.expected_calibration_error`."""
     return expected_calibration_error(preds, probs, targets, plot, plot_options)
 
@@ -165,13 +165,13 @@ def maximum_calibration_error(
 
     Returns
     -------
-    float
+    jnp.ndarray
         The value of the MCE.
     """
     counts, confs, accs = compute_counts_confs_accs(
         preds, probs, targets, plot, plot_options
     )
-    mce = jnp.max(counts * (accs - confs) ** 2)
+    mce = jnp.max(counts * jnp.abs(accs - confs))
     return mce
 
 
@@ -181,7 +181,7 @@ def mce(
     targets: Array,
     plot: bool = False,
     plot_options: Optional[Dict] = None,
-) -> float:
+) -> jnp.ndarray:
     """See :func:`.maximum_calibration_error`."""
     return maximum_calibration_error(preds, probs, targets, plot, plot_options)
 
@@ -201,7 +201,7 @@ def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> jnp.ndarr
 
     Returns
     -------
-    float
+    jnp.ndarray
         The Brier score.
     """
     if probs.ndim != 2:

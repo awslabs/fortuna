@@ -10,7 +10,7 @@ Posterior approximation methods
     It is the fastest ad crudest posterior approximation method supported by Fortuna. It can be seen as a form of
     regularized Maximum Likelihood Estimation (MLE) procedure.
 
-- **Automatic Differention Variational Inference (ADVI)** `[Kucukelbir et al., 2017] <https://www.jmlr.org/papers/volume18/16-107/16-107.pdf>`_
+- **Automatic Differentiation Variational Inference (ADVI)** `[Kucukelbir et al., 2017] <https://www.jmlr.org/papers/volume18/16-107/16-107.pdf>`_
     A variational inference approach that approximates the posterior distribution with a diagonal multivariate
     Gaussian distribution.
 
