@@ -81,15 +81,16 @@ class EnbPI:
                              f"samples.")
         if bootstrap_train_preds.shape[0] != n_bootstraps:
             raise ValueError("The first dimension of `bootstrap_train_preds` and `bootstrap_indices` corresponds to "
-                             "the number of bootstrap samples, and it must coincide. However, "
+                             "the number of bootstrap samples, and must have the same size. However, "
                              f"{bootstrap_train_preds.shape[0]} and {n_bootstraps} were found, respectively.")
         if bootstrap_train_preds.shape[1] != n_train_times:
             raise ValueError("The second dimension of `bootstrap_train_preds` and `bootstrap_indices` corresponds to "
-                             "the number of data points in the time series used for training, and it must coincide. "
+                             "the number of data points in the time series used for training, "
+                             "and must have the same size. "
                              f"However, {bootstrap_train_preds.shape[1]} and {n_train_times} were found, respectively.")
         if bootstrap_test_preds.shape[0] != n_bootstraps:
             raise ValueError("The first dimension of `bootstrap_test_preds` and `bootstrap_indices` corresponds to the "
-                             "number of bootstrap samples, and it must coincide. However, "
+                             "number of bootstrap samples, and must have the same size. However, "
                              f"{bootstrap_test_preds.shape[0]} and {n_bootstraps} were found, respectively.")
         if bootstrap_train_preds.ndim == 3:
             if bootstrap_train_preds.shape[2] == 1:
@@ -108,7 +109,7 @@ class EnbPI:
         if train_targets.shape[0] != bootstrap_train_preds.shape[1]:
             raise ValueError("The first dimension of `train_targets` and the second dimension of "
                              "`bootstrap_train_preds` correspond to the number of data points in the time series used "
-                             "for training, and they must coincide. However, "
+                             "for training, and must have the same size. However, "
                              f"{train_targets.shape[0]} and {bootstrap_train_preds.shape[1]} were found, respectively.")
         if train_targets.ndim == 2:
             if train_targets.shape[1] == 1:
@@ -200,6 +201,41 @@ class EnbPI:
             - A new set of residuals, which includes the residuals computed on the new batch of training data points.
             The number of stored training residuals is kept constant by eliminating the oldest ones.
         """
+        if (bootstrap_new_train_preds.shape[0] != bootstrap_new_test_preds.shape[0]) or \
+                (bootstrap_new_train_preds.shape[0] != train_residuals.shape[0]):
+            raise ValueError("The first dimensions of `bootstrap_new_train_preds` and `bootstrap_new_test_preds` and "
+                             "`train_residuals` correspond to the number of bootstrap samples, "
+                             "and must have the same size. However, "
+                             f"{bootstrap_new_train_preds.shape[0]}, {bootstrap_new_test_preds.shape[0]} "
+                             f"and {train_residuals.shape[0]} were found, respectively.")
+        if bootstrap_new_train_preds.ndim == 3:
+            if bootstrap_new_train_preds.shape[2] == 1:
+                bootstrap_new_train_preds = bootstrap_new_train_preds.squeeze(2)
+            else:
+                raise ValueError(
+                    "This method is supported only for scalar model predictions. However, "
+                    "`bootstrap_new_train_preds` has third dimension greater than 1.")
+        if bootstrap_new_test_preds.ndim == 3:
+            if bootstrap_new_test_preds.shape[2] == 1:
+                bootstrap_new_test_preds = bootstrap_new_test_preds.squeeze(2)
+            else:
+                raise ValueError(
+                    "This method is supported only for scalar model predictions. "
+                    "However, `bootstrap_new_test_preds` has third dimension greater than 1.")
+        if new_train_targets.shape[0] != bootstrap_new_train_preds.shape[1]:
+            raise ValueError("The first dimension of `new_train_targets` and the second dimension of "
+                             "`bootstrap_new_train_preds` correspond to the number of data points in the time series "
+                             "used for training, and must have the same size. However, "
+                             f"{new_train_targets.shape[0]} and {bootstrap_new_train_preds.shape[1]} were found, "
+                             f"respectively.")
+        if new_train_targets.ndim == 2:
+            if new_train_targets.shape[1] == 1:
+                new_train_targets = new_train_targets.squeeze(1)
+            else:
+                raise ValueError(
+                    "This method is supported only for scalar target variables. However, `new_train_targets` has "
+                    "second dimension greater than 1.")
+
         train_residuals[:-1] = train_residuals[1:]
         train_residuals[-1] = np.abs(new_train_targets - self.aggregation_fun(bootstrap_new_train_preds))
         aggr_test_preds = self.aggregation_fun(bootstrap_new_test_preds)
