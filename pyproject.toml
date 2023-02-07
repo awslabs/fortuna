@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aws-fortuna"
-version = "0.1.9"
+version = "0.1.10"
 description = "A Library for Uncertainty Quantification."
 authors = ["Gianluca Detommaso <gianluca.detommaso@gmail.com>", "Alberto Gasparin <albgas@amazon.de>"]
 license = "Apache-2.0"
@@ -32,7 +32,6 @@ docs = ["Sphinx", "sphinx-autodoc-typehints", "pydata-sphinx-theme", "nbsphinx",
 notebooks = ["jupyter"]
 
 [tool.poetry.group.dev.dependencies]
-tensorstore = "^0.1.28"
 traitlets = "^5.5.0"
 
 [build-system]

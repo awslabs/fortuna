@@ -23,3 +23,5 @@ and :ref:`regression <conformal_regression>`.
 .. automodule:: fortuna.conformal.regression.jackknifeplus
 
 .. automodule:: fortuna.conformal.regression.jackknife_minmax
+
+.. automodule:: fortuna.conformal.regression.enbpi

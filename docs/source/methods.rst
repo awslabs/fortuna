@@ -61,3 +61,6 @@ For regression:
 - **Jackknife+, jackknife-minmax and CV+** `[Barber et al., 2021] <https://projecteuclid.org/journals/annals-of-statistics/volume-49/issue-1/Predictive-inference-with-the-jackknife/10.1214/20-AOS1965.full>`_
     Methods based on leave-one-out and K-fold cross validation that, from model outputs only, provide conformal intervals
     satisfying minimal coverage properties.
+
+- **EnbPI** `[Xu et al., 2021] <http://proceedings.mlr.press/v139/xu21h/xu21h.pdf>`_
+    A conformal prediction method for time series regression based on data bootstrapping.

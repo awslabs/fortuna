@@ -7,7 +7,7 @@ from fortuna.conformal.classification import (
     AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier)
 from fortuna.conformal.regression import (
     OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, CVPlusConformalRegressor,
-    JackknifeMinmaxConformalRegressor, JackknifePlusConformalRegressor)
+    JackknifeMinmaxConformalRegressor, JackknifePlusConformalRegressor, EnbPI)
 
 
 class TestConformals(unittest.TestCase):
@@ -137,13 +137,13 @@ class TestConformals(unittest.TestCase):
             np.random.normal(size=(m, 1)),
         ]
 
-        interval = CVPlusConformalRegressor().conformal_interval(cross_val_outputs, cross_val_targets, cross_test_outputs, 0.05)
-        assert interval.ndim == 2
-        assert interval.shape[0] == m
-        assert interval.shape[1] == 2
-        assert (interval[:, 0] < interval[:, 1]).all()
-        assert len(np.unique(interval[:, 0])) > 1
-        assert len(np.unique(interval[:, 1])) > 1
+        intervals = CVPlusConformalRegressor().conformal_interval(cross_val_outputs, cross_val_targets, cross_test_outputs, 0.05)
+        assert intervals.ndim == 2
+        assert intervals.shape[0] == m
+        assert intervals.shape[1] == 2
+        assert np.alltrue(intervals[:, 0] < intervals[:, 1])
+        assert len(np.unique(intervals[:, 0])) > 1
+        assert len(np.unique(intervals[:, 1])) > 1
 
     def test_jackknifeplus_conformal_regressor(self):
         n = 100
@@ -152,14 +152,14 @@ class TestConformals(unittest.TestCase):
         loo_val_targets = np.random.normal(size=(n, 1))
         loo_test_outputs = np.random.normal(size=(n, m, 1))
 
-        interval = JackknifePlusConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
+        intervals = JackknifePlusConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
                                                                         loo_test_outputs, 0.05)
-        assert interval.ndim == 2
-        assert interval.shape[0] == m
-        assert interval.shape[1] == 2
-        assert (interval[:, 0] < interval[:, 1]).all()
-        assert len(np.unique(interval[:, 0])) > 1
-        assert len(np.unique(interval[:, 1])) > 1
+        assert intervals.ndim == 2
+        assert intervals.shape[0] == m
+        assert intervals.shape[1] == 2
+        assert np.alltrue(intervals[:, 0] < intervals[:, 1])
+        assert len(np.unique(intervals[:, 0])) > 1
+        assert len(np.unique(intervals[:, 1])) > 1
 
     def test_jackknife_minmax_conformal_regressor(self):
         n = 100
@@ -168,11 +168,95 @@ class TestConformals(unittest.TestCase):
         loo_val_targets = np.random.normal(size=(n, 1))
         loo_test_outputs = np.random.normal(size=(n, m, 1))
 
-        interval = JackknifeMinmaxConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
+        intervals = JackknifeMinmaxConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
                                                                           loo_test_outputs, 0.05)
-        assert interval.ndim == 2
-        assert interval.shape[0] == m
-        assert interval.shape[1] == 2
-        assert (interval[:, 0] < interval[:, 1]).all()
-        assert len(np.unique(interval[:, 0])) > 1
-        assert len(np.unique(interval[:, 1])) > 1
+        assert intervals.ndim == 2
+        assert intervals.shape[0] == m
+        assert intervals.shape[1] == 2
+        assert np.alltrue(intervals[:, 0] < intervals[:, 1])
+        assert len(np.unique(intervals[:, 0])) > 1
+        assert len(np.unique(intervals[:, 1])) > 1
+
+    def test_enbpi(self):
+        bs = [30, 2]
+        t = 10
+        t1 = 3
+        error = 0.05
+
+        for b in bs:
+            # all without extra scalar dimension
+            bootstrap_indices = np.random.choice(t, size=(b, t))
+            bootstrap_train_preds = np.random.normal(size=(b, t))
+            bootstrap_test_preds = np.random.normal(size=(b, t1))
+            train_targets = np.random.normal(size=t)
+
+            intervals = EnbPI().conformal_interval(
+                bootstrap_indices=bootstrap_indices,
+                bootstrap_train_preds=bootstrap_train_preds,
+                bootstrap_test_preds=bootstrap_test_preds,
+                train_targets=train_targets,
+                error=error
+            )
+            assert intervals.ndim == 2
+            assert intervals.shape[0] == t1
+            assert intervals.shape[1] == 2
+            assert np.alltrue(intervals[:, 0] < intervals[:, 1])
+            assert len(np.unique(intervals[:, 0])) > 1
+            assert len(np.unique(intervals[:, 1])) > 1
+
+            # all with extra scalar dimension
+            bootstrap_train_preds = np.random.normal(size=(b, t, 1))
+            bootstrap_test_preds = np.random.normal(size=(b, t1, 1))
+            train_targets = np.random.normal(size=(t, 1))
+
+            intervals = EnbPI().conformal_interval(
+                bootstrap_indices=bootstrap_indices,
+                bootstrap_train_preds=bootstrap_train_preds,
+                bootstrap_test_preds=bootstrap_test_preds,
+                train_targets=train_targets,
+                error=error
+            )
+            assert intervals.ndim == 2
+            assert intervals.shape[0] == t1
+            assert intervals.shape[1] == 2
+            assert np.alltrue(intervals[:, 0] < intervals[:, 1])
+            assert len(np.unique(intervals[:, 0])) > 1
+            assert len(np.unique(intervals[:, 1])) > 1
+
+            # predictions with and targets without extra scalar dimension
+            train_targets = np.random.normal(size=t)
+
+            intervals = EnbPI().conformal_interval(
+                bootstrap_indices=bootstrap_indices,
+                bootstrap_train_preds=bootstrap_train_preds,
+                bootstrap_test_preds=bootstrap_test_preds,
+                train_targets=train_targets,
+                error=error
+            )
+            assert intervals.ndim == 2
+            assert intervals.shape[0] == t1
+            assert intervals.shape[1] == 2
+            assert np.alltrue(intervals[:, 0] < intervals[:, 1])
+            assert len(np.unique(intervals[:, 0])) > 1
+            assert len(np.unique(intervals[:, 1])) > 1
+
+            # return also residuals
+            train_targets = np.random.normal(size=t)
+
+            intervals, residuals = EnbPI().conformal_interval(
+                bootstrap_indices=bootstrap_indices,
+                bootstrap_train_preds=bootstrap_train_preds,
+                bootstrap_test_preds=bootstrap_test_preds,
+                train_targets=train_targets,
+                error=error,
+                return_residuals=True
+            )
+
+            assert intervals.ndim == 2
+            assert intervals.shape[0] == t1
+            assert intervals.shape[1] == 2
+            assert np.alltrue(intervals[:, 0] < intervals[:, 1])
+            assert len(np.unique(intervals[:, 0])) > 1
+            assert len(np.unique(intervals[:, 1])) > 1
+            assert residuals.shape == (t,)
+            assert np.alltrue(residuals >= 0)

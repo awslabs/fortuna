@@ -43,7 +43,8 @@ class JackknifePlusConformalRegressor:
             bounds.
         """
         if loo_val_outputs.shape[0] != loo_val_targets.shape[0]:
-            raise ValueError("The first dimension of `loo_val_outputs` and `loo_val_targets` must coincide.")
+            raise ValueError("The first dimension of `loo_val_outputs` and `loo_val_targets` must coincide. However, "
+                             f"{loo_val_outputs.shape[0]} and {loo_val_targets.shape[0]} were found, respectively.")
         if loo_val_outputs.ndim == 1:
             loo_val_outputs = loo_val_outputs[:, None]
         elif loo_val_outputs.shape[1] != 1:

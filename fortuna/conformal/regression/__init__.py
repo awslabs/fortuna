@@ -3,3 +3,4 @@ from fortuna.conformal.regression.onedim_uncertainty import OneDimensionalUncert
 from fortuna.conformal.regression.cvplus import CVPlusConformalRegressor
 from fortuna.conformal.regression.jackknifeplus import JackknifePlusConformalRegressor
 from fortuna.conformal.regression.jackknife_minmax import JackknifeMinmaxConformalRegressor
+from fortuna.conformal.regression.enbpi import EnbPI

@@ -74,7 +74,7 @@ class CVPlusConformalRegressor:
 
         r = [jnp.abs(y - mu) for y, mu in zip(cross_val_targets, cross_val_outputs)]
         left = jnp.concatenate([mu[None] - ri[:, None] for mu, ri in zip(cross_test_outputs, r)], 0)
-        right = jnp.concatenate([mu[None] + ri[:, None] for mu, ri in zip(cross_test_outputs, r)])
+        right = jnp.concatenate([mu[None] + ri[:, None] for mu, ri in zip(cross_test_outputs, r)], 0)
 
         qleft = jnp.quantile(left, q=error, axis=0)
         qright = jnp.quantile(right, q=1 - error, axis=0)
