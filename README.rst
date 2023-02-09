@@ -165,6 +165,7 @@ directory.
 Material
 ========
 - `AWS launch blog post <https://aws.amazon.com/blogs/machine-learning/introducing-fortuna-a-library-for-uncertainty-quantification/>`_
+- `Fortuna: A Library for Uncertainty Quantification in Deep Learning [arXiv paper] <https://arxiv.org/abs/2302.04019>`_
 
 Contributing
 ============
