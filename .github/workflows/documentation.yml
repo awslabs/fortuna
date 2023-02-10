@@ -45,7 +45,6 @@ jobs:
       - name: Build the documentation with Sphinx
         run: |
           poetry install
-          pip install -r docs/requirements.txt
           conda install pandoc
           cd docs
           make html
