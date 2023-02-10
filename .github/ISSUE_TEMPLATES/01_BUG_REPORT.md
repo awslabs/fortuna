@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Create a report to help GPJax to improve
+about: Create a report to help Fortuna to improve
 title: "bug: "
 labels: "bug"
 assignees: ""
@@ -8,7 +8,7 @@ assignees: ""
 
 # Bug Report
 
-**GPJax version:**
+**Fortuna version:**
 
 <!-- Please specify commit or tag version. -->
 
