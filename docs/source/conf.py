@@ -27,7 +27,8 @@ extensions = [
     "sphinx_gallery.load_style",
     "sphinx.ext.viewcode",
     "nbsphinx_link",
-    "IPython.sphinxext.ipython_console_highlighting"
+    "IPython.sphinxext.ipython_console_highlighting",
+    "nbsphinx"
 ]
 
 napoleon_google_docstring = False
@@ -44,8 +45,14 @@ autodoc_default_options = {
 }
 autoclass_content = "both"
 
-nbsphinx_allow_errors = True
-nbsphinx_execute = "never"
+nb_execution_mode = "auto"
+nbsphinx_allow_errors = False
+nbsphinx_custom_formats = {
+    ".pct.py": ["jupytext.reads", {"fmt": "py:percent"}],
+}
+nbsphinx_execute_arguments = ["--InlineBackend.figure_formats={'svg', 'pdf'}"]
+# If window is narrower than this, input/output prompts are on separate lines:
+nbsphinx_responsive_width = "700px"
 
 
 # -- Options for HTML output -------------------------------------------------
