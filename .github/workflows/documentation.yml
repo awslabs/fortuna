@@ -1,0 +1,50 @@
+name: Build the documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    # Functionality for testing documentation builds on multiple OSes and Python versions
+    name: Build docs (${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.9"]
+
+    steps:
+      # Grap the latest commit from the branch
+      - name: Checkout the branch
+        uses: actions/checkout@v2.3.1
+        with:
+          persist-credentials: false
+
+      # Create a virtual environment
+      - name: create Conda environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.python-version }}
+
+      # Install Poetry and build the documentation
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.2.2
+          virtualenvs-create: false
+          virtualenvs-in-project: false
+          installer-parallel: true
+
+      - name: Build the documentation with Sphinx
+        run: |
+          poetry install --all-extras
+          conda install pandoc
+          cd docs
+          make html
