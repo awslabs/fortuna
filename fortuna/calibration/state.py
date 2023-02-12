@@ -85,9 +85,17 @@ class CalibState(TrainState):
             **{
                 k: v
                 for k, v in d.items()
-                if k not in ["params", "mutable", "optimizer",]
+                if k
+                not in [
+                    "params",
+                    "mutable",
+                    "optimizer",
+                ]
             },
         }
         return cls.init(
-            FrozenDict(d["params"]), FrozenDict(d["mutable"]), optimizer, **kwargs,
+            FrozenDict(d["params"]),
+            FrozenDict(d["mutable"]),
+            optimizer,
+            **kwargs,
         )

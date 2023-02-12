@@ -8,7 +8,11 @@ from fortuna.typing import Array
 
 
 class AdaptivePredictionConformalClassifier:
-    def score(self, val_probs: Array, val_targets: Array,) -> jnp.ndarray:
+    def score(
+        self,
+        val_probs: Array,
+        val_targets: Array,
+    ) -> jnp.ndarray:
         """
         Compute score function.
 

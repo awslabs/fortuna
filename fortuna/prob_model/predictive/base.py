@@ -38,7 +38,6 @@ class Predictive(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> jnp.ndarray:
-
         r"""
         Estimate the predictive log-probability density function (a.k.a. log-pdf), that is
 
@@ -694,7 +693,7 @@ class Predictive(WithRNG):
                 calib_mutable=_sample.calib_mutable,
             )
             _curr_sum += mean
-            _curr_sum_sq += mean ** 2
+            _curr_sum_sq += mean**2
             return _curr_sum, _curr_sum_sq
 
         curr_sum, curr_sum_sq = fun(0, (0.0, 0.0))

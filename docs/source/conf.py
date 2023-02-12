@@ -27,7 +27,7 @@ extensions = [
     "sphinx_gallery.load_style",
     "sphinx.ext.viewcode",
     "nbsphinx_link",
-    "IPython.sphinxext.ipython_console_highlighting"
+    "IPython.sphinxext.ipython_console_highlighting",
 ]
 
 napoleon_google_docstring = False
@@ -72,8 +72,8 @@ html_theme_options = {
         "image_light": "fortuna_symbol.png",
         "image_dark": "fortuna_symbol_white.png",
         "text": html_title,
-        "alt_text": "Fortuna's logo"
-    }
+        "alt_text": "Fortuna's logo",
+    },
 }
 html_context = {
     "github_user": "awslabs",
@@ -84,4 +84,3 @@ html_context = {
 }
 htmlhelp_basename = "Fortuna's documentation"
 html_show_sourcelink = False
-

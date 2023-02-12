@@ -74,7 +74,10 @@ class PosteriorState(TrainState):
 
     @classmethod
     def init_from_dict(
-        cls, d: Dict, optimizer: Optional[OptaxOptimizer] = None, **kwargs,
+        cls,
+        d: Dict,
+        optimizer: Optional[OptaxOptimizer] = None,
+        **kwargs,
     ) -> PosteriorState:
         """
         Initialize a posterior distribution state from a dictionary.

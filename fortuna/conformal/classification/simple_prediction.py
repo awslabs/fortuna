@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List, Optional
 
 import jax.numpy as jnp
 from jax import vmap
@@ -7,7 +7,11 @@ from fortuna.typing import Array
 
 
 class SimplePredictionConformalClassifier:
-    def score(self, val_probs: Array, val_targets: Array,) -> jnp.ndarray:
+    def score(
+        self,
+        val_probs: Array,
+        val_targets: Array,
+    ) -> jnp.ndarray:
         """
         Compute score function.
 

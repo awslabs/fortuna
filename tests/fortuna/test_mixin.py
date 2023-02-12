@@ -60,7 +60,8 @@ class TestCheckpointingMixins(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             trainer = FakeTrainerWithCheckpointing()
             with unittest.mock.patch(
-                "fortuna.training.mixin.checkpoints", return_value=mock.DEFAULT,
+                "fortuna.training.mixin.checkpoints",
+                return_value=mock.DEFAULT,
             ) as mc:
                 trainer.save_checkpoint(state, None)
                 mc.save_checkpoint.assert_not_called()
@@ -99,7 +100,8 @@ class TestCheckpointingMixins(unittest.TestCase):
             self.assertEqual(restored_state.mutable, None)
 
             with unittest.mock.patch(
-                "fortuna.training.mixin.checkpoints", return_value=mock.DEFAULT,
+                "fortuna.training.mixin.checkpoints",
+                return_value=mock.DEFAULT,
             ) as mc:
                 mc.restore_checkpoint.return_value = FrozenDict(
                     params=dict(model=dict(params=1)),

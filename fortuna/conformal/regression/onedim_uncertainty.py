@@ -7,7 +7,10 @@ from fortuna.typing import Array
 
 class OneDimensionalUncertaintyConformalRegressor:
     def score(
-        self, val_preds: Array, val_uncertainties: Array, val_targets: Array,
+        self,
+        val_preds: Array,
+        val_uncertainties: Array,
+        val_targets: Array,
     ) -> jnp.ndarray:
         """
         Compute the conformal scores.

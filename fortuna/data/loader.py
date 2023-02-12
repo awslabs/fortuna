@@ -19,7 +19,7 @@ class DataLoader:
             FromArrayDataToDataLoader,
             FromTensorFlowDataLoaderToDataLoader,
             FromTorchDataLoaderToDataLoader,
-            ChoppedDataLoader
+            ChoppedDataLoader,
         ],
     ):
         """
@@ -72,7 +72,13 @@ class DataLoader:
         )
 
     @classmethod
-    def from_callable_iterable(cls, fun: Callable[[], Iterable[Batch],],) -> DataLoader:
+    def from_callable_iterable(
+        cls,
+        fun: Callable[
+            [],
+            Iterable[Batch],
+        ],
+    ) -> DataLoader:
         """
         Transform a callable iterable into a :class:`~fortuna.data.loader.DataLoader` object.
 
@@ -89,7 +95,10 @@ class DataLoader:
         return cls(data_loader=FromCallableIterableToDataLoader(fun))
 
     @classmethod
-    def from_iterable(cls, iterable: Iterable[Batch],) -> DataLoader:
+    def from_iterable(
+        cls,
+        iterable: Iterable[Batch],
+    ) -> DataLoader:
         """
         Transform an iterable into a :class:`~fortuna.data.loader.DataLoader` object.
 
@@ -230,7 +239,9 @@ class DataLoader:
         DataLoader
             A data loader with chopped batches.
         """
-        return cls(data_loader=ChoppedDataLoader(data_loader=data_loader, divisor=divisor))
+        return cls(
+            data_loader=ChoppedDataLoader(data_loader=data_loader, divisor=divisor)
+        )
 
 
 class InputsLoader:
@@ -241,7 +252,7 @@ class InputsLoader:
             FromDataLoaderToInputsLoader,
             FromCallableIterableToInputsLoader,
             FromIterableToInputsLoader,
-            ChoppedInputsLoader
+            ChoppedInputsLoader,
         ],
     ):
         """
@@ -323,7 +334,8 @@ class InputsLoader:
 
     @classmethod
     def from_callable_iterable(
-        cls, fun: Callable[[], Iterable[Array]],
+        cls,
+        fun: Callable[[], Iterable[Array]],
     ) -> InputsLoader:
         """
         Transform a callable iterable into a :class:`~fortuna.data.loader.InputsLoader` object.
@@ -341,7 +353,10 @@ class InputsLoader:
         return cls(inputs_loader=FromCallableIterableToInputsLoader(fun))
 
     @classmethod
-    def from_iterable(cls, iterable: Iterable[Array],) -> InputsLoader:
+    def from_iterable(
+        cls,
+        iterable: Iterable[Array],
+    ) -> InputsLoader:
         """
         Transform an iterable into a :class:`~fortuna.data.loader.InputsLoader` object.
 
@@ -375,7 +390,11 @@ class InputsLoader:
         InputsLoader
             An inputs loader with chopped batches.
         """
-        return cls(inputs_loader=ChoppedInputsLoader(inputs_loader=inputs_loader, divisor=divisor))
+        return cls(
+            inputs_loader=ChoppedInputsLoader(
+                inputs_loader=inputs_loader, divisor=divisor
+            )
+        )
 
 
 class TargetsLoader:
@@ -386,7 +405,7 @@ class TargetsLoader:
             FromDataLoaderToTargetsLoader,
             FromCallableIterableToTargetsLoader,
             FromIterableToTargetsLoader,
-            ChoppedTargetsLoader
+            ChoppedTargetsLoader,
         ],
     ):
         """
@@ -468,7 +487,8 @@ class TargetsLoader:
 
     @classmethod
     def from_callable_iterable(
-        cls, fun: Callable[[], Iterable[Array]],
+        cls,
+        fun: Callable[[], Iterable[Array]],
     ) -> TargetsLoader:
         """
         Transform a callable iterable into a :class:`~fortuna.data.loader.TargetsLoader` object.
@@ -486,7 +506,10 @@ class TargetsLoader:
         return cls(targets_loader=FromCallableIterableToTargetsLoader(fun))
 
     @classmethod
-    def from_iterable(cls, iterable: Iterable[Array],) -> TargetsLoader:
+    def from_iterable(
+        cls,
+        iterable: Iterable[Array],
+    ) -> TargetsLoader:
         """
         Transform an iterable into a :class:`~fortuna.data.loader.TargetsLoader` object.
 
@@ -520,7 +543,11 @@ class TargetsLoader:
         InputsLoader
             A targets loader with chopped batches.
         """
-        return cls(targets_loader=ChoppedTargetsLoader(targets_loader=targets_loader, divisor=divisor))
+        return cls(
+            targets_loader=ChoppedTargetsLoader(
+                targets_loader=targets_loader, divisor=divisor
+            )
+        )
 
 
 class FromDataLoaderToArrayData:
@@ -584,7 +611,11 @@ class FromArrayDataToDataLoader:
 
 class FromCallableIterableToDataLoader:
     def __init__(
-        self, fun: Callable[[], Iterable[Batch],],
+        self,
+        fun: Callable[
+            [],
+            Iterable[Batch],
+        ],
     ):
         self._fun = fun
 
@@ -594,7 +625,8 @@ class FromCallableIterableToDataLoader:
 
 class FromCallableIterableToInputsLoader:
     def __init__(
-        self, fun: Callable[[], Iterable[Array]],
+        self,
+        fun: Callable[[], Iterable[Array]],
     ):
         self._fun = fun
 
@@ -604,7 +636,8 @@ class FromCallableIterableToInputsLoader:
 
 class FromCallableIterableToTargetsLoader:
     def __init__(
-        self, fun: Callable[[], Iterable[Array]],
+        self,
+        fun: Callable[[], Iterable[Array]],
     ):
         self._fun = fun
 
@@ -614,7 +647,8 @@ class FromCallableIterableToTargetsLoader:
 
 class FromIterableToDataLoader:
     def __init__(
-        self, batched_data: Iterable[Batch],
+        self,
+        batched_data: Iterable[Batch],
     ):
         self._batched_data = batched_data
 
@@ -624,7 +658,8 @@ class FromIterableToDataLoader:
 
 class FromIterableToInputsLoader:
     def __init__(
-        self, batched_inputs: Iterable[Array],
+        self,
+        batched_inputs: Iterable[Array],
     ):
         self._batched_inputs = batched_inputs
 
@@ -634,7 +669,8 @@ class FromIterableToInputsLoader:
 
 class FromIterableToTargetsLoader:
     def __init__(
-        self, batched_targets: Iterable[Array],
+        self,
+        batched_targets: Iterable[Array],
     ):
         self._batched_targets = batched_targets
 
@@ -729,7 +765,8 @@ class FromArrayInputsToInputsLoader:
 
 class FromDataLoaderToInputsLoader:
     def __init__(
-        self, data_loader: DataLoader,
+        self,
+        data_loader: DataLoader,
     ):
         self._data_loader = data_loader
 
@@ -740,7 +777,8 @@ class FromDataLoaderToInputsLoader:
 
 class FromDataLoaderToTargetsLoader:
     def __init__(
-        self, data_loader: DataLoader,
+        self,
+        data_loader: DataLoader,
     ):
         self._data_loader = data_loader
 

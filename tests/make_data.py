@@ -41,7 +41,10 @@ def make_array_random_targets(n_inputs: int, output_dim: int, output_type: str):
 
 
 def make_generator_fun_random_targets(
-    batch_size: int, n_batches: int, output_dim: int, output_type: str,
+    batch_size: int,
+    n_batches: int,
+    output_dim: int,
+    output_type: str,
 ) -> Callable[[], Generator[Tuple[np.ndarray, np.ndarray], None, None]]:
     if output_type not in ["discrete", "continuous"]:
         raise Exception(
@@ -62,7 +65,10 @@ def make_generator_fun_random_targets(
 
 
 def make_generator_random_targets(
-    batch_size: int, n_batches: int, output_dim: int, output_type: str,
+    batch_size: int,
+    n_batches: int,
+    output_dim: int,
+    output_type: str,
 ) -> Generator[Tuple[np.ndarray, np.ndarray], None, None]:
     if output_type not in ["discrete", "continuous"]:
         raise Exception(

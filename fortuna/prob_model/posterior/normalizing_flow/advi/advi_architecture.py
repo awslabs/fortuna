@@ -68,7 +68,9 @@ class ADVIArchitecture(HashableMixin):
         )
 
     def init_params(
-        self, rng: PRNGKeyArray, mean: Optional[jnp.ndarray] = None,
+        self,
+        rng: PRNGKeyArray,
+        mean: Optional[jnp.ndarray] = None,
     ) -> tuple:
         """
         Initialize mean and log-scale parameters.

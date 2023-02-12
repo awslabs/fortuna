@@ -316,7 +316,13 @@ class CalibratorABC(
         val_epoch_metrics_str = ""
         for batch, outputs in zip(val_data_loader, val_outputs_loader):
             val_losses_and_metrics_current_batch = self.val_step(
-                state, batch, outputs, fun, rng, val_dataset_size, metrics,
+                state,
+                batch,
+                outputs,
+                fun,
+                rng,
+                val_dataset_size,
+                metrics,
             )
             val_losses_and_metrics_epoch_all_steps.append(
                 val_losses_and_metrics_current_batch

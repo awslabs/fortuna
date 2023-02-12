@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+
 from fortuna.typing import Array
 
 
@@ -9,12 +10,13 @@ class JackknifeMinmaxConformalRegressor:
     desired minimal coverage :math:`1-α`, while jackknife+ only guarantees a minimal coverage of
     :math:`1 - 2α`.
     """
+
     def conformal_interval(
-            self,
-            loo_val_outputs: Array,
-            loo_val_targets: Array,
-            loo_test_outputs: Array,
-            error: float
+        self,
+        loo_val_outputs: Array,
+        loo_val_targets: Array,
+        loo_test_outputs: Array,
+        error: float,
     ) -> jnp.ndarray:
         """
         Coverage interval of each of the test inputs, at the desired coverage error. This is supported only for
@@ -44,26 +46,33 @@ class JackknifeMinmaxConformalRegressor:
             bounds.
         """
         if loo_val_outputs.shape[0] != loo_val_targets.shape[0]:
-            raise ValueError("The first dimension of `loo_val_outputs` and `loo_val_targets` must coincide. However, "
-                             f"{loo_val_outputs.shape[0]} and {loo_val_targets.shape[0]} were found, respectively.")
+            raise ValueError(
+                "The first dimension of `loo_val_outputs` and `loo_val_targets` must coincide. However, "
+                f"{loo_val_outputs.shape[0]} and {loo_val_targets.shape[0]} were found, respectively."
+            )
         if loo_val_outputs.ndim == 1:
             loo_val_outputs = loo_val_outputs[:, None]
         elif loo_val_outputs.shape[1] != 1:
             raise ValueError(
                 "This method is supported only for scalar model outputs only. However, `loo_val_outputs` has second "
-                "dimension greater than 1.")
+                "dimension greater than 1."
+            )
         if loo_val_targets.ndim == 1:
             loo_val_targets = loo_val_targets[:, None]
         elif loo_val_targets.shape[1] != 1:
-            raise ValueError("This method is supported only for scalar target variables. However, `loo_val_targets` "
-                             "has second dimension greater than 1.")
+            raise ValueError(
+                "This method is supported only for scalar target variables. However, `loo_val_targets` "
+                "has second dimension greater than 1."
+            )
         if loo_test_outputs.ndim < 2:
             raise ValueError("`loo_test_outputs` must have at least two dimensions.")
         elif loo_test_outputs.ndim == 2:
             loo_test_outputs = loo_test_outputs[:, :, None]
         elif loo_test_outputs.shape[2] != 1:
-            raise ValueError("This method is supported only for scalar model outputs only. However, `loo_test_outputs` "
-                             "has last dimension greater than 1.")
+            raise ValueError(
+                "This method is supported only for scalar model outputs only. However, `loo_test_outputs` "
+                "has last dimension greater than 1."
+            )
 
         r = jnp.abs(loo_val_targets - loo_val_outputs)
         q = jnp.quantile(r, q=1 - error, axis=0)

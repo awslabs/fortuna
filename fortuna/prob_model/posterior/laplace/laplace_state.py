@@ -50,7 +50,12 @@ class LaplaceState(PosteriorState):
         params = map_state.params.unfreeze()
         if which_params:
             params = FrozenDict(
-                nested_pair(params, which_params, std, ("mean", "std"),)
+                nested_pair(
+                    params,
+                    which_params,
+                    std,
+                    ("mean", "std"),
+                )
             )
         else:
             for k, v in params.items():

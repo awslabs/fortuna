@@ -7,7 +7,10 @@ from fortuna.typing import Array
 
 class QuantileConformalRegressor:
     def score(
-        self, val_lower_bounds: Array, val_upper_bounds: Array, val_targets: Array,
+        self,
+        val_lower_bounds: Array,
+        val_upper_bounds: Array,
+        val_targets: Array,
     ) -> jnp.ndarray:
         """
         Compute score function.

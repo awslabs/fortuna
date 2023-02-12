@@ -34,7 +34,9 @@ from fortuna.utils.random import generate_random_normal_like_tree
 
 class LaplacePosterior(Posterior):
     def __init__(
-        self, joint: Joint, posterior_approximator: LaplacePosteriorApproximator,
+        self,
+        joint: Joint,
+        posterior_approximator: LaplacePosteriorApproximator,
     ):
         """
         Laplace approximation posterior class.
@@ -156,7 +158,7 @@ class LaplacePosterior(Posterior):
                 lambda v: lax.map(vjp_fn(v[0]), v[1].T), (batch_inputs[:, None], z)
             )[0]
             if factorization == "diagonal":
-                return -jnp.sum(lam[:, :, None] * ztj ** 2, (0, 1))
+                return -jnp.sum(lam[:, :, None] * ztj**2, (0, 1))
             raise ValueError(
                 f"`factorization={factorization}` not recognized. Currently, only "
                 f"`factorization='diagonal'` is supported."

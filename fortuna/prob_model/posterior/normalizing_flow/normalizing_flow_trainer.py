@@ -170,7 +170,10 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
                     )
                 )(
                     preds.reshape(
-                        (preds.shape[1], preds.shape[0] * preds.shape[2],)
+                        (
+                            preds.shape[1],
+                            preds.shape[0] * preds.shape[2],
+                        )
                         + preds.shape[3:]
                     )
                 )

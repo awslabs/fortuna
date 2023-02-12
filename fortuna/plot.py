@@ -328,7 +328,6 @@ def radar_factory(num_vars, frame="circle"):
             return Path(self.transform(path.vertices), path.codes)
 
     class RadarAxes(PolarAxes):
-
         name = "radar"
         PolarTransform = RadarTransform
 

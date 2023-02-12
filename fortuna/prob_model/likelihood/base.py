@@ -80,7 +80,7 @@ class Likelihood(WithRNG):
         Returns
         -------
         jnp.ndarray
-            The evaluation of the log-likelihood function. 
+            The evaluation of the log-likelihood function.
         """
         return self._loop_fun_through_data_loader(
             self._batched_log_prob,
@@ -193,7 +193,11 @@ class Likelihood(WithRNG):
         inputs, targets = batch
         if outputs is None:
             outs = self.model_manager.apply(
-                params, inputs, train=train, mutable=mutable, rng=rng,
+                params,
+                inputs,
+                train=train,
+                mutable=mutable,
+                rng=rng,
             )
             if "mutable" in return_aux:
                 outputs, aux = outs

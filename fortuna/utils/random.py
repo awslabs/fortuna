@@ -12,7 +12,11 @@ def generate_rng_like_tree(rng, target: PyTree):
 
 def generate_random_normal_like_tree(rng, target: PyTree):
     keys = generate_rng_like_tree(rng, target)
-    return tree_map(lambda l, k: random.normal(k, l.shape, l.dtype), target, keys,)
+    return tree_map(
+        lambda l, k: random.normal(k, l.shape, l.dtype),
+        target,
+        keys,
+    )
 
 
 class RandomNumberGenerator:

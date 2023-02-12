@@ -40,7 +40,9 @@ class MultiDeviceADVITrainer(MultiDeviceMixin, ADVITrainer):
 
 class ADVIPosterior(Posterior):
     def __init__(
-        self, joint: Joint, posterior_approximator: ADVIPosteriorApproximator,
+        self,
+        joint: Joint,
+        posterior_approximator: ADVIPosteriorApproximator,
     ):
         """
         Automatic Differentiation Variational Inference (ADVI) approximate posterior class.
