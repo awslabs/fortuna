@@ -7,3 +7,4 @@ from fortuna.conformal.regression.jackknifeplus import \
 from fortuna.conformal.regression.onedim_uncertainty import \
     OneDimensionalUncertaintyConformalRegressor
 from fortuna.conformal.regression.quantile import QuantileConformalRegressor
+from fortuna.conformal.regression.adaptive_conformal_regressor import AdaptiveConformalRegressor

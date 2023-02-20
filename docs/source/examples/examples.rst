@@ -10,4 +10,5 @@ In this section we show some examples of how to use Fortuna in classification an
    tabular_regressions.nblink
    jackknifeplus_regression.nblink
    enbpi_ts_regression.nblink
+   adaptive_conformal_inference.nblink
    bring_in_your_own.nblink

@@ -3,9 +3,10 @@ from typing import Optional
 import jax.numpy as jnp
 
 from fortuna.typing import Array
+from fortuna.conformal.regression.base import ConformalRegressor
 
 
-class OneDimensionalUncertaintyConformalRegressor:
+class OneDimensionalUncertaintyConformalRegressor(ConformalRegressor):
     def score(
         self,
         val_preds: Array,

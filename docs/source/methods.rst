@@ -46,8 +46,12 @@ For classification:
 - **A simple conformal prediction sets method** `[Vovk et al., 2005] <https://link.springer.com/book/10.1007/b106715>`_
     A simple conformal prediction method deriving a score function from the probability associated to the largest class.
 
-- **An adaptive conformal prediction sets** `[Romano et al., 2020] <https://proceedings.neurips.cc/paper/2020/hash/244edd7e85dc81602b7615cd705545f5-Abstract.html>`_
+- **An adaptive conformal prediction sets method** `[Romano et al., 2020] <https://proceedings.neurips.cc/paper/2020/hash/244edd7e85dc81602b7615cd705545f5-Abstract.html>`_
     A method for conformal prediction deriving a score function that makes use of the full vector of class probabilities.
+
+- **Adaptive conformal inference** `[Gibbs et al., 2021] <https://proceedings.neurips.cc/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html>`_
+    A method for conformal prediction that aims at correcting the coverage of conformal prediction methods in a
+    sequential prediction framework (e.g. time series forecasting) when the distribution of the data shifts over time.
 
 For regression:
 
@@ -64,3 +68,7 @@ For regression:
 
 - **EnbPI** `[Xu et al., 2021] <http://proceedings.mlr.press/v139/xu21h/xu21h.pdf>`_
     A conformal prediction method for time series regression based on data bootstrapping.
+
+- **Adaptive conformal inference** `[Gibbs et al., 2021] <https://proceedings.neurips.cc/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html>`_
+    A method for conformal prediction that aims at correcting the coverage of conformal prediction methods in a
+    sequential prediction framework (e.g. time series forecasting) when the distribution of the data shifts over time.

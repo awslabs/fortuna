@@ -1,9 +1,10 @@
 import jax.numpy as jnp
 
 from fortuna.typing import Array
+from fortuna.conformal.regression.base import ConformalRegressor
 
 
-class JackknifePlusConformalRegressor:
+class JackknifePlusConformalRegressor(ConformalRegressor):
     """
     This class implements the jackknife+ method introduced in
     `Barber et al., 2021 <https://www.stat.cmu.edu/~ryantibs/papers/jackknife.pdf>`__. Given a desired coverage of

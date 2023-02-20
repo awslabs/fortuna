@@ -3,9 +3,10 @@ from typing import List
 import jax.numpy as jnp
 
 from fortuna.typing import Array
+from fortuna.conformal.regression.base import ConformalRegressor
 
 
-class CVPlusConformalRegressor:
+class CVPlusConformalRegressor(ConformalRegressor):
     """
     This class implements the CV+ method introduced in
     `Barber et al., 2021 <https://www.stat.cmu.edu/~ryantibs/papers/jackknife.pdf>`__. It is an extension of the

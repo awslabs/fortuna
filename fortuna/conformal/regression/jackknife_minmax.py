@@ -1,9 +1,10 @@
 import jax.numpy as jnp
 
 from fortuna.typing import Array
+from fortuna.conformal.regression.base import ConformalRegressor
 
 
-class JackknifeMinmaxConformalRegressor:
+class JackknifeMinmaxConformalRegressor(ConformalRegressor):
     """
     This class implements the jackknife-minmax method introduced in
     `Barber et al., 2021 <https://www.stat.cmu.edu/~ryantibs/papers/jackknife.pdf>`__. Jackknife-minmax guarantees the

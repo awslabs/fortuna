@@ -4,9 +4,10 @@ import jax.numpy as jnp
 import numpy as np
 
 from fortuna.typing import Array
+from fortuna.conformal.regression.base import ConformalRegressor
 
 
-class EnbPI:
+class EnbPI(ConformalRegressor):
     def __init__(
         self, aggregation_fun: Callable[[Array], Array] = lambda x: jnp.mean(x, 0)
     ):

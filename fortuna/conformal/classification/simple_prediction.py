@@ -4,9 +4,10 @@ import jax.numpy as jnp
 from jax import vmap
 
 from fortuna.typing import Array
+from fortuna.conformal.classification.base import ConformalClassifier
 
 
-class SimplePredictionConformalClassifier:
+class SimplePredictionConformalClassifier(ConformalClassifier):
     def score(
         self,
         val_probs: Array,
