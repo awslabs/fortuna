@@ -945,3 +945,35 @@ class TestApproximations(unittest.TestCase):
 
             # save state
             prob_class.save_state(checkpoint_path=tmp_dir)
+
+from sklearn.datasets import make_moons
+from fortuna.model import MLP
+from fortuna.prob_model.posterior import *
+from fortuna.data import DataLoader
+class TestHere(unittest.TestCase):
+    def test_here(self):
+        from sklearn.datasets import make_moons
+        train_data = make_moons(n_samples=10000, noise=0.07, random_state=0)
+        test_data = make_moons(n_samples=1000, noise=0.07, random_state=2)
+
+        train_data_loader = DataLoader.from_array_data(train_data, batch_size=128, shuffle=True, prefetch=True)
+        test_data_loader = DataLoader.from_array_data(test_data, batch_size=128, prefetch=True)
+        test_inputs_loader = test_data_loader.to_inputs_loader()
+        from fortuna.prob_model import ProbClassifier
+
+
+        posterior_methods = {
+            "map": MAPPosteriorApproximator(),
+            "deep_ensemble": DeepEnsemblePosteriorApproximator(),
+            "advi": ADVIPosteriorApproximator(),
+            "laplace": LaplacePosteriorApproximator(),
+            "swag": SWAGPosteriorApproximator()
+        }
+
+        entropy = dict()
+        for label, method in posterior_methods.items():
+            prob_model = ProbClassifier(model=MLP(output_dim=2), posterior_approximator=method)
+            status = prob_model.train(train_data_loader=train_data_loader)
+            entropy[label] = prob_model.predictive.entropy(test_inputs_loader)
+        entropy
+

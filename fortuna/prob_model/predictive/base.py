@@ -340,7 +340,7 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(
+        return self._loop_ensemble_fun_through_inputs_loader(
             self._sample_batched_calibrated_outputs,
             inputs_loader,
             n_output_samples,
@@ -870,3 +870,31 @@ class Predictive(WithRNG):
             )
         fun2 = jit(fun2)
         return jnp.concatenate([fun2(batch) for batch in data_loader], 0)
+
+    def _loop_ensemble_fun_through_inputs_loader(
+        self,
+        fun: Callable,
+        inputs_loader: InputsLoader,
+        n_posterior_samples: int,
+        rng: PRNGKeyArray,
+        distribute: bool = True,
+        **kwargs
+    ) -> Array:
+        if distribute and jax.local_device_count() <= 1:
+            distribute = False
+
+        def fun2(_inputs):
+            return fun(_inputs, n_posterior_samples, rng, **kwargs)
+
+        if distribute:
+            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+            fun2 = pmap(fun2)
+            return jnp.concatenate(
+                [
+                    self._unshard_ensemble_arrays(fun2(inputs))
+                    for inputs in inputs_loader
+                ],
+                1,
+            )
+        fun2 = jit(fun2)
+        return jnp.concatenate([fun2(inputs) for inputs in inputs_loader], 1)
