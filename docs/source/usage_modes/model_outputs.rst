@@ -31,7 +31,7 @@ The default output calibrator is temperature scaling, that is what we use in thi
 .. code-block:: python
     :caption: **References:** :class:`~fortuna.calib_model.classification.CalibClassifier`
 
-    from fortuna.calib_model.classification import CalibClassifier
+    from fortuna.calib_model import CalibClassifier
     calib_model = CalibClassifier()
 
 Calibrate the model outputs
@@ -150,7 +150,7 @@ The default output calibrator is temperature scaling, that is what we use in thi
 .. code-block:: python
     :caption: **References:** :class:`~fortuna.calib_model.regressor.CalibRegressor`
 
-    from fortuna.calib_model.regression import CalibRegression
+    from fortuna.calib_model import CalibRegression
     calib_model = CalibRegressor()
 
 Calibrate the model outputs
