@@ -227,15 +227,13 @@ class EnbPI(ConformalRegressor):
             - A new set of residuals, which includes the residuals computed on the new batch of training data points.
             The number of stored training residuals is kept constant by eliminating the oldest ones.
         """
-        if (
-            bootstrap_new_train_preds.shape[0] != bootstrap_new_test_preds.shape[0]
-        ) or (bootstrap_new_train_preds.shape[0] != train_residuals.shape[0]):
+        if bootstrap_new_train_preds.shape[0] != bootstrap_new_test_preds.shape[0]:
             raise ValueError(
-                "The first dimensions of `bootstrap_new_train_preds` and `bootstrap_new_test_preds` and "
-                "`train_residuals` correspond to the number of bootstrap samples, "
+                "The first dimensions of `bootstrap_new_train_preds` and `bootstrap_new_test_preds` "
+                "correspond to the number of bootstrap samples, "
                 "and must have the same size. However, "
-                f"{bootstrap_new_train_preds.shape[0]}, {bootstrap_new_test_preds.shape[0]} "
-                f"and {train_residuals.shape[0]} were found, respectively."
+                f"{bootstrap_new_train_preds.shape[0]} and "
+                f"{bootstrap_new_test_preds.shape[0]} were found, respectively."
             )
         if bootstrap_new_train_preds.ndim == 3:
             if bootstrap_new_train_preds.shape[2] == 1:
