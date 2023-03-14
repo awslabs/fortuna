@@ -37,7 +37,6 @@ jobs:
       - name: Install Package
         run: |
           poetry install --all-extras
-          pip install scikit-learn
 
       # Run the unit tests and build the coverage report
       - name: Run Tests
