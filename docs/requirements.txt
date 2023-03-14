@@ -1,8 +1,0 @@
-# Notebook dependencies
-scikit-learn
-pandas
-tensorflow-datasets
-xlrd
-openpyxl
-# Install Fortuna istself
-.

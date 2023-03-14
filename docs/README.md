@@ -10,7 +10,7 @@ The documentation for Fortuna is comprised of a series of notebooks. To serve th
 
 To build the documentation, first install Fortuna and it's dependencies by following the [installation instructions](https://github.com/awslabs/fortuna#installation). Next, install the documentation requirements through
 ```bash
-pip install -r docs/requirements.txt
+poetry install -E docs
 ```
 Finally, install `jupytext` through either pip or conda, details can be found [here](https://github.com/mwouts/jupytext#install). 
 
