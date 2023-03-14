@@ -1,0 +1,1 @@
+GAUSSIAN_PROCESS_NAME = "gaussian_process"
