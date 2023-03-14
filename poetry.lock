@@ -588,7 +588,7 @@ test-no-images = ["pytest"]
 name = "coverage"
 version = "7.2.1"
 description = "Code coverage measurement for Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -808,7 +808,7 @@ lazy-imports = ["etils[ecolab]"]
 name = "exceptiongroup"
 version = "1.1.1"
 description = "Backport of PEP 654 (exception groups)"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1161,7 +1161,7 @@ testing = ["flake8 (<5)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-chec
 name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1385,7 +1385,7 @@ i18n = ["Babel (>=2.7)"]
 name = "joblib"
 version = "1.2.0"
 description = "Lightweight pipelining with Python functions"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2533,7 +2533,7 @@ test = ["appdirs (==1.4.4)", "covdefaults (>=2.2.2)", "pytest (>=7.2)", "pytest-
 name = "pluggy"
 version = "1.0.0"
 description = "plugin and hook calling mechanisms for python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -2799,7 +2799,7 @@ files = [
 name = "pytest"
 version = "7.2.2"
 description = "pytest: simple powerful testing with Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2823,7 +2823,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 name = "pytest-cov"
 version = "4.0.0"
 description = "Pytest plugin for measuring coverage."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -3208,7 +3208,7 @@ pyasn1 = ">=0.1.3"
 name = "scikit-learn"
 version = "1.2.2"
 description = "A set of python modules for machine learning and data mining"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -3805,7 +3805,7 @@ test = ["pre-commit", "pytest (>=7.0)", "pytest-timeout"]
 name = "threadpoolctl"
 version = "3.1.0"
 description = "threadpoolctl"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.6"
 files = [
@@ -3836,7 +3836,7 @@ test = ["flake8", "isort", "pytest"]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -4153,4 +4153,4 @@ notebooks = ["jupyter"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.11"
-content-hash = "2a734e1fe078cb5bc72b2eac218710bd4e5a81362b36cbd489467ef0244f72b9"
+content-hash = "0bbc5bda47c0d83d77c589fe6af4b6ded9e4e35de1877a188e52708c5714f52f"
