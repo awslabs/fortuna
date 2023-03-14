@@ -17,7 +17,7 @@ class SWAGTrainer(MAPTrainer):
     _deviation_rav_params = None
 
     def _update_state_with_stats(self, state: SWAGState) -> SWAGState:
-        var = self._mean_squared_rav_params - self._mean_rav_params ** 2
+        var = self._mean_squared_rav_params - self._mean_rav_params**2
         var = jnp.maximum(var, 0.0)
         return state.update(
             dict(
@@ -51,7 +51,7 @@ class SWAGTrainer(MAPTrainer):
         )[0]
         if self._mean_rav_params is None:
             self._mean_rav_params = rav_params
-            self._mean_squared_rav_params = rav_params ** 2
+            self._mean_squared_rav_params = rav_params**2
             self._deviation_rav_params = jnp.zeros((len(rav_params), 1))
         else:
             self._mean_rav_params *= current_epoch
@@ -59,7 +59,7 @@ class SWAGTrainer(MAPTrainer):
             self._mean_rav_params /= current_epoch + 1
 
             self._mean_squared_rav_params *= current_epoch
-            self._mean_squared_rav_params += rav_params ** 2
+            self._mean_squared_rav_params += rav_params**2
             self._mean_squared_rav_params /= current_epoch + 1
             self._deviation_rav_params = jnp.concatenate(
                 (

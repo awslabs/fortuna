@@ -1,13 +1,18 @@
-from typing import Optional, List
+from typing import List, Optional
 
 import jax.numpy as jnp
 from jax import vmap
 
 from fortuna.typing import Array
+from fortuna.conformal.classification.base import ConformalClassifier
 
 
-class SimplePredictionConformalClassifier:
-    def score(self, val_probs: Array, val_targets: Array,) -> jnp.ndarray:
+class SimplePredictionConformalClassifier(ConformalClassifier):
+    def score(
+        self,
+        val_probs: Array,
+        val_targets: Array,
+    ) -> jnp.ndarray:
         """
         Compute score function.
 

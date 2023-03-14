@@ -212,7 +212,12 @@ class CalibModelCalibrator(
 
         grad_fn = value_and_grad(
             lambda params: self.training_loss_step(
-                fun, params, targets, outputs, state.mutable, model_key,
+                fun,
+                params,
+                targets,
+                outputs,
+                state.mutable,
+                model_key,
             ),
             has_aux=True,
         )
@@ -322,7 +327,12 @@ class CalibModelCalibrator(
         val_losses_and_metrics_epoch_all_steps = []
         val_epoch_metrics_str = ""
         val_losses_and_metrics_current_batch = self.val_step(
-            state, targets, outputs, fun, rng, metrics,
+            state,
+            targets,
+            outputs,
+            fun,
+            rng,
+            metrics,
         )
         val_losses_and_metrics_epoch_all_steps.append(
             val_losses_and_metrics_current_batch

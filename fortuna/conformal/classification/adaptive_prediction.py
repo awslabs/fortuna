@@ -5,10 +5,15 @@ import numpy as np
 from jax import vmap
 
 from fortuna.typing import Array
+from fortuna.conformal.classification.base import ConformalClassifier
 
 
-class AdaptivePredictionConformalClassifier:
-    def score(self, val_probs: Array, val_targets: Array,) -> jnp.ndarray:
+class AdaptivePredictionConformalClassifier(ConformalClassifier):
+    def score(
+        self,
+        val_probs: Array,
+        val_targets: Array,
+    ) -> jnp.ndarray:
         """
         Compute score function.
 

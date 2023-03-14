@@ -1,13 +1,15 @@
+from typing import Callable, Tuple, Union
+
 import jax.numpy as jnp
 import numpy as np
+
 from fortuna.typing import Array
-from typing import Callable, Union, Tuple
+from fortuna.conformal.regression.base import ConformalRegressor
 
 
-class EnbPI:
+class EnbPI(ConformalRegressor):
     def __init__(
-            self,
-            aggregation_fun: Callable[[Array], Array] = lambda x: jnp.mean(x, 0)
+        self, aggregation_fun: Callable[[Array], Array] = lambda x: jnp.mean(x, 0)
     ):
         """
         Ensemble Batch Prediction Intervals (EnbPI) is a conformal prediction algorithm for time series regression.
@@ -25,13 +27,13 @@ class EnbPI:
         self.aggregation_fun = aggregation_fun
 
     def conformal_interval(
-            self,
-            bootstrap_indices: Array,
-            bootstrap_train_preds: Array,
-            bootstrap_test_preds: Array,
-            train_targets: Array,
-            error: float,
-            return_residuals: bool = False
+        self,
+        bootstrap_indices: Array,
+        bootstrap_train_preds: Array,
+        bootstrap_test_preds: Array,
+        train_targets: Array,
+        error: float,
+        return_residuals: bool = False,
     ) -> Union[Array, Tuple[Array, Array]]:
         """
         Compute a coverage interval for each of the test inputs of the time series, at the desired coverage error.
@@ -75,61 +77,85 @@ class EnbPI:
             the training set.
         """
         n_bootstraps, n_train_times = bootstrap_indices.shape
-        if jnp.min(bootstrap_indices) < 0 or jnp.max(bootstrap_indices) >= n_train_times:
-            raise ValueError(f"All elements f `bootstrap_indices` must be integers from 0 to {n_train_times - 1} "
-                             f"corresponding to the indices of the data used for training in each of the bootstrap "
-                             f"samples.")
+        if (
+            jnp.min(bootstrap_indices) < 0
+            or jnp.max(bootstrap_indices) >= n_train_times
+        ):
+            raise ValueError(
+                f"All elements f `bootstrap_indices` must be integers from 0 to {n_train_times - 1} "
+                f"corresponding to the indices of the data used for training in each of the bootstrap "
+                f"samples."
+            )
         if bootstrap_train_preds.shape[0] != n_bootstraps:
-            raise ValueError("The first dimension of `bootstrap_train_preds` and `bootstrap_indices` corresponds to "
-                             "the number of bootstrap samples, and must have the same size. However, "
-                             f"{bootstrap_train_preds.shape[0]} and {n_bootstraps} were found, respectively.")
+            raise ValueError(
+                "The first dimension of `bootstrap_train_preds` and `bootstrap_indices` corresponds to "
+                "the number of bootstrap samples, and must have the same size. However, "
+                f"{bootstrap_train_preds.shape[0]} and {n_bootstraps} were found, respectively."
+            )
         if bootstrap_train_preds.shape[1] != n_train_times:
-            raise ValueError("The second dimension of `bootstrap_train_preds` and `bootstrap_indices` corresponds to "
-                             "the number of data points in the time series used for training, "
-                             "and must have the same size. "
-                             f"However, {bootstrap_train_preds.shape[1]} and {n_train_times} were found, respectively.")
+            raise ValueError(
+                "The second dimension of `bootstrap_train_preds` and `bootstrap_indices` corresponds to "
+                "the number of data points in the time series used for training, "
+                "and must have the same size. "
+                f"However, {bootstrap_train_preds.shape[1]} and {n_train_times} were found, respectively."
+            )
         if bootstrap_test_preds.shape[0] != n_bootstraps:
-            raise ValueError("The first dimension of `bootstrap_test_preds` and `bootstrap_indices` corresponds to the "
-                             "number of bootstrap samples, and must have the same size. However, "
-                             f"{bootstrap_test_preds.shape[0]} and {n_bootstraps} were found, respectively.")
+            raise ValueError(
+                "The first dimension of `bootstrap_test_preds` and `bootstrap_indices` corresponds to the "
+                "number of bootstrap samples, and must have the same size. However, "
+                f"{bootstrap_test_preds.shape[0]} and {n_bootstraps} were found, respectively."
+            )
         if bootstrap_train_preds.ndim == 3:
             if bootstrap_train_preds.shape[2] == 1:
                 bootstrap_train_preds = bootstrap_train_preds.squeeze(2)
             else:
                 raise ValueError(
                     "This method is supported only for scalar model predictions. However, `bootstrap_train_preds` has "
-                    "third dimension greater than 1.")
+                    "third dimension greater than 1."
+                )
         if bootstrap_test_preds.ndim == 3:
             if bootstrap_test_preds.shape[2] == 1:
                 bootstrap_test_preds = bootstrap_test_preds.squeeze(2)
             else:
                 raise ValueError(
                     "This method is supported only for scalar model predictions. However, `bootstrap_test_preds` has "
-                    "third dimension greater than 1.")
+                    "third dimension greater than 1."
+                )
         if train_targets.shape[0] != bootstrap_train_preds.shape[1]:
-            raise ValueError("The first dimension of `train_targets` and the second dimension of "
-                             "`bootstrap_train_preds` correspond to the number of data points in the time series used "
-                             "for training, and must have the same size. However, "
-                             f"{train_targets.shape[0]} and {bootstrap_train_preds.shape[1]} were found, respectively.")
+            raise ValueError(
+                "The first dimension of `train_targets` and the second dimension of "
+                "`bootstrap_train_preds` correspond to the number of data points in the time series used "
+                "for training, and must have the same size. However, "
+                f"{train_targets.shape[0]} and {bootstrap_train_preds.shape[1]} were found, respectively."
+            )
         if train_targets.ndim == 2:
             if train_targets.shape[1] == 1:
                 train_targets = train_targets.squeeze(1)
             else:
                 raise ValueError(
                     "This method is supported only for scalar target variables. However, `train_targets` has "
-                    "second dimension greater than 1.")
+                    "second dimension greater than 1."
+                )
 
         in_bootstrap_indices = np.zeros((n_bootstraps, n_train_times), dtype=bool)
         np.put_along_axis(in_bootstrap_indices, bootstrap_indices, values=1, axis=1)
-        aggr_bootstrap_test_preds = np.zeros((n_train_times,) + bootstrap_test_preds.shape[1:])
+        aggr_bootstrap_test_preds = np.zeros(
+            (n_train_times,) + bootstrap_test_preds.shape[1:]
+        )
         train_residuals = np.zeros((n_train_times,) + train_targets.shape[1:])
 
         for t in range(n_train_times):
             which_bootstraps = np.where(~(in_bootstrap_indices[:, t]))[0]
             if len(which_bootstraps) > 0:
-                aggr_bootstrap_train_pred = self.aggregation_fun(bootstrap_train_preds[which_bootstraps, t])
-                train_residuals[t] = np.abs(train_targets[t] - aggr_bootstrap_train_pred)
-                aggr_bootstrap_test_preds[t] = self.aggregation_fun(bootstrap_test_preds[which_bootstraps])
+                aggr_bootstrap_train_pred = self.aggregation_fun(
+                    bootstrap_train_preds[which_bootstraps, t]
+                )
+                train_residuals[t] = np.abs(
+                    train_targets[t] - aggr_bootstrap_train_pred
+                )
+                aggr_bootstrap_test_preds[t] = self.aggregation_fun(
+                    bootstrap_test_preds[which_bootstraps]
+                )
             else:
                 train_residuals[t] = np.abs(train_targets[t])
 
@@ -145,12 +171,12 @@ class EnbPI:
         return conformal_intervals, train_residuals
 
     def conformal_interval_from_residuals(
-            self,
-            train_residuals: Array,
-            bootstrap_new_train_preds: Array,
-            bootstrap_new_test_preds: Array,
-            new_train_targets: Array,
-            error: float,
+        self,
+        train_residuals: Array,
+        bootstrap_new_train_preds: Array,
+        bootstrap_new_test_preds: Array,
+        new_train_targets: Array,
+        error: float,
     ) -> Union[Array, Tuple[Array, Array]]:
         """
         Compute a coverage interval for each of the test inputs of the time series, at the desired coverage error.
@@ -201,43 +227,51 @@ class EnbPI:
             - A new set of residuals, which includes the residuals computed on the new batch of training data points.
             The number of stored training residuals is kept constant by eliminating the oldest ones.
         """
-        if (bootstrap_new_train_preds.shape[0] != bootstrap_new_test_preds.shape[0]) or \
-                (bootstrap_new_train_preds.shape[0] != train_residuals.shape[0]):
-            raise ValueError("The first dimensions of `bootstrap_new_train_preds` and `bootstrap_new_test_preds` and "
-                             "`train_residuals` correspond to the number of bootstrap samples, "
-                             "and must have the same size. However, "
-                             f"{bootstrap_new_train_preds.shape[0]}, {bootstrap_new_test_preds.shape[0]} "
-                             f"and {train_residuals.shape[0]} were found, respectively.")
+        if bootstrap_new_train_preds.shape[0] != bootstrap_new_test_preds.shape[0]:
+            raise ValueError(
+                "The first dimensions of `bootstrap_new_train_preds` and `bootstrap_new_test_preds` "
+                "correspond to the number of bootstrap samples, "
+                "and must have the same size. However, "
+                f"{bootstrap_new_train_preds.shape[0]} and "
+                f"{bootstrap_new_test_preds.shape[0]} were found, respectively."
+            )
         if bootstrap_new_train_preds.ndim == 3:
             if bootstrap_new_train_preds.shape[2] == 1:
                 bootstrap_new_train_preds = bootstrap_new_train_preds.squeeze(2)
             else:
                 raise ValueError(
                     "This method is supported only for scalar model predictions. However, "
-                    "`bootstrap_new_train_preds` has third dimension greater than 1.")
+                    "`bootstrap_new_train_preds` has third dimension greater than 1."
+                )
         if bootstrap_new_test_preds.ndim == 3:
             if bootstrap_new_test_preds.shape[2] == 1:
                 bootstrap_new_test_preds = bootstrap_new_test_preds.squeeze(2)
             else:
                 raise ValueError(
                     "This method is supported only for scalar model predictions. "
-                    "However, `bootstrap_new_test_preds` has third dimension greater than 1.")
+                    "However, `bootstrap_new_test_preds` has third dimension greater than 1."
+                )
         if new_train_targets.shape[0] != bootstrap_new_train_preds.shape[1]:
-            raise ValueError("The first dimension of `new_train_targets` and the second dimension of "
-                             "`bootstrap_new_train_preds` correspond to the number of data points in the time series "
-                             "used for training, and must have the same size. However, "
-                             f"{new_train_targets.shape[0]} and {bootstrap_new_train_preds.shape[1]} were found, "
-                             f"respectively.")
+            raise ValueError(
+                "The first dimension of `new_train_targets` and the second dimension of "
+                "`bootstrap_new_train_preds` correspond to the number of data points in the time series "
+                "used for training, and must have the same size. However, "
+                f"{new_train_targets.shape[0]} and {bootstrap_new_train_preds.shape[1]} were found, "
+                f"respectively."
+            )
         if new_train_targets.ndim == 2:
             if new_train_targets.shape[1] == 1:
                 new_train_targets = new_train_targets.squeeze(1)
             else:
                 raise ValueError(
                     "This method is supported only for scalar target variables. However, `new_train_targets` has "
-                    "second dimension greater than 1.")
+                    "second dimension greater than 1."
+                )
 
         train_residuals[:-1] = train_residuals[1:]
-        train_residuals[-1] = np.abs(new_train_targets - self.aggregation_fun(bootstrap_new_train_preds))
+        train_residuals[-1] = np.abs(
+            new_train_targets - self.aggregation_fun(bootstrap_new_train_preds)
+        )
         aggr_test_preds = self.aggregation_fun(bootstrap_new_test_preds)
         residuals_quantile = jnp.quantile(train_residuals, q=1 - error, axis=0)
 

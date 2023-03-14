@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 class WithCheckpointingMixin:
     def __init__(
-        self, **kwargs,
+        self,
+        **kwargs,
     ):
         """
         Mixin class for all trainers that need checkpointing capabilities. This is a wrapper around functions in
@@ -108,7 +109,9 @@ class WithEarlyStoppingMixin:
                 min_delta=early_stopping_min_delta, patience=early_stopping_patience
             )
             if early_stopping_verbose:
-                logging.info("If validation data are provided, early stopping will be enabled.")
+                logging.info(
+                    "If validation data are provided, early stopping will be enabled."
+                )
 
     @property
     def is_early_stopping_active(self) -> bool:

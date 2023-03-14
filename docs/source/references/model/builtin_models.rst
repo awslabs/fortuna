@@ -11,3 +11,7 @@ We support several built-in models:
    cnn
    resnet
    wideresnet
+   constant
+   scalar_constant
+   hyper
+   scalar_hyper

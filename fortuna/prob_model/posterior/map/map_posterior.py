@@ -24,7 +24,9 @@ logger = logging.getLogger(__name__)
 
 class MAPPosterior(Posterior):
     def __init__(
-        self, joint: Joint, posterior_approximator: MAPPosteriorApproximator,
+        self,
+        joint: Joint,
+        posterior_approximator: MAPPosteriorApproximator,
     ):
         """
         Maximum-a-Posteriori (MAP) approximate posterior class.
@@ -55,9 +57,11 @@ class MAPPosterior(Posterior):
             raise ValueError(
                 "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
             )
-        (init_prob_model_state, n_train_data, n_val_data,) = self._init(
-            train_data_loader, val_data_loader
-        )
+        (
+            init_prob_model_state,
+            n_train_data,
+            n_val_data,
+        ) = self._init(train_data_loader, val_data_loader)
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,

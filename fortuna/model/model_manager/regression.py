@@ -96,7 +96,7 @@ class RegressionModelManager(ModelManager):
             )
             aux.update({"likelihood_log_variance_model": lik_log_var_mutable})
         else:
-            lik_log_var_outputs = self.model.apply(
+            lik_log_var_outputs = self.likelihood_log_variance_model.apply(
                 lik_log_var_variables,
                 inputs,
                 train=train,
@@ -133,7 +133,7 @@ class RegressionModelManager(ModelManager):
         }
         return dict(
             model=self.model.init(model_rngs, jnp.zeros((1,) + input_shape), **kwargs),
-            lik_log_var=self.model.init(
+            lik_log_var=self.likelihood_log_variance_model.init(
                 lik_log_var_rngs, jnp.zeros((1,) + input_shape), **kwargs
             ),
         )

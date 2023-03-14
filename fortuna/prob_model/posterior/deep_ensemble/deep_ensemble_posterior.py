@@ -29,7 +29,9 @@ logger = logging.getLogger(__name__)
 
 class DeepEnsemblePosterior(Posterior):
     def __init__(
-        self, joint: Joint, posterior_approximator: DeepEnsemblePosteriorApproximator,
+        self,
+        joint: Joint,
+        posterior_approximator: DeepEnsemblePosteriorApproximator,
     ):
         """
         Deep ensemble approximate posterior class.

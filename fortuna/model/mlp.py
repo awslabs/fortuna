@@ -30,7 +30,8 @@ class MLP(nn.Module):
                 "`widths` and `activations` must have the same number of elements."
             )
         self.dfe_subnet = MLPDeepFeatureExtractorSubNet(
-            widths=self.widths, activations=self.activations[:-1],
+            widths=self.widths,
+            activations=self.activations[:-1],
         )
         self.output_subnet = MLPOutputSubNet(
             activation=self.activations[-1], output_dim=self.output_dim

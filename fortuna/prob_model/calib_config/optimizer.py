@@ -7,7 +7,9 @@ from fortuna.typing import OptaxOptimizer
 
 class CalibOptimizer:
     def __init__(
-        self, method: Optional[OptaxOptimizer] = optax.adam(1e-2), n_epochs: int = 100,
+        self,
+        method: Optional[OptaxOptimizer] = optax.adam(1e-2),
+        n_epochs: int = 100,
     ):
         """
         An object to configure the optimization in the calibration process.

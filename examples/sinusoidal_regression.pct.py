@@ -5,7 +5,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.1
+#       jupytext_version: 1.14.5
 #   kernelspec:
 #     display_name: fortuna
 #     language: python
@@ -15,6 +15,9 @@
 # %% [markdown]
 # # Sinusoidal regression
 # In this notebook we show how to use Fortuna to obtain calibrated uncertainty estimates of predictions in a sinusoidal regression task.
+
+# %%
+# !pip install -q aws-fortuna
 
 # %% [markdown]
 # ### Generate the data
@@ -63,7 +66,7 @@ import flax.linen as nn
 output_dim = 1
 prob_model = ProbRegressor(
     model=MLP(output_dim=output_dim, activations=(nn.tanh, nn.tanh)),
-    likelihood_log_variance_model=MLP(output_dim=output_dim),
+    likelihood_log_variance_model=MLP(output_dim=output_dim, activations=(nn.tanh, nn.tanh)),
     posterior_approximator=DeepEnsemblePosteriorApproximator()
 )
 
@@ -151,7 +154,7 @@ val_means = prob_model.predictive.mean(inputs_loader=val_inputs_loader)
 val_stds = prob_model.predictive.std(inputs_loader=val_inputs_loader)
 
 test_conformal_intervals2 = OneDimensionalUncertaintyConformalRegressor().conformal_interval(
-    val_preds=val_means, val_uncertainties=val_stds, test_preds=test_means, test_uncertainties=test_stds,
+    val_preds=val_means, val_uncertainties=val_stds, test_preds=test_means, test_uncertainties=test_stds, 
     val_targets=val_data_loader.to_array_targets(), error=0.05
 )
 conformal_picp2 = prediction_interval_coverage_probability(lower_bounds=test_conformal_intervals2[:, 0], upper_bounds=test_conformal_intervals2[:, 1], targets=test_targets)

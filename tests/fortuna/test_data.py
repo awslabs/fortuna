@@ -3,7 +3,9 @@ import unittest
 import numpy as np
 
 from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
-from tests.make_data import make_array_random_data, make_generator_fun_random_data, make_generator_random_data
+from tests.make_data import (make_array_random_data,
+                             make_generator_fun_random_data,
+                             make_generator_random_data)
 
 
 class Test(unittest.TestCase):
@@ -43,7 +45,9 @@ class Test(unittest.TestCase):
             output_type="continuous",
         )
         for prefetch in [False, True]:
-            data_new = DataLoader.from_array_data(data_org, batch_size=2, prefetch=prefetch).to_array_data()
+            data_new = DataLoader.from_array_data(
+                data_org, batch_size=2, prefetch=prefetch
+            ).to_array_data()
             for original, new in zip(data_org, data_new):
                 assert (original == new).all()
 

@@ -222,7 +222,9 @@ class TestLikelihoods(unittest.TestCase):
         )
 
         assert self.reg_lik.quantile(
-            jnp.array([0.3, 0.6]), params=params, inputs_loader=self.reg_inputs_arr,
+            jnp.array([0.3, 0.6]),
+            params=params,
+            inputs_loader=self.reg_inputs_arr,
         ).shape == (2, self.n_inputs, self.output_dim)
 
     def test_class_stats(self):

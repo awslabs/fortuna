@@ -71,101 +71,125 @@ class TestPredictives(unittest.TestCase):
                 n_epochs=2,
             )
             log_probs = self.prob_class.predictive.log_prob(
-                self.class_data_loader, n_posterior_samples=self.n_post_samples,
+                self.class_data_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert log_probs.shape == (self.n_inputs,)
 
             log_probs = self.prob_reg.predictive.log_prob(
-                self.reg_data_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_data_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert log_probs.shape == (self.n_inputs,)
 
             sample = self.prob_class.predictive.sample(
-                self.class_inputs_loader, n_target_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_target_samples=self.n_post_samples,
             )
-            assert sample.shape == (self.n_post_samples, self.n_inputs,)
+            assert sample.shape == (
+                self.n_post_samples,
+                self.n_inputs,
+            )
 
             sample = self.prob_reg.predictive.sample(
-                self.reg_inputs_loader, n_target_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_target_samples=self.n_post_samples,
             )
             assert sample.shape == (self.n_post_samples, self.n_inputs, self.output_dim)
 
             assert self.prob_reg.predictive.mean(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs, self.output_dim)
 
             assert self.prob_class.predictive.mean(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs, self.output_dim)
 
             assert self.prob_reg.predictive.mode(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs, self.output_dim)
 
             assert self.prob_class.predictive.mode(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
             variance = self.prob_reg.predictive.variance(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert variance.shape == (self.n_inputs, self.output_dim)
             assert (variance >= 0).all()
 
             variance = self.prob_class.predictive.variance(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert variance.shape == (self.n_inputs, self.output_dim)
             assert (variance >= 0).all()
 
             aleatoric_variance = self.prob_reg.predictive.aleatoric_variance(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert aleatoric_variance.shape == (self.n_inputs, self.output_dim)
             assert (aleatoric_variance >= 0).all()
 
             aleatoric_variance = self.prob_class.predictive.aleatoric_variance(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert aleatoric_variance.shape == (self.n_inputs, self.output_dim)
             assert (aleatoric_variance >= 0).all()
 
             epistemic_variance = self.prob_reg.predictive.epistemic_variance(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert epistemic_variance.shape == (self.n_inputs, self.output_dim)
             assert (epistemic_variance >= 0).all()
 
             epistemic_variance = self.prob_class.predictive.epistemic_variance(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             )
             assert epistemic_variance.shape == (self.n_inputs, self.output_dim)
             assert (epistemic_variance >= 0).all()
 
             assert self.prob_reg.predictive.entropy(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
             assert self.prob_class.predictive.entropy(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
             assert self.prob_reg.predictive.aleatoric_entropy(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
             assert self.prob_class.predictive.aleatoric_entropy(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
             assert self.prob_reg.predictive.epistemic_entropy(
-                self.reg_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.reg_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
             assert self.prob_class.predictive.epistemic_entropy(
-                self.class_inputs_loader, n_posterior_samples=self.n_post_samples,
+                self.class_inputs_loader,
+                n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
             assert self.prob_reg.predictive.quantile(
-                jnp.array([0.3, 0.6]), inputs_loader=self.reg_inputs_loader,
+                jnp.array([0.3, 0.6]),
+                inputs_loader=self.reg_inputs_loader,
             ).shape == (2, self.n_inputs, self.output_dim)

@@ -288,7 +288,13 @@ class TrainerABC(
         for step, batch in enumerate(training_dataloader):
             # forward and backward pass
             state, aux = self.training_step(
-                state, batch, fun, rng, training_dataset_size, unravel, training_kwargs,
+                state,
+                batch,
+                fun,
+                rng,
+                training_dataset_size,
+                unravel,
+                training_kwargs,
             )
             # compute training losses and metrics for the current batch
             training_losses_and_metrics_current_batch = self.training_step_end(
@@ -392,7 +398,10 @@ class TrainerABC(
         return grad, loss
 
     def on_train_start(
-        self, state: TrainState, dataloaders: List[DataLoader], rng: PRNGKeyArray,
+        self,
+        state: TrainState,
+        dataloaders: List[DataLoader],
+        rng: PRNGKeyArray,
     ) -> Tuple[TrainState, List[DataLoader], PRNGKeyArray]:
         return state, dataloaders, rng
 

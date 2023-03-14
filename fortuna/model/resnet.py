@@ -42,7 +42,10 @@ class ResNetBlock(nn.Module):
     strides: Tuple[int, int] = (1, 1)
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray,) -> jnp.ndarray:
+    def __call__(
+        self,
+        x: jnp.ndarray,
+    ) -> jnp.ndarray:
         """
         Block forward pass.
 
@@ -192,7 +195,7 @@ class DeepFeatureExtractorSubNet(nn.Module):
             for j in range(block_size):
                 strides = (2, 2) if i > 0 and j == 0 else (1, 1)
                 x = self.block_cls(
-                    self.num_filters * 2 ** i,
+                    self.num_filters * 2**i,
                     strides=strides,
                     conv=conv,
                     norm=norm,

@@ -5,13 +5,18 @@ import unittest
 from types import SimpleNamespace
 
 import flax.linen as nn
+import jax.numpy as jnp
 import requests
 from jax import random
 from tqdm import tqdm
 
 from fortuna.model.cnn import CNN
+from fortuna.model.constant import ConstantModel
+from fortuna.model.hyper import HyperparameterModel
+from fortuna.model.linear import LinearModel
 from fortuna.model.mlp import MLP
-from fortuna.model.linear import Linear
+from fortuna.model.scalar_constant import ScalarConstantModel
+from fortuna.model.scalar_hyper import ScalarHyperparameterModel
 from tests.make_data import make_array_random_inputs
 
 
@@ -91,7 +96,7 @@ class TestMLP(unittest.TestCase):
         self.assertRaises(Exception, mlp.init, self.rng, self.inputs)
 
 
-class TestLinear(unittest.TestCase):
+class TestLinearModel(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.shape_inputs = (3,)
@@ -103,11 +108,99 @@ class TestLinear(unittest.TestCase):
         self.rng = random.PRNGKey(0)
 
     def test_linear(self):
-        mlp = Linear(output_dim=self.output_dim)
-        params = mlp.init(self.rng, self.inputs)
-        outputs = mlp.apply(params, self.inputs)
+        linear = LinearModel(output_dim=self.output_dim)
+        params = linear.init(self.rng, self.inputs)
+        outputs = linear.apply(params, self.inputs)
         assert outputs.shape == (self.n_inputs, self.output_dim)
-        assert mlp.output_dim == self.output_dim
+        assert linear.output_dim == self.output_dim
+
+
+class TestConstant(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape_inputs = (3,)
+        self.output_dim = 2
+        self.n_inputs = 10
+        self.inputs = make_array_random_inputs(
+            n_inputs=self.n_inputs, shape_inputs=self.shape_inputs
+        )
+        self.rng = random.PRNGKey(0)
+
+    def test_constant(self):
+        constant = ConstantModel(output_dim=self.output_dim)
+        params = constant.init(self.rng, self.inputs)
+        assert jnp.alltrue(params["params"]["constant"] == jnp.zeros(self.output_dim))
+        assert jnp.alltrue(
+            params["params"]["constant"] == constant.apply(params, self.inputs)
+        )
+
+        constant = ConstantModel(
+            output_dim=self.output_dim, initializer_fun=nn.initializers.ones
+        )
+        params = constant.init(self.rng, self.inputs)
+        assert jnp.alltrue(params["params"]["constant"] == jnp.ones(self.output_dim))
+
+
+class TestScalarConstant(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape_inputs = (3,)
+        self.output_dim = 2
+        self.n_inputs = 10
+        self.inputs = make_array_random_inputs(
+            n_inputs=self.n_inputs, shape_inputs=self.shape_inputs
+        )
+        self.rng = random.PRNGKey(0)
+
+    def test_scalar_constant(self):
+        scalar = ScalarConstantModel(output_dim=self.output_dim)
+        params = scalar.init(self.rng, self.inputs)
+        assert jnp.alltrue(params["params"]["scalar"] == jnp.zeros(self.output_dim))
+        assert jnp.alltrue(
+            params["params"]["scalar"] == scalar.apply(params, self.inputs)
+        )
+
+
+class TestHyperparameter(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape_inputs = (3,)
+        self.output_dim = 2
+        self.n_inputs = 10
+        self.inputs = make_array_random_inputs(
+            n_inputs=self.n_inputs, shape_inputs=self.shape_inputs
+        )
+        self.rng = random.PRNGKey(0)
+
+    def test_hyper(self):
+        value = jnp.array([1.0, 2.0])
+        hyper = HyperparameterModel(value=value)
+        params = hyper.init(self.rng, self.inputs)
+        assert jnp.alltrue(params["params"]["none"] == jnp.zeros(0))
+        assert jnp.alltrue(hyper.apply(params, self.inputs) == value)
+
+
+class TestScalarHyperparameter(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.shape_inputs = (3,)
+        self.output_dim = 2
+        self.n_inputs = 10
+        self.inputs = make_array_random_inputs(
+            n_inputs=self.n_inputs, shape_inputs=self.shape_inputs
+        )
+        self.rng = random.PRNGKey(0)
+
+    def test_scalar_hyper(self):
+        value = 3.0
+        scalar = ScalarHyperparameterModel(output_dim=2, value=value)
+        params = scalar.init(self.rng, self.inputs)
+        assert jnp.alltrue(params["params"]["none"] == jnp.zeros(0))
+        assert jnp.alltrue(
+            scalar.apply(params, self.inputs)
+            == value * jnp.ones((self.inputs.shape[0], self.output_dim))
+        )
+
 
 class TestCNN(unittest.TestCase):
     def __init__(self, *args, **kwargs):

@@ -4,13 +4,14 @@ import jax.numpy as jnp
 import numpy as np
 
 from fortuna.conformal.classification import (
-    AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier)
+    AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier, AdaptiveConformalClassifier)
 from fortuna.conformal.regression import (
-    OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, CVPlusConformalRegressor,
-    JackknifeMinmaxConformalRegressor, JackknifePlusConformalRegressor, EnbPI)
+    CVPlusConformalRegressor, EnbPI, JackknifeMinmaxConformalRegressor,
+    JackknifePlusConformalRegressor,
+    OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, AdaptiveConformalRegressor)
 
 
-class TestConformals(unittest.TestCase):
+class TestConformalMethods(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -137,7 +138,9 @@ class TestConformals(unittest.TestCase):
             np.random.normal(size=(m, 1)),
         ]
 
-        intervals = CVPlusConformalRegressor().conformal_interval(cross_val_outputs, cross_val_targets, cross_test_outputs, 0.05)
+        intervals = CVPlusConformalRegressor().conformal_interval(
+            cross_val_outputs, cross_val_targets, cross_test_outputs, 0.05
+        )
         assert intervals.ndim == 2
         assert intervals.shape[0] == m
         assert intervals.shape[1] == 2
@@ -152,8 +155,9 @@ class TestConformals(unittest.TestCase):
         loo_val_targets = np.random.normal(size=(n, 1))
         loo_test_outputs = np.random.normal(size=(n, m, 1))
 
-        intervals = JackknifePlusConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
-                                                                        loo_test_outputs, 0.05)
+        intervals = JackknifePlusConformalRegressor().conformal_interval(
+            loo_val_outputs, loo_val_targets, loo_test_outputs, 0.05
+        )
         assert intervals.ndim == 2
         assert intervals.shape[0] == m
         assert intervals.shape[1] == 2
@@ -168,8 +172,9 @@ class TestConformals(unittest.TestCase):
         loo_val_targets = np.random.normal(size=(n, 1))
         loo_test_outputs = np.random.normal(size=(n, m, 1))
 
-        intervals = JackknifeMinmaxConformalRegressor().conformal_interval(loo_val_outputs, loo_val_targets,
-                                                                          loo_test_outputs, 0.05)
+        intervals = JackknifeMinmaxConformalRegressor().conformal_interval(
+            loo_val_outputs, loo_val_targets, loo_test_outputs, 0.05
+        )
         assert intervals.ndim == 2
         assert intervals.shape[0] == m
         assert intervals.shape[1] == 2
@@ -195,7 +200,7 @@ class TestConformals(unittest.TestCase):
                 bootstrap_train_preds=bootstrap_train_preds,
                 bootstrap_test_preds=bootstrap_test_preds,
                 train_targets=train_targets,
-                error=error
+                error=error,
             )
             assert intervals.ndim == 2
             assert intervals.shape[0] == t1
@@ -214,7 +219,7 @@ class TestConformals(unittest.TestCase):
                 bootstrap_train_preds=bootstrap_train_preds,
                 bootstrap_test_preds=bootstrap_test_preds,
                 train_targets=train_targets,
-                error=error
+                error=error,
             )
             assert intervals.ndim == 2
             assert intervals.shape[0] == t1
@@ -231,7 +236,7 @@ class TestConformals(unittest.TestCase):
                 bootstrap_train_preds=bootstrap_train_preds,
                 bootstrap_test_preds=bootstrap_test_preds,
                 train_targets=train_targets,
-                error=error
+                error=error,
             )
             assert intervals.ndim == 2
             assert intervals.shape[0] == t1
@@ -249,7 +254,7 @@ class TestConformals(unittest.TestCase):
                 bootstrap_test_preds=bootstrap_test_preds,
                 train_targets=train_targets,
                 error=error,
-                return_residuals=True
+                return_residuals=True,
             )
 
             assert intervals.ndim == 2
@@ -260,3 +265,39 @@ class TestConformals(unittest.TestCase):
             assert len(np.unique(intervals[:, 1])) > 1
             assert residuals.shape == (t,)
             assert np.alltrue(residuals >= 0)
+
+    def test_adaptive_conformal_regressor(self):
+        acr = AdaptiveConformalRegressor(conformal_regressor=QuantileConformalRegressor())
+        error = acr.update_error(
+            conformal_interval=np.random.normal(size=2),
+            error=0.01,
+            target=np.array([1.2]),
+            target_error=0.05
+        )
+
+        error = acr.update_error(
+            conformal_interval=np.random.normal(size=2),
+            error=0.01,
+            target=np.array([1.2]),
+            target_error=0.05,
+            weights=np.array([0.1, 0.2, 0.3, 0.4]),
+            were_in=np.array([1, 0, 1])
+        )
+
+    def test_adaptive_conformal_classification(self):
+        acr = AdaptiveConformalClassifier(conformal_classifier=AdaptivePredictionConformalClassifier())
+        error = acr.update_error(
+            conformal_set=[2, 0],
+            error=0.01,
+            target=np.array([1]),
+            target_error=0.05
+        )
+
+        error = acr.update_error(
+            conformal_set=[2, 0],
+            error=0.01,
+            target=np.array([1]),
+            target_error=0.05,
+            weights=np.array([0.1, 0.2, 0.3, 0.4]),
+            were_in=np.array([1, 0, 1])
+        )

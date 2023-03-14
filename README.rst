@@ -167,6 +167,19 @@ Material
 - `AWS launch blog post <https://aws.amazon.com/blogs/machine-learning/introducing-fortuna-a-library-for-uncertainty-quantification/>`_
 - `Fortuna: A Library for Uncertainty Quantification in Deep Learning [arXiv paper] <https://arxiv.org/abs/2302.04019>`_
 
+Citing Fortuna
+==============
+To cite Fortuna:
+
+.. code-block::
+
+    @article{detommaso2023fortuna,
+      title={Fortuna: A Library for Uncertainty Quantification in Deep Learning},
+      author={Detommaso, Gianluca and Gasparin, Alberto and Donini, Michele and Seeger, Matthias and Wilson, Andrew Gordon and Archambeau, Cedric},
+      journal={arXiv preprint arXiv:2302.04019},
+      year={2023}
+    }
+
 Contributing
 ============
 If you wish to contribute to the project, please refer to our `contribution guidelines <https://github.com/awslabs/fortuna/blob/main/CONTRIBUTING.md>`_.

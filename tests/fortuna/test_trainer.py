@@ -46,7 +46,10 @@ class FakeTrainer(TrainerABC):
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
         state.step += 1
-        return state, {"loss": 4.2, "logging_kwargs": None,}
+        return state, {
+            "loss": 4.2,
+            "logging_kwargs": None,
+        }
 
     def training_loss_step(
         self,
