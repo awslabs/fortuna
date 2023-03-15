@@ -9,6 +9,7 @@ In this section we show some examples of how to use Fortuna in classification an
    two_moons_classification.nblink
    tabular_regressions.nblink
    jackknifeplus_regression.nblink
+   multivalid_coverage.nblink
    enbpi_ts_regression.nblink
    adaptive_conformal_inference.nblink
    bring_in_your_own.nblink
