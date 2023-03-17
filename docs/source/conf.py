@@ -86,6 +86,8 @@ nbsphinx_execute_arguments = ["--InlineBackend.figure_formats={'svg', 'pdf'}"]
 nbsphinx_responsive_width = "700px"
 # List expensive-to-compute notebooks here:
 # nb_execution_excludepatterns = ['list', 'of', '*patterns']
+# Alias kernel names
+nb_kernel_rgx_aliases = {"fortuna": "python3"}
 
 
 # -- Options for HTML output -------------------------------------------------
