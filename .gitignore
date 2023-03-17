@@ -6,6 +6,7 @@
 
 
 docs/build/
+docs/source/examples/
 **/*.tar.gz
 **/*.txt
 **/*.txt~
