@@ -3,3 +3,16 @@
 .LSOverride
 *.ipynb
 **/__pycache__/
+
+
+docs/build/
+**/*.tar.gz
+**/*.txt
+**/*.txt~
+**/*.csv
+**/*.zip
+**/*.xlsx
+**/*.xls
+**/*.data
+**/*.ods
+**/*._.DS_Store

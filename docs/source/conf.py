@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -14,6 +15,36 @@ copyright = "2022, AWS"
 author = "Gianluca Detommaso"
 
 sys.path.insert(0, os.path.abspath("../.."))
+sys.path.append(os.path.abspath(os.path.join(__file__, "..", "..", "..")))
+
+# Copy over the examples. Function copied from GPyTorch's conf.py
+examples_source = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "examples")
+)
+examples_dest = os.path.abspath(os.path.join(os.path.dirname(__file__), "examples"))
+if os.path.exists(examples_dest):
+    shutil.rmtree(examples_dest)
+os.mkdir(examples_dest)
+for root, dirs, files in os.walk(examples_source):
+    for dr in dirs:
+        os.mkdir(os.path.join(root.replace(examples_source, examples_dest), dr))
+    for fil in files:
+        if os.path.splitext(fil)[1] in [".py", ".md", ".rst"]:
+            source_filename = os.path.join(root, fil)
+            dest_filename = source_filename.replace(examples_source, examples_dest)
+            # If we're skipping examples, put a dummy file in place
+            if os.getenv("SKIP_EXAMPLES"):
+                if dest_filename.endswith("index.rst"):
+                    shutil.copyfile(source_filename, dest_filename)
+                else:
+                    with open(os.path.splitext(dest_filename)[0] + ".rst", "w") as f:
+                        basename = os.path.splitext(os.path.basename(dest_filename))[0]
+                        f.write(f"{basename}\n" + "=" * 80)
+
+            # Otherwise, copy over the real example files
+            else:
+                shutil.copyfile(source_filename, dest_filename)
+
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -53,6 +84,8 @@ nbsphinx_custom_formats = {
 nbsphinx_execute_arguments = ["--InlineBackend.figure_formats={'svg', 'pdf'}"]
 # If window is narrower than this, input/output prompts are on separate lines:
 nbsphinx_responsive_width = "700px"
+# List expensive-to-compute notebooks here:
+# nb_execution_excludepatterns = ['list', 'of', '*patterns']
 
 
 # -- Options for HTML output -------------------------------------------------
