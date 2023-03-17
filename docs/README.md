@@ -24,6 +24,25 @@ jupytext --to notebook examples/*pct.py
 
 This will create a corresponding notebook file for each `.pct.py` file that can be opened in Jupyter.
 
+### Building the documentation
+
+From the root directory, documentation can be built by running the following commands:
+
+```bash
+cd docs
+make html
+```
+
+Documentation will then be available in the `docs/build/html` directory.
+
+The above process can be slow as it executes each notebook one-by-one. To build the notebooks in parallel, run the following command:
+
+```bash
+cd docs
+sphinx-build -b html -j auto source build/html
+```
+
+
 ### Additional Information
 
 For [VSCode](https://code.visualstudio.com/) users, we recommend installing the [Jupytext extension](https://marketplace.visualstudio.com/items?itemName=congyiwu.vscode-jupytext) to automatically render `.pct.py` as Jupyter notebooks when opened in VSCode.
