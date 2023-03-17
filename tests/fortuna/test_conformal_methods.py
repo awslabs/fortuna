@@ -4,11 +4,16 @@ import jax.numpy as jnp
 import numpy as np
 
 from fortuna.conformal.classification import (
-    AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier, AdaptiveConformalClassifier)
+    AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier, AdaptiveConformalClassifier,
+    BatchMVPConformalClassifier
+)
 from fortuna.conformal.regression import (
     CVPlusConformalRegressor, EnbPI, JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
-    OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, AdaptiveConformalRegressor)
+    OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, AdaptiveConformalRegressor,
+    BatchMVPConformalRegressor
+)
+from fortuna.data.loader import DataLoader, InputsLoader
 
 
 class TestConformalMethods(unittest.TestCase):
@@ -301,3 +306,39 @@ class TestConformalMethods(unittest.TestCase):
             weights=np.array([0.1, 0.2, 0.3, 0.4]),
             were_in=np.array([1, 0, 1])
         )
+
+    def test_batchmvp_regressor(self):
+        batchmvp = BatchMVPConformalRegressor(
+            score_fn=lambda x, y: jnp.abs(y - x) / 15,
+            group_fns=[lambda x: x > 0.1, lambda x: x < 0.2, lambda x: x > 0.3],
+            bounds_fn=lambda x, t: (x - t, x + t)
+        )
+        val_data_loader = DataLoader.from_array_data(
+            (np.random.normal(size=(50,)), np.random.normal(size=(50,))),
+            batch_size=32,
+        )
+        test_inputs_loader = InputsLoader.from_array_inputs(
+            np.random.normal(size=(150,)),
+            batch_size=32,
+        )
+
+        intervals = batchmvp.conformal_interval(val_data_loader, test_inputs_loader)
+        assert intervals.shape == (150, 2)
+
+    def test_batchmvp_classifier(self):
+        batchmvp = BatchMVPConformalClassifier(
+            score_fn=lambda x, y: 1 - jnp.mean(x, 0)[y],
+            group_fns=[lambda x: x[:, 0] > 0.1, lambda x: x[:, 0] < 0.2, lambda x: x[:, 0] > 0.3],
+            n_classes=2
+        )
+        val_data_loader = DataLoader.from_array_data(
+            (np.random.normal(size=(50, 1)), np.random.choice(2, 50)),
+            batch_size=32,
+        )
+        test_inputs_loader = InputsLoader.from_array_inputs(
+            np.random.normal(size=(150, 1)),
+            batch_size=32,
+        )
+
+        sets = batchmvp.conformal_set(val_data_loader, test_inputs_loader)
+        assert len(sets) == 150

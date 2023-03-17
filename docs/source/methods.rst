@@ -53,6 +53,10 @@ For classification:
     A method for conformal prediction that aims at correcting the coverage of conformal prediction methods in a
     sequential prediction framework (e.g. time series forecasting) when the distribution of the data shifts over time.
 
+- **BatchMVP** `[Jung C. et al., 2022] <https://arxiv.org/pdf/2209.15145.pdf>`_
+    a conformal prediction algorithm that satisfies coverage guarantees conditioned on group membership and
+    non-conformity thresholds.
+
 For regression:
 
 - **Conformalized quantile regression** `[Romano et al., 2019] <https://proceedings.neurips.cc/paper/2019/file/5103c3584b063c431bd1268e9b5e76fb-Paper.pdf>`_
@@ -65,6 +69,10 @@ For regression:
 - **Jackknife+, jackknife-minmax and CV+** `[Barber et al., 2021] <https://projecteuclid.org/journals/annals-of-statistics/volume-49/issue-1/Predictive-inference-with-the-jackknife/10.1214/20-AOS1965.full>`_
     Methods based on leave-one-out and K-fold cross validation that, from model outputs only, provide conformal intervals
     satisfying minimal coverage properties.
+
+- **BatchMVP** `[Jung C. et al., 2022] <https://arxiv.org/pdf/2209.15145.pdf>`_
+    a conformal prediction algorithm that satisfies coverage guarantees conditioned on group membership and
+    non-conformity thresholds.
 
 - **EnbPI** `[Xu et al., 2021] <http://proceedings.mlr.press/v139/xu21h/xu21h.pdf>`_
     A conformal prediction method for time series regression based on data bootstrapping.
