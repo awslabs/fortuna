@@ -7,9 +7,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: fortuna
+#     display_name: python3
 #     language: python
-#     name: fortuna
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -26,13 +26,24 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
+
 def download(split_range, shuffle=False):
-    ds = tfds.load(name="MNIST", split=f"train[{split_range}]", as_supervised=True, shuffle_files=True)\
-             .map(lambda x, y: (tf.cast(x, tf.float32) / 255.0, y))
+    ds = tfds.load(
+        name="MNIST",
+        split=f"train[{split_range}]",
+        as_supervised=True,
+        shuffle_files=True,
+    ).map(lambda x, y: (tf.cast(x, tf.float32) / 255.0, y))
     if shuffle:
         ds = ds.shuffle(10, reshuffle_each_iteration=True)
     return ds.batch(128).prefetch(1)
-train_data_loader, val_data_loader, test_data_loader = download(":80%", shuffle=True), download("80%:90%"), download("90%:")
+
+
+train_data_loader, val_data_loader, test_data_loader = (
+    download(":80%", shuffle=True),
+    download("80%:90%"),
+    download("90%:"),
+)
 
 # %% [markdown]
 # ### Convert data to a compatible data loader
@@ -40,6 +51,7 @@ train_data_loader, val_data_loader, test_data_loader = download(":80%", shuffle=
 
 # %%
 from fortuna.data import DataLoader
+
 train_data_loader = DataLoader.from_tensorflow_data_loader(train_data_loader)
 val_data_loader = DataLoader.from_tensorflow_data_loader(val_data_loader)
 test_data_loader = DataLoader.from_tensorflow_data_loader(test_data_loader)
@@ -52,10 +64,13 @@ test_data_loader = DataLoader.from_tensorflow_data_loader(test_data_loader)
 from fortuna.prob_model import ProbClassifier
 from fortuna.model import LeNet5
 from fortuna.prob_model.posterior import LaplacePosteriorApproximator
+
 output_dim = 10
 prob_model = ProbClassifier(
     model=LeNet5(output_dim=output_dim),
-    posterior_approximator=LaplacePosteriorApproximator(which_params=(["model", "params", "output_subnet"],))
+    posterior_approximator=LaplacePosteriorApproximator(
+        which_params=(["model", "params", "output_subnet"],)
+    ),
 )
 
 
@@ -66,11 +81,14 @@ prob_model = ProbClassifier(
 # %%
 from fortuna.prob_model.fit_config import FitConfig, FitMonitor
 from fortuna.metric.classification import accuracy
+
 status = prob_model.train(
     train_data_loader=train_data_loader,
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
-    map_fit_config=FitConfig(monitor=FitMonitor(early_stopping_patience=2, metrics=(accuracy,)))
+    map_fit_config=FitConfig(
+        monitor=FitMonitor(early_stopping_patience=2, metrics=(accuracy,))
+    ),
 )
 
 
@@ -82,18 +100,31 @@ status = prob_model.train(
 test_log_probs = prob_model.predictive.log_prob(data_loader=test_data_loader)
 test_inputs_loader = test_data_loader.to_inputs_loader()
 test_means = prob_model.predictive.mean(inputs_loader=test_inputs_loader)
-test_modes = prob_model.predictive.mode(inputs_loader=test_inputs_loader, means=test_means)
+test_modes = prob_model.predictive.mode(
+    inputs_loader=test_inputs_loader, means=test_means
+)
 
 # %% [markdown]
 # ### Compute metrics
 # In classification, the predictive mode is a prediction for labels, while the predictive mean is a prediction for the probability of each label. As such, we can use these to compute several metrics, e.g. the accuracy, the Brier score, the expected calibration error (ECE), etc.
 
 # %%
-from fortuna.metric.classification import accuracy, expected_calibration_error, brier_score
+from fortuna.metric.classification import (
+    accuracy,
+    expected_calibration_error,
+    brier_score,
+)
+
 test_targets = test_data_loader.to_array_targets()
 acc = accuracy(preds=test_modes, targets=test_targets)
 brier = brier_score(probs=test_means, targets=test_targets)
-ece = expected_calibration_error(preds=test_modes, probs=test_means, targets=test_targets, plot=True, plot_options=dict(figsize=(10, 2)))
+ece = expected_calibration_error(
+    preds=test_modes,
+    probs=test_means,
+    targets=test_targets,
+    plot=True,
+    plot_options=dict(figsize=(10, 2)),
+)
 print(f"Test accuracy: {acc}")
 print(f"Brier score: {brier}")
 print(f"ECE: {ece}")
@@ -104,9 +135,12 @@ print(f"ECE: {ece}")
 
 # %%
 from fortuna.conformal.classification import AdaptivePredictionConformalClassifier
+
 val_means = prob_model.predictive.mean(inputs_loader=val_data_loader.to_inputs_loader())
 conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
-    val_probs=val_means, test_probs=test_means, val_targets=val_data_loader.to_array_targets()
+    val_probs=val_means,
+    test_probs=test_means,
+    val_targets=val_data_loader.to_array_targets(),
 )
 
 # %% [markdown]
@@ -114,11 +148,24 @@ conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
 
 # %%
 import numpy as np
-avg_size = np.mean([len(s) for s in np.array(conformal_sets, dtype='object')])
-avg_size_wellclassified = np.mean([len(s) for s in np.array(conformal_sets, dtype='object')[test_modes == test_targets]])
-avg_size_misclassified = np.mean([len(s) for s in np.array(conformal_sets, dtype='object')[test_modes != test_targets]])
+
+avg_size = np.mean([len(s) for s in np.array(conformal_sets, dtype="object")])
+avg_size_wellclassified = np.mean(
+    [
+        len(s)
+        for s in np.array(conformal_sets, dtype="object")[test_modes == test_targets]
+    ]
+)
+avg_size_misclassified = np.mean(
+    [
+        len(s)
+        for s in np.array(conformal_sets, dtype="object")[test_modes != test_targets]
+    ]
+)
 print(f"Average conformal set size: {avg_size}")
-print(f"Average conformal set size over well classified input: {avg_size_wellclassified}")
+print(
+    f"Average conformal set size over well classified input: {avg_size_wellclassified}"
+)
 print(f"Average conformal set size over misclassified input: {avg_size_misclassified}")
 
 # %% [markdown] pycharm={"name": "#%% md\n"}
@@ -129,6 +176,7 @@ print(f"Average conformal set size over misclassified input: {avg_size_misclassi
 
 # %% pycharm={"name": "#%%\n"}
 import numpy as np
+
 calib_outputs = np.log(val_means)
 test_outputs = np.log(test_means)
 
@@ -140,14 +188,19 @@ test_targets = test_data_loader.to_array_targets()
 
 # %% pycharm={"name": "#%%\n"}
 from fortuna.calib_model.classification import CalibClassifier
+
 calib_model = CalibClassifier()
-calib_status = calib_model.calibrate(calib_outputs=calib_outputs, calib_targets=calib_targets)
+calib_status = calib_model.calibrate(
+    calib_outputs=calib_outputs, calib_targets=calib_targets
+)
 
 # %% [markdown] pycharm={"name": "#%% md\n"}
 # Similarly as above, we can now compute predictive statistics.
 
 # %% pycharm={"name": "#%%\n"}
-test_log_probs = calib_model.predictive.log_prob(outputs=test_outputs, targets=test_targets)
+test_log_probs = calib_model.predictive.log_prob(
+    outputs=test_outputs, targets=test_targets
+)
 test_means = calib_model.predictive.mean(outputs=test_outputs)
 test_modes = calib_model.predictive.mode(outputs=test_outputs)
 

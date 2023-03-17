@@ -7,9 +7,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: fortuna
+#     display_name: python3
 #     language: python
-#     name: fortuna
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -77,11 +77,11 @@ class Dataset:
         return X, Y
 
     def split(
-            self,
-            X: np.array,
-            Y: np.array,
-            prop_train: float = 0.8,
-            prop_val: float = 0.1,
+        self,
+        X: np.array,
+        Y: np.array,
+        prop_train: float = 0.8,
+        prop_val: float = 0.1,
     ) -> Tuple[
         Tuple[np.ndarray, np.ndarray],
         Tuple[np.ndarray, np.ndarray],
@@ -91,18 +91,18 @@ class Dataset:
         n_train = int(N * prop_train)
         n_val = int(N * prop_val)
         train_data = X[:n_train], Y[:n_train]
-        val_data = X[n_train: n_train + n_val], Y[n_train: n_train + n_val]
-        test_data = X[n_train + n_val:], Y[n_train + n_val:]
+        val_data = X[n_train : n_train + n_val], Y[n_train : n_train + n_val]
+        test_data = X[n_train + n_val :], Y[n_train + n_val :]
         return train_data, val_data, test_data
 
     def batch(
-            self,
-            train_data: Tuple[np.ndarray, np.ndarray],
-            val_data: Tuple[np.ndarray, np.ndarray],
-            test_data: Tuple[np.ndarray, np.ndarray],
-            batch_size: int = 128,
-            shuffle_train: bool = False,
-            prefetch: bool = True,
+        self,
+        train_data: Tuple[np.ndarray, np.ndarray],
+        val_data: Tuple[np.ndarray, np.ndarray],
+        test_data: Tuple[np.ndarray, np.ndarray],
+        batch_size: int = 128,
+        shuffle_train: bool = False,
+        prefetch: bool = True,
     ) -> Tuple[DataLoader, DataLoader, DataLoader]:
         train_data_loader = DataLoader.from_array_data(
             train_data, batch_size=batch_size, shuffle=shuffle_train, prefetch=prefetch
@@ -116,12 +116,12 @@ class Dataset:
         return train_data_loader, val_data_loader, test_data_loader
 
     def load(
-            self,
-            prop_train: float = 0.8,
-            prop_val: float = 0.1,
-            batch_size: int = 128,
-            shuffle_train: bool = False,
-            prefetch: bool = True,
+        self,
+        prop_train: float = 0.8,
+        prop_val: float = 0.1,
+        batch_size: int = 128,
+        shuffle_train: bool = False,
+        prefetch: bool = True,
     ) -> Tuple[DataLoader, DataLoader, DataLoader]:
         X, Y = self.read()
         X, Y = self.preprocess(X, Y)
@@ -308,11 +308,13 @@ def download_all_regression_datasets(directory, *args, **kwargs):
     for name in list(_ALL_REGRESSION_DATASETS.keys()):
         download_regression_dataset(name, directory, *args, **kwargs)
 
+
 def load_regression_dataset(
     name, dir, *args, **kwargs
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
     dataset = _ALL_REGRESSION_DATASETS[name](dir)
     return dataset.load(*args, **kwargs)
+
 
 download_all_regression_datasets(".")
 
@@ -328,6 +330,7 @@ from fortuna.conformal.regression import QuantileConformalRegressor
 from fortuna.metric.regression import rmse, picp
 import optax
 import tempfile
+
 all_status = dict()
 all_metrics = dict()
 
@@ -335,7 +338,9 @@ for dataset_name in regression_datasets:
     with tempfile.TemporaryDirectory() as data_dir:
         # download and load data
         download_regression_dataset(dataset_name, data_dir)
-        train_data_loader, val_data_loader, test_data_loader = load_regression_dataset(dataset_name, data_dir, shuffle_train=True, batch_size=512)
+        train_data_loader, val_data_loader, test_data_loader = load_regression_dataset(
+            dataset_name, data_dir, shuffle_train=True, batch_size=512
+        )
 
         # find output dimension
         for batch_inputs, batch_targets in train_data_loader:
@@ -353,33 +358,51 @@ for dataset_name in regression_datasets:
             train_data_loader=train_data_loader,
             val_data_loader=val_data_loader,
             calib_data_loader=val_data_loader,
-            map_fit_config=FitConfig(monitor=FitMonitor(metrics=(rmse,), early_stopping_patience=2), optimizer=FitOptimizer(method=optax.adam(1e-1), n_epochs=100)),
-            fit_config=FitConfig(monitor=FitMonitor(metrics=(rmse,)), optimizer=FitOptimizer(method=optax.adam(1e-1), n_epochs=100))
+            map_fit_config=FitConfig(
+                monitor=FitMonitor(metrics=(rmse,), early_stopping_patience=2),
+                optimizer=FitOptimizer(method=optax.adam(1e-1), n_epochs=100),
+            ),
+            fit_config=FitConfig(
+                monitor=FitMonitor(metrics=(rmse,)),
+                optimizer=FitOptimizer(method=optax.adam(1e-1), n_epochs=100),
+            ),
         )
 
         # compute predictive statistics
         test_inputs_loader = test_data_loader.to_inputs_loader()
         test_means = prob_model.predictive.mean(inputs_loader=test_inputs_loader)
-        test_cred_intervals = prob_model.predictive.credible_interval(inputs_loader=test_inputs_loader)
+        test_cred_intervals = prob_model.predictive.credible_interval(
+            inputs_loader=test_inputs_loader
+        )
 
         # calibrate the credibility intervals
         val_inputs_loader = val_data_loader.to_inputs_loader()
-        val_cred_intervals = prob_model.predictive.credible_interval(inputs_loader=val_inputs_loader)
+        val_cred_intervals = prob_model.predictive.credible_interval(
+            inputs_loader=val_inputs_loader
+        )
         test_conformal_intervals = QuantileConformalRegressor().conformal_interval(
-            val_lower_bounds=val_cred_intervals[:, 0], val_upper_bounds=val_cred_intervals[:, 1],
-            test_lower_bounds=test_cred_intervals[:, 0], test_upper_bounds=test_cred_intervals[:, 1],
-            val_targets=val_data_loader.to_array_targets(), error=0.05
+            val_lower_bounds=val_cred_intervals[:, 0],
+            val_upper_bounds=val_cred_intervals[:, 1],
+            test_lower_bounds=test_cred_intervals[:, 0],
+            test_upper_bounds=test_cred_intervals[:, 1],
+            val_targets=val_data_loader.to_array_targets(),
+            error=0.05,
         )
 
         # compute metrics
         all_metrics[dataset_name] = dict()
-        all_metrics[dataset_name]["picp"] = picp(lower_bounds=test_conformal_intervals[:, 0], upper_bounds=test_conformal_intervals[:, 1], targets=test_data_loader.to_array_targets())
+        all_metrics[dataset_name]["picp"] = picp(
+            lower_bounds=test_conformal_intervals[:, 0],
+            upper_bounds=test_conformal_intervals[:, 1],
+            targets=test_data_loader.to_array_targets(),
+        )
 
 # %% [markdown]
 # SWAG invokes a Maximum-A-Posteriori (MAP) estimation algorithm and starts from there to approximate the posterior distribution. The following cell shows the loss decay during MAP for each data set.
 
 # %%
 import matplotlib.pyplot as plt
+
 fig, axes = plt.subplots(1, len(all_status), figsize=(20, 2))
 for i, dataset_name in enumerate(all_status):
     axes[i].set_title(dataset_name)
@@ -394,7 +417,11 @@ plt.tight_layout()
 plt.figure(figsize=(20, 3))
 plt.grid()
 plt.axhline(0.95, color="red", alpha=0.5, linestyle="--")
-plt.bar(regression_datasets, [all_metrics[dataset_name]["picp"] for dataset_name in all_metrics], width=0.1)
+plt.bar(
+    regression_datasets,
+    [all_metrics[dataset_name]["picp"] for dataset_name in all_metrics],
+    width=0.1,
+)
 plt.ylabel("PICP", fontsize=12)
 plt.yticks(list(plt.yticks()[0]) + [0.95])
 plt.ylim([0, 1.1])

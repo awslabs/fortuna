@@ -7,9 +7,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: fortuna
+#     display_name: python3
 #     language: python
-#     name: fortuna
+#     name: python3
 # ---
 
 # %% [markdown]

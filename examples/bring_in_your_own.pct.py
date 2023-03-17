@@ -7,9 +7,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: fortuna
+#     display_name: python3
 #     language: python
-#     name: fortuna
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -26,6 +26,7 @@
 
 # %%
 import flax.linen as nn
+
 
 class CNN(nn.Module):
     @nn.compact
@@ -49,6 +50,7 @@ class CNN(nn.Module):
 
 # %%
 from fortuna.prob_model.classification import ProbClassifier
+
 prob_model = ProbClassifier(model=CNN())
 
 # %% [markdown]
@@ -57,6 +59,7 @@ prob_model = ProbClassifier(model=CNN())
 # %%
 from jax import random
 import jax.numpy as jnp
+
 x = jnp.zeros((1, 64, 64, 10))
 variables = prob_model.model.init(random.PRNGKey(0), x)
 prob_model.model.apply(variables, x)
@@ -77,16 +80,21 @@ from jax.tree_util import tree_map
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
+
 class Uniform(Prior):
     def log_joint_prob(self, params: Params) -> float:
         v = jnp.mean((ravel_pytree(params)[0] <= 1) & (ravel_pytree(params)[0] >= 0))
-        return jnp.where(v == 1., jnp.array(0), -jnp.inf)
+        return jnp.where(v == 1.0, jnp.array(0), -jnp.inf)
 
     def sample(self, params_like: Params, rng: Optional[PRNGKeyArray] = None) -> Params:
         if rng is None:
             rng = self.rng.get()
         keys = generate_rng_like_tree(rng, params_like)
-        return tree_map(lambda l, k: random.uniform(k, l.shape, l.dtype), params_like, keys,)
+        return tree_map(
+            lambda l, k: random.uniform(k, l.shape, l.dtype),
+            params_like,
+            keys,
+        )
 
 
 # %% [markdown]
@@ -94,10 +102,11 @@ class Uniform(Prior):
 
 # %%
 from fortuna.utils.random import RandomNumberGenerator
+
 prior = Uniform()
 prior.rng = RandomNumberGenerator(seed=0)
-params_in = dict(a=jnp.array([1.]), b=jnp.array([[0.]]), c=jnp.array([0.5, 1.]))
-params_out = dict(a=jnp.array([1.]), b=jnp.array([[0.]]), c=jnp.array([3., 1.]))
+params_in = dict(a=jnp.array([1.0]), b=jnp.array([[0.0]]), c=jnp.array([0.5, 1.0]))
+params_out = dict(a=jnp.array([1.0]), b=jnp.array([[0.0]]), c=jnp.array([3.0, 1.0]))
 print(f"log-prob(params_in): {prior.log_joint_prob(params_in)}")
 print(f"log-prob(params_out): {prior.log_joint_prob(params_out)}")
 print(f"sample: {prior.sample(params_in)}")
@@ -115,6 +124,7 @@ print(f"sample: {prior.sample(params_in)}")
 import flax.linen as nn
 from typing import Tuple
 
+
 class MLP(nn.Module):
     features: Tuple[int]
 
@@ -131,6 +141,7 @@ class MLP(nn.Module):
 
 # %%
 from fortuna.calib_model.regression import CalibRegressor
+
 calib_model = CalibRegressor(output_calibrator=MLP(features=(4, 2, 1)))
 
 # %% [markdown]
@@ -139,6 +150,7 @@ calib_model = CalibRegressor(output_calibrator=MLP(features=(4, 2, 1)))
 # %% pycharm={"name": "#%%\n"}
 from jax import random
 import jax.numpy as jnp
+
 x = jnp.ones((1, 10))
 variables = calib_model.output_calibrator.init(random.PRNGKey(0), x)
 calib_model.output_calibrator.apply(variables, x)

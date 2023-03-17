@@ -7,9 +7,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.1
 #   kernelspec:
-#     display_name: fortuna
+#     display_name: python3
 #     language: python
-#     name: fortuna
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -28,8 +28,11 @@
 # %%
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
+
 X, y = make_regression(n_samples=2000, n_features=3, n_targets=1)
-X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0, test_size=1000)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, random_state=0, test_size=1000
+)
 
 # %% [markdown]
 # We arbitrarily decide to adopt a gradient boosting method for regression.
@@ -42,6 +45,7 @@ from sklearn.ensemble import GradientBoostingRegressor
 
 # %%
 from fortuna.metric.regression import prediction_interval_coverage_probability
+
 error = 0.05
 
 # %% [markdown]
@@ -52,10 +56,11 @@ error = 0.05
 
 # %%
 from sklearn.model_selection import KFold
+
 cross_val_outputs, cross_val_targets, cross_test_outputs = [], [], []
 n_splits = 5
 for i, idx in enumerate(KFold(n_splits=n_splits).split(X_train)):
-    print(f"Split #{i + 1} out of {n_splits}.", end='\r')
+    print(f"Split #{i + 1} out of {n_splits}.", end="\r")
     model = GradientBoostingRegressor()
     model.fit(X_train[idx[0]], y_train[idx[0]])
     cross_val_outputs.append(model.predict(X_train[idx[1]]))
@@ -67,13 +72,16 @@ for i, idx in enumerate(KFold(n_splits=n_splits).split(X_train)):
 
 # %%
 from fortuna.conformal.regression import CVPlusConformalRegressor
+
 cvplus_interval = CVPlusConformalRegressor().conformal_interval(
-        cross_val_outputs=cross_val_outputs,
-        cross_val_targets=cross_val_targets,
-        cross_test_outputs=cross_test_outputs,
-        error=error
+    cross_val_outputs=cross_val_outputs,
+    cross_val_targets=cross_val_targets,
+    cross_test_outputs=cross_test_outputs,
+    error=error,
 )
-cvplus_coverage = prediction_interval_coverage_probability(cvplus_interval[:, 0], cvplus_interval[:, 1], y_test)
+cvplus_coverage = prediction_interval_coverage_probability(
+    cvplus_interval[:, 0], cvplus_interval[:, 1], y_test
+)
 
 # %% [markdown]
 # # Jackknife+ and jackknife-minmax
@@ -84,9 +92,10 @@ cvplus_coverage = prediction_interval_coverage_probability(cvplus_interval[:, 0]
 # %%
 from sklearn.model_selection import LeaveOneOut
 import jax.numpy as jnp
+
 loo_val_outputs, loo_val_targets, loo_test_outputs = [], [], []
 for i, idx in enumerate(LeaveOneOut().split(X_train)):
-    print(f"Split #{i + 1} out of {X_train.shape[0]}.", end='\r')
+    print(f"Split #{i + 1} out of {X_train.shape[0]}.", end="\r")
     model = GradientBoostingRegressor()
     model.fit(X_train[idx[0]], y_train[idx[0]])
     loo_val_outputs.append(model.predict(X_train[idx[1]]))
@@ -100,22 +109,30 @@ loo_test_outputs = jnp.array(loo_test_outputs)
 # Given the model outputs, we compute conformal intervals obtained using jackknife+ and jackknife-minmax.
 
 # %%
-from fortuna.conformal.regression import JackknifePlusConformalRegressor, JackknifeMinmaxConformalRegressor
-jkplus_interval = JackknifePlusConformalRegressor().conformal_interval(
-        loo_val_outputs=loo_val_outputs,
-        loo_val_targets=loo_val_targets,
-        loo_test_outputs=loo_test_outputs,
-        error=error
+from fortuna.conformal.regression import (
+    JackknifePlusConformalRegressor,
+    JackknifeMinmaxConformalRegressor,
 )
-jkplus_coverage = prediction_interval_coverage_probability(jkplus_interval[:, 0], jkplus_interval[:, 1], y_test)
+
+jkplus_interval = JackknifePlusConformalRegressor().conformal_interval(
+    loo_val_outputs=loo_val_outputs,
+    loo_val_targets=loo_val_targets,
+    loo_test_outputs=loo_test_outputs,
+    error=error,
+)
+jkplus_coverage = prediction_interval_coverage_probability(
+    jkplus_interval[:, 0], jkplus_interval[:, 1], y_test
+)
 
 jkmm_interval = JackknifeMinmaxConformalRegressor().conformal_interval(
-        loo_val_outputs=loo_val_outputs,
-        loo_val_targets=loo_val_targets,
-        loo_test_outputs=loo_test_outputs,
-        error=error
+    loo_val_outputs=loo_val_outputs,
+    loo_val_targets=loo_val_targets,
+    loo_test_outputs=loo_test_outputs,
+    error=error,
 )
-jkmm_coverage = prediction_interval_coverage_probability(jkmm_interval[:, 0], jkmm_interval[:, 1], y_test)
+jkmm_coverage = prediction_interval_coverage_probability(
+    jkmm_interval[:, 0], jkmm_interval[:, 1], y_test
+)
 
 # %% [markdown]
 # ## Coverage results

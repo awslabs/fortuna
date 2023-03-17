@@ -7,9 +7,9 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: fortuna
+#     display_name: python3
 #     language: python
-#     name: fortuna
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -246,7 +246,7 @@ for i in range(n_tickers):
         *conformal_intervals[i].T,
         alpha=0.3,
         color="C0",
-        label=f"conformal interval",
+        label="conformal interval",
     )
     plt.title(tickers[i], fontsize=12)
     if i == 0:
