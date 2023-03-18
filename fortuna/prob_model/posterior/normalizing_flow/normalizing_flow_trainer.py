@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union, List
 
 import jax.numpy as jnp
 import numpy as np
@@ -14,7 +14,8 @@ from optax._src.base import PyTree
 from fortuna.distribution.base import Distribution
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params
+from fortuna.training.callbacks import Callback
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params, Mutable
 
 
 class NormalizingFlowTrainer(PosteriorTrainerABC):
@@ -76,9 +77,9 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         self,
         fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: Params,
-        batch: Tuple[Union[jnp.ndarray, np.ndarray], Union[jnp.ndarray, np.ndarray]],
-        mutable: FrozenDict[str, FrozenDict],
-        rng: jnp.ndarray,
+        batch: Batch,
+        mutable: Mutable,
+        rng: PRNGKeyArray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         calib_params: Optional[CalibParams] = None,
@@ -119,8 +120,9 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         aux: Dict[str, Any],
         batch: Batch,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
+        callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Dict[str, jnp.ndarray]:
+    ) -> Tuple[PosteriorState, Dict[str, jnp.ndarray]]:
         """
         Perform training batch metrics_names computation and save checkpoint if needed.
 
@@ -135,6 +137,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             The input data and the targets.
         :param metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]]
             A tuple of metrics.
+        :param callbacks: Optional[List[Callback]]
+            A list of user-defined callbacks that runs sequentially.
         :param kwargs: FrozenDict[str, Any]
             Any other extra argument. They have to be explicitly passed within a dictionary and cannot be provided as
             named arguments due to `jax.jit`.
@@ -186,7 +190,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             )
             for k, v in training_batch_metrics.items():
                 training_losses_and_metrics[k] = v
-        return training_losses_and_metrics
+        state = self._callback_loop(state, callbacks, "training_step_end")
+        return state, training_losses_and_metrics
 
     def validation_step(
         self,

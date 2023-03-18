@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, List
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
@@ -7,6 +7,7 @@ from jax.tree_util import tree_map
 
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
+from fortuna.training.callbacks import Callback
 from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
 from fortuna.typing import Array, Batch
 
@@ -38,8 +39,9 @@ class SWAGTrainer(MAPTrainer):
         aux: Dict[str, Any],
         batch: Batch,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
+        callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Dict[str, jnp.ndarray]:
+    ) -> Tuple[SWAGState, Dict[str, jnp.ndarray]]:
         if "rank" not in kwargs:
             raise AttributeError(
                 """`rank` must be available in `kwargs` during training."""
@@ -75,7 +77,7 @@ class SWAGTrainer(MAPTrainer):
         ):
             state = self._update_state_with_stats(state)
         return super().training_step_end(
-            current_epoch, state, aux, batch, metrics, kwargs
+            current_epoch, state, aux, batch, metrics, callbacks, kwargs
         )
 
 
