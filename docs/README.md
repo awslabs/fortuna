@@ -29,7 +29,7 @@ From the root directory, documentation can be built by running the following com
 
 ```bash
 cd docs
-make html
+poetry run make html
 ```
 
 Documentation will then be available in the `docs/build/html` directory.
