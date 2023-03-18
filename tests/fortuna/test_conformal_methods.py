@@ -16,6 +16,9 @@ from fortuna.conformal.regression import (
 from fortuna.data.loader import DataLoader, InputsLoader
 
 
+np.random.rand(42)
+
+
 class TestConformalMethods(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
