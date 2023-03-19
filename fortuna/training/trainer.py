@@ -332,6 +332,7 @@ class TrainerABC(
                 aux=aux,
                 batch=batch,
                 metrics=metrics,
+                callbacks=callbacks,
                 kwargs=training_kwargs,
             )
             # keep track of training losses and metrics [granularity=batch]
@@ -595,12 +596,13 @@ class MultiDeviceMixin:
         aux: Dict[str, Any],
         batch: Batch,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Dict[str, jnp.ndarray]:
-        training_losses_and_metrics = super(MultiDeviceMixin, self).training_step_end(
-            current_epoch, state, aux, batch, metrics, kwargs
+    ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
+        state, training_losses_and_metrics = super(MultiDeviceMixin, self).training_step_end(
+            current_epoch, state, aux, batch, metrics, callbacks, kwargs
         )
-        return tree_map(lambda x: x.mean(), training_losses_and_metrics)
+        return state, tree_map(lambda x: x.mean(), training_losses_and_metrics)
 
     def on_validation_start(self, state: TrainState) -> TrainState:
         state = super(MultiDeviceMixin, self).on_validation_start(state)
