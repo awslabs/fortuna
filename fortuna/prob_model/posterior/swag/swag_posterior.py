@@ -145,6 +145,7 @@ class SWAGPosterior(Posterior):
             validation_dataloader=val_data_loader,
             validation_dataset_size=n_val_data,
             verbose=fit_config.monitor.verbose,
+            callbacks=fit_config.callbacks,
             **kwargs,
         )
 

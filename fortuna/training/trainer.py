@@ -2,7 +2,7 @@ import abc
 import collections
 import logging
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import jax
 import jax.numpy as jnp
@@ -17,11 +17,12 @@ from tqdm import trange
 from tqdm.std import tqdm as TqdmDecorator
 
 from fortuna.data.loader import DataLoader
+from fortuna.prob_model.fit_config.callbacks import Callback
 from fortuna.training.mixin import (InputValidatorMixin,
                                     WithCheckpointingMixin,
                                     WithEarlyStoppingMixin)
 from fortuna.training.train_state import TrainState
-from fortuna.typing import Array, Batch, Path, Status
+from fortuna.typing import Array, Batch, Path, Status, CalibParams, CalibMutable, Mutable, Params
 from fortuna.utils.builtins import HashableMixin
 
 
@@ -52,6 +53,22 @@ class TrainerABC(
         self.eval_every_n_epochs = eval_every_n_epochs
         self._unravel = None
         self.multi_device = False
+
+    @abc.abstractmethod
+    def training_loss_step(
+        self,
+        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        params: Params,
+        batch: Batch,
+        mutable: Mutable,
+        rng: PRNGKeyArray,
+        n_data: int,
+        unravel: Optional[Callable[[any], PyTree]] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        kwargs: FrozenDict[str, Any] = FrozenDict(),
+    ) -> Tuple[jnp.ndarray, Dict[str, Any]]:
+        pass
 
     def training_step(
         self,
@@ -115,8 +132,9 @@ class TrainerABC(
         aux: Dict[str, Any],
         batch: Batch,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Dict[str, jnp.ndarray]:
+    ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
         if (
             self.save_checkpoint_dir is not None
             and self.save_every_n_steps is not None
@@ -145,14 +163,21 @@ class TrainerABC(
                 training_batch_metrics = self.compute_metrics(preds, batch[1], metrics)
             for k, v in training_batch_metrics.items():
                 training_losses_and_metrics[k] = v
-        return training_losses_and_metrics
+
+        state = self._callback_loop(state, callbacks, "training_step_end")
+        return state, training_losses_and_metrics
+
+    def training_epoch_start(self, state: TrainState, callbacks: Optional[List[Callback]] = None) -> TrainState:
+        return self._callback_loop(state, callbacks, "training_epoch_start")
 
     def training_epoch_end(
-        self, training_losses_and_metrics_current_epoch: List[Dict[str, jnp.ndarray]]
-    ) -> Dict[str, float]:
-        return self._get_mean_losses_and_metrics(
+        self, training_losses_and_metrics_current_epoch: List[Dict[str, jnp.ndarray]], state: TrainState, callbacks: Optional[List[Callback]] = None
+    ) -> Tuple[TrainState, Dict[str, float]]:
+        mean_losses_and_metrics = self._get_mean_losses_and_metrics(
             training_losses_and_metrics_current_epoch
         )
+        state = self._callback_loop(state, callbacks, "training_epoch_end")
+        return state, mean_losses_and_metrics
 
     def validation_epoch_end(
         self,
@@ -183,6 +208,7 @@ class TrainerABC(
         validation_dataset_size: Optional[int] = None,
         verbose: bool = True,
         unravel: Optional[Callable[[any], PyTree]] = None,
+        callbacks: Optional[List[Callback]] = None,
         **kwargs,
     ) -> Tuple[TrainState, Status]:
         training_kwargs = FrozenDict(kwargs)
@@ -218,6 +244,7 @@ class TrainerABC(
                 verbose,
                 progress_bar,
                 unravel=unravel,
+                callbacks=callbacks,
             )
             # keep track of training losses and metrics [granularity=epoch]
             for k in training_losses_and_metrics_current_epoch.keys():
@@ -282,9 +309,11 @@ class TrainerABC(
         verbose: bool,
         progress_bar: TqdmDecorator,
         unravel: Optional[Callable[[any], PyTree]] = None,
+        callbacks: Optional[List[Callback]] = None,
     ) -> Tuple[TrainState, Dict[str, float], str]:
         training_losses_and_metrics_epoch_all_steps = []
         training_batch_metrics_str = ""
+        state = self.training_epoch_start(state, callbacks)
         for step, batch in enumerate(training_dataloader):
             # forward and backward pass
             state, aux = self.training_step(
@@ -297,12 +326,13 @@ class TrainerABC(
                 training_kwargs,
             )
             # compute training losses and metrics for the current batch
-            training_losses_and_metrics_current_batch = self.training_step_end(
+            state, training_losses_and_metrics_current_batch = self.training_step_end(
                 current_epoch=current_epoch,
                 state=state,
                 aux=aux,
                 batch=batch,
                 metrics=metrics,
+                callbacks=callbacks,
                 kwargs=training_kwargs,
             )
             # keep track of training losses and metrics [granularity=batch]
@@ -323,8 +353,8 @@ class TrainerABC(
                 )
 
         # compute training losses and metrics avg for the current epoch + other ops (if needed)
-        training_losses_and_metrics_current_epoch = self.training_epoch_end(
-            training_losses_and_metrics_epoch_all_steps
+        state, training_losses_and_metrics_current_epoch = self.training_epoch_end(
+            training_losses_and_metrics_epoch_all_steps, state, callbacks
         )
 
         return (
@@ -374,6 +404,12 @@ class TrainerABC(
                 ]
             )
         return validation_losses_and_metrics_current_epoch, validation_epoch_metrics_str
+
+    def _callback_loop(self, state: TrainState, callbacks: Optional[List[Callback]], method_name: str) -> TrainState:
+        callbacks = callbacks or []
+        for callback in callbacks:
+            state = getattr(callback, method_name)(state)
+        return state
 
     def _get_mean_losses_and_metrics(
         self, losses_and_metrics: List[Dict[str, jnp.ndarray]]
@@ -560,12 +596,13 @@ class MultiDeviceMixin:
         aux: Dict[str, Any],
         batch: Batch,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Dict[str, jnp.ndarray]:
-        training_losses_and_metrics = super(MultiDeviceMixin, self).training_step_end(
-            current_epoch, state, aux, batch, metrics, kwargs
+    ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
+        state, training_losses_and_metrics = super(MultiDeviceMixin, self).training_step_end(
+            current_epoch, state, aux, batch, metrics, callbacks, kwargs
         )
-        return tree_map(lambda x: x.mean(), training_losses_and_metrics)
+        return state, tree_map(lambda x: x.mean(), training_losses_and_metrics)
 
     def on_validation_start(self, state: TrainState) -> TrainState:
         state = super(MultiDeviceMixin, self).on_validation_start(state)

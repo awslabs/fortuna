@@ -149,6 +149,7 @@ class ADVIPosterior(Posterior):
             verbose=fit_config.monitor.verbose,
             unravel=self.unravel,
             n_samples=self.posterior_approximator.n_loss_samples,
+            callbacks=fit_config.callbacks,
         )
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
