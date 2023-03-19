@@ -7,10 +7,9 @@ import numpy as np
 from flax.core import FrozenDict
 from jax import numpy as jnp
 from jax._src.prng import PRNGKeyArray
-from optax._src.base import GradientTransformation, PyTree
+from optax._src.base import PyTree
 
-from fortuna.prob_model.joint.state import JointState
-from fortuna.training.callbacks import Callback
+from fortuna.prob_model.fit_config.callbacks import Callback
 from fortuna.training.train_state import TrainState
 from fortuna.training.trainer import TrainerABC
 from fortuna.typing import Params, Batch, Mutable, CalibParams, CalibMutable

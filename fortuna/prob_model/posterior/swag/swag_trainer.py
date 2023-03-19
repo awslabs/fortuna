@@ -7,7 +7,7 @@ from jax.tree_util import tree_map
 
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
-from fortuna.training.callbacks import Callback
+from fortuna.prob_model.fit_config.callbacks import Callback
 from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
 from fortuna.typing import Array, Batch
 

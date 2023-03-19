@@ -4,7 +4,6 @@ import abc
 from typing import Any, Callable, Dict, Optional, Tuple, Union, List
 
 import jax.numpy as jnp
-import numpy as np
 from flax.core import FrozenDict
 from jax import random, vmap
 from jax._src.prng import PRNGKeyArray
@@ -14,7 +13,7 @@ from optax._src.base import PyTree
 from fortuna.distribution.base import Distribution
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.training.callbacks import Callback
+from fortuna.prob_model.fit_config.callbacks import Callback
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params, Mutable
 
 
