@@ -8,7 +8,7 @@ build:
   jobs:
     post_create_environment:
       # Install poetry
-      - pip install poetry
+      - pip install poetry==1.3.2
       # Tell poetry to not use a virtual environment
       - poetry config virtualenvs.create false
     post_install:
