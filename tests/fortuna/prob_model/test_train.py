@@ -28,6 +28,9 @@ from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
+import numpy as np
+
+np.random.seed(42)
 
 
 def brier(dummy, p, y):
@@ -54,7 +57,7 @@ class TestApproximations(unittest.TestCase):
         y /= y.max(0)
         reg_train_data = x, y
         reg_val_data = make_array_random_data(
-            n_data=10,
+            n_data=100,
             shape_inputs=self.reg_input_shape,
             output_dim=self.reg_output_dim,
             output_type="continuous",
@@ -79,7 +82,7 @@ class TestApproximations(unittest.TestCase):
             output_type="discrete",
         )
         class_val_data = make_array_random_data(
-            n_data=10,
+            n_data=100,
             shape_inputs=self.class_input_shape,
             output_dim=self.class_output_dim,
             output_type="discrete",
@@ -945,35 +948,3 @@ class TestApproximations(unittest.TestCase):
 
             # save state
             prob_class.save_state(checkpoint_path=tmp_dir)
-
-from sklearn.datasets import make_moons
-from fortuna.model import MLP
-from fortuna.prob_model.posterior import *
-from fortuna.data import DataLoader
-class TestHere(unittest.TestCase):
-    def test_here(self):
-        from sklearn.datasets import make_moons
-        train_data = make_moons(n_samples=10000, noise=0.07, random_state=0)
-        test_data = make_moons(n_samples=1000, noise=0.07, random_state=2)
-
-        train_data_loader = DataLoader.from_array_data(train_data, batch_size=128, shuffle=True, prefetch=True)
-        test_data_loader = DataLoader.from_array_data(test_data, batch_size=128, prefetch=True)
-        test_inputs_loader = test_data_loader.to_inputs_loader()
-        from fortuna.prob_model import ProbClassifier
-
-
-        posterior_methods = {
-            "map": MAPPosteriorApproximator(),
-            "deep_ensemble": DeepEnsemblePosteriorApproximator(),
-            "advi": ADVIPosteriorApproximator(),
-            "laplace": LaplacePosteriorApproximator(),
-            "swag": SWAGPosteriorApproximator()
-        }
-
-        entropy = dict()
-        for label, method in posterior_methods.items():
-            prob_model = ProbClassifier(model=MLP(output_dim=2), posterior_approximator=method)
-            status = prob_model.train(train_data_loader=train_data_loader)
-            entropy[label] = prob_model.predictive.entropy(test_inputs_loader)
-        entropy
-

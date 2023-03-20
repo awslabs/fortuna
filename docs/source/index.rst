@@ -7,7 +7,7 @@
 
    quickstart
    installation
-   examples/examples
+   examples/index
    usage_modes/usage_modes
    references/references
    methods
