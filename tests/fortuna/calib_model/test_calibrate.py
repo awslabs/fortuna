@@ -24,8 +24,10 @@ from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
+import numpy as np
 
 logging.basicConfig(level=logging.INFO)
+np.random.rand(42)
 
 
 def brier(dummy, p, y):

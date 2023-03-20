@@ -191,7 +191,7 @@ class TestConformalMethods(unittest.TestCase):
         assert len(np.unique(intervals[:, 1])) > 1
 
     def test_enbpi(self):
-        bs = [30, 2]
+        bs = [30, 10]
         t = 10
         t1 = 3
         error = 0.05
