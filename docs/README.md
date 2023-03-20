@@ -12,6 +12,7 @@ To build the documentation, first install Fortuna and it's dependencies by follo
 ```bash
 poetry install -E docs
 ```
+Finally, install `jupytext` through either pip or conda, details can be found [here](https://github.com/mwouts/jupytext#install). 
 
 ### Notebooks
 
