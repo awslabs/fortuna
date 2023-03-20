@@ -14,5 +14,4 @@ In this section we show some examples of how to use Fortuna in classification an
    jackknifeplus_regression
    mnist_classification
    sinusoidal_regression
-   tabular_regressions
    two_moons_classification
