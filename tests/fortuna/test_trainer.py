@@ -84,6 +84,7 @@ class TestTrainer(unittest.TestCase):
             save_every_n_steps=1,
             keep_top_n_checkpoints=3,
         )
+        trainer._global_training_step = 10
         state = FakeTrainState()
         batch = [[1, 2, 3], [0, 0, 1]]
         with unittest.mock.patch.object(
@@ -126,6 +127,7 @@ class TestTrainer(unittest.TestCase):
             save_every_n_steps=1,
             keep_top_n_checkpoints=3,
         )
+        trainer._global_training_step = 10
         state = FakeTrainState()
         batch = [[1, 2, 3], [0, 0, 1]]
 
@@ -168,6 +170,7 @@ class TestTrainer(unittest.TestCase):
             save_every_n_steps=1,
             keep_top_n_checkpoints=3,
         )
+        trainer._global_training_step = 10
 
         with unittest.mock.patch.object(
             trainer, "save_checkpoint"
@@ -210,6 +213,7 @@ class TestTrainer(unittest.TestCase):
             save_every_n_steps=1,
             keep_top_n_checkpoints=3,
         )
+        trainer._global_training_step = 10
         state = FakeTrainState()
         batch = [[1, 2, 3], [0, 0, 1]]
 
@@ -261,6 +265,86 @@ class TestTrainer(unittest.TestCase):
             c.training_step_end.assert_called_with(state)
         self.assertEqual(training_losses_and_metrics, {"loss": 1, "train_m1": 12.0})
         self.assertEqual(state, observed_state)
+
+    def test_training_step_end_ok_no_save(self):
+        pairs = [
+            (None, None, 0),
+            (None, None, 99),
+            (None, 0, 0),
+            (None, 0, 99),
+            ("tmp_dir", None, 0),
+            ("tmp_dir", None, 99),
+            ("tmp_dir", 0, 0),
+            ("tmp_dir", 0, 99),
+            (None, 1, 0),
+            (None, 1, 99),
+            ("tmp_dir", 1, 0),
+            ("tmp_dir", 100, 99),
+            ("tmp_dir", 200, 100),
+        ]
+        for (save_checkpoint_dir, save_every_n_steps, global_step) in pairs:
+            trainer = FakeTrainer(
+                predict_fn=lambda *args, **kwargs: args[0],
+                disable_training_metrics_computation=False,
+                save_checkpoint_dir=save_checkpoint_dir,
+                save_every_n_steps=save_every_n_steps,
+                keep_top_n_checkpoints=3,
+            )
+            trainer._global_training_step = global_step
+            state = FakeTrainState()
+            batch = [[1, 2, 3], [0, 0, 1]]
+
+            def train_m1(a, b):
+                return 12.0
+
+            with unittest.mock.patch.object(
+                trainer, "save_checkpoint"
+            ) as msc:
+                observed_state, training_losses_and_metrics = trainer.training_step_end(
+                    current_epoch=1,
+                    state=state,
+                    aux={"loss": 1, "logging_kwargs": None, "outputs": [10, 20, 30]},
+                    batch=batch,
+                    metrics=(train_m1,),
+                )
+            msc.assert_not_called()
+            self.assertEqual(training_losses_and_metrics, {"loss": 1, "train_m1": 12.0})
+            self.assertEqual(state, observed_state)
+
+    def test_training_step_end_w_save(self):
+        pairs = [
+            ("tmp_dir", 1, 1),
+            ("tmp_dir", 99, 99),
+            ("tmp_dir", 100, 500),
+        ]
+        for (save_checkpoint_dir, save_every_n_steps, global_step) in pairs:
+            trainer = FakeTrainer(
+                predict_fn=lambda *args, **kwargs: args[0],
+                disable_training_metrics_computation=False,
+                save_checkpoint_dir=save_checkpoint_dir,
+                save_every_n_steps=save_every_n_steps,
+                keep_top_n_checkpoints=3,
+            )
+            trainer._global_training_step = global_step
+            state = FakeTrainState()
+            batch = [[1, 2, 3], [0, 0, 1]]
+
+            def train_m1(a, b):
+                return 12.0
+
+            with unittest.mock.patch.object(
+                trainer, "save_checkpoint"
+            ) as msc:
+                observed_state, training_losses_and_metrics = trainer.training_step_end(
+                    current_epoch=1,
+                    state=state,
+                    aux={"loss": 1, "logging_kwargs": None, "outputs": [10, 20, 30]},
+                    batch=batch,
+                    metrics=(train_m1,),
+                )
+            msc.assert_called_with(state, save_checkpoint_dir, keep=3)
+            self.assertEqual(training_losses_and_metrics, {"loss": 1, "train_m1": 12.0})
+            self.assertEqual(state, observed_state)
 
     def test__get_mean_losses_and_metrics_ok(self):
         trainer = FakeTrainer(

@@ -17,7 +17,7 @@ class FitCheckpointer:
 
         Parameters
         ----------
-        save_checkpoint_dir: Optional[Path] = None
+        save_checkpoint_dir: Optional[Path]
             Save directory location.
         restore_checkpoint_path: Optional[Path]
             Path to checkpoint file or directory to restore.

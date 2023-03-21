@@ -51,6 +51,7 @@ class TrainerABC(
         self.keep_top_n_checkpoints = keep_top_n_checkpoints
         self.disable_training_metrics_computation = disable_training_metrics_computation
         self.eval_every_n_epochs = eval_every_n_epochs
+        self._global_training_step = 0
         self._unravel = None
         self.multi_device = False
 
@@ -138,7 +139,9 @@ class TrainerABC(
         if (
             self.save_checkpoint_dir is not None
             and self.save_every_n_steps is not None
-            and current_epoch % self.save_every_n_steps == 0
+            and self.save_every_n_steps > 0
+            and self._global_training_step >= self.save_every_n_steps
+            and self._global_training_step % self.save_every_n_steps == 0
         ):
             self.save_checkpoint(
                 state, self.save_checkpoint_dir, keep=self.keep_top_n_checkpoints
@@ -325,6 +328,7 @@ class TrainerABC(
                 unravel,
                 training_kwargs,
             )
+            self._global_training_step += 1
             # compute training losses and metrics for the current batch
             state, training_losses_and_metrics_current_batch = self.training_step_end(
                 current_epoch=current_epoch,
