@@ -16,6 +16,10 @@ from fortuna.prob_model.posterior.sngp import SNGP_NAME
 from fortuna.prob_model.posterior.sngp.sngp_posterior import SNGPPosterior
 from fortuna.prob_model.posterior.swag import SWAG_NAME
 from fortuna.prob_model.posterior.swag.swag_posterior import SWAGPosterior
+from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_posterior import (
+    SGHMCPosterior,
+)
 
 
 class PosteriorApproximations(enum.Enum):
@@ -27,3 +31,4 @@ class PosteriorApproximations(enum.Enum):
     vars()[LAPLACE_NAME] = LaplacePosterior
     vars()[SWAG_NAME] = SWAGPosterior
     vars()[SNGP_NAME] = SNGPPosterior
+    vars()[SGHMC_NAME] = SGHMCPosterior

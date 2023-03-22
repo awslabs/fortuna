@@ -29,6 +29,11 @@ Posterior approximation methods
     taken by averaging checkpoints over the stochastic optimization trajectory. The covariance is also estimated
     empirically along the trajectory, and it is made of a diagonal component and a low-rank non-diagonal one.
 
+- **Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)** `[Chen et al., 2014] <http://proceedings.mlr.press/v32/cheni14.pdf>`_
+    SGHMC approximates the posterior as a steady-state distribution of a Monte Carlo Markov chain with Hamiltonian dynamics.
+    After the initial "burn-in" phase, each step of the chain generates samples from the posterior.
+
+
 Parametric calibration methods
 ------------------------------
 Fortuna supports parametric calibration by adding an output calibration model on top of the outputs of the model used for

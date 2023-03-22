@@ -12,6 +12,7 @@ calibration parameters. We support several posterior approximations:
    laplace
    swag
    sngp
+   sghmc
 
 .. _posterior:
 
