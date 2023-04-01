@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, Optional, Union, List
+from typing import Callable, Iterable, Optional, Union, List, Tuple
 
 import jax
 import numpy as np
@@ -21,7 +21,7 @@ class DataLoader:
             FromTensorFlowDataLoaderToDataLoader,
             FromTorchDataLoaderToDataLoader,
             ChoppedDataLoader,
-            FromInputsLoaderToFilteredInputsLoader,
+            FromDataLoaderToTransformedDataLoader,
             FromInputsLoadersToDataLoader
         ],
     ):
@@ -308,6 +308,24 @@ class DataLoader:
 
         return DataLoader.from_callable_iterable(fun)
 
+    def to_transformed_data_loader(self, transform: Callable[[Array, Array], Tuple[Array, Array]]) -> DataLoader:
+        """
+        Transform the batches of an existing data loader.
+
+        Parameters
+        ----------
+        transform : Callable[[Array, Array], Tuple[Array, Array]]
+            A transformation function. It takes a batch and returns its transformation.
+
+        Returns
+        -------
+        DataLoader
+            A transformed data loader.
+        """
+        return DataLoader(data_loader=FromDataLoaderToTransformedDataLoader(
+            DataLoader(self._data_loader), transform)
+        )
+
 
 class InputsLoader:
     def __init__(
@@ -318,7 +336,7 @@ class InputsLoader:
             FromCallableIterableToInputsLoader,
             FromIterableToInputsLoader,
             ChoppedInputsLoader,
-            FromInputsLoaderToFilteredInputsLoader
+            FromInputsLoaderToTransformedInputsLoader
         ],
     ):
         """
@@ -384,22 +402,22 @@ class InputsLoader:
             )
         )
 
-    def to_filtered_inputs_loader(self, filter_fun: Callable[[Array], Array]) -> InputsLoader:
+    def to_transformed_inputs_loader(self, transform: Callable[[Array], Array]) -> InputsLoader:
         """
-        From an existing loader of inputs, create a loader with filtered inputs.
+        From an existing loader of inputs, create a loader with transformed inputs.
 
         Parameters
         ----------
-        filter_fun : Callable[[Array], Array]
-            A filtering function. It takes a batch of inputs and returns a subset of them.
+        transform : Callable[[Array], Array]
+            A transformation function. It takes a batch of inputs and returns their transformation.
 
         Returns
         -------
         InputsLoader
-            A loader including only filtered inputs.
+            A loader of transformed inputs.
         """
-        return InputsLoader(inputs_loader=FromInputsLoaderToFilteredInputsLoader(
-            InputsLoader(self._inputs_loader), filter_fun)
+        return InputsLoader(inputs_loader=FromInputsLoaderToTransformedInputsLoader(
+            InputsLoader(self._inputs_loader), transform)
         )
 
     def to_array_inputs(self) -> Array:
@@ -527,6 +545,7 @@ class TargetsLoader:
             FromCallableIterableToTargetsLoader,
             FromIterableToTargetsLoader,
             ChoppedTargetsLoader,
+            FromTargetsLoaderToTransformedTargetsLoader
         ],
     ):
         """
@@ -706,6 +725,24 @@ class TargetsLoader:
                     break
 
         return TargetsLoader.from_callable_iterable(fun)
+
+    def to_transformed_targets_loader(self, transform: Callable[[Array], Array]) -> TargetsLoader:
+        """
+        From an existing loader of targets, create a loader with transformed targets.
+
+        Parameters
+        ----------
+        transform : Callable[[Array], Array]
+            A transformation function. It takes a batch of targets and returns their transformation.
+
+        Returns
+        -------
+        TargetsLoader
+            A loader of transformed targets.
+        """
+        return TargetsLoader(targets_loader=FromTargetsLoaderToTransformedTargetsLoader(
+            TargetsLoader(self._targets_loader), transform)
+        )
 
 
 class FromDataLoaderToArrayData:
@@ -1099,20 +1136,55 @@ class DeviceDimensionAugmentedInputsLoader:
         yield from inputs_loader
 
 
-class FromInputsLoaderToFilteredInputsLoader:
+class FromDataLoaderToTransformedDataLoader:
+    def __init__(
+            self,
+            data_loader: DataLoader,
+            transform: Callable[[Array, Array], Tuple[Array, Array]]
+    ):
+        self._data_loader = data_loader
+        self._transform = transform
+
+    def __call__(self):
+        for inputs, targets in self._data_loader:
+            inputs, targets = self._transform(inputs, targets)
+            if inputs is not None and targets is not None and len(inputs) > 0 and len(targets) > 0:
+                if inputs.shape[0] != targets.shape[0]:
+                    raise ValueError("The first dimension of transformed inputs and targets must be the same, but "
+                                     f"{inputs.shape[0]} and {targets.shape[0]} were found.")
+                yield inputs, targets
+
+
+class FromInputsLoaderToTransformedInputsLoader:
     def __init__(
             self,
             inputs_loader: InputsLoader,
-            filter_fun: Callable[[Array], Array]
+            transform: Callable[[Array], Array]
     ):
         self._inputs_loader = inputs_loader
-        self._filter_fun = filter_fun
+        self._transform = transform
 
     def __call__(self):
         for inputs in self._inputs_loader:
-            inputs = self._filter_fun(inputs)
+            inputs = self._transform(inputs)
             if inputs is not None and len(inputs) > 0:
                 yield inputs
+
+
+class FromTargetsLoaderToTransformedTargetsLoader:
+    def __init__(
+            self,
+            targets_loader: TargetsLoader,
+            transform: Callable[[Array], Array]
+    ):
+        self._targets_loader = targets_loader
+        self._transform = transform
+
+    def __call__(self):
+        for targets in self._targets_loader:
+            targets = self._transform(targets)
+            if targets is not None and len(targets) > 0:
+                yield targets
 
 
 class FromInputsLoadersToDataLoader:

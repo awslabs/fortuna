@@ -98,14 +98,38 @@ class TestDataLoaders(unittest.TestCase):
             assert all(y[3:] == 1)
             assert len(x) == len(y)
 
-    def test_inputs_loader_to_filtered_inputs_loader(self):
+    def test_inputs_loader_to_transformed_inputs_loader(self):
         inputs = np.arange(10)
         inputs_loader = InputsLoader.from_array_inputs(inputs, batch_size=3)
-        filtered_inputs_loader = inputs_loader.to_filtered_inputs_loader(lambda x: x[x < 7])
+        transformed_inputs_loader = inputs_loader.to_transformed_inputs_loader(lambda x: x[x < 7])
 
-        for i, x in enumerate(filtered_inputs_loader):
+        for i, x in enumerate(transformed_inputs_loader):
             assert x.shape == (3,) if i < 2 else (1,)
             assert all(x < 7)
+
+    def test_data_loader_to_transformed_data_loader(self):
+        data = np.arange(10), np.arange(10)
+        data_loader = DataLoader.from_array_data(data, batch_size=3)
+
+        def transform(x, y):
+            idx = x < 7
+            return x[idx], y[idx]
+
+        transformed_data_loader = data_loader.to_transformed_data_loader(transform)
+
+        for i, (x, y) in enumerate(transformed_data_loader):
+            assert x.shape == (3,) if i < 2 else (1,)
+            assert all(x < 7)
+            assert x.shape[0] == y.shape[0]
+
+    def test_targets_loader_to_transformed_targets_loader(self):
+        targets = np.arange(10)
+        targets_loader = TargetsLoader.from_array_targets(targets, batch_size=3)
+        transformed_targets_loader = targets_loader.to_transformed_targets_loader(lambda y: y[y < 7])
+
+        for i, y in enumerate(transformed_targets_loader):
+            assert y.shape == (3,) if i < 2 else (1,)
+            assert all(y < 7)
 
     def test_sample_inputs_loader(self):
         inputs = np.arange(10)
