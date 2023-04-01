@@ -271,6 +271,43 @@ class DataLoader:
             data_loader=ChoppedDataLoader(data_loader=data_loader, divisor=divisor)
         )
 
+    def sample(self, seed: int, n_samples: int) -> DataLoader:
+        """
+        Sample from the data loader, with replacement.
+
+        Parameters
+        ----------
+        seed: int
+            Random seed.
+        n_samples: int
+            Number of samples.
+
+        Returns
+        -------
+        DataLoader
+            A data loader made of the sampled data points.
+        """
+        def fun():
+            rng = np.random.default_rng(seed)
+            count = 0
+
+            while True:
+                for inputs, targets in self._data_loader():
+                    if count == n_samples:
+                        break
+                    idx = rng.choice(2, inputs.shape[0]).astype('bool')
+                    inputs, targets = inputs[idx], targets[idx]
+                    if count + inputs.shape[0] > n_samples:
+                        inputs, targets = inputs[:n_samples - count], targets[:n_samples - count]
+                    count += inputs.shape[0]
+                    if inputs.shape[0] > 0:
+                        yield inputs, targets
+
+                if count == n_samples:
+                    break
+
+        return DataLoader.from_callable_iterable(fun)
+
 
 class InputsLoader:
     def __init__(
@@ -443,6 +480,43 @@ class InputsLoader:
             )
         )
 
+    def sample(self, seed: int, n_samples: int) -> InputsLoader:
+        """
+        Sample from the inputs loader, with replacement.
+
+        Parameters
+        ----------
+        seed: int
+            Random seed.
+        n_samples: int
+            Number of samples.
+
+        Returns
+        -------
+        InputsLoader
+            An inputs loader made of the sampled inputs.
+        """
+        def fun():
+            rng = np.random.default_rng(seed)
+            count = 0
+
+            while True:
+                for inputs in self._inputs_loader():
+                    if count == n_samples:
+                        break
+                    idx = rng.choice(2, inputs.shape[0]).astype('bool')
+                    inputs = inputs[idx]
+                    if count + inputs.shape[0] > n_samples:
+                        inputs = inputs[:n_samples - count]
+                    count += inputs.shape[0]
+                    if inputs.shape[0] > 0:
+                        yield inputs
+
+                if count == n_samples:
+                    break
+
+        return InputsLoader.from_callable_iterable(fun)
+
 
 class TargetsLoader:
     def __init__(
@@ -595,6 +669,43 @@ class TargetsLoader:
                 targets_loader=targets_loader, divisor=divisor
             )
         )
+
+    def sample(self, seed: int, n_samples: int) -> TargetsLoader:
+        """
+        Sample from the targets loader, with replacement.
+
+        Parameters
+        ----------
+        seed: int
+            Random seed.
+        n_samples: int
+            Number of samples.
+
+        Returns
+        -------
+        TargetsLoader
+            A targets loader made of the sampled targets.
+        """
+        def fun():
+            rng = np.random.default_rng(seed)
+            count = 0
+
+            while True:
+                for targets in self._targets_loader():
+                    if count == n_samples:
+                        break
+                    idx = rng.choice(2, targets.shape[0]).astype('bool')
+                    targets = targets[idx]
+                    if count + targets.shape[0] > n_samples:
+                        targets = targets[:n_samples - count]
+                    count += targets.shape[0]
+                    if targets.shape[0] > 0:
+                        yield targets
+
+                if count == n_samples:
+                    break
+
+        return TargetsLoader.from_callable_iterable(fun)
 
 
 class FromDataLoaderToArrayData:

@@ -106,3 +106,26 @@ class TestDataLoaders(unittest.TestCase):
         for i, x in enumerate(filtered_inputs_loader):
             assert x.shape == (3,) if i < 2 else (1,)
             assert all(x < 7)
+
+    def test_sample_inputs_loader(self):
+        inputs = np.arange(10)
+        inputs_loader = InputsLoader.from_array_inputs(inputs, batch_size=3)
+        sampled_loader = inputs_loader.sample(0, 6)
+        assert len(sampled_loader.to_array_inputs()) == 6
+        inputs_loader.sample(0, 16)
+
+    def test_sample_data_loader(self):
+        inputs, targets = np.arange(10), np.arange(10)
+        data_loader = DataLoader.from_array_data((inputs, targets), batch_size=3)
+        sampled_loader = data_loader.sample(0, 6)
+        sampled = sampled_loader.to_array_data()
+        assert len(sampled[0]) == 6
+        assert len(sampled[1]) == 6
+        data_loader.sample(0, 16)
+
+    def test_sample_targets_loader(self):
+        targets = np.arange(10)
+        targets_loader = TargetsLoader.from_array_targets(targets, batch_size=3)
+        sampled_loader = targets_loader.sample(0, 6)
+        assert len(sampled_loader.to_array_targets()) == 6
+        targets_loader.sample(0, 16)
