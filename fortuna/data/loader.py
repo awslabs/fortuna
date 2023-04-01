@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, Optional, Union
+from typing import Callable, Iterable, Optional, Union, List
 
 import jax
 import numpy as np
@@ -8,6 +8,7 @@ from flax import jax_utils
 from jax.tree_util import tree_map
 
 from fortuna.typing import Array, Batch
+from itertools import zip_longest
 
 
 class DataLoader:
@@ -20,6 +21,8 @@ class DataLoader:
             FromTensorFlowDataLoaderToDataLoader,
             FromTorchDataLoaderToDataLoader,
             ChoppedDataLoader,
+            FromInputsLoaderToFilteredInputsLoader,
+            FromInputsLoadersToDataLoader
         ],
     ):
         """
@@ -156,6 +159,31 @@ class DataLoader:
             )
         )
 
+    @classmethod
+    def from_inputs_loaders(cls, inputs_loaders: List[InputsLoader], targets: List[int]) -> DataLoader:
+        """
+        Transform a list of inputs loader into a :class:`~fortuna.data.loader.DataLoader` object formed out of
+        concatenated batches of inputs and the respective assigned target variable.
+
+        Parameters
+        ----------
+        inputs_loaders: List[InputsLoader]
+            A list of inputs loaders.
+        targets: List[int]
+            A target variable for each inputs loader.
+
+        Returns
+        -------
+        DataLoader
+            A data loader object formed by the concatenated batches of inputs, and the assigned targets.
+        """
+        return cls(
+            data_loader=FromInputsLoadersToDataLoader(
+                inputs_loaders=inputs_loaders,
+                targets=targets
+            )
+        )
+
     def to_array_data(self) -> Batch:
         """
         Reduce a data loader to a tuple of input and target arrays.
@@ -253,6 +281,7 @@ class InputsLoader:
             FromCallableIterableToInputsLoader,
             FromIterableToInputsLoader,
             ChoppedInputsLoader,
+            FromInputsLoaderToFilteredInputsLoader
         ],
     ):
         """
@@ -316,6 +345,24 @@ class InputsLoader:
             inputs_loader=FromArrayInputsToInputsLoader(
                 inputs, batch_size=batch_size, shuffle=shuffle, prefetch=prefetch
             )
+        )
+
+    def to_filtered_inputs_loader(self, filter_fun: Callable[[Array], Array]) -> InputsLoader:
+        """
+        From an existing loader of inputs, create a loader with filtered inputs.
+
+        Parameters
+        ----------
+        filter_fun : Callable[[Array], Array]
+            A filtering function. It takes a batch of inputs and returns a subset of them.
+
+        Returns
+        -------
+        InputsLoader
+            A loader including only filtered inputs.
+        """
+        return InputsLoader(inputs_loader=FromInputsLoaderToFilteredInputsLoader(
+            InputsLoader(self._inputs_loader), filter_fun)
         )
 
     def to_array_inputs(self) -> Array:
@@ -939,3 +986,31 @@ class DeviceDimensionAugmentedInputsLoader:
         )
         inputs_loader = jax_utils.prefetch_to_device(inputs_loader, 2)
         yield from inputs_loader
+
+
+class FromInputsLoaderToFilteredInputsLoader:
+    def __init__(
+            self,
+            inputs_loader: InputsLoader,
+            filter_fun: Callable[[Array], Array]
+    ):
+        self._inputs_loader = inputs_loader
+        self._filter_fun = filter_fun
+
+    def __call__(self):
+        for inputs in self._inputs_loader:
+            inputs = self._filter_fun(inputs)
+            if inputs is not None and len(inputs) > 0:
+                yield inputs
+
+
+class FromInputsLoadersToDataLoader:
+    def __init__(self, inputs_loaders: List[InputsLoader], targets: List[int]):
+        self._inputs_loaders = inputs_loaders
+        self._targets = targets
+
+    def __call__(self):
+        for all_inputs in zip_longest(*self._inputs_loaders):
+            targets = [target * np.ones(inputs.shape[0], dtype="int32") for inputs, target in zip(all_inputs, self._targets) if inputs is not None]
+            all_inputs = [inputs for inputs in all_inputs if inputs is not None]
+            yield np.concatenate(all_inputs), np.concatenate(targets)
