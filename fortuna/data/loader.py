@@ -271,6 +271,49 @@ class DataLoader:
             data_loader=ChoppedDataLoader(data_loader=data_loader, divisor=divisor)
         )
 
+    def split(self, n_data: int) -> Tuple[DataLoader, DataLoader]:
+        """
+        Split a data loader into two data loaders.
+
+        Parameters
+        ----------
+        n_data: int
+            Number of data point after which the data loader should be split. The first returned data loader will
+            contain exactly `n_data` data points. The second one will contain the remaining ones.
+
+        Returns
+        -------
+        Tuple[DataLoader, DataLoader]
+            The two data loaders made out of the original one.
+        """
+        def data_loader1():
+            count = 0
+            for inputs, targets in self._data_loader():
+                if count == n_data:
+                    break
+                if count + inputs.shape[0] <= n_data:
+                    count += inputs.shape[0]
+                    yield inputs, targets
+                else:
+                    inputs, targets = inputs[:n_data - count], targets[:n_data - count]
+                    count = n_data
+                    yield inputs, targets
+
+        def data_loader2():
+            count = 0
+            for inputs, targets in self._data_loader():
+                if count > n_data:
+                    yield inputs, targets
+                elif (count <= n_data) and (count + inputs.shape[0] > n_data):
+                    count2 = count
+                    count += inputs.shape[0]
+                    inputs, targets = inputs[n_data - count2:], targets[n_data - count2:]
+                    yield inputs, targets
+                else:
+                    count += inputs.shape[0]
+
+        return DataLoader.from_callable_iterable(data_loader1), DataLoader.from_callable_iterable(data_loader2)
+
     def sample(self, seed: int, n_samples: int) -> DataLoader:
         """
         Sample from the data loader, with replacement.
@@ -535,6 +578,49 @@ class InputsLoader:
 
         return InputsLoader.from_callable_iterable(fun)
 
+    def split(self, n_data: int) -> Tuple[InputsLoader, InputsLoader]:
+        """
+        Split an inputs loader into two inputs loaders.
+
+        Parameters
+        ----------
+        n_data: int
+            Number of data point after which the inputs loader should be split. The first returned inputs loader will
+            contain exactly `n_data` inputs. The second one will contain the remaining ones.
+
+        Returns
+        -------
+        Tuple[InputsLoader, InputsLoader]
+            The two inputs loaders made out of the original one.
+        """
+        def inputs_loader1():
+            count = 0
+            for inputs in self._inputs_loader():
+                if count == n_data:
+                    break
+                if count + inputs.shape[0] <= n_data:
+                    count += inputs.shape[0]
+                    yield inputs
+                else:
+                    inputs = inputs[:n_data - count]
+                    count = n_data
+                    yield inputs
+
+        def inputs_loader2():
+            count = 0
+            for inputs in self._inputs_loader():
+                if count > n_data:
+                    yield inputs
+                elif (count <= n_data) and (count + inputs.shape[0] > n_data):
+                    count2 = count
+                    count += inputs.shape[0]
+                    inputs = inputs[n_data - count2:]
+                    yield inputs
+                else:
+                    count += inputs.shape[0]
+
+        return InputsLoader.from_callable_iterable(inputs_loader1), InputsLoader.from_callable_iterable(inputs_loader2)
+
 
 class TargetsLoader:
     def __init__(
@@ -744,6 +830,49 @@ class TargetsLoader:
             TargetsLoader(self._targets_loader), transform)
         )
 
+    def split(self, n_data: int) -> Tuple[TargetsLoader, TargetsLoader]:
+        """
+        Split a targets loader into two targets loaders.
+
+        Parameters
+        ----------
+        n_data: int
+            Number of data point after which the targets loader should be split. The first returned targets loader will
+            contain exactly `n_data` targets. The second one will contain the remaining ones.
+
+        Returns
+        -------
+        Tuple[TargetsLoader, TargetsLoader]
+            The two targets loaders made out of the original one.
+        """
+        def targets_loader1():
+            count = 0
+            for targets in self._targets_loader():
+                if count == n_data:
+                    break
+                if count + targets.shape[0] <= n_data:
+                    count += targets.shape[0]
+                    yield targets
+                else:
+                    targets = targets[:n_data - count]
+                    count = n_data
+                    yield targets
+
+        def targets_loader2():
+            count = 0
+            for targets in self._targets_loader():
+                if count > n_data:
+                    yield targets
+                elif (count <= n_data) and (count + targets.shape[0] > n_data):
+                    count2 = count
+                    count += targets.shape[0]
+                    targets = targets[n_data - count2:]
+                    yield targets
+                else:
+                    count += targets.shape[0]
+
+        return TargetsLoader.from_callable_iterable(targets_loader1), TargetsLoader.from_callable_iterable(targets_loader2)
+
 
 class FromDataLoaderToArrayData:
     def __init__(self, data_loader: DataLoader):
@@ -775,11 +904,11 @@ class FromArrayDataToDataLoader:
     ):
         self._data = data
         self._batch_size = batch_size
-        self._shuflle = shuffle
+        self._shuffle = shuffle
         self._prefetch = prefetch
 
     def __call__(self, *args, **kwargs):
-        if self._shuflle:
+        if self._shuffle:
             perm = np.random.choice(
                 self._data[0].shape[0], self._data[0].shape[0], replace=False
             )
@@ -787,12 +916,12 @@ class FromArrayDataToDataLoader:
             yield self._data
         else:
             x_batches = np.split(
-                self._data[0][perm] if self._shuflle else self._data[0],
+                self._data[0][perm] if self._shuffle else self._data[0],
                 np.arange(self._batch_size, self._data[0].shape[0], self._batch_size),
                 axis=0,
             )
             y_batches = np.split(
-                self._data[1][perm] if self._shuflle else self._data[1],
+                self._data[1][perm] if self._shuffle else self._data[1],
                 np.arange(self._batch_size, self._data[1].shape[0], self._batch_size),
                 axis=0,
             )
@@ -934,11 +1063,11 @@ class FromArrayInputsToInputsLoader:
     ):
         self._inputs = inputs
         self._batch_size = batch_size
-        self._shuflle = shuffle
+        self._shuffle = shuffle
         self._prefetch = prefetch
 
     def __call__(self, *args, **kwargs):
-        if self._shuflle:
+        if self._shuffle:
             perm = np.random.choice(
                 self._inputs.shape[0], self._inputs.shape[0], replace=False
             )
@@ -946,7 +1075,7 @@ class FromArrayInputsToInputsLoader:
             yield self._inputs
         else:
             x_batches = np.split(
-                self._inputs[perm] if self._shuflle else self._inputs,
+                self._inputs[perm] if self._shuffle else self._inputs,
                 np.arange(self._batch_size, self._inputs.shape[0], self._batch_size),
                 axis=0,
             )
@@ -1003,11 +1132,11 @@ class FromArrayTargetsToTargetsLoader:
     ):
         self._targets = targets
         self._batch_size = batch_size
-        self._shuflle = shuffle
+        self._shuffle = shuffle
         self._prefetch = prefetch
 
     def __call__(self, *args, **kwargs):
-        if self._shuflle:
+        if self._shuffle:
             perm = np.random.choice(
                 self._targets.shape[0], self._targets.shape[0], replace=False
             )
@@ -1015,7 +1144,7 @@ class FromArrayTargetsToTargetsLoader:
             yield self._targets
         else:
             x_batches = np.split(
-                self._targets[perm] if self._shuflle else self._targets,
+                self._targets[perm] if self._shuffle else self._targets,
                 np.arange(self._batch_size, self._targets.shape[0], self._batch_size),
                 axis=0,
             )

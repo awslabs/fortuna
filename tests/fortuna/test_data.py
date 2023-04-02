@@ -153,3 +153,52 @@ class TestDataLoaders(unittest.TestCase):
         sampled_loader = targets_loader.sample(0, 6)
         assert len(sampled_loader.to_array_targets()) == 6
         targets_loader.sample(0, 16)
+
+    def test_split_data_loader(self):
+        inputs, targets = np.arange(10), 1 + np.arange(10)
+        data_loader = DataLoader.from_array_data((inputs, targets), batch_size=4)
+        data_loader1, data_loader2 = data_loader.split(7)
+        c = 0
+        for x, y in data_loader1:
+            c += x.shape[0]
+            assert all(x <= 6)
+            assert all(y <= 7)
+            assert len(x) == len(y)
+        assert c == 7
+        c = 0
+        for x, y in data_loader2:
+            c += x.shape[0]
+            assert all(x > 6)
+            assert all(y > 7)
+            assert len(x) == len(y)
+        assert c == 3
+
+    def test_split_inputs_loader(self):
+        inputs = np.arange(10)
+        inputs_loader = InputsLoader.from_array_inputs(inputs, batch_size=4)
+        inputs_loader1, inputs_loader2 = inputs_loader.split(7)
+        c = 0
+        for x in inputs_loader1:
+            c += x.shape[0]
+            assert all(x <= 6)
+        assert c == 7
+        c = 0
+        for x in inputs_loader2:
+            c += x.shape[0]
+            assert all(x > 6)
+        assert c == 3
+
+    def test_split_targets_loader(self):
+        targets = np.arange(10)
+        targets_loader = TargetsLoader.from_array_targets(targets, batch_size=4)
+        targets_loader1, targets_loader2 = targets_loader.split(7)
+        c = 0
+        for y in targets_loader1:
+            c += y.shape[0]
+            assert all(y <= 6)
+        assert c == 7
+        c = 0
+        for y in targets_loader2:
+            c += y.shape[0]
+            assert all(y > 6)
+        assert c == 3
