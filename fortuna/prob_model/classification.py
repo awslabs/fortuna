@@ -115,14 +115,14 @@ class ProbClassifier(ProbModel):
         super().__init__(seed=seed)
 
     def _check_output_dim(self, data_loader: DataLoader):
+        if data_loader.size == 0:
+            raise ValueError(
+                """`data_loader` is either empty or incorrectly constructed."""
+            )
         output_dim = len(np.unique(data_loader.to_array_targets()))
         for x, y in data_loader:
             input_shape = x.shape[1:]
             break
-        if output_dim == 0:
-            raise ValueError(
-                """`_data_loader` is either empty or incorrectly constructed."""
-            )
         s = self.joint.init(input_shape)
         outputs = self.model_manager.apply(
             params=s.params, inputs=np.zeros((1,) + input_shape), mutable=s.mutable

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Callable, Iterable, Optional, Union, List, Tuple
+from fortuna.typing import Status
 
 import jax
 import numpy as np
@@ -9,6 +10,7 @@ from jax.tree_util import tree_map
 
 from fortuna.typing import Array, Batch
 from itertools import zip_longest
+from copy import deepcopy
 
 
 class DataLoader:
@@ -32,7 +34,8 @@ class DataLoader:
         Parameters
         ----------
         data_loader : Union[FromIterableToDataLoader, FromCallableIterableToDataLoader, FromArrayDataToDataLoader,
-        FromTensorFlowDataLoaderToDataLoader, FromTorchDataLoaderToDataLoader]
+                      FromTensorFlowDataLoaderToDataLoader, FromTorchDataLoaderToDataLoader, ChoppedDataLoader,
+                      FromDataLoaderToTransformedDataLoader, FromInputsLoadersToDataLoader]
             A data loader.
         """
         self._data_loader = data_loader
@@ -351,14 +354,21 @@ class DataLoader:
 
         return DataLoader.from_callable_iterable(fun)
 
-    def to_transformed_data_loader(self, transform: Callable[[Array, Array], Tuple[Array, Array]]) -> DataLoader:
+    def to_transformed_data_loader(
+            self,
+            transform: Callable[[Array, Array, Status], Tuple[Array, Array, Status]],
+            status: Optional[Status] = None,
+    ) -> DataLoader:
         """
         Transform the batches of an existing data loader.
 
         Parameters
         ----------
-        transform : Callable[[Array, Array], Tuple[Array, Array]]
-            A transformation function. It takes a batch and returns its transformation.
+        transform : Callable[[Array, Array], Tuple[Array, Array, Status]]
+            A transformation function. It takes a batch and returns its transformation. A status may be updated
+            during the process.
+        status : Optional[Status]
+            An initial status. This may include pre-computed objects used by the transformation.
 
         Returns
         -------
@@ -366,8 +376,23 @@ class DataLoader:
             A transformed data loader.
         """
         return DataLoader(data_loader=FromDataLoaderToTransformedDataLoader(
-            DataLoader(self._data_loader), transform)
+            DataLoader(self._data_loader), transform, status)
         )
+
+    @property
+    def size(self) -> int:
+        """
+        The number of data points in the data loader.
+
+        Returns
+        -------
+        int
+            Number of data points.
+        """
+        c = 0
+        for inputs, targets in self._data_loader():
+            c += inputs.shape[0]
+        return c
 
 
 class InputsLoader:
@@ -387,7 +412,9 @@ class InputsLoader:
 
         Parameters
         ----------
-        inputs_loader : Union[FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader]
+        inputs_loader : Union[FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader,
+                        FromCallableIterableToInputsLoader, FromIterableToInputsLoader, ChoppedInputsLoader,
+                        FromInputsLoaderToTransformedInputsLoader]
             An inputs loader.
         """
         self._inputs_loader = inputs_loader
@@ -445,14 +472,20 @@ class InputsLoader:
             )
         )
 
-    def to_transformed_inputs_loader(self, transform: Callable[[Array], Array]) -> InputsLoader:
+    def to_transformed_inputs_loader(
+            self,
+            transform: Callable[[Array, Status], Tuple[Array, Status]],
+            status: Optional[Status] = None,
+    ) -> InputsLoader:
         """
         From an existing loader of inputs, create a loader with transformed inputs.
 
         Parameters
         ----------
-        transform : Callable[[Array], Array]
+        transform : Callable[[Array, Status], Tuple[Array, Status]]
             A transformation function. It takes a batch of inputs and returns their transformation.
+        status : Optional[Status]
+            An initial status. This may include pre-computed objects used by the transformation.
 
         Returns
         -------
@@ -460,7 +493,7 @@ class InputsLoader:
             A loader of transformed inputs.
         """
         return InputsLoader(inputs_loader=FromInputsLoaderToTransformedInputsLoader(
-            InputsLoader(self._inputs_loader), transform)
+            InputsLoader(self._inputs_loader), transform, status)
         )
 
     def to_array_inputs(self) -> Array:
@@ -621,6 +654,21 @@ class InputsLoader:
 
         return InputsLoader.from_callable_iterable(inputs_loader1), InputsLoader.from_callable_iterable(inputs_loader2)
 
+    @property
+    def size(self) -> int:
+        """
+        The number of data points in the inputs loader.
+
+        Returns
+        -------
+        int
+            Number of data points.
+        """
+        c = 0
+        for inputs in self._inputs_loader():
+            c += inputs.shape[0]
+        return c
+
 
 class TargetsLoader:
     def __init__(
@@ -639,7 +687,9 @@ class TargetsLoader:
 
         Parameters
         ----------
-        targets_loader : Union[FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader]
+        targets_loader : Union[FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader,
+                         FromCallableIterableToTargetsLoader, FromIterableToTargetsLoader, ChoppedTargetsLoader,
+                         FromTargetsLoaderToTransformedTargetsLoader]
             A targets loader.
         """
         self._targets_loader = targets_loader
@@ -812,14 +862,21 @@ class TargetsLoader:
 
         return TargetsLoader.from_callable_iterable(fun)
 
-    def to_transformed_targets_loader(self, transform: Callable[[Array], Array]) -> TargetsLoader:
+    def to_transformed_targets_loader(
+            self,
+            transform: Callable[[Array, Status], Tuple[Array, Status]],
+            status: Optional[Status] = None,
+    ) -> TargetsLoader:
         """
         From an existing loader of targets, create a loader with transformed targets.
 
         Parameters
         ----------
-        transform : Callable[[Array], Array]
-            A transformation function. It takes a batch of targets and returns their transformation.
+        transform : Callable[[Array, Status], Tuple[Array, Status]]
+            A transformation function. It takes a batch of targets and returns their transformation. A status may be
+            updated during the process.
+        status : Optional[Status]
+            An initial status. This may include pre-computed objects used by the transformation.
 
         Returns
         -------
@@ -827,7 +884,7 @@ class TargetsLoader:
             A loader of transformed targets.
         """
         return TargetsLoader(targets_loader=FromTargetsLoaderToTransformedTargetsLoader(
-            TargetsLoader(self._targets_loader), transform)
+            TargetsLoader(self._targets_loader), transform, status)
         )
 
     def split(self, n_data: int) -> Tuple[TargetsLoader, TargetsLoader]:
@@ -872,6 +929,21 @@ class TargetsLoader:
                     count += targets.shape[0]
 
         return TargetsLoader.from_callable_iterable(targets_loader1), TargetsLoader.from_callable_iterable(targets_loader2)
+
+    @property
+    def size(self) -> int:
+        """
+        The number of data points in the targets loader.
+
+        Returns
+        -------
+        int
+            Number of data points.
+        """
+        c = 0
+        for targets in self._targets_loader():
+            c += targets.shape[0]
+        return c
 
 
 class FromDataLoaderToArrayData:
@@ -1269,14 +1341,17 @@ class FromDataLoaderToTransformedDataLoader:
     def __init__(
             self,
             data_loader: DataLoader,
-            transform: Callable[[Array, Array], Tuple[Array, Array]]
+            transform: Callable[[Array, Array, Status], Tuple[Array, Array, Status]],
+            status: Optional[Status] = None,
     ):
         self._data_loader = data_loader
         self._transform = transform
+        self._status = status
 
     def __call__(self):
+        status = deepcopy(self._status)
         for inputs, targets in self._data_loader:
-            inputs, targets = self._transform(inputs, targets)
+            inputs, targets, status = self._transform(inputs, targets, status)
             if inputs is not None and targets is not None and len(inputs) > 0 and len(targets) > 0:
                 if inputs.shape[0] != targets.shape[0]:
                     raise ValueError("The first dimension of transformed inputs and targets must be the same, but "
@@ -1288,14 +1363,17 @@ class FromInputsLoaderToTransformedInputsLoader:
     def __init__(
             self,
             inputs_loader: InputsLoader,
-            transform: Callable[[Array], Array]
+            transform: Callable[[Array, Status], Tuple[Array, Status]],
+            status: Optional[Status] = None,
     ):
         self._inputs_loader = inputs_loader
         self._transform = transform
+        self._status = status
 
     def __call__(self):
+        status = deepcopy(self._status)
         for inputs in self._inputs_loader:
-            inputs = self._transform(inputs)
+            inputs, status = self._transform(inputs, status)
             if inputs is not None and len(inputs) > 0:
                 yield inputs
 
@@ -1304,14 +1382,17 @@ class FromTargetsLoaderToTransformedTargetsLoader:
     def __init__(
             self,
             targets_loader: TargetsLoader,
-            transform: Callable[[Array], Array]
+            transform: Callable[[Array, Status], Tuple[Array, Status]],
+            status: Optional[Status] = None,
     ):
         self._targets_loader = targets_loader
         self._transform = transform
+        self._status = status
 
     def __call__(self):
+        status = deepcopy(self._status)
         for targets in self._targets_loader:
-            targets = self._transform(targets)
+            targets, status = self._transform(targets, status)
             if targets is not None and len(targets) > 0:
                 yield targets
 

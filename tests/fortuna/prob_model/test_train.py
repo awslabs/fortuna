@@ -948,3 +948,16 @@ class TestApproximations(unittest.TestCase):
 
             # save state
             prob_class.save_state(checkpoint_path=tmp_dir)
+
+    def test_error_when_empty_data_loader(self):
+        prob_class_map = ProbClassifier(
+            model=MyModel(self.class_output_dim),
+            posterior_approximator=MAPPosteriorApproximator(),
+            output_calibrator=ClassificationTemperatureScaler(),
+        )
+
+        self.assertRaises(
+            ValueError,
+            lambda dl: prob_class_map.train(dl),
+            DataLoader.from_array_data((np.array([]), np.array([])))
+        )
