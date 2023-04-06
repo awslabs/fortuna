@@ -252,16 +252,13 @@ class DataLoader:
         """
         return TargetsLoader.from_data_loader(DataLoader(data_loader=self._data_loader))
 
-    @classmethod
-    def chop(cls, data_loader: DataLoader, divisor: int) -> DataLoader:
+    def chop(self, divisor: int) -> DataLoader:
         """
         Chop the last part of each batch of the data loader, to make sure the number od data points per batch divides
         `divisor`.
 
         Parameters
         ----------
-        data_loader : DataLoader
-            A data loader
         divisor : int
             Number of data points that each batched must divide.
 
@@ -270,9 +267,15 @@ class DataLoader:
         DataLoader
             A data loader with chopped batches.
         """
-        return cls(
-            data_loader=ChoppedDataLoader(data_loader=data_loader, divisor=divisor)
-        )
+        def fun():
+            for inputs, targets in self._data_loader():
+                reminder = targets.shape[0] % divisor
+                if reminder == 0:
+                    yield inputs, targets
+                elif targets.shape[0] > divisor:
+                    yield inputs[:-reminder], targets[:-reminder]
+
+        return DataLoader.from_callable_iterable(fun)
 
     def split(self, n_data: int) -> Tuple[DataLoader, DataLoader]:
         """
@@ -550,16 +553,13 @@ class InputsLoader:
         """
         return cls(inputs_loader=FromIterableToInputsLoader(iterable))
 
-    @classmethod
-    def chop(cls, inputs_loader: InputsLoader, divisor: int) -> InputsLoader:
+    def chop(self, divisor: int) -> InputsLoader:
         """
         Chop the last part of each batch of the inputs loader, to make sure the number od data points per batch divides
         `divisor`.
 
         Parameters
         ----------
-        inputs_loader : InputsLoader
-            An inputs loader.
         divisor : int
             Number of data points that each batched must divide.
 
@@ -568,11 +568,16 @@ class InputsLoader:
         InputsLoader
             An inputs loader with chopped batches.
         """
-        return cls(
-            inputs_loader=ChoppedInputsLoader(
-                inputs_loader=inputs_loader, divisor=divisor
-            )
-        )
+
+        def fun():
+            for inputs in self._inputs_loader():
+                reminder = inputs.shape[0] % divisor
+                if reminder == 0:
+                    yield inputs
+                elif inputs.shape[0] > divisor:
+                    yield inputs[:-reminder]
+
+        return InputsLoader.from_callable_iterable(fun)
 
     def sample(self, seed: int, n_samples: int) -> InputsLoader:
         """
@@ -801,29 +806,31 @@ class TargetsLoader:
         """
         return cls(targets_loader=FromIterableToTargetsLoader(iterable))
 
-    @classmethod
-    def chop(cls, targets_loader: TargetsLoader, divisor: int) -> TargetsLoader:
+    def chop(self, divisor: int) -> TargetsLoader:
         """
         Chop the last part of each batch of the targets loader, to make sure the number od data points per batch divides
         `divisor`.
 
         Parameters
         ----------
-        targets_loader : TargetsLoader
-            A targets loader.
         divisor : int
             Number of data points that each batched must divide.
 
         Returns
         -------
-        InputsLoader
+        TargetsLoader
             A targets loader with chopped batches.
         """
-        return cls(
-            targets_loader=ChoppedTargetsLoader(
-                targets_loader=targets_loader, divisor=divisor
-            )
-        )
+
+        def fun():
+            for targets in self._targets_loader():
+                reminder = targets.shape[0] % divisor
+                if reminder == 0:
+                    yield targets
+                elif targets.shape[0] > divisor:
+                    yield targets[:-reminder]
+
+        return TargetsLoader.from_callable_iterable(fun)
 
     def sample(self, seed: int, n_samples: int) -> TargetsLoader:
         """
@@ -1247,48 +1254,6 @@ class PrefetchedGenerator:
         if not self._ready:
             self._batch = self._generator.__next__()
             self._ready = True
-
-
-class ChoppedDataLoader:
-    def __init__(self, data_loader: DataLoader, divisor: int):
-        self._data_loader = data_loader
-        self._divisor = divisor
-
-    def __call__(self, *args, **kwargs):
-        for inputs, targets in self._data_loader:
-            reminder = targets.shape[0] % self._divisor
-            if reminder == 0:
-                yield inputs, targets
-            else:
-                yield inputs[:-reminder], targets[:-reminder]
-
-
-class ChoppedInputsLoader:
-    def __init__(self, inputs_loader: InputsLoader, divisor: int):
-        self._inputs_loader = inputs_loader
-        self._divisor = divisor
-
-    def __call__(self, *args, **kwargs):
-        for inputs in self._inputs_loader:
-            reminder = inputs.shape[0] % self._divisor
-            if reminder == 0:
-                yield inputs
-            else:
-                yield inputs[:-reminder]
-
-
-class ChoppedTargetsLoader:
-    def __init__(self, targets_loader: TargetsLoader, divisor: int):
-        self._targets_loader = targets_loader
-        self._divisor = divisor
-
-    def __call__(self, *args, **kwargs):
-        for targets in self._targets_loader:
-            reminder = targets.shape[0] % self._divisor
-            if reminder == 0:
-                yield targets
-            else:
-                yield targets[:-reminder]
 
 
 class DeviceDimensionAugmentedDataLoader:

@@ -220,3 +220,22 @@ class TestDataLoaders(unittest.TestCase):
         targets = np.arange(10)
         targets_loader = TargetsLoader.from_array_targets(targets, batch_size=3)
         assert targets_loader.size == 10
+
+    def test_chop_data_loader(self):
+        data = np.arange(10), np.arange(10)
+        data_loader = DataLoader.from_array_data(data, batch_size=3).chop(2)
+        for x, y in data_loader:
+            assert x.shape[0] == 2
+            assert y.shape[0] == 2
+
+    def test_chop_inputs_loader(self):
+        inputs = np.arange(10)
+        inputs_loader = InputsLoader.from_array_inputs(inputs, batch_size=3).chop(2)
+        for x in inputs_loader:
+            assert x.shape[0] == 2
+
+    def test_chop_targets_loader(self):
+        targets = np.arange(10)
+        targets_loader = TargetsLoader.from_array_targets(targets, batch_size=3).chop(2)
+        for y in targets_loader:
+            assert y.shape[0] == 2
