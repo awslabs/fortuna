@@ -5,8 +5,8 @@ import os
 import pathlib
 from typing import List, Optional
 
-import numpy as np
 from jax._src.prng import PRNGKeyArray
+from jax import pure_callback, random
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config import FitConfig
@@ -145,16 +145,12 @@ class DeepEnsemblePosterior(Posterior):
         return status
 
     def sample(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:
-        # FIXME: Bug issue in JAX: https://github.com/google/jax/issues/13098
-        # if rng is None:
-        #     rng = self.rng.get()
-        # state = pure_callback(
-        #     lambda j: self.state.get(i=j),
-        #     self.state.get(i=0),
-        #     random.choice(rng, self.posterior_approximator.ensemble_size),
-        # )
-        state = self.state.get(
-            i=np.random.choice(self.posterior_approximator.ensemble_size)
+        if rng is None:
+            rng = self.rng.get()
+        state = pure_callback(
+            lambda j: self.state.get(i=j),
+            self.state.get(i=0),
+            random.choice(rng, self.posterior_approximator.ensemble_size),
         )
         return JointState(
             params=state.params,
