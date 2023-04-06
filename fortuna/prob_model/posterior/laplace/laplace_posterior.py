@@ -5,12 +5,13 @@ from typing import Dict, Optional
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
-from jax import hessian, lax, vjp
+from jax import hessian, lax, vjp, devices, jit, pmap
+from jax.lax import psum
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_map
 
-from fortuna.data.loader import DataLoader
+from fortuna.data.loader import DataLoader, DeviceDimensionAugmentedDataLoader
 from fortuna.prob_model.fit_config import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
@@ -152,10 +153,10 @@ class LaplacePosterior(Posterior):
         def compute_hess_batch(_batch_inputs, _batch_targets):
             lam, z = lax.map(
                 eig_hess_fn,
-                (apply_calib_model_manager(params, batch_inputs), batch_targets),
+                (apply_calib_model_manager(params, _batch_inputs), _batch_targets),
             )
             ztj = lax.map(
-                lambda v: lax.map(vjp_fn(v[0]), v[1].T), (batch_inputs[:, None], z)
+                lambda v: lax.map(vjp_fn(v[0]), v[1].T), (_batch_inputs[:, None], z)
             )[0]
             if factorization == "diagonal":
                 return -jnp.sum(lam[:, :, None] * ztj**2, (0, 1))
@@ -164,11 +165,21 @@ class LaplacePosterior(Posterior):
                 f"`factorization='diagonal'` is supported."
             )
 
+        n_gpu_devices = len([d for d in devices() if d.platform == "gpu"])
+        if n_gpu_devices > 0:
+            train_data_loader = DeviceDimensionAugmentedDataLoader(train_data_loader)
+            compute_hess_batch = pmap(compute_hess_batch, axis_name="batch")
+        else:
+            compute_hess_batch = jit(compute_hess_batch)
+
         h = jnp.exp(-self.joint.prior.log_var)
         for i, (batch_inputs, batch_targets) in enumerate(train_data_loader):
             if verbose:
                 logging.info(f"Hessian approximation for batch {i + 1}.")
             h += compute_hess_batch(batch_inputs, batch_targets)
+
+        if n_gpu_devices > 0:
+            h = jnp.sum(h, 0)
 
         return unravel(1 / jnp.sqrt(h))
 
