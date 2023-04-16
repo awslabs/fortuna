@@ -34,7 +34,7 @@ class SNGPResNetDeepFeatureExtractorSubNet(WithSpectralConv2DNormMixin, ResNetDe
 
 class ResNetSNGP(SNGPMixin, ResNet):
     """
-    [Spectral-normalized Neural Gaussian Process](https://arxiv.org/abs/2006.10108) using a ResNet as the
+    `Spectral-normalized Neural Gaussian Process <https://arxiv.org/abs/2006.10108>_` using a ResNet as the
     deep feature extractor.
     """
     def setup(self):
@@ -72,7 +72,7 @@ class SNGPWideResNetDeepFeatureExtractorSubNet(WithSpectralConv2DNormMixin, Wide
 
 class WideResNetSNGP(SNGPMixin, WideResNet):
     """
-    [Spectral-normalized Neural Gaussian Process](https://arxiv.org/abs/2006.10108) using a WideResNet as the
+    `Spectral-normalized Neural Gaussian Process <https://arxiv.org/abs/2006.10108>`_ using a WideResNet as the
     deep feature extractor.
     """
     def setup(self):

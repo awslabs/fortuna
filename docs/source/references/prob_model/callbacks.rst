@@ -7,6 +7,9 @@ In order to train a :class:`~fortuna.prob_model.base.ProbModel` using callbacks 
 - Define its own callbacks by subclassing :class:`~fortuna.prob_model.callbacks.base.Callback` and override the methods of interest.
 - When calling the train method for a :class:`~fortuna.prob_model.base.ProbModel` instance, add a list of callbacks containing the ones previously defined when initializing :class:`~fortuna.prob_model.fit_config.base.FitConfig`.
 
-.. _callback:
+.. _callbacks:
 
 .. autoclass:: fortuna.prob_model.callbacks.base.Callback
+
+.. autoclass:: fortuna.prob_model.callbacks.sngp.ResetCovarianceCallback
+

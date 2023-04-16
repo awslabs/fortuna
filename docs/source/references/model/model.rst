@@ -12,3 +12,4 @@ The model forward pass is orchestrated by a :ref:`model manager <model_manager>`
    builtin_models
    linen_module
    model_manager
+   utils

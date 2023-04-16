@@ -2,7 +2,7 @@
 The code has been taken from https://github.com/google/edward2/blob/main/edward2/jax/nn/normalization.py
 """
 import dataclasses
-from typing import Any, Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, Mapping, Optional, Tuple, Type
 
 from jax.random import PRNGKeyArray
 import flax.core
@@ -13,34 +13,17 @@ import numpy as np
 
 from fortuna.typing import Shape, Array
 
-# typing
-Dtype = Any
-
 
 def _l2_normalize(x: Array, eps: float = 1e-12) -> Array:
     return x * jax.lax.rsqrt(jnp.maximum(jnp.square(x).sum(), eps))
 
 
 class SpectralNormalization(nn.Module):
-    layer: nn.Module
-    iteration: int = 1
-    norm_multiplier: float = 0.95
-    u_init: Callable[[PRNGKeyArray, Shape, Dtype], Array] = nn.initializers.normal(
-        stddev=0.05
-    )
-    v_init: Callable[[PRNGKeyArray, Shape, Dtype], Array] = nn.initializers.normal(
-        stddev=0.05
-    )
-    kernel_apply_kwargs: Optional[Mapping[str, Any]] = None
-    kernel_name: str = "kernel"
-    layer_name: Optional[str] = None
-    update_singular_value_estimate: Optional[bool] = None
-
     """
     Implements spectral normalization for linear layers.
-    
-    See [[Spectral Normalization for Generative Adversarial Networks]](https://arxiv.org/abs/1802.05957).
-    
+
+    See `Spectral Normalization for Generative Adversarial Networks <https://arxiv.org/abs/1802.05957>`_ .
+
     Attributes
     ----------
     layer: nn.Module
@@ -50,19 +33,19 @@ class SpectralNormalization(nn.Module):
     norm_multiplier: float
         Multiplicative constant to threshold the normalization.
         Usually under normalization, the singular value will converge to this value.
-    u_init: Callable[[PRNGKeyArray, Shape, Dtype], Array]
+    u_init: Callable[[PRNGKeyArray, Shape, Type], Array]
         Initializer function for the first left singular vectors of the kernel.
-    v_init: Callable[[PRNGKeyArray, Shape, Dtype], Array]
+    v_init: Callable[[PRNGKeyArray, Shape, Type], Array]
         Initializer function for the first right singular vectors of the kernel.
     kernel_apply_kwargs: Optional[Mapping[str, Any]]
         Updated keyword arguments to clone the input layer.
         The cloned layer represents the linear operator performed by the weight matrix.
         If not specified, that operator follows SN-GAN implementation
-        ([[Takeru M. et al., 2018]](https://arxiv.org/abs/1802.05957)).
+        (`Takeru M. et al <https://arxiv.org/abs/1802.05957>`_).
         In particular, for Dense layers the default behavior is equivalent to using a cloned layer with no bias
         (by specifying `kernel_apply_kwargs=dict(use_bias=False)`). With this customization, we
         can have the same implementation (inspried by
-        ([[Stephan H., 2020]](https://nbviewer.jupyter.org/gist/shoyer/fa9a29fd0880e2e033d7696585978bfc)) 
+        (`Stephan H., 2020 <https://nbviewer.jupyter.org/gist/shoyer/fa9a29fd0880e2e033d7696585978bfc>`_)
         for different interpretations of Conv layers. Also see `SpectralNormalizationConv2D` for
         an example of using this attribute.
     kernel_name: str
@@ -72,13 +55,26 @@ class SpectralNormalization(nn.Module):
     update_singular_value_estimate: Optional[bool]
         Whether to perform power interations to update the singular value estimate.
     """
+    layer: nn.Module
+    iteration: int = 1
+    norm_multiplier: float = 0.95
+    u_init: Callable[[PRNGKeyArray, Shape, Type], Array] = nn.initializers.normal(
+        stddev=0.05
+    )
+    v_init: Callable[[PRNGKeyArray, Shape, Type], Array] = nn.initializers.normal(
+        stddev=0.05
+    )
+    kernel_apply_kwargs: Optional[Mapping[str, Any]] = None
+    kernel_name: str = "kernel"
+    layer_name: Optional[str] = None
+    update_singular_value_estimate: Optional[bool] = None
 
     def _get_singular_vectors(
         self,
         initializing: bool,
         kernel_apply: Callable,
         in_shape: Shape,
-        dtype: Dtype
+        dtype: Type
     ) -> Tuple[nn.Variable, nn.Variable]:
         if initializing:
             rng_u = self.make_rng("params")
@@ -174,7 +170,7 @@ class SpectralNormalization(nn.Module):
 class SpectralNormalizationConv2D(SpectralNormalization):
     __doc__ = (
         "Implements spectral normalization for Convolutional layers."
-        "See [[Generalizable Adversarial Training via Spectral Normalization]](https://arxiv.org/abs/1811.07457).\n"
+        "See `Generalizable Adversarial Training via Spectral Normalization <https://arxiv.org/abs/1811.07457>`_.\n"
         + "\n".join(SpectralNormalization.__doc__.split("\n")[1:])
     )
 
@@ -185,9 +181,6 @@ class SpectralNormalizationConv2D(SpectralNormalization):
 
 @dataclasses.dataclass
 class WithSpectralConv2DNormMixin:
-    spectral_norm_iteration: int = 1.
-    spectral_norm_bound: float = 0.95
-
     """
     Attributes
     ----------
@@ -197,6 +190,8 @@ class WithSpectralConv2DNormMixin:
         Multiplicative constant to threshold the normalization.
         Usually under normalization, the singular value will converge to this value.
     """
+    spectral_norm_iteration: int = 1.
+    spectral_norm_bound: float = 0.95
 
     def spectral_norm(self, layer: nn.Module,  train: bool = False) -> Callable:
         return lambda *args, **kwargs: SpectralNormalizationConv2D(
@@ -209,9 +204,6 @@ class WithSpectralConv2DNormMixin:
 
 @dataclasses.dataclass
 class WithSpectralNorm:
-    spectral_norm_iteration: int = 1.
-    spectral_norm_bound: float = 0.95
-
     """
     Attributes
     ----------
@@ -221,6 +213,8 @@ class WithSpectralNorm:
         Multiplicative constant to threshold the normalization.
         Usually under normalization, the singular value will converge to this value.
     """
+    spectral_norm_iteration: int = 1.
+    spectral_norm_bound: float = 0.95
 
     def spectral_norm(self, layer: nn.Module, train: bool = False) -> Callable:
         return lambda *args, **kwargs: SpectralNormalization(

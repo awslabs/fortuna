@@ -2,7 +2,7 @@
 
 import dataclasses
 import functools
-from typing import Any, Callable, Mapping, Optional, Tuple
+from typing import Any, Callable, Mapping, Optional, Tuple, Type
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -24,9 +24,6 @@ default_rbf_bias_init = nn.initializers.uniform(scale=2.0 * jnp.pi)
 # )
 default_rbf_kernel_init = nn.initializers.normal(stddev=1.0)
 
-# Dtype type
-Dtype = type(jnp.float32)
-
 # Default field value for kwargs, to be used for data class declaration.
 default_kwarg_dict = lambda: dataclasses.field(default_factory=dict)
 
@@ -34,21 +31,11 @@ SUPPORTED_LIKELIHOOD = ("binary_logistic", "poisson", "gaussian")
 
 
 class RandomFeatureGaussianProcess(nn.Module):
-    features: int
-    hidden_features: int = 1024
-    normalize_input: bool = False
-
-    # Optional keyword arguments.
-    norm_kwargs: Mapping[str, Any] = default_kwarg_dict()
-    hidden_kwargs: Mapping[str, Any] = default_kwarg_dict()
-    output_kwargs: Mapping[str, Any] = default_kwarg_dict()
-    covmat_kwargs: Mapping[str, Any] = default_kwarg_dict()
-
     """
     A Gaussian process layer using random Fourier Features.
     
-    See [[Simple and Principled Uncertainty Estimation with Deterministic 
-    Deep Learning via Distance Awareness]](https://arxiv.org/abs/2006.10108)
+    See `Simple and Principled Uncertainty Estimation with Deterministic 
+    Deep Learning via Distance Awareness <https://arxiv.org/abs/2006.10108>`_
 
     Attributes
     ----------
@@ -67,6 +54,15 @@ class RandomFeatureGaussianProcess(nn.Module):
     covmat_kwargs: Mapping[str, Any]
         Optional keyword arguments to the predictive covmat layer.
     """
+    features: int
+    hidden_features: int = 1024
+    normalize_input: bool = False
+
+    # Optional keyword arguments.
+    norm_kwargs: Mapping[str, Any] = default_kwarg_dict()
+    hidden_kwargs: Mapping[str, Any] = default_kwarg_dict()
+    output_kwargs: Mapping[str, Any] = default_kwarg_dict()
+    covmat_kwargs: Mapping[str, Any] = default_kwarg_dict()
 
     def setup(self):
         # pylint:disable=invalid-name,not-a-mapping
@@ -120,27 +116,18 @@ class RandomFeatureGaussianProcess(nn.Module):
 
 
 class RandomFourierFeatures(nn.Module):
-    features: int
-    kernel_scale: Optional[float] = 1.0
-    feature_scale: Optional[float] = 1.0
-    kernel_init:  Callable[[PRNGKeyArray, Shape, Dtype], Array] = default_rbf_kernel_init
-    bias_init:  Callable[[PRNGKeyArray, Shape, Dtype], Array] = default_rbf_bias_init
-    seed: int = 0
-    dtype: Dtype = jnp.float32
-    collection_name: str = "random_features"
-
     """
     A random fourier feature (RFF) layer that approximates a kernel model.
 
     The random feature transformation is a one-hidden-layer network with
     non-trainable weights (see, e.g., Algorithm 1 of
-    [[Random Features for Large-Scale 
-    Kernel Machines]](https://people.eecs.berkeley.edu/~brecht/papers/07.rah.rec.nips.pdf)):
-     
-    .. math::
-        `f(x) = `\gamma * cos(\mathbf{W}\mathbf{x} + \mathbf{b})`.
+    `Random Features for Large-Scale
+    Kernel Machines <https://people.eecs.berkeley.edu/~brecht/papers/07.rah.rec.nips.pdf>`_):
 
-    where :math:`\mathbf{W}` is the kernel matrix, :math:`\mathbf{b}` is the bias 
+    .. math::
+        f(x) = \gamma * cos(\mathbf{W}\mathbf{x} + \mathbf{b})
+
+    where :math:`\mathbf{W}` is the kernel matrix, :math:`\mathbf{b}` is the bias
     and :math:`\gamma` is the output scale.
     The forward pass logic closely follows that of the `nn.Dense` layer.
 
@@ -152,15 +139,23 @@ class RandomFourierFeatures(nn.Module):
         Scale to apply to the output.
         When using GP layer as the output layer of a nerual network, it is recommended to set this to 1.
         to prevent it from changing the learning rate to the hidden layers.
-    kernel_init:  Callable[[PRNGKeyArray, Shape, Dtype], Array]
-         Callable[[PRNGKeyArray, Shape, Dtype], Array] function for the weight matrix.
-    bias_init:  Callable[[PRNGKeyArray, Shape, Dtype], Array]
-         Callable[[PRNGKeyArray, Shape, Dtype], Array] function for the bias.
+    kernel_init:  Callable[[PRNGKeyArray, Shape, Type], Array]
+         Callable[[PRNGKeyArray, Shape, Type], Array] function for the weight matrix.
+    bias_init:  Callable[[PRNGKeyArray, Shape, Type], Array]
+         Callable[[PRNGKeyArray, Shape, Type], Array] function for the bias.
     seed: int
         Random seed for generating random features. This will override the external RNGs.
-    dtype: Dtype
+    dtype: Type
         The dtype of the computation.
     """
+    features: int
+    kernel_scale: Optional[float] = 1.0
+    feature_scale: Optional[float] = 1.0
+    kernel_init:  Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_kernel_init
+    bias_init:  Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_bias_init
+    seed: int = 0
+    dtype: Type = jnp.float32
+    collection_name: str = "random_features"
 
     def setup(self):
         # Defines the random number generator.
@@ -230,13 +225,6 @@ class RandomFourierFeatures(nn.Module):
 
 
 class LaplaceRandomFeatureCovariance(nn.Module):
-    hidden_features: int
-    ridge_penalty: float = 1.0
-    momentum: Optional[float] = None
-    likelihood: str = "gaussian"
-    collection_name: str = "laplace_covariance"
-    dtype: Dtype = jnp.float32
-
     """
     Computes the Gaussian Process covariance using Laplace method.
 
@@ -245,10 +233,10 @@ class LaplaceRandomFeatureCovariance(nn.Module):
     hidden_features: int
         The number of random fourier features.
     ridge_penalty: float
-        Initial Ridge penalty to weight covariance matrix. 
+        Initial Ridge penalty to weight covariance matrix.
         This value is used to stablize the eigenvalues of weight covariance estimate :math:`\Sigma` so that
-        the matrix inverse can be computed for :math:`\Sigma = (\mathbf{I}*s+\mathbf{X}^T\mathbf{X})^{-1}
-        The ridge factor `s` cannot be too large since otherwise it will dominate 
+        the matrix inverse can be computed for :math:`\Sigma = (\mathbf{I}*s+\mathbf{X}^T\mathbf{X})^{-1}`.
+        The ridge factor :math:`s` cannot be too large since otherwise it will dominate
         making the covariance estimate not meaningful.
     momentum: Optional[float]
         A discount factor used to compute the moving average for posterior
@@ -257,14 +245,21 @@ class LaplaceRandomFeatureCovariance(nn.Module):
         momentum, which is desirable if the goal is to compute the exact
         covariance matrix by passing through data once (say in the final epoch).
         In this case, make sure to reset the precision matrix variable between
-        epochs to avoid souble counting.
+        epochs to avoid double counting.
     likelihood: str
         The likelihood to use for computing Laplace approximation for
         the covariance matrix. Can be one of ('binary_logistic', 'poisson',
         'gaussian').
-    dtype: Dtype
+    dtype: Type
         The dtype of the computation
     """
+
+    hidden_features: int
+    ridge_penalty: float = 1.0
+    momentum: Optional[float] = None
+    likelihood: str = "gaussian"
+    collection_name: str = "laplace_covariance"
+    dtype: Type = jnp.float32
 
     def setup(self):
         if self.momentum is not None:
@@ -414,16 +409,15 @@ class LaplaceRandomFeatureCovariance(nn.Module):
         Computes the predictive covariance.
 
         Approximates the Gaussian process posterior using random features.
-        Given training random feature Phi_tr (num_train, num_hidden) and testing
-        random feature Phi_ts (batch_size, num_hidden). The predictive covariance
+        Given training random feature :math:`\mathbf{\Phi_{tr}}` (num_train, num_hidden) and testing
+        random feature :math:`\mathbf{\Phi_{ts}}` (batch_size, num_hidden). The predictive covariance
         matrix is computed as (assuming Gaussian likelihood):
+        :math:`s * \mathbf{\Phi_{ts}}(\mathbf{I}*s + \mathbf{\Phi_{tr}}^{T}*\mathbf{\Phi_{tr}})^{-1}\mathbf{\Phi_{tr}}^{^T}`
 
-        s * Phi_ts @ inv(t(Phi_tr) * Phi_tr + s * I) @ t(Phi_ts),
-
-        where s is the ridge factor to be used for stablizing the inverse, and I is
+        where :math:`s` is the ridge factor to be used for stablizing the inverse, and \mathbf{I} is
         the identity matrix with shape (num_hidden, num_hidden). The above
         description is formal only: the actual implementation uses a Cholesky
-        factorization of the covariance matrix t(Phi_tr) * Phi_tr + s * I.
+        factorization of the covariance matrix.
 
         Parameters
         ----------
