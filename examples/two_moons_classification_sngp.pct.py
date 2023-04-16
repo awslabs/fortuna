@@ -73,11 +73,11 @@ def plot_uncertainty(prob_model, test_data_loader, grid_size=100):
 # In this tutorial we will use a deep residual network.
 
 # %%
-from fortuna.model.mlp import MLP
+from fortuna.model.mlp import DeepResidualNet
 import flax.linen as nn
 
 output_dim = 2
-model = MLP(
+model = DeepResidualNet(
     output_dim=output_dim,
     activations=(nn.relu, nn.relu, nn.relu, nn.relu, nn.relu, nn.relu),
     widths=(128,128,128,128,128,128),
@@ -131,10 +131,10 @@ plt.show()
 # and `WithSpectralNorm`:
 
 # %%
-from fortuna.model.mlp import MLPDeepFeatureExtractorSubNet
+from fortuna.model.mlp import DeepResidualFeatureExtractorSubNet
 from fortuna.model.utils.spectral_norm import WithSpectralNorm
 
-class SNGPDeepFeatureExtractorSubNet(WithSpectralNorm, MLPDeepFeatureExtractorSubNet):
+class SNGPDeepFeatureExtractorSubNet(WithSpectralNorm, DeepResidualFeatureExtractorSubNet):
     pass
 
 # %% [markdown]
@@ -147,7 +147,7 @@ class SNGPDeepFeatureExtractorSubNet(WithSpectralNorm, MLPDeepFeatureExtractorSu
 from fortuna.model.utils.random_features import RandomFeatureGaussianProcess
 
 from fortuna.model.sngp import SNGPMixin
-class SNGPModel(SNGPMixin, MLP):
+class SNGPModel(SNGPMixin, DeepResidualNet):
     def setup(self):
         if len(self.widths) != len(self.activations):
             raise Exception(
