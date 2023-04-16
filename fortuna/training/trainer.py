@@ -17,7 +17,7 @@ from tqdm import trange
 from tqdm.std import tqdm as TqdmDecorator
 
 from fortuna.data.loader import DataLoader
-from fortuna.prob_model.fit_config.callbacks import Callback
+from fortuna.prob_model.callbacks.base import Callback
 from fortuna.training.mixin import (InputValidatorMixin,
                                     WithCheckpointingMixin,
                                     WithEarlyStoppingMixin)

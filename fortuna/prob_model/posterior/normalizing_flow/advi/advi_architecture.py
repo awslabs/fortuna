@@ -25,11 +25,11 @@ class ADVIArchitecture(HashableMixin):
         self.dim = dim
         self.std_init_params = std_init_params
 
-    def forward(self, params: any, u: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    def forward(self, params: Tuple[jnp.array, jnp.array], u: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Component-wise forward linear transformation.
 
-        :param params: any
+        :param params: Tuple[jnp.array, jnp.array]
             Mean and log-scale parameters.
         :param u: np.ndarray
             Input to transform forward.
@@ -46,16 +46,16 @@ class ADVIArchitecture(HashableMixin):
             jnp.repeat(jnp.sum(logscale, -1), u.shape[0]),
         )
 
-    def backward(self, params: tuple, v: jnp.ndarray) -> tuple:
+    def backward(self, params: Tuple[jnp.array, jnp.array], v: jnp.ndarray) -> Tuple[jnp.array, jnp.array]:
         """
         Component-wise backward linear transformation.
 
-        :param params: tuple
+        :param params: Tuple[jnp.array, jnp.array]
             Mean and log-scale parameters.
         :param v: jnp.ndarray
             Input to transform backward.
 
-        :return: tuple
+        :return: Tuple[jnp.array, jnp.array]
             v: jnp.ndarray
                 Output of the backward pass.
             ldj: jnp.ndarray
@@ -71,7 +71,7 @@ class ADVIArchitecture(HashableMixin):
         self,
         rng: PRNGKeyArray,
         mean: Optional[jnp.ndarray] = None,
-    ) -> tuple:
+    ) -> Tuple[jnp.array, jnp.array]:
         """
         Initialize mean and log-scale parameters.
 
@@ -81,9 +81,8 @@ class ADVIArchitecture(HashableMixin):
             If the main model has already been initialized calling `model.init`, the already
             initialized parameter values can be provided here.
 
-        :return:
-            params: tuple
-                Transformation parameters.
+        :return: Tuple[jnp.array, jnp.array]
+            Transformation parameters.
         """
         rng, key_mean, key_logscale = random.split(rng, 3)
         if mean is None:

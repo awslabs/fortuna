@@ -13,7 +13,7 @@ from optax._src.base import PyTree
 from fortuna.distribution.base import Distribution
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.prob_model.fit_config.callbacks import Callback
+from fortuna.prob_model.callbacks.base import Callback
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params, Mutable
 
 
