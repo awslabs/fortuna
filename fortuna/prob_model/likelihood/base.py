@@ -229,7 +229,7 @@ class Likelihood(WithRNG):
                 aux["calib_mutable"] = dict(output_calibrator=None)
 
         log_joint_prob = jnp.sum(
-            self.prob_output_layer.log_prob(outputs, targets, **kwargs)
+            self.prob_output_layer.log_prob(outputs, targets, train=train, **kwargs)
         )
         batch_weight = n_data / targets.shape[0]
         log_joint_prob *= batch_weight

@@ -153,7 +153,7 @@ class TrainerABC(
                 training_losses_and_metrics[k] = v
 
         if not self.disable_training_metrics_computation and metrics is not None:
-            preds = self.predict_fn(aux["outputs"])
+            preds = self.predict_fn(aux["outputs"], train=True)
             if self.multi_device:
                 training_batch_metrics = self.compute_metrics(
                     preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),

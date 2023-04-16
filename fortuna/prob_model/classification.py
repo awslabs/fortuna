@@ -1,11 +1,11 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Type, Callable, Union
 
 import flax.linen as nn
 import numpy as np
 
 from fortuna.data.loader import DataLoader
-from fortuna.model.model_manager.classification import \
-    ClassificationModelManager
+from fortuna.model.model_manager import classification
+from fortuna.model.model_manager.classification import ClassificationModelManager
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
 from fortuna.output_calibrator.output_calib_manager.base import \
@@ -37,6 +37,7 @@ class ProbClassifier(ProbModel):
         prior: Prior = IsotropicGaussianPrior(),
         posterior_approximator: PosteriorApproximator = SWAGPosteriorApproximator(),
         output_calibrator: Optional[nn.Module] = ClassificationTemperatureScaler(),
+        model_manager_cls: Union[Type, Callable] = ClassificationModelManager,
         seed: int = 0,
     ):
         r"""
@@ -59,6 +60,10 @@ class ProbClassifier(ProbModel):
             logits with a scalar temperature parameter. Given outputs :math:`o` of the model manager, the output
             calibrator is described by a function :math:`g(\phi, o)`, where `phi` are deterministic
             calibration parameters.
+        model_manager_cls: Union[Type, Callable]
+            Either a class of a function returning a class for the model manager.
+            A class different then `ClassificationModelManager` can be provided when custom implementation
+            are required for model inference/prediction.
         seed: int
             A random seed.
 
@@ -96,7 +101,14 @@ class ProbClassifier(ProbModel):
         self.prior = prior
         self.output_calibrator = output_calibrator
 
-        self.model_manager = ClassificationModelManager(model)
+        allowed_model_managers_cls = list(map(lambda n: getattr(classification, n), classification.__all__))
+        if model_manager_cls in allowed_model_managers_cls:
+            self.model_manager = model_manager_cls(model=model)
+        elif hasattr(model_manager_cls, "func") and model_manager_cls.func in allowed_model_managers_cls:
+            self.model_manager = model_manager_cls(model=model)
+        else:
+           raise ValueError(f"model_manager_cls has to be one of this classes {allowed_model_managers_cls}")
+        self.model_manager = model_manager_cls(model=model)
         self.output_calib_manager = OutputCalibManager(
             output_calibrator=output_calibrator
         )
@@ -127,7 +139,8 @@ class ProbClassifier(ProbModel):
         outputs = self.model_manager.apply(
             params=s.params, inputs=np.zeros((1,) + input_shape), mutable=s.mutable
         )
-        if outputs.shape[1] != output_dim:
+        model_output_dim = outputs[0].shape[1] if isinstance(outputs, (list, tuple)) else outputs.shape[1]
+        if model_output_dim != output_dim:
             raise ValueError(
                 f"""The outputs dimension of `model` must correspond to the number of different classes
             in the target variables of `_data_loader`. However, {outputs.shape[1]} and {output_dim} were found,

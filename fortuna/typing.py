@@ -1,5 +1,5 @@
 import pathlib
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Iterable
 
 import jax.numpy as jnp
 import numpy as np
@@ -15,3 +15,5 @@ Array = Union[jnp.ndarray, np.ndarray]
 Status = Dict[str, Array]
 Path = Union[str, pathlib.Path]
 Batch = Tuple[Array, Array]
+AnyKey = Union[str, int]
+Shape = Iterable[int]

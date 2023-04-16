@@ -1,20 +1,22 @@
 from copy import deepcopy
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Any
 
 from flax.core import FrozenDict
 
+from fortuna.typing import AnyKey
 
-def nested_get(d: Union[FrozenDict, Dict], keys: List) -> Dict:
+
+def nested_get(d: Union[FrozenDict[AnyKey, Any], Dict[AnyKey, Any]], keys: List[AnyKey]) -> Dict[AnyKey, Any]:
     """
     Get a sub-nested dictionary from a dictionary `d`. `keys` is the sequence of keys leading to the nested
     sub-dictionary.
 
-    :param d: Dict
+    :param d: Dict[AnyKey, Any]
         Nested dictionary.
-    :param keys: List
+    :param keys: List[AnyKey
         Sequence of keys.
 
-    :return: Dict
+    :return: Dict[AnyKey, Any]
         The sub-nested dictionary.
     """
     if len(keys) == 0:
@@ -24,7 +26,7 @@ def nested_get(d: Union[FrozenDict, Dict], keys: List) -> Dict:
     return nested_get(d[keys[0]], keys[1:])
 
 
-def nested_set(d: Dict, key_paths: Tuple[List], objs: Tuple) -> Dict:
+def nested_set(d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey]], objs: Tuple[Any]) -> Dict[AnyKey, Any]:
     """
     Set the values of a nested dictionary for the specified sequences of keys.
 
@@ -63,8 +65,8 @@ def nested_set(d: Dict, key_paths: Tuple[List], objs: Tuple) -> Dict:
 
 
 def nested_pair(
-    d: Dict, key_paths: Tuple[List], objs: Tuple, labels: Tuple[str, str]
-) -> Dict:
+    d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey]], objs: Tuple[Any], labels: Tuple[str, str]
+) -> Dict[AnyKey, Any]:
     """
     Replace the values of a nested dictionary at the specified sequences of keys `keys` with dictionaries including both
     the values in the original dictionary and the new objects in `objs`. The keys of these dictionaries are given by
@@ -109,22 +111,22 @@ def nested_pair(
 
 
 def nested_unpair(
-    d: Dict, key_paths: Tuple[List], labels: Tuple[str, str]
-) -> Tuple[Dict, Dict]:
+    d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey]], labels: Tuple[str, str]
+) -> Tuple[Dict[AnyKey, Any], Dict[AnyKey, Any]]:
     """
     Form two dictionaries out of the initial dictionary `d`. In correspondence to the sequences of keys in `key_paths`,
      the first and second dictionary will get the values marked by `labels`. Otherwise, the first dictionary takes the
      values of `d`, while the second dictionary does not take any.
 
-    :param d: Dict
+    :param d: Dict[AnyKey, Any]
         A nested dictionary.
-    :param key_paths: Tuple[List]
+    :param key_paths: Tuple[List[AnyKey]]
         Each element of the tuple is a sequence of keys defining the path to an item of the nested dictionary. In
         correspondence to each key path, the value must be a dictionary with `labels` as keys.
     :param labels: Tuple[str, str]
         Labels indicating the keys of the objects going into the first and second dictionaries, respectively.
 
-    :return Tuple[Dict, dict]
+    :return Tuple[Dict[AnyKey, Any], Dict[AnyKey, Any]]
         The two dictionaries.
     """
     if type(key_paths) != tuple:
@@ -154,3 +156,32 @@ def nested_unpair(
             raise KeyError(error_msg)
 
     return d01, d02
+
+
+def find_one_path_to_key(d: Dict[AnyKey, Any], key: AnyKey, keys: Tuple[AnyKey] = ()) -> Tuple[AnyKey]:
+    if hasattr(d, 'items'):
+        for k, v in d.items():
+            if k == key:
+                keys += (k,)
+                return keys
+            if isinstance(v, (FrozenDict, dict)):
+                tmp = find_one_path_to_key(v, key, keys + (k,))
+                if key in tmp:
+                    return tmp
+    return keys
+
+
+def nested_update(d: Dict[AnyKey, Any], *updating_d: Dict[AnyKey, Any]) -> Dict[AnyKey, Any]:
+    """
+    Update a nested dictionary `d` with the content of an other dictionary `updating_d`.
+    """
+    # from https://github.com/pydantic/pydantic/blob/9d631a3429a66f30742c1a52c94ac18ec6ba848d/pydantic/utils.py#L198
+    # need to check license
+    updated_mapping = d.copy()
+    for updating_mapping in updating_d:
+        for k, v in updating_mapping.items():
+            if k in updated_mapping and isinstance(updated_mapping[k], dict) and isinstance(v, dict):
+                updated_mapping[k] = nested_update(updated_mapping[k], v)
+            else:
+                updated_mapping[k] = v
+    return updated_mapping

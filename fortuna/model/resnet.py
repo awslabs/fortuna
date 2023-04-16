@@ -177,7 +177,11 @@ class DeepFeatureExtractorSubNet(nn.Module):
         jnp.ndarray
             Deep feature extractor representation.
         """
-        conv = partial(self.conv, use_bias=False, dtype=self.dtype)
+        if hasattr(self, 'spectral_norm'):
+            conv = self.spectral_norm(self.conv, train=train)
+        else:
+            conv = self.conv
+        conv = partial(conv, use_bias=False, dtype=self.dtype)
         norm = partial(
             nn.BatchNorm,
             use_running_average=not train,
