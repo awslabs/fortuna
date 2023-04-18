@@ -10,7 +10,7 @@ from fortuna.output_calibrator.output_calib_manager.base import \
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_model.base import ProbModel
 from fortuna.prob_model.calib_config.base import CalibConfig
-from fortuna.prob_model.fit_config import FitConfig
+from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.likelihood.regression import RegressionLikelihood
 from fortuna.prob_model.posterior.base import PosteriorApproximator

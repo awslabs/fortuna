@@ -137,7 +137,7 @@ for i, batch in enumerate(bs_train_data):
 # We exploit the EnbPI implementation in Fortuna to compute the conformal intervals over the test data of the time series, given the training and test bootstrap predictions above. We choose a coverage error equal to 0.05, corresponding to a confidence of 95%.
 
 # %%
-from fortuna.conformal.regression import EnbPI
+from fortuna.calibration import EnbPI
 
 conformal_intervals = EnbPI().conformal_interval(
     bootstrap_indices=bs_indices,

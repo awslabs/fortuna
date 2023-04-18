@@ -4,7 +4,7 @@ from typing import Optional, Tuple, Union
 from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import DataLoader
-from fortuna.prob_model.fit_config import FitConfig
+from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.posterior_mixin import \

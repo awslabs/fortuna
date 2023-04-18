@@ -71,7 +71,7 @@ for i, idx in enumerate(KFold(n_splits=n_splits).split(X_train)):
 # Given the model outputs, we compute conformal intervals obtained using CV+.
 
 # %%
-from fortuna.conformal.regression import CVPlusConformalRegressor
+from fortuna.calibration import CVPlusConformalRegressor
 
 cvplus_interval = CVPlusConformalRegressor().conformal_interval(
     cross_val_outputs=cross_val_outputs,
@@ -109,7 +109,7 @@ loo_test_outputs = jnp.array(loo_test_outputs)
 # Given the model outputs, we compute conformal intervals obtained using jackknife+ and jackknife-minmax.
 
 # %%
-from fortuna.conformal.regression import (
+from fortuna.calibration import (
     JackknifePlusConformalRegressor,
     JackknifeMinmaxConformalRegressor,
 )

@@ -5,13 +5,13 @@ from typing import Callable, Dict, Optional
 import jax
 import jax.numpy as jnp
 
-from fortuna.calibration.state import CalibState
+from fortuna.calibration.output_calib_model.state import OutputCalibState
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.calib_config.base import CalibConfig
-from fortuna.prob_model.fit_config import FitConfig
+from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.prob_model_calibrator import (
-    JittedProbModelCalibrator, MultiDeviceProbModelCalibrator,
-    ProbModelCalibrator)
+    JittedProbModelOutputCalibrator, MultiDeviceProbModelOutputCalibrator,
+    ProbModelOutputCalibrator)
 from fortuna.typing import Array, Path, Status
 from fortuna.utils.data import check_data_loader_is_not_random
 from fortuna.utils.device import select_trainer_given_devices
@@ -152,9 +152,9 @@ class ProbModel(abc.ABC):
 
             trainer_cls = select_trainer_given_devices(
                 devices=calib_config.processor.devices,
-                BaseTrainer=ProbModelCalibrator,
-                JittedTrainer=JittedProbModelCalibrator,
-                MultiDeviceTrainer=MultiDeviceProbModelCalibrator,
+                BaseTrainer=ProbModelOutputCalibrator,
+                JittedTrainer=JittedProbModelOutputCalibrator,
+                MultiDeviceTrainer=MultiDeviceProbModelOutputCalibrator,
                 disable_jit=calib_config.processor.disable_jit,
             )
 
@@ -176,7 +176,7 @@ class ProbModel(abc.ABC):
             if calib_config.checkpointer.restore_checkpoint_path is None:
                 calib_dict = self.posterior.state.extract_calib_keys()
 
-                state = CalibState.init(
+                state = OutputCalibState.init(
                     params=calib_dict["calib_params"],
                     mutable=calib_dict["calib_mutable"],
                     optimizer=calib_config.optimizer.method,

@@ -68,9 +68,8 @@ test_data_loader = DataLoader.from_array_data(test_data, batch_size=128, prefetc
 # Let us build a probabilistic regressor. This is an interface object containing several attributes that you can configure, i.e. `model`, `likelihood_log_variance_model`, `prior`, `posterior_approximator`, `output_calibrator`. In this example, we use an MLP model for both mean and log-variance of the likelihood, a Deep Ensemble posterior approximator, and the default temperature scaling output calibrator.
 
 # %%
-from fortuna.prob_model import ProbRegressor
+from fortuna.prob_model import ProbRegressor, DeepEnsemblePosteriorApproximator
 from fortuna.model import MLP
-from fortuna.prob_model.posterior import DeepEnsemblePosteriorApproximator
 import flax.linen as nn
 
 output_dim = 1
@@ -87,7 +86,7 @@ prob_model = ProbRegressor(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model.
 
 # %%
-from fortuna.prob_model.fit_config import FitConfig, FitMonitor
+from fortuna.prob_model import FitConfig, FitMonitor
 from fortuna.metric.regression import rmse
 
 status = prob_model.train(
@@ -175,7 +174,7 @@ print(f"PICP for 95% credible intervals of test inputs: {cred_picp}")
 # The PICP metric shows that the 95% credible intervals above are not perfectly calibrated. Conformal prediction methods provide a way to correct them and improve their calibration.
 
 # %%
-from fortuna.conformal.regression import QuantileConformalRegressor
+from fortuna.calibration import QuantileConformalRegressor
 
 val_inputs_loader = val_data_loader.to_inputs_loader()
 val_cred_intervals = prob_model.predictive.credible_interval(
@@ -200,7 +199,7 @@ print(f"PICP for 95% conformal intervals of test inputs: {conformal_picp}")
 # Another possibility is to get conformal interval starting from a one-dimensinal uncertainty statistic, e.g. the standard deviation.
 
 # %%
-from fortuna.conformal.regression import OneDimensionalUncertaintyConformalRegressor
+from fortuna.calibration import OneDimensionalUncertaintyConformalRegressor
 
 val_means = prob_model.predictive.mean(inputs_loader=val_inputs_loader)
 val_stds = prob_model.predictive.std(inputs_loader=val_inputs_loader)
@@ -243,9 +242,9 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.calib_model.regression import CalibRegressor
+from fortuna.calibration import OutputCalibRegressor
 
-calib_model = CalibRegressor()
+calib_model = OutputCalibRegressor()
 calib_status = calib_model.calibrate(
     calib_outputs=calib_outputs, calib_targets=calib_targets
 )
