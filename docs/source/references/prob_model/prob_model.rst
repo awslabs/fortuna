@@ -30,4 +30,4 @@ Please find their references below.
    likelihood
    prior
    fit_config
-   prob_model_calib_config
+   prob_calib_config

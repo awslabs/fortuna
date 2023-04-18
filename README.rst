@@ -69,7 +69,7 @@ i.e. calibrated versions of you test credible intervals.
 
 .. code-block:: python
 
- from fortuna.conformal.regression import QuantileConformalRegressor
+ from fortuna.calibration import QuantileConformalRegressor
  conformal_intervals = QuantileConformalRegressor().conformal_interval(
       val_lower_bounds=val_lower_bounds, val_upper_bounds=val_upper_bounds,
       test_lower_bounds=test_lower_bounds, test_upper_bounds=test_upper_bounds,
@@ -99,8 +99,8 @@ The following code provides a minimal classification example to get calibrated p
 
 .. code-block:: python
 
-  from fortuna.calib_model import CalibClassifier
-  calib_model = CalibClassifier()
+  from fortuna.calibration import OutputCalibClassifier
+  calib_model = OutputCalibClassifier()
   status = calib_model.calibrate(outputs=val_outputs, targets=val_targets)
   test_entropies = calib_model.predictive.entropy(outputs=test_outputs)
 

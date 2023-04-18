@@ -27,12 +27,12 @@ We call :code:`val_probs` and :code:`test_probs` these probabilities computed on
 respectively.
 We further require the array of validation target variables :code:`val_targets` corresponding to the
 validation probabilities. Then the following code provides a 95% conformal set for each test input.
-Please check :class:`~fortuna.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier` for reference.
+Please check :class:`~fortuna.calibration.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier` for reference.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier.conformal_set`
+    :caption: **References:** :meth:`~fortuna.calibration.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier.conformal_set`
 
-    from fortuna.conformal.classification import AdaptivePredictionConformalClassifier
+    from fortuna.calibration import AdaptivePredictionConformalClassifier
     conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
         val_probs=val_probs,
         test_probs=test_probs,
@@ -74,12 +74,12 @@ have `error=0.05`.
 We further require the array of validation target variables :code:`val_targets` corresponding to the
 validation intervals.
 Then the following code provides a conformal interval with level `error` of error for each test input.
-Please see :class:`~fortuna.conformal.regression.quantile.QuantileConformalRegressor` for reference.
+Please see :class:`~fortuna.calibration.conformal.regression.quantile.QuantileConformalRegressor` for reference.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.conformal.regression.quantile.QuantileConformalRegressor.conformal_interval`
+    :caption: **References:** :meth:`~fortuna.calibration.conformal.regression.quantile.QuantileConformalRegressor.conformal_interval`
 
-    from fortuna.conformal.regression import QuantileConformalRegressor
+    from fortuna.calibration import QuantileConformalRegressor
     conformal_intervals = QuantileConformalRegressor().conformal_interval(
         val_lower_bounds=val_lower_bounds,
         val_upper_bounds=val_upper_bounds,
@@ -102,12 +102,12 @@ We call :code:`val_preds`, :code:`val_uncertainties`, :code:`test_preds` and
 We further require the array of validation target variables :code:`val_targets` corresponding to the
 validation predictions.
 Then the following code provides a 95% conformal interval for each test input.
-Please see :class:`~fortuna.conformal.regression.onedim_uncertainty.OneDimensionalUncertaintyConformalRegressor` for reference.
+Please see :class:`~fortuna.calibration.conformal.regression.onedim_uncertainty.OneDimensionalUncertaintyConformalRegressor` for reference.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.conformal.regression.onedim_uncertainty.OneDimensionalUncertaintyConformalRegressor.conformal_interval`
+    :caption: **References:** :meth:`~fortuna.calibration.conformal.regression.onedim_uncertainty.OneDimensionalUncertaintyConformalRegressor.conformal_interval`
 
-    from fortuna.conformal.regression import OneDimensionalUncertaintyConformalRegressor
+    from fortuna.calibration import OneDimensionalUncertaintyConformalRegressor
     conformal_intervals = OneDimensionalUncertaintyConformalRegressor().conformal_interval(
         val_preds=val_preds,
         val_uncertainties=val_uncertainties,

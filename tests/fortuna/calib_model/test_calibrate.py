@@ -4,19 +4,19 @@ import unittest
 
 import jax.numpy as jnp
 
-from fortuna.calib_model.calib_config.base import CalibConfig
-from fortuna.calib_model.calib_config.checkpointer import CalibCheckpointer
-from fortuna.calib_model.calib_config.monitor import CalibMonitor
-from fortuna.calib_model.calib_config.optimizer import CalibOptimizer
-from fortuna.calib_model.classification import CalibClassifier
-from fortuna.calib_model.regression import CalibRegressor
+from fortuna.calibration.output_calib_model.config.base import Config
+from fortuna.calibration.output_calib_model.config.checkpointer import Checkpointer
+from fortuna.calibration.output_calib_model.config.monitor import Monitor
+from fortuna.calibration.output_calib_model.config.optimizer import Optimizer
+from fortuna.calibration.output_calib_model.classification import OutputCalibClassifier
+from fortuna.calibration.output_calib_model.regression import OutputCalibRegressor
 from fortuna.data.loader import DataLoader
 from fortuna.metric.classification import accuracy, brier_score
 from fortuna.metric.regression import rmse
 from fortuna.model.mlp import MLP
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_model.classification import ProbClassifier
-from fortuna.prob_model.fit_config import FitConfig, FitMonitor
+from fortuna.prob_model import FitConfig, FitMonitor
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
 from fortuna.prob_model.posterior.map.map_approximator import \
     MAPPosteriorApproximator
@@ -105,22 +105,22 @@ class TestApproximations(unittest.TestCase):
         self.reg_fit_config_nodir_nodump = FitConfig(
             optimizer=FitOptimizer(n_epochs=3), monitor=FitMonitor(metrics=(rmse,))
         )
-        self.calib_config_dir_nodump = lambda directory, metric: CalibConfig(
-            optimizer=CalibOptimizer(n_epochs=3),
-            monitor=CalibMonitor(metrics=(metric,)),
-            checkpointer=CalibCheckpointer(save_checkpoint_dir=directory),
+        self.calib_config_dir_nodump = lambda directory, metric: Config(
+            optimizer=Optimizer(n_epochs=3),
+            monitor=Monitor(metrics=(metric,)),
+            checkpointer=Checkpointer(save_checkpoint_dir=directory),
         )
-        self.calib_config_dir_dump = lambda directory, metric: CalibConfig(
-            optimizer=CalibOptimizer(n_epochs=3),
-            monitor=CalibMonitor(metrics=(metric,)),
-            checkpointer=CalibCheckpointer(
+        self.calib_config_dir_dump = lambda directory, metric: Config(
+            optimizer=Optimizer(n_epochs=3),
+            monitor=Monitor(metrics=(metric,)),
+            checkpointer=Checkpointer(
                 save_checkpoint_dir=directory, dump_state=True
             ),
         )
-        self.calib_config_restore = lambda directory, metric: CalibConfig(
-            optimizer=CalibOptimizer(n_epochs=3),
-            monitor=CalibMonitor(metrics=(metric,)),
-            checkpointer=CalibCheckpointer(restore_checkpoint_path=directory),
+        self.calib_config_restore = lambda directory, metric: Config(
+            optimizer=Optimizer(n_epochs=3),
+            monitor=Monitor(metrics=(metric,)),
+            checkpointer=Checkpointer(restore_checkpoint_path=directory),
         )
 
     def test_dryrun_reg_map(self):
@@ -147,13 +147,13 @@ class TestApproximations(unittest.TestCase):
             targets = self.reg_val_data_loader.to_array_targets()
 
             # calibrate from initialized state, save checkpoint
-            calib_model = CalibRegressor()
+            calib_model = OutputCalibRegressor()
             calib_status = calib_model.calibrate(
                 calib_outputs=outputs,
                 calib_targets=targets,
                 val_outputs=outputs,
                 val_targets=targets,
-                calib_config=self.calib_config_dir_nodump(tmp_dir, standard_error),
+                config=self.calib_config_dir_nodump(tmp_dir, standard_error),
             )
 
             # calibrate from restored checkpoint
@@ -162,7 +162,7 @@ class TestApproximations(unittest.TestCase):
                 calib_targets=targets,
                 val_outputs=outputs,
                 val_targets=targets,
-                calib_config=self.calib_config_restore(tmp_dir, standard_error),
+                config=self.calib_config_restore(tmp_dir, standard_error),
             )
 
             # calibrate from restored checkpoint, save checkpoint and dump
@@ -171,7 +171,7 @@ class TestApproximations(unittest.TestCase):
                 calib_targets=targets,
                 val_outputs=outputs,
                 val_targets=targets,
-                calib_config=self.calib_config_dir_dump(tmp_dir, standard_error),
+                config=self.calib_config_dir_dump(tmp_dir, standard_error),
             )
 
             # load state
@@ -203,13 +203,13 @@ class TestApproximations(unittest.TestCase):
             targets = self.class_val_data_loader.to_array_targets()
 
             # calibrate from initialized state, save checkpoint
-            calib_model = CalibClassifier()
+            calib_model = OutputCalibClassifier()
             calib_status = calib_model.calibrate(
                 calib_outputs=outputs,
                 calib_targets=targets,
                 val_outputs=outputs,
                 val_targets=targets,
-                calib_config=self.calib_config_dir_nodump(tmp_dir, brier),
+                config=self.calib_config_dir_nodump(tmp_dir, brier),
             )
 
             # calibrate from restored checkpoint
@@ -218,7 +218,7 @@ class TestApproximations(unittest.TestCase):
                 calib_targets=targets,
                 val_outputs=outputs,
                 val_targets=targets,
-                calib_config=self.calib_config_restore(tmp_dir, brier),
+                config=self.calib_config_restore(tmp_dir, brier),
             )
 
             # calibrate from restored checkpoint, save checkpoint and dump
@@ -227,7 +227,7 @@ class TestApproximations(unittest.TestCase):
                 calib_targets=targets,
                 val_outputs=outputs,
                 val_targets=targets,
-                calib_config=self.calib_config_dir_dump(tmp_dir, brier),
+                config=self.calib_config_dir_dump(tmp_dir, brier),
             )
 
             # load state

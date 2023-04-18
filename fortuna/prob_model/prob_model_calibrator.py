@@ -1,20 +1,19 @@
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 from flax import jax_utils
-from jax import lax
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
-from fortuna.calibration.calibrator import (CalibratorABC, JittedMixin,
-                                            MultiDeviceMixin)
-from fortuna.calibration.state import CalibState
-from fortuna.data import DataLoader, TargetsLoader
+from fortuna.calibration.output_calib_model.output_calibrator import (OutputCalibratorABC, JittedMixin,
+                                                                      MultiDeviceMixin)
+from fortuna.calibration.output_calib_model.state import OutputCalibState
+from fortuna.data import TargetsLoader
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams
 
 
-class ProbModelCalibrator(CalibratorABC):
+class ProbModelOutputCalibrator(OutputCalibratorABC):
     def training_loss_step(
         self,
         fun: Callable[[Any], Union[float, Tuple[float, dict]]],
@@ -50,7 +49,7 @@ class ProbModelCalibrator(CalibratorABC):
 
     def val_loss_step(
         self,
-        state: CalibState,
+        state: OutputCalibState,
         batch: Batch,
         outputs: Array,
         fun: Callable,
@@ -110,9 +109,9 @@ class ProbModelMultiDeviceMixin(MultiDeviceMixin):
         )
 
 
-class JittedProbModelCalibrator(JittedMixin, ProbModelCalibrator):
+class JittedProbModelOutputCalibrator(JittedMixin, ProbModelOutputCalibrator):
     pass
 
 
-class MultiDeviceProbModelCalibrator(ProbModelMultiDeviceMixin, ProbModelCalibrator):
+class MultiDeviceProbModelOutputCalibrator(ProbModelMultiDeviceMixin, ProbModelOutputCalibrator):
     pass

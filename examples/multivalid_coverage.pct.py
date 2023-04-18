@@ -167,7 +167,7 @@ plot_intervals(xx, xx_means, xx_cred_intervals, test_data, "SWAG")
 # Starting from the credible intervals given by SWAG, we now apply Conformalized Quantile Regression (CQR) [[Romano Y. et al., 2019]](https://proceedings.neurips.cc/paper/2019/file/5103c3584b063c431bd1268e9b5e76fb-Paper.pdf) as a *post-hoc* calibration method to improve the coverage.
 
 # %%
-from fortuna.conformal.regression import QuantileConformalRegressor
+from fortuna.calibration import QuantileConformalRegressor
 
 calib_cred_intervals = prob_model.predictive.credible_interval(
     inputs_loader=calib_inputs_loader
@@ -212,7 +212,7 @@ plot_intervals(xx, xx_means, xx_qcr_intervals, test_data, "CQR")
 # That's it! Defined these, we are ready to run `BatchMVP`.
 
 # %%
-from fortuna.conformal.regression.batch_mvp import BatchMVPConformalRegressor
+from fortuna.calibration.conformal.regression.batch_mvp import BatchMVPConformalRegressor
 import jax.numpy as jnp
 
 

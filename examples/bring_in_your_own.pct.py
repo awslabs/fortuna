@@ -49,7 +49,7 @@ class CNN(nn.Module):
 # We now set it as a model in a probabilistic classifier.
 
 # %%
-from fortuna.prob_model.classification import ProbClassifier
+from fortuna.prob_model import ProbClassifier
 
 prob_model = ProbClassifier(model=CNN())
 
@@ -140,9 +140,9 @@ class MLP(nn.Module):
 # You can now set your MLP as the output calibrator of a probabilistic model, or a calibration model. We do it here for a calibration regressor.
 
 # %%
-from fortuna.calib_model.regression import CalibRegressor
+from fortuna.calibration import OutputCalibRegressor
 
-calib_model = CalibRegressor(output_calibrator=MLP(features=(4, 2, 1)))
+calib_model = OutputCalibRegressor(output_calibrator=MLP(features=(4, 2, 1)))
 
 # %% [markdown]
 # Done. Let's check that it works by initializing its parameters and doing a forward pass.
