@@ -25,7 +25,7 @@ class ADVIArchitecture(HashableMixin):
         self.dim = dim
         self.std_init_params = std_init_params
 
-    def forward(self, params: any, u: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    def forward(self, params: Any, u: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Component-wise forward linear transformation.
 
