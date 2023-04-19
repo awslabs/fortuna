@@ -50,6 +50,7 @@ class DataLoader:
         batch_size: Optional[int] = None,
         shuffle: bool = False,
         prefetch: bool = False,
+        seed: Optional[int] = 0,
     ) -> DataLoader:
         """
         Build a :class:`~fortuna.data.loader.DataLoader` object from a tuple of arrays of input and target variables,
@@ -73,7 +74,7 @@ class DataLoader:
         """
         return cls(
             data_loader=FromArrayDataToDataLoader(
-                data, batch_size=batch_size, shuffle=shuffle, prefetch=prefetch
+                data, batch_size=batch_size, shuffle=shuffle, prefetch=prefetch, seed=seed
             )
         )
 
@@ -449,6 +450,7 @@ class InputsLoader:
         batch_size: Optional[int] = None,
         shuffle: bool = False,
         prefetch: bool = False,
+        seed: Optional[int] = 0,
     ) -> InputsLoader:
         """
         Build a :class:`~fortuna.data.loader.InputsLoader` object from an array of input data.
@@ -726,6 +728,7 @@ class TargetsLoader:
         batch_size: Optional[int] = None,
         shuffle: bool = False,
         prefetch: bool = False,
+        seed: Optional[int] = 0,
     ) -> TargetsLoader:
         """
         Build a :class:`~fortuna.data.loader.TargetsLoader` object from an array of target data.
@@ -748,7 +751,7 @@ class TargetsLoader:
         """
         return cls(
             targets_loader=FromArrayTargetsToTargetsLoader(
-                targets, batch_size=batch_size, shuffle=shuffle, prefetch=prefetch
+                targets, batch_size=batch_size, shuffle=shuffle, prefetch=prefetch, seed=seed
             )
         )
 
@@ -980,15 +983,18 @@ class FromArrayDataToDataLoader:
         batch_size: Optional[int] = None,
         shuffle: bool = False,
         prefetch: bool = False,
+        seed: Optional[int] = 0,
     ):
         self._data = data
         self._batch_size = batch_size
         self._shuffle = shuffle
         self._prefetch = prefetch
+        self._seed = seed
 
     def __call__(self, *args, **kwargs):
         if self._shuffle:
-            perm = np.random.choice(
+            rng = np.random.default_rng(self._seed)
+            perm = rng.choice(
                 self._data[0].shape[0], self._data[0].shape[0], replace=False
             )
         if self._batch_size is None:
@@ -1139,15 +1145,18 @@ class FromArrayInputsToInputsLoader:
         batch_size: Optional[int] = None,
         shuffle: bool = False,
         prefetch: bool = False,
+        seed: Optional[int] = 0,
     ):
         self._inputs = inputs
         self._batch_size = batch_size
         self._shuffle = shuffle
         self._prefetch = prefetch
+        self._seed = seed
 
     def __call__(self, *args, **kwargs):
         if self._shuffle:
-            perm = np.random.choice(
+            rng = np.random.default_rng(self._seed)
+            perm = rng.choice(
                 self._inputs.shape[0], self._inputs.shape[0], replace=False
             )
         if self._batch_size is None:
@@ -1208,15 +1217,18 @@ class FromArrayTargetsToTargetsLoader:
         batch_size: Optional[int] = None,
         shuffle: bool = False,
         prefetch: bool = False,
+        seed: Optional[int] = 0,
     ):
         self._targets = targets
         self._batch_size = batch_size
         self._shuffle = shuffle
         self._prefetch = prefetch
+        self._seed = seed
 
     def __call__(self, *args, **kwargs):
         if self._shuffle:
-            perm = np.random.choice(
+            rng = np.random.default_rng(self._seed)
+            perm = rng.choice(
                 self._targets.shape[0], self._targets.shape[0], replace=False
             )
         if self._batch_size is None:
