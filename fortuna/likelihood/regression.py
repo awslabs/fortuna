@@ -9,7 +9,7 @@ from fortuna.data.loader import InputsLoader
 from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
-from fortuna.prob_model.likelihood.base import Likelihood
+from fortuna.likelihood.base import Likelihood
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
 
@@ -19,10 +19,10 @@ class RegressionLikelihood(Likelihood):
         self,
         model_manager: RegressionModelManager,
         prob_output_layer: RegressionProbOutputLayer,
-        output_calib_manager: OutputCalibManager,
+        output_calib_manager: Optional[OutputCalibManager] = None,
     ):
         """
-        A classification likelihood function class. In this class, the likelihood function is additionally assumed to
+        A regression likelihood function class. In this class, the likelihood function is additionally assumed to
         be a probability density function, i.e. positive and integrating to 1. The likelihood is formed by three
         objects applied in sequence: the model manager, the output calibrator and the probabilistic output layer. The
         model manager maps parameters and inputs to outputs. The output calibration takes outputs and returns some
@@ -36,7 +36,7 @@ class RegressionLikelihood(Likelihood):
         prob_output_layer : ProbOutputLayer
             A probabilistic output layer object. This object characterizes the probability distribution of the target
             variable given the calibrated outputs.
-        output_calib_manager : OutputCalibManager
+        output_calib_manager : Optional[OutputCalibManager]
             An output calibration manager object. It transforms outputs of the model manager into some
             calibrated version of them.
         """

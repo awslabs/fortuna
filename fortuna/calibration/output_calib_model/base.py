@@ -6,9 +6,9 @@ import jax.numpy as jnp
 from flax.core import FrozenDict
 
 from fortuna.calibration.output_calib_model.config.base import Config
-from fortuna.calibration.output_calib_model.calib_model_calibrator import (
-    CalibModelOutputCalibrator, JittedCalibModelOutputCalibrator,
-    MultiDeviceCalibModelOutputCalibrator)
+from fortuna.calibration.output_calib_model.output_calib_model_calibrator import (
+    OutputCalibModelCalibrator, JittedOutputCalibModelCalibrator,
+    MultiDeviceOutputCalibModelCalibrator)
 from fortuna.calibration.output_calib_model.state import OutputCalibState
 from fortuna.output_calibrator.output_calib_manager.state import \
     OutputCalibManagerState
@@ -17,6 +17,7 @@ from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.typing import Array, Path, Status
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
+from fortuna.calibration.loss.base import Loss
 
 
 class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
@@ -41,7 +42,8 @@ class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
-        config: Config = Config(),
+        loss_fn: Optional[Loss] = None,
+        config: Config = Config()
     ) -> Status:
         if (val_targets is not None and val_outputs is None) or (
             val_targets is None and val_outputs is not None
@@ -51,9 +53,9 @@ class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
             )
         trainer_cls = select_trainer_given_devices(
             devices=config.processor.devices,
-            BaseTrainer=CalibModelOutputCalibrator,
-            JittedTrainer=JittedCalibModelOutputCalibrator,
-            MultiDeviceTrainer=MultiDeviceCalibModelOutputCalibrator,
+            BaseTrainer=OutputCalibModelCalibrator,
+            JittedTrainer=JittedOutputCalibModelCalibrator,
+            MultiDeviceTrainer=MultiDeviceOutputCalibModelCalibrator,
             disable_jit=config.processor.disable_jit,
         )
 
@@ -93,12 +95,18 @@ class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
                 optimizer=config.optimizer.method,
             )
 
+        if loss_fn is not None:
+            def fun(p, t, o, m, r, a):
+                return -loss_fn(p, t, o, m, r, a)
+        else:
+            fun = self.predictive._log_joint_prob
+
         if config.monitor.verbose:
             logging.info("Start calibration.")
         state, status = calibrator.train(
             rng=self.rng.get(),
             state=state,
-            fun=self.predictive._log_joint_prob,
+            fun=fun,
             n_epochs=config.optimizer.n_epochs,
             metrics=config.monitor.metrics,
             verbose=config.monitor.verbose,

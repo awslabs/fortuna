@@ -37,6 +37,7 @@ class TrainerABC(
         self,
         *args,
         predict_fn: Callable[[jnp.ndarray], jnp.ndarray],
+        uncertainty_fn: Optional[Callable[[jnp.ndarray], jnp.ndarray]] = None,
         save_checkpoint_dir: Optional[Path] = None,
         save_every_n_steps: Optional[int] = None,
         keep_top_n_checkpoints: int = 2,
@@ -46,6 +47,7 @@ class TrainerABC(
     ):
         super(TrainerABC, self).__init__(*args, **kwargs)
         self.predict_fn = predict_fn
+        self.uncertainty_fn = uncertainty_fn
         self.save_checkpoint_dir = save_checkpoint_dir
         self.save_every_n_steps = save_every_n_steps
         self.keep_top_n_checkpoints = keep_top_n_checkpoints
@@ -132,12 +134,11 @@ class TrainerABC(
         state: TrainState,
         aux: Dict[str, Any],
         batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        metrics: Optional[Tuple[Union[Callable[[jnp.ndarray, Array], float], Callable[[jnp.ndarray, jnp.ndarray, Array], float]], ...]],
         callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
-        if (
-            self.save_checkpoint_dir is not None
+        if (self.save_checkpoint_dir is not None
             and self.save_every_n_steps is not None
             and self.save_every_n_steps > 0
             and self._global_training_step >= self.save_every_n_steps
@@ -154,16 +155,31 @@ class TrainerABC(
 
         if not self.disable_training_metrics_computation and metrics is not None:
             preds = self.predict_fn(aux["outputs"])
-            if self.multi_device:
-                training_batch_metrics = self.compute_metrics(
-                    preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
-                    batch[1].reshape(
-                        (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
-                    ),
-                    metrics,
-                )
+            if self.uncertainty_fn is not None:
+                uncertainties = self.uncertainty_fn(aux["outputs"])
+                if self.multi_device:
+                    training_batch_metrics = self.compute_metrics(
+                        preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
+                        batch[1].reshape(
+                            (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
+                        ),
+                        metrics,
+                        uncertainties.reshape(
+                            (uncertainties.shape[0] * uncertainties.shape[1],) + uncertainties.shape[2:]),
+                    )
+                else:
+                    training_batch_metrics = self.compute_metrics(preds, batch[1], metrics, uncertainties)
             else:
-                training_batch_metrics = self.compute_metrics(preds, batch[1], metrics)
+                if self.multi_device:
+                    training_batch_metrics = self.compute_metrics(
+                        preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
+                        batch[1].reshape(
+                            (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
+                        ),
+                        metrics,
+                    )
+                else:
+                    training_batch_metrics = self.compute_metrics(preds, batch[1], metrics)
             for k, v in training_batch_metrics.items():
                 training_losses_and_metrics[k] = v
 
@@ -462,10 +478,11 @@ class TrainerABC(
         preds: Array,
         targets: Array,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        uncertainties: Optional[Array] = None
     ) -> Dict[str, float]:
         metrics_vals = {}
         for metric in metrics:
-            metrics_vals[metric.__name__] = metric(preds, targets)
+            metrics_vals[metric.__name__] = metric(preds, targets) if uncertainties is None else metric(preds, uncertainties, targets)
         return metrics_vals
 
 

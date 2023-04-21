@@ -9,7 +9,7 @@ from fortuna.model.model_manager.classification import \
     ClassificationModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
-from fortuna.prob_model.likelihood.base import Likelihood
+from fortuna.likelihood.base import Likelihood
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
 from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
@@ -20,7 +20,7 @@ class ClassificationLikelihood(Likelihood):
         self,
         model_manager: ClassificationModelManager,
         prob_output_layer: ClassificationProbOutputLayer,
-        output_calib_manager: OutputCalibManager,
+        output_calib_manager: Optional[OutputCalibManager] = None,
     ):
         """
         A classification likelihood function class. In this class, the likelihood function is additionally assumed to
@@ -37,7 +37,7 @@ class ClassificationLikelihood(Likelihood):
         prob_output_layer : ProbOutputLayer
             A probabilistic output layer object. This object characterizes the probability distribution of the
             target variable given the calibrated outputs.
-        output_calib_manager : OutputCalibManager
+        output_calib_manager : Optional[OutputCalibManager]
             An output calibration manager object. It transforms outputs of the model manager into some
             calibrated version of them.
         """

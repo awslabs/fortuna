@@ -206,16 +206,17 @@ class Likelihood(WithRNG):
                 outputs = outs
 
         aux = dict()
-        outs = self.output_calib_manager.apply(
-            params=calib_params["output_calibrator"]
-            if calib_params is not None
-            else None,
-            mutable=calib_mutable["output_calibrator"]
-            if calib_mutable is not None
-            else None,
-            outputs=outputs,
-            calib="calib_mutable" in return_aux,
-        )
+        if self.output_calib_manager is not None:
+            outs = self.output_calib_manager.apply(
+                params=calib_params["output_calibrator"]
+                if calib_params is not None
+                else None,
+                mutable=calib_mutable["output_calibrator"]
+                if calib_mutable is not None
+                else None,
+                outputs=outputs,
+                calib="calib_mutable" in return_aux,
+            )
         if (
             calib_mutable is not None
             and calib_mutable["output_calibrator"] is not None

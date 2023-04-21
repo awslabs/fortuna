@@ -11,6 +11,7 @@ from fortuna.output_calibrator.output_calib_manager.base import \
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.typing import Array, Status
+from fortuna.calibration.loss.base import Loss
 
 
 class OutputCalibRegressor(OutputCalibModel):
@@ -61,6 +62,7 @@ class OutputCalibRegressor(OutputCalibModel):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
+            loss_fn: Optional[Loss] = None,
         config: Config = Config(),
     ) -> Status:
         """
@@ -76,6 +78,9 @@ class OutputCalibRegressor(OutputCalibModel):
             Validation model outputs.
         val_targets: Optional[Array]
             Validation target variables.
+        loss_fn: Optional[Loss]
+            A custom loss function. If not provided, the model will calibrate using the negative log-likelihood
+            function.
         config : Config
             An object to configure the calibration.
 
@@ -95,10 +100,12 @@ class OutputCalibRegressor(OutputCalibModel):
             calib_targets=calib_targets,
             val_outputs=val_outputs,
             val_targets=val_targets,
+            loss_fn=loss_fn,
             config=config,
         )
 
-    def _check_output_dim(self, outputs: jnp.ndarray, targets: jnp.array):
+    @staticmethod
+    def _check_output_dim(outputs: jnp.ndarray, targets: jnp.array):
         if outputs.shape[1] != 2 * targets.shape[1]:
             raise ValueError(
                 f"""`outputs.shape[1]` must be twice the dimension of the target variables in `targets`, with 

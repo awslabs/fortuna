@@ -1,7 +1,9 @@
-from fortuna.calibration.output_calib_model.config.checkpointer import Checkpointer
-from fortuna.calibration.output_calib_model.config.monitor import Monitor
-from fortuna.calibration.output_calib_model.config.optimizer import Optimizer
-from fortuna.calibration.output_calib_model.config.processor import Processor
+from fortuna.calibration.finetune_calib_model.config.checkpointer import Checkpointer
+from fortuna.calibration.finetune_calib_model.config.monitor import Monitor
+from fortuna.calibration.finetune_calib_model.config.optimizer import Optimizer
+from fortuna.calibration.finetune_calib_model.config.processor import Processor
+from fortuna.calibration.finetune_calib_model.config.callbacks import Callback
+from typing import Optional, List
 
 
 class Config:
@@ -11,9 +13,10 @@ class Config:
         checkpointer: Checkpointer = Checkpointer(),
         monitor: Monitor = Monitor(),
         processor: Processor = Processor(),
+        callbacks: Optional[List[Callback]] = None
     ):
         """
-        Configure the calibration of the output calibration model.
+        Configure the calibration of the fine-tuning calibration model.
 
         Parameters
         ----------
@@ -25,8 +28,12 @@ class Config:
             It monitors training progress and might induce early stopping.
         processor: Processor
             It processes where computation takes place.
+        callbacks:  Optional[List[Callback]]
+            A list of user-defined callbacks to be called during calibration.
+            Callbacks run sequentially in the order defined by the user.
         """
         self.optimizer = optimizer
         self.checkpointer = checkpointer
         self.monitor = monitor
         self.processor = processor
+        self.callbacks = callbacks

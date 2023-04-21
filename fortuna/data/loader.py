@@ -22,7 +22,6 @@ class DataLoader:
             FromArrayDataToDataLoader,
             FromTensorFlowDataLoaderToDataLoader,
             FromTorchDataLoaderToDataLoader,
-            ChoppedDataLoader,
             FromDataLoaderToTransformedDataLoader,
             FromInputsLoadersToDataLoader
         ],
@@ -34,7 +33,7 @@ class DataLoader:
         Parameters
         ----------
         data_loader : Union[FromIterableToDataLoader, FromCallableIterableToDataLoader, FromArrayDataToDataLoader,
-                      FromTensorFlowDataLoaderToDataLoader, FromTorchDataLoaderToDataLoader, ChoppedDataLoader,
+                      FromTensorFlowDataLoaderToDataLoader, FromTorchDataLoaderToDataLoader,
                       FromDataLoaderToTransformedDataLoader, FromInputsLoadersToDataLoader]
             A data loader.
         """
@@ -407,7 +406,6 @@ class InputsLoader:
             FromDataLoaderToInputsLoader,
             FromCallableIterableToInputsLoader,
             FromIterableToInputsLoader,
-            ChoppedInputsLoader,
             FromInputsLoaderToTransformedInputsLoader
         ],
     ):
@@ -417,7 +415,7 @@ class InputsLoader:
         Parameters
         ----------
         inputs_loader : Union[FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader,
-                        FromCallableIterableToInputsLoader, FromIterableToInputsLoader, ChoppedInputsLoader,
+                        FromCallableIterableToInputsLoader, FromIterableToInputsLoader,
                         FromInputsLoaderToTransformedInputsLoader]
             An inputs loader.
         """
@@ -685,7 +683,6 @@ class TargetsLoader:
             FromDataLoaderToTargetsLoader,
             FromCallableIterableToTargetsLoader,
             FromIterableToTargetsLoader,
-            ChoppedTargetsLoader,
             FromTargetsLoaderToTransformedTargetsLoader
         ],
     ):
@@ -695,7 +692,7 @@ class TargetsLoader:
         Parameters
         ----------
         targets_loader : Union[FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader,
-                         FromCallableIterableToTargetsLoader, FromIterableToTargetsLoader, ChoppedTargetsLoader,
+                         FromCallableIterableToTargetsLoader, FromIterableToTargetsLoader,
                          FromTargetsLoaderToTransformedTargetsLoader]
             A targets loader.
         """

@@ -23,7 +23,7 @@ from fortuna.typing import Array, CalibMutable, CalibParams, Path, Status
 from fortuna.utils.builtins import HashableMixin
 
 
-class CalibModelOutputCalibrator(
+class OutputCalibModelCalibrator(
     HashableMixin,
     WithCheckpointingMixin,
     WithEarlyStoppingMixin,
@@ -46,7 +46,7 @@ class CalibModelOutputCalibrator(
         eval_every_n_epochs: int = 1,
         **kwargs,
     ):
-        super(CalibModelOutputCalibrator, self).__init__(*args, **kwargs)
+        super(OutputCalibModelCalibrator, self).__init__(*args, **kwargs)
         self._calib_outputs = calib_outputs
         self._calib_targets = calib_targets
         self._val_outputs = val_outputs
@@ -641,9 +641,9 @@ class MultiDeviceMixin:
             return {}
 
 
-class JittedCalibModelOutputCalibrator(JittedMixin, CalibModelOutputCalibrator):
+class JittedOutputCalibModelCalibrator(JittedMixin, OutputCalibModelCalibrator):
     pass
 
 
-class MultiDeviceCalibModelOutputCalibrator(MultiDeviceMixin, CalibModelOutputCalibrator):
+class MultiDeviceOutputCalibModelCalibrator(MultiDeviceMixin, OutputCalibModelCalibrator):
     pass

@@ -14,6 +14,7 @@ from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
+from fortuna.calibration.loss.base import Loss
 from fortuna.typing import Array, Status
 
 
@@ -65,6 +66,7 @@ class OutputCalibClassifier(OutputCalibModel):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
+        loss_fn: Optional[Loss] = None,
         config: Config = Config(),
     ) -> Status:
         """
@@ -80,6 +82,9 @@ class OutputCalibClassifier(OutputCalibModel):
             Validation model outputs.
         val_targets: Optional[Array]
             Validation target variables.
+        loss_fn: Optional[Loss]
+            A custom loss function. If not provided, the model will calibrate using the negative log-likelihood
+            function.
         config : Config
             An object to configure the calibration.
 
@@ -99,10 +104,12 @@ class OutputCalibClassifier(OutputCalibModel):
             calib_targets=calib_targets,
             val_outputs=val_outputs,
             val_targets=val_targets,
+            loss_fn=loss_fn,
             config=config,
         )
 
-    def _check_output_dim(self, outputs: jnp.ndarray, targets: jnp.array):
+    @staticmethod
+    def _check_output_dim(outputs: jnp.ndarray, targets: jnp.array):
         n_classes = len(np.unique(targets))
         if outputs.shape[1] != n_classes:
             raise ValueError(
