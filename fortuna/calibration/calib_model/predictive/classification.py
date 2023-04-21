@@ -2,7 +2,7 @@ import jax.numpy as jnp
 
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.classification import ClassificationLikelihood
-from fortuna.calibration.finetune_calib_model.predictive.base import Predictive
+from fortuna.calibration.calib_model.predictive.base import Predictive
 from fortuna.typing import Path
 
 

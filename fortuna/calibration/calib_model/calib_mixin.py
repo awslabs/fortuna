@@ -1,4 +1,4 @@
-from fortuna.calibration.finetune_calib_model.state import FinetuneCalibState
+from fortuna.calibration.calib_model.state import CalibState
 from fortuna.training.mixin import WithCheckpointingMixin
 from fortuna.typing import Path, OptaxOptimizer
 from typing import Optional
@@ -6,14 +6,14 @@ import os
 from flax.training import checkpoints
 
 
-class WithFinetuneCalibCheckpointingMixin(WithCheckpointingMixin):
+class WithCalibCheckpointingMixin(WithCheckpointingMixin):
     def restore_checkpoint(
         self,
         restore_checkpoint_path: Path,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
         **kwargs,
-    ) -> FinetuneCalibState:
+    ) -> CalibState:
         if not os.path.isdir(restore_checkpoint_path) and not os.path.isfile(
             restore_checkpoint_path
         ):
@@ -32,4 +32,4 @@ class WithFinetuneCalibCheckpointingMixin(WithCheckpointingMixin):
                 f"No checkpoint was found in `restore_checkpoint_path={restore_checkpoint_path}`."
             )
 
-        return FinetuneCalibState.init_from_dict(d, optimizer, **kwargs)
+        return CalibState.init_from_dict(d, optimizer, **kwargs)

@@ -14,10 +14,10 @@ from fortuna.output_calibrator.output_calib_manager.state import \
     OutputCalibManagerState
 from fortuna.training.mixin import WithCheckpointingMixin
 from fortuna.training.train_state_repository import TrainStateRepository
-from fortuna.typing import Array, Path, Status
+from fortuna.typing import Array, Path, Status, Outputs, Targets
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
-from fortuna.calibration.loss.base import Loss
+from fortuna.calibration.output_calib_model.loss import Loss
 
 
 class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
@@ -38,11 +38,11 @@ class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
     def _calibrate(
         self,
         uncertainty_fn: Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray],
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray],
         calib_outputs: Array,
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
-        loss_fn: Optional[Loss] = None,
         config: Config = Config()
     ) -> Status:
         if (val_targets is not None and val_outputs is None) or (
@@ -95,18 +95,15 @@ class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
                 optimizer=config.optimizer.method,
             )
 
-        if loss_fn is not None:
-            def fun(p, t, o, m, r, a):
-                return -loss_fn(p, t, o, m, r, a)
-        else:
-            fun = self.predictive._log_joint_prob
+        loss = Loss(self.predictive, loss_fn=loss_fn)
+        loss.rng = self.rng
 
         if config.monitor.verbose:
             logging.info("Start calibration.")
         state, status = calibrator.train(
             rng=self.rng.get(),
             state=state,
-            fun=fun,
+            loss_fun=loss,
             n_epochs=config.optimizer.n_epochs,
             metrics=config.monitor.metrics,
             verbose=config.monitor.verbose,

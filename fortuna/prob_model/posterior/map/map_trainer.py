@@ -18,7 +18,7 @@ from fortuna.typing import (Array, Batch, CalibMutable, CalibParams, Mutable,
 class MAPTrainer(PosteriorTrainerABC):
     def training_loss_step(
         self,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: Params,
         batch: Batch,
         mutable: Mutable,
@@ -32,7 +32,7 @@ class MAPTrainer(PosteriorTrainerABC):
         return_aux = ["outputs"]
         if mutable is not None:
             return_aux += ["mutable"]
-        loss, aux = fun(
+        loss, aux = loss_fun(
             params,
             batch,
             n_data=n_data,
@@ -43,7 +43,6 @@ class MAPTrainer(PosteriorTrainerABC):
             calib_params=calib_params,
             calib_mutable=calib_mutable,
         )
-        loss = -loss
         logging_kwargs = None
         return (
             loss,
@@ -58,14 +57,14 @@ class MAPTrainer(PosteriorTrainerABC):
         self,
         state: MAPState,
         batch: Batch,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
-        log_joint_probabilities, aux = fun(
+        loss, aux = loss_fun(
             state.params,
             batch,
             n_data=n_data,
@@ -81,10 +80,10 @@ class MAPTrainer(PosteriorTrainerABC):
                 self.predict_fn(aux["outputs"]), batch[1], metrics
             )
             return {
-                "val_loss": -log_joint_probabilities,
+                "val_loss": loss,
                 **{f"val_{m}": v for m, v in val_metrics.items()},
             }
-        return dict(val_loss=-log_joint_probabilities)
+        return dict(val_loss=loss)
 
     def __str__(self):
         return MAP_NAME

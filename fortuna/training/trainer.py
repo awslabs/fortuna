@@ -60,7 +60,7 @@ class TrainerABC(
     @abc.abstractmethod
     def training_loss_step(
         self,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: Params,
         batch: Batch,
         mutable: Mutable,
@@ -77,7 +77,7 @@ class TrainerABC(
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
@@ -88,7 +88,7 @@ class TrainerABC(
 
         grad_fn = value_and_grad(
             lambda params: self.training_loss_step(
-                fun,
+                loss_fun,
                 params,
                 batch,
                 state.mutable,
@@ -119,7 +119,7 @@ class TrainerABC(
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
@@ -218,7 +218,7 @@ class TrainerABC(
         self,
         rng: PRNGKeyArray,
         state: TrainState,
-        fun: Callable,
+        loss_fun: Callable,
         training_dataloader: DataLoader,
         training_dataset_size: int,
         n_epochs: int = 1,
@@ -253,7 +253,7 @@ class TrainerABC(
                 training_batch_metrics_str,
             ) = self._training_loop(
                 epoch,
-                fun,
+                loss_fun,
                 metrics,
                 rng,
                 state,
@@ -279,7 +279,7 @@ class TrainerABC(
                     validation_losses_and_metrics_current_epoch,
                     validation_epoch_metrics_str,
                 ) = self._validation_loop(
-                    fun=fun,
+                    loss_fun=loss_fun,
                     metrics=metrics,
                     rng=rng,
                     state=state,
@@ -318,7 +318,7 @@ class TrainerABC(
     def _training_loop(
         self,
         current_epoch: int,
-        fun: Callable,
+        loss_fun: Callable,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
@@ -338,7 +338,7 @@ class TrainerABC(
             state, aux = self.training_step(
                 state,
                 batch,
-                fun,
+                loss_fun,
                 rng,
                 training_dataset_size,
                 unravel,
@@ -385,7 +385,7 @@ class TrainerABC(
 
     def _validation_loop(
         self,
-        fun: Callable,
+        loss_fun: Callable,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
@@ -401,7 +401,7 @@ class TrainerABC(
             validation_losses_and_metrics_current_batch = self.validation_step(
                 state,
                 batch,
-                fun,
+                loss_fun,
                 rng,
                 validation_dataset_size,
                 metrics,
@@ -492,20 +492,20 @@ class JittedMixin:
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(state, batch, fun, rng, n_data, unravel, kwargs)
+        return super().training_step(state, batch, loss_fun, rng, n_data, unravel, kwargs)
 
     @partial(jax.jit, static_argnums=(0, 3, 5, 6, 7, 8))
     def validation_step(
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
@@ -513,7 +513,7 @@ class JittedMixin:
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         return super().validation_step(
-            state, batch, fun, rng, n_data, metrics, unravel, kwargs
+            state, batch, loss_fun, rng, n_data, metrics, unravel, kwargs
         )
 
 
@@ -602,13 +602,13 @@ class MultiDeviceMixin:
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(state, batch, fun, rng, n_data, unravel, kwargs)
+        return super().training_step(state, batch, loss_fun, rng, n_data, unravel, kwargs)
 
     def training_step_end(
         self,
@@ -635,7 +635,7 @@ class MultiDeviceMixin:
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
@@ -643,6 +643,6 @@ class MultiDeviceMixin:
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         validation_losses_and_metrics = super().validation_step(
-            state, batch, fun, rng, n_data, metrics, unravel, kwargs
+            state, batch, loss_fun, rng, n_data, metrics, unravel, kwargs
         )
         return lax.pmean(validation_losses_and_metrics, axis_name="batch")

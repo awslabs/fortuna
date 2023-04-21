@@ -1,12 +1,10 @@
-import logging
-logging.basicConfig(level=logging.INFO)
 import tempfile
 import unittest
 
 from fortuna.data.loader import DataLoader
 from fortuna.metric.classification import brier_score
 from fortuna.model.mlp import MLP
-from fortuna.calibration.finetune_calib_model import FinetuneCalibClassifier, FinetuneCalibRegressor, Config, Checkpointer, Optimizer, Monitor
+from fortuna.calibration.calib_model import CalibClassifier, CalibRegressor, Config, Checkpointer, Optimizer, Monitor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
 from fortuna.prob_model import ProbRegressor, ProbClassifier, FitConfig, FitCheckpointer, FitOptimizer, SWAGPosteriorApproximator
@@ -24,7 +22,7 @@ def scaled_mse(m, v, y):
     return jnp.mean((m - y) ** 2 / v)
 
 
-class TestFinetuneCalibCalibrate(unittest.TestCase):
+class TestCalibCalibrate(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reg_input_shape = (3,)
@@ -145,7 +143,7 @@ class TestFinetuneCalibCalibrate(unittest.TestCase):
                 )
             )
 
-            calib_reg = FinetuneCalibRegressor(
+            calib_reg = CalibRegressor(
                 model=model,
                 likelihood_log_variance_model=lik_model,
                 restore_checkpoint_path=tmp_dir
@@ -214,7 +212,7 @@ class TestFinetuneCalibCalibrate(unittest.TestCase):
 
             )
 
-            calib_class = FinetuneCalibClassifier(
+            calib_class = CalibClassifier(
                 model=model,
                 restore_checkpoint_path=tmp_dir
             )
@@ -263,7 +261,7 @@ class TestFinetuneCalibCalibrate(unittest.TestCase):
             calib_class.save_state(checkpoint_path=tmp_dir)
 
     def test_error_when_empty_data_loader(self):
-        calib_class_map = FinetuneCalibClassifier(
+        calib_class_map = CalibClassifier(
             model=MyModel(self.class_output_dim),
             restore_checkpoint_path="."
         )

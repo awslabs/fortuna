@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -6,12 +6,11 @@ import jax.numpy as jnp
 from fortuna.calibration.output_calib_model.base import OutputCalibModel
 from fortuna.calibration.output_calib_model.config.base import Config
 from fortuna.calibration.output_calib_model.predictive.regression import RegressionPredictive
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.typing import Array, Status
-from fortuna.calibration.loss.base import Loss
+from fortuna.typing import Array, Status, Outputs, Targets
+from fortuna.loss.regression.scaled_mse import scaled_mse_fn
 
 
 class OutputCalibRegressor(OutputCalibModel):
@@ -62,7 +61,7 @@ class OutputCalibRegressor(OutputCalibModel):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
-            loss_fn: Optional[Loss] = None,
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = scaled_mse_fn,
         config: Config = Config(),
     ) -> Status:
         """
@@ -79,8 +78,7 @@ class OutputCalibRegressor(OutputCalibModel):
         val_targets: Optional[Array]
             Validation target variables.
         loss_fn: Optional[Loss]
-            A custom loss function. If not provided, the model will calibrate using the negative log-likelihood
-            function.
+            A custom loss function.
         config : Config
             An object to configure the calibration.
 

@@ -1,8 +1,8 @@
-from fortuna.calibration.finetune_calib_model.config.checkpointer import Checkpointer
-from fortuna.calibration.finetune_calib_model.config.monitor import Monitor
-from fortuna.calibration.finetune_calib_model.config.optimizer import Optimizer
-from fortuna.calibration.finetune_calib_model.config.processor import Processor
-from fortuna.calibration.finetune_calib_model.config.callbacks import Callback
+from fortuna.calibration.calib_model.config.checkpointer import Checkpointer
+from fortuna.calibration.calib_model.config.monitor import Monitor
+from fortuna.calibration.calib_model.config.optimizer import Optimizer
+from fortuna.calibration.calib_model.config.processor import Processor
+from fortuna.calibration.calib_model.config.callbacks import Callback
 from typing import Optional, List
 
 
@@ -16,7 +16,7 @@ class Config:
         callbacks: Optional[List[Callback]] = None
     ):
         """
-        Configure the calibration of the fine-tuning calibration model.
+        Configure the calibration of the calibration model.
 
         Parameters
         ----------

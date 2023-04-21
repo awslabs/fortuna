@@ -1,6 +1,0 @@
-from fortuna.calibration.finetune_calib_model.finetune_calib_mixin import WithFinetuneCalibCheckpointingMixin
-from fortuna.training.train_state_repository import TrainStateRepository
-
-
-class FinetuneCalibStateRepository(WithFinetuneCalibCheckpointingMixin, TrainStateRepository):
-    pass

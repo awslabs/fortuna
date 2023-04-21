@@ -1,32 +1,32 @@
-from fortuna.calibration.finetune_calib_model.base import FinetuneCalibModel
-from fortuna.calibration.finetune_calib_model.predictive.classification import ClassificationPredictive
+from fortuna.calibration.calib_model.base import CalibModel
+from fortuna.calibration.calib_model.predictive.classification import ClassificationPredictive
 from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
 from fortuna.model.model_manager.classification import ClassificationModelManager
 from fortuna.likelihood.classification import ClassificationLikelihood
-from fortuna.typing import Path, Status
+from fortuna.typing import Status, Outputs, Targets
 from flax import linen as nn
 from fortuna.data import DataLoader
-from fortuna.calibration.finetune_calib_model.config.base import Config
-from fortuna.calibration.loss.base import Loss
-from typing import Optional
+from fortuna.calibration.calib_model.config.base import Config
+from fortuna.loss.classification.focal_loss import focal_loss_fn
+from typing import Optional, Callable
 import numpy as np
+import jax.numpy as jnp
 
 
-class FinetuneCalibClassifier(FinetuneCalibModel):
+class CalibClassifier(CalibModel):
     def __init__(
             self,
             model: nn.Module,
-            restore_checkpoint_path: Path,
             seed: int = 0):
         self.model_manager = ClassificationModelManager(model)
         self.prob_output_layer = ClassificationProbOutputLayer()
-        self.predictive = ClassificationPredictive(
-            likelihood=ClassificationLikelihood(
+        self.likelihood = ClassificationLikelihood(
                 model_manager=self.model_manager,
                 prob_output_layer=self.prob_output_layer,
                 output_calib_manager=None
-            ),
-            restore_checkpoint_path=restore_checkpoint_path
+            )
+        self.predictive = ClassificationPredictive(
+            likelihood=self.likelihood
         )
         super().__init__(seed=seed)
 
@@ -51,8 +51,8 @@ class FinetuneCalibClassifier(FinetuneCalibModel):
         self,
         calib_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
-        config: Config = Config(),
-        loss_fn: Optional[Loss] = None
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = focal_loss_fn,
+        config: Config = Config()
     ) -> Status:
         self._check_output_dim(calib_data_loader)
         if val_data_loader is not None:
@@ -62,6 +62,6 @@ class FinetuneCalibClassifier(FinetuneCalibModel):
             uncertainty_fn=config.monitor.uncertainty_fn if config.monitor.uncertainty_fn is not None
             else self.prob_output_layer.mean,
             val_data_loader=val_data_loader,
+            loss_fn=loss_fn,
             config=config,
-            loss_fn=loss_fn
         )

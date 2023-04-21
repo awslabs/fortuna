@@ -114,7 +114,7 @@ class DeepEnsemblePosterior(Posterior):
             return trainer.train(
                 rng=self.rng.get(),
                 state=state,
-                fun=self.joint._batched_log_joint_prob,
+                loss_fun=self.joint._batched_negative_log_joint_prob,
                 training_dataloader=train_data_loader,
                 training_dataset_size=n_train_data,
                 n_epochs=fit_config.optimizer.n_epochs,

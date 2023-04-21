@@ -5,21 +5,21 @@ from typing import Callable, Optional, Tuple
 import jax.numpy as jnp
 
 from fortuna.data.loader import DataLoader
-from fortuna.typing import Array, Path, Status
+from fortuna.typing import Path, Status, Predictions, Targets, Uncertainties, Outputs
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
-from fortuna.calibration.finetune_calib_model.finetune_calib_state_repository import FinetuneCalibStateRepository
-from fortuna.calibration.finetune_calib_model.finetune_calib_mixin import WithFinetuneCalibCheckpointingMixin
-from fortuna.calibration.finetune_calib_model.finetune_calib_model_calibrator import FinetuneCalibModelCalibrator, \
-    JittedFinetuneCalibModelCalibrator, MultiDeviceFinetuneCalibModelCalibrator
-from fortuna.calibration.finetune_calib_model.config.base import Config
-from fortuna.calibration.loss.base import Loss
+from fortuna.calibration.calib_model.calib_state_repository import CalibStateRepository
+from fortuna.calibration.calib_model.calib_mixin import WithCalibCheckpointingMixin
+from fortuna.calibration.calib_model.calib_model_calibrator import CalibModelCalibrator, \
+    JittedCalibModelCalibrator, MultiDeviceCalibModelCalibrator
+from fortuna.calibration.calib_model.config.base import Config
+from fortuna.calibration.calib_model.loss import Loss
 from fortuna.model.model_manager.state import ModelManagerState
 
 
-class FinetuneCalibModel(WithFinetuneCalibCheckpointingMixin, abc.ABC):
+class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
     """
-    A fine-tuning calibration model.
+    A calibration model.
     """
 
     def __init__(
@@ -33,14 +33,15 @@ class FinetuneCalibModel(WithFinetuneCalibCheckpointingMixin, abc.ABC):
     def __set_rng(self):
         self.model_manager.rng = self.rng
         self.prob_output_layer.rng = self.rng
+        self.likelihood.rng = self.rng
         self.predictive.rng = self.rng
 
     def _calibrate(
         self,
         calib_data_loader: DataLoader,
-        uncertainty_fn: Callable[[jnp.ndarray, jnp.ndarray, Array], jnp.ndarray],
+        uncertainty_fn: Callable[[Predictions, Uncertainties, Targets], jnp.ndarray],
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray],
         val_data_loader: Optional[DataLoader] = None,
-        loss_fn: Optional[Loss] = None,
         config: Config = Config()
     ) -> Status:
         if (
@@ -53,9 +54,9 @@ class FinetuneCalibModel(WithFinetuneCalibCheckpointingMixin, abc.ABC):
 
         trainer_cls = select_trainer_given_devices(
             devices=config.processor.devices,
-            BaseTrainer=FinetuneCalibModelCalibrator,
-            JittedTrainer=JittedFinetuneCalibModelCalibrator,
-            MultiDeviceTrainer=MultiDeviceFinetuneCalibModelCalibrator,
+            BaseTrainer=CalibModelCalibrator,
+            JittedTrainer=JittedCalibModelCalibrator,
+            MultiDeviceTrainer=MultiDeviceCalibModelCalibrator,
             disable_jit=config.processor.disable_jit,
         )
 
@@ -79,11 +80,8 @@ class FinetuneCalibModel(WithFinetuneCalibCheckpointingMixin, abc.ABC):
             optimizer=config.optimizer.method
         )
 
-        if loss_fn is not None:
-            def fun(p, t, o, m, r, a):
-                return -loss_fn(p, t, o, m, r, a)
-        else:
-            fun = self.predictive.likelihood._batched_log_joint_prob
+        loss = Loss(self.likelihood, loss_fn=loss_fn)
+        loss.rng = self.rng
 
         n_calib_data = calib_data_loader.size
         n_val_data = val_data_loader.size if val_data_loader is not None else None
@@ -94,7 +92,7 @@ class FinetuneCalibModel(WithFinetuneCalibCheckpointingMixin, abc.ABC):
         state, status = trainer.train(
             rng=self.rng.get(),
             state=state,
-            fun=fun,
+            fun=loss,
             training_dataloader=calib_data_loader,
             training_dataset_size=n_calib_data,
             n_epochs=config.optimizer.n_epochs,
@@ -104,7 +102,7 @@ class FinetuneCalibModel(WithFinetuneCalibCheckpointingMixin, abc.ABC):
             verbose=config.monitor.verbose,
             callbacks=config.callbacks,
         )
-        self.state = FinetuneCalibStateRepository(
+        self.state = CalibStateRepository(
             config.checkpointer.save_checkpoint_dir
             if config.checkpointer.dump_state is True
             else None
@@ -130,7 +128,7 @@ class FinetuneCalibModel(WithFinetuneCalibCheckpointingMixin, abc.ABC):
             raise ValueError(
                 f"No checkpoint was found in `checkpoint_path={checkpoint_path}`."
             )
-        self.predictive.state = FinetuneCalibStateRepository(checkpoint_dir=checkpoint_path)
+        self.predictive.state = CalibStateRepository(checkpoint_dir=checkpoint_path)
 
     def save_state(
         self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1

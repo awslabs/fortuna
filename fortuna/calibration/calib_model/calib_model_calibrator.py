@@ -5,10 +5,10 @@ from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
 from fortuna.typing import Params, Batch, Mutable, CalibMutable, CalibParams, Array
-from fortuna.calibration.finetune_calib_model.state import FinetuneCalibState
+from fortuna.calibration.calib_model.state import CalibState
 
 
-class FinetuneCalibModelCalibrator(TrainerABC):
+class CalibModelCalibrator(TrainerABC):
     def training_loss_step(
         self,
         fun: Callable[[Any], Union[float, Tuple[float, dict]]],
@@ -49,7 +49,7 @@ class FinetuneCalibModelCalibrator(TrainerABC):
 
     def validation_step(
         self,
-        state: FinetuneCalibState,
+        state: CalibState,
         batch: Batch,
         fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         rng: PRNGKeyArray,
@@ -80,9 +80,9 @@ class FinetuneCalibModelCalibrator(TrainerABC):
         return dict(val_loss=-log_joint_probabilities)
 
 
-class JittedFinetuneCalibModelCalibrator(JittedMixin, FinetuneCalibModelCalibrator):
+class JittedCalibModelCalibrator(JittedMixin, CalibModelCalibrator):
     pass
 
 
-class MultiDeviceFinetuneCalibModelCalibrator(MultiDeviceMixin, FinetuneCalibModelCalibrator):
+class MultiDeviceCalibModelCalibrator(MultiDeviceMixin, CalibModelCalibrator):
     pass

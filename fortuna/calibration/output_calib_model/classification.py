@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -14,14 +14,15 @@ from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
-from fortuna.calibration.loss.base import Loss
-from fortuna.typing import Array, Status
+from fortuna.loss.classification.focal_loss import focal_loss_fn
+from fortuna.typing import Array, Status, Outputs, Targets
 
 
 class OutputCalibClassifier(OutputCalibModel):
     def __init__(
         self,
         output_calibrator: Optional[nn.Module] = ClassificationTemperatureScaler(),
+        loss_fn: Callable[[jnp.ndarray, jnp.ndarray], jnp.ndarray] = focal_loss_fn,
         seed: int = 0,
     ) -> None:
         r"""
@@ -66,7 +67,7 @@ class OutputCalibClassifier(OutputCalibModel):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
-        loss_fn: Optional[Loss] = None,
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = focal_loss_fn,
         config: Config = Config(),
     ) -> Status:
         """
@@ -83,8 +84,7 @@ class OutputCalibClassifier(OutputCalibModel):
         val_targets: Optional[Array]
             Validation target variables.
         loss_fn: Optional[Loss]
-            A custom loss function. If not provided, the model will calibrate using the negative log-likelihood
-            function.
+            A custom loss function.
         config : Config
             An object to configure the calibration.
 

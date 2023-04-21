@@ -64,7 +64,7 @@ class OutputCalibModelCalibrator(
         self,
         rng: PRNGKeyArray,
         state: OutputCalibState,
-        fun: Callable,
+        loss_fun: Callable,
         n_epochs: int = 1,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
@@ -92,7 +92,7 @@ class OutputCalibModelCalibrator(
                 training_batch_metrics_str,
             ) = self._training_loop(
                 epoch,
-                fun,
+                loss_fun,
                 metrics,
                 rng,
                 state,
@@ -115,7 +115,7 @@ class OutputCalibModelCalibrator(
                     val_losses_and_metrics_current_epoch,
                     val_epoch_metrics_str,
                 ) = self._val_loop(
-                    fun=fun,
+                    loss_fun=loss_fun,
                     metrics=metrics,
                     rng=rng,
                     state=state,
@@ -148,7 +148,7 @@ class OutputCalibModelCalibrator(
     def _training_loop(
         self,
         current_epoch: int,
-        fun: Callable,
+        loss_fun: Callable,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ],
@@ -162,7 +162,7 @@ class OutputCalibModelCalibrator(
         training_losses_and_metrics_epoch_all_steps = []
         training_batch_metrics_str = ""
         # forward and backward pass
-        state, aux = self.training_step(state, targets, outputs, fun, rng)
+        state, aux = self.training_step(state, targets, outputs, loss_fun, rng)
         # compute training losses and metrics for the current batch
         training_losses_and_metrics_current_batch = self.training_step_end(
             current_epoch=current_epoch,
@@ -204,7 +204,7 @@ class OutputCalibModelCalibrator(
         state: OutputCalibState,
         targets: Array,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
         # ensure to use a different key at each step
@@ -212,7 +212,7 @@ class OutputCalibModelCalibrator(
 
         grad_fn = value_and_grad(
             lambda params: self.training_loss_step(
-                fun,
+                loss_fun,
                 params,
                 targets,
                 outputs,
@@ -236,7 +236,7 @@ class OutputCalibModelCalibrator(
 
     def training_loss_step(
         self,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: CalibParams,
         targets: Array,
         outputs: Array,
@@ -246,7 +246,7 @@ class OutputCalibModelCalibrator(
         return_aux = ["outputs"]
         if mutable is not None:
             return_aux += ["mutable"]
-        loss, aux = fun(
+        loss, aux = loss_fun(
             params=params,
             targets=targets,
             outputs=outputs,
@@ -254,7 +254,6 @@ class OutputCalibModelCalibrator(
             rng=rng,
             return_aux=["outputs", "mutable"],
         )
-        loss = -loss
         logging_kwargs = None
         return (
             loss,
@@ -314,7 +313,7 @@ class OutputCalibModelCalibrator(
 
     def _val_loop(
         self,
-        fun: Callable,
+        loss_fun: Callable,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ],
@@ -330,7 +329,7 @@ class OutputCalibModelCalibrator(
             state,
             targets,
             outputs,
-            fun,
+            loss_fun,
             rng,
             metrics,
         )
@@ -356,13 +355,13 @@ class OutputCalibModelCalibrator(
         state: OutputCalibState,
         targets: Array,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ] = None,
     ) -> Dict[str, jnp.ndarray]:
-        val_loss, aux = self.val_loss_step(state, targets, outputs, fun, rng)
+        val_loss, aux = self.val_loss_step(state, targets, outputs, loss_fun, rng)
         val_metrics = self.val_metrics_step(aux, targets, metrics)
         return {"val_loss": val_loss, **val_metrics}
 
@@ -371,10 +370,10 @@ class OutputCalibModelCalibrator(
         state: OutputCalibState,
         targets: Array,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
     ) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
-        log_joint_probs, aux = fun(
+        loss, aux = loss_fun(
             params=state.params,
             targets=targets,
             outputs=outputs,
@@ -382,7 +381,7 @@ class OutputCalibModelCalibrator(
             rng=rng,
             return_aux=["outputs"],
         )
-        return -log_joint_probs, aux
+        return loss, aux
 
     def val_metrics_step(
         self,
@@ -489,10 +488,10 @@ class JittedMixin:
         state: OutputCalibState,
         targets: Array,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
-        return super().training_step(state, targets, outputs, fun, rng)
+        return super().training_step(state, targets, outputs, loss_fun, rng)
 
     @partial(jax.jit, static_argnums=(0, 4))
     def val_loss_step(
@@ -500,10 +499,10 @@ class JittedMixin:
         state: OutputCalibState,
         targets: Array,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
     ) -> Dict[str, jnp.ndarray]:
-        return super().val_loss_step(state, targets, outputs, fun, rng)
+        return super().val_loss_step(state, targets, outputs, loss_fun, rng)
 
 
 class MultiDeviceMixin:
@@ -585,10 +584,10 @@ class MultiDeviceMixin:
         state: OutputCalibState,
         targets: Array,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
-        return super().training_step(state, targets, outputs, fun, rng)
+        return super().training_step(state, targets, outputs, loss_fun, rng)
 
     def training_step_end(
         self,
@@ -615,10 +614,10 @@ class MultiDeviceMixin:
         state: OutputCalibState,
         targets: Array,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
     ) -> Dict[str, jnp.ndarray]:
-        val_losses = super().val_loss_step(state, targets, outputs, fun, rng)
+        val_losses = super().val_loss_step(state, targets, outputs, loss_fun, rng)
         return lax.pmean(val_losses, axis_name="batch")
 
     def val_metrics_step(

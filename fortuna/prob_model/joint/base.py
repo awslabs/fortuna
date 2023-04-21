@@ -109,6 +109,34 @@ class Joint(WithRNG):
         batched_log_lik = outs
         return batched_log_lik + log_prior
 
+    def _batched_negative_log_joint_prob(
+        self,
+        params: Params,
+        batch: Batch,
+        n_data: int,
+        mutable: Optional[Mutable] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        return_aux: Optional[List[str]] = None,
+        train: Optional[bool] = False,
+        outputs: Optional[jnp.ndarray] = None,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs
+    ) -> Union[float, Tuple[float, dict]]:
+        return -self._batched_log_joint_prob(
+            params,
+            batch,
+            n_data,
+            mutable,
+            calib_params,
+            calib_mutable,
+            return_aux,
+            train,
+            outputs,
+            rng,
+            **kwargs
+        )
+
     def init(self, input_shape: Tuple, **kwargs) -> JointState:
         """
         Initialize the state of the joint distribution.

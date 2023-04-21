@@ -9,7 +9,7 @@ from fortuna.typing import (CalibMutable, CalibParams, Mutable, OptaxOptimizer,
                             Params)
 
 
-class FinetuneCalibState(TrainState):
+class CalibState(TrainState):
     params: Params
     mutable: Optional[Mutable] = None
     calib_params: Optional[CalibParams] = None
@@ -49,7 +49,7 @@ class FinetuneCalibState(TrainState):
         d: Dict,
         optimizer: Optional[OptaxOptimizer] = None,
         **kwargs,
-    ) -> FinetuneCalibState:
+    ) -> CalibState:
         kwargs = {
             **kwargs,
             **{

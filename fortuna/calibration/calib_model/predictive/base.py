@@ -8,7 +8,7 @@ from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.likelihood.base import Likelihood
 from fortuna.utils.random import WithRNG
 from fortuna.typing import Path
-from fortuna.calibration.finetune_calib_model.finetune_calib_state_repository import FinetuneCalibStateRepository
+from fortuna.calibration.calib_model.calib_state_repository import CalibStateRepository
 
 
 class Predictive(WithRNG):
@@ -22,7 +22,7 @@ class Predictive(WithRNG):
              A posterior distribution object.
         """
         self.likelihood = likelihood
-        self.state = FinetuneCalibStateRepository(checkpoint_dir=restore_checkpoint_path)
+        self.state = CalibStateRepository(checkpoint_dir=restore_checkpoint_path)
 
     def log_prob(
         self,
