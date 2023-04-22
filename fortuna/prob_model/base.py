@@ -107,7 +107,7 @@ class ProbModel(abc.ABC):
         check_data_loader_is_not_random(calib_data_loader)
         if val_data_loader is not None:
             check_data_loader_is_not_random(val_data_loader)
-        if self.output_calib_manager.output_calibrator is None:
+        if self.output_calib_manager is None or self.output_calib_manager.output_calibrator is None:
             logging.warning(
                 """Nothing to calibrate. No calibrator was passed to the probabilistic model."""
             )

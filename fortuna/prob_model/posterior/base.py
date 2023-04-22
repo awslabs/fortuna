@@ -49,17 +49,14 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
     ) -> Tuple[JointState, int, Union[int, None]]:
-        n_train_data = 0
         for i, (batch_inputs, batch_targets) in enumerate(train_data_loader):
-            n_train_data += batch_targets.shape[0]
             if i == 0:
                 input_shape = batch_inputs.shape[1:]
-
+            break
+        n_train_data = train_data_loader.size
         n_val_data = None
         if val_data_loader is not None:
-            n_val_data = 0
-            for batch in val_data_loader:
-                n_val_data += batch[1].shape[0]
+            n_val_data = val_data_loader.size
 
         return self.joint.init(input_shape), n_train_data, n_val_data
 

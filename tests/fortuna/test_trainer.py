@@ -9,7 +9,7 @@ from jax import numpy as jnp
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
 
-from fortuna.prob_model.fit_config.callbacks import Callback
+from fortuna.training.callback import Callback
 from fortuna.training.train_state import TrainState
 from fortuna.training.trainer import TrainerABC
 from fortuna.typing import Params, Batch, Mutable, CalibParams, CalibMutable

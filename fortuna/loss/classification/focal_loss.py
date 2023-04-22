@@ -11,4 +11,4 @@ def focal_loss_fn(
     probs = softmax(outputs, -1)
     targets = one_hot(targets, outputs.shape[-1])
     probs = jnp.sum(probs * targets, -1)
-    return - jnp.sum((1 - probs) ** gamma * jnp.log(probs))
+    return -jnp.mean((1 - probs) ** gamma * jnp.log(probs))

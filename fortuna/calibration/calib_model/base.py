@@ -15,6 +15,7 @@ from fortuna.calibration.calib_model.calib_model_calibrator import CalibModelCal
 from fortuna.calibration.calib_model.config.base import Config
 from fortuna.calibration.calib_model.loss import Loss
 from fortuna.model.model_manager.state import ModelManagerState
+from fortuna.calibration.calib_model.state import CalibState
 
 
 class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
@@ -73,12 +74,13 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             early_stopping_patience=config.monitor.early_stopping_patience,
         )
 
-        state = self.restore_checkpoint(
-            restore_checkpoint_path=config.checkpointer.restore_checkpoint_path,
-            optimizer=config.optimizer.method,
-        ) if config.checkpointer.restore_checkpoint_path else self.predictive.state.get(
-            optimizer=config.optimizer.method
-        )
+        if config.checkpointer.restore_checkpoint_path is None:
+            state = self._init(calib_data_loader, config)
+        else:
+            state = self.restore_checkpoint(
+                restore_checkpoint_path=config.checkpointer.restore_checkpoint_path,
+                optimizer=config.optimizer.method,
+            )
 
         loss = Loss(self.likelihood, loss_fn=loss_fn)
         loss.rng = self.rng
@@ -92,7 +94,7 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
         state, status = trainer.train(
             rng=self.rng.get(),
             state=state,
-            fun=loss,
+            loss_fun=loss,
             training_dataloader=calib_data_loader,
             training_dataset_size=n_calib_data,
             n_epochs=config.optimizer.n_epochs,
@@ -102,12 +104,12 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             verbose=config.monitor.verbose,
             callbacks=config.callbacks,
         )
-        self.state = CalibStateRepository(
+        self.predictive.state = CalibStateRepository(
             config.checkpointer.save_checkpoint_dir
             if config.checkpointer.dump_state is True
             else None
         )
-        self.state.put(state, keep=config.checkpointer.keep_top_n_checkpoints)
+        self.predictive.state.put(state, keep=config.checkpointer.keep_top_n_checkpoints)
         if config.monitor.verbose:
             logging.info("Calibration completed.")
         return status
@@ -161,5 +163,10 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             oms.params, jnp.zeros((1,) + input_shape), mutable=oms.mutable
         ).shape[-1]
 
+    def _init(self, data_loader: DataLoader, config: Config):
+        for inputs, targets in data_loader:
+            input_shape = inputs.shape[1:]
+            break
 
-
+        state = ModelManagerState.init_from_dict(self.likelihood.model_manager.init(input_shape, rng=self.rng.get()))
+        return CalibState.init(params=state.params, mutable=state.mutable, optimizer=config.optimizer.method)

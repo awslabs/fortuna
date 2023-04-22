@@ -387,7 +387,7 @@ class Likelihood(WithRNG):
         """
         outputs = self.get_outputs(params, inputs_loader, mutable, distribute, **kwargs)
 
-        if self.output_calib_manager.output_calibrator is not None:
+        if self.output_calib_manager is not None and self.output_calib_manager.output_calibration is not None:
             outputs = self.output_calib_manager.apply(
                 params=calib_params["output_calibrator"]
                 if calib_params is not None
@@ -411,7 +411,7 @@ class Likelihood(WithRNG):
     ) -> jnp.ndarray:
         outputs = self.model_manager.apply(params, inputs, mutable, **kwargs)
 
-        if self.output_calib_manager.output_calibrator is not None:
+        if self.output_calib_manager is not None and self.output_calib_manager.output_calibration is not None:
             outputs = self.output_calib_manager.apply(
                 params=calib_params["output_calibrator"]
                 if calib_params is not None

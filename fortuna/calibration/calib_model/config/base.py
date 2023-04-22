@@ -2,7 +2,7 @@ from fortuna.calibration.calib_model.config.checkpointer import Checkpointer
 from fortuna.calibration.calib_model.config.monitor import Monitor
 from fortuna.calibration.calib_model.config.optimizer import Optimizer
 from fortuna.calibration.calib_model.config.processor import Processor
-from fortuna.calibration.calib_model.config.callbacks import Callback
+from fortuna.calibration.calib_model.config.callback import Callback
 from typing import Optional, List
 
 
@@ -30,7 +30,7 @@ class Config:
             It processes where computation takes place.
         callbacks:  Optional[List[Callback]]
             A list of user-defined callbacks to be called during calibration.
-            Callbacks run sequentially in the order defined by the user.
+            Callback run sequentially in the order defined by the user.
         """
         self.optimizer = optimizer
         self.checkpointer = checkpointer

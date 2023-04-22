@@ -3,20 +3,19 @@ import jax.numpy as jnp
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.calibration.calib_model.predictive.base import Predictive
-from fortuna.training.train_state_repository import TrainStateRepository
 from typing import Union, List, Optional
-from fortuna.typing import Array, Path
+from fortuna.typing import Array
 from jax._src.prng import PRNGKeyArray
 
 
 class RegressionPredictive(Predictive):
-    def __init__(self, likelihood: RegressionLikelihood, restore_checkpoint_path: Path):
-        super().__init__(likelihood=likelihood, restore_checkpoint_path=restore_checkpoint_path)
+    def __init__(self, likelihood: RegressionLikelihood):
+        super().__init__(likelihood=likelihood)
 
     def entropy(
         self,
         inputs_loader: InputsLoader,
-        n_target_samples: int = 30,
+        n_samples: int = 30,
         distribute: bool = True,
 
     ) -> jnp.ndarray:
@@ -26,14 +25,14 @@ class RegressionPredictive(Predictive):
             inputs_loader=inputs_loader,
             mutable=state.mutable,
             distribute=distribute,
-            n_target_samples=n_target_samples
+            n_target_samples=n_samples
         )
 
     def quantile(
         self,
         q: Union[float, Array, List],
         inputs_loader: InputsLoader,
-        n_target_samples: Optional[int] = 30,
+        n_samples: Optional[int] = 30,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
     ) -> Union[float, jnp.ndarray]:
@@ -43,7 +42,7 @@ class RegressionPredictive(Predictive):
             params=state.params,
             inputs_loader=inputs_loader,
             mutable=state.mutable,
-            n_target_samples=n_target_samples,
+            n_target_samples=n_samples,
             rng=rng,
             distribute=distribute
         )
@@ -51,7 +50,7 @@ class RegressionPredictive(Predictive):
     def credible_interval(
         self,
         inputs_loader: InputsLoader,
-        n_target_samples: int = 30,
+        n_samples: int = 30,
         error: float = 0.05,
         interval_type: str = "two-tailed",
         rng: Optional[PRNGKeyArray] = None,
@@ -74,7 +73,7 @@ class RegressionPredictive(Predictive):
         qq = self.quantile(
             q=q,
             inputs_loader=inputs_loader,
-            n_target_samples=n_target_samples,
+            n_samples=n_samples,
             rng=rng,
             distribute=distribute,
         )
@@ -87,4 +86,3 @@ class RegressionPredictive(Predictive):
             return jnp.array(list(zip(lq, uq)))
         else:
             return qq
-

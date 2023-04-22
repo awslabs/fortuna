@@ -25,7 +25,7 @@ class RegressionPredictive(Predictive):
         self,
         q: Union[float, Array, List],
         outputs: Array,
-        n_target_samples: Optional[int] = 30,
+        n_samples: Optional[int] = 30,
         rng: Optional[PRNGKeyArray] = None,
         calibrated: bool = True,
     ) -> jnp.ndarray:
@@ -38,7 +38,7 @@ class RegressionPredictive(Predictive):
             Quantile(s) to estimate.
         outputs : jnp.ndarray
             Model outputs.
-        n_target_samples: Optional[int]
+        n_samples: Optional[int]
             Number of target samples to draw when computing quantiles.
         rng: Optional[PRNGKeyArray]
             A random number generator.
@@ -59,12 +59,12 @@ class RegressionPredictive(Predictive):
                 outputs=outputs,
                 mutable=state.mutable["output_calibrator"],
             )
-        return self.prob_output_layer.quantile(q, outputs, n_target_samples, rng)
+        return self.prob_output_layer.quantile(q, outputs, n_samples, rng)
 
     def credible_interval(
         self,
         outputs: Array,
-        n_target_samples: int = 30,
+        n_samples: int = 30,
         error: float = 0.05,
         interval_type: str = "two-tailed",
         rng: Optional[PRNGKeyArray] = None,
@@ -78,7 +78,7 @@ class RegressionPredictive(Predictive):
         ----------
         outputs: Array
             Model outputs.
-        n_target_samples: int
+        n_samples: int
             Number of target samples to draw for each output.
         error: float
             The interval error. This must be a number between 0 and 1, extremes included. For example,
@@ -105,5 +105,5 @@ class RegressionPredictive(Predictive):
                 mutable=state.mutable["output_calibrator"],
             )
         return self.prob_output_layer.credible_interval(
-            outputs, n_target_samples, error, interval_type, rng
+            outputs, n_samples, error, interval_type, rng
         )

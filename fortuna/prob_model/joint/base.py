@@ -123,7 +123,7 @@ class Joint(WithRNG):
         rng: Optional[PRNGKeyArray] = None,
         **kwargs
     ) -> Union[float, Tuple[float, dict]]:
-        return -self._batched_log_joint_prob(
+        outs = self._batched_log_joint_prob(
             params,
             batch,
             n_data,
@@ -136,6 +136,11 @@ class Joint(WithRNG):
             rng,
             **kwargs
         )
+        if len(return_aux) > 0:
+            loss, aux = outs
+            loss *= -1
+            return loss, aux
+        return -outs
 
     def init(self, input_shape: Tuple, **kwargs) -> JointState:
         """

@@ -7,12 +7,10 @@ from jax._src.prng import PRNGKeyArray
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.likelihood.base import Likelihood
 from fortuna.utils.random import WithRNG
-from fortuna.typing import Path
-from fortuna.calibration.calib_model.calib_state_repository import CalibStateRepository
 
 
 class Predictive(WithRNG):
-    def __init__(self, likelihood: Likelihood, restore_checkpoint_path: Path):
+    def __init__(self, likelihood: Likelihood):
         """
         Predictive distribution abstract class.
 
@@ -22,7 +20,7 @@ class Predictive(WithRNG):
              A posterior distribution object.
         """
         self.likelihood = likelihood
-        self.state = CalibStateRepository(checkpoint_dir=restore_checkpoint_path)
+        self.state = None
 
     def log_prob(
         self,
@@ -68,7 +66,7 @@ class Predictive(WithRNG):
     def sample(
         self,
         inputs_loader: InputsLoader,
-        n_target_samples: int = 1,
+        n_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
@@ -87,7 +85,7 @@ class Predictive(WithRNG):
         ----------
         inputs_loader : InputsLoader
             A loader of input data points.
-        n_target_samples : int
+        n_samples : int
             Number of target samples to sample for each input data point.
         return_aux : Optional[List[str]]
             Return auxiliary objects. We currently support 'outputs'.
@@ -103,7 +101,7 @@ class Predictive(WithRNG):
         """
         state = self.state.get()
         return self.likelihood.sample(
-            n_target_samples=n_target_samples,
+            n_target_samples=n_samples,
             params=state.params,
             inputs_loader=inputs_loader,
             mutable=state.mutable,

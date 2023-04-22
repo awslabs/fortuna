@@ -146,7 +146,6 @@ class TestCalibCalibrate(unittest.TestCase):
             calib_reg = CalibRegressor(
                 model=model,
                 likelihood_log_variance_model=lik_model,
-                restore_checkpoint_path=tmp_dir
             )
 
             # no save dir, no dump
@@ -214,7 +213,6 @@ class TestCalibCalibrate(unittest.TestCase):
 
             calib_class = CalibClassifier(
                 model=model,
-                restore_checkpoint_path=tmp_dir
             )
 
             # no save dir, no dump
@@ -263,7 +261,6 @@ class TestCalibCalibrate(unittest.TestCase):
     def test_error_when_empty_data_loader(self):
         calib_class_map = CalibClassifier(
             model=MyModel(self.class_output_dim),
-            restore_checkpoint_path="."
         )
 
         self.assertRaises(
