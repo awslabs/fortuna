@@ -3,11 +3,11 @@ import unittest
 import jax.numpy as jnp
 import numpy as np
 
-from fortuna.calibration import (
+from fortuna.conformal import (
     AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier, AdaptiveConformalClassifier,
     BatchMVPConformalClassifier
 )
-from fortuna.calibration import (
+from fortuna.conformal import (
     CVPlusConformalRegressor, EnbPI, JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
     OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, AdaptiveConformalRegressor,

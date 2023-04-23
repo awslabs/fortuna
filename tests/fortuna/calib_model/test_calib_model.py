@@ -4,7 +4,7 @@ import unittest
 from fortuna.data.loader import DataLoader
 from fortuna.metric.classification import brier_score
 from fortuna.model.mlp import MLP
-from fortuna.calibration.calib_model import CalibClassifier, CalibRegressor, Config, Checkpointer, Optimizer, Monitor
+from fortuna.calib_model import CalibClassifier, CalibRegressor, Config, Checkpointer, Optimizer, Monitor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
 from fortuna.prob_model import ProbRegressor, ProbClassifier, FitConfig, FitCheckpointer, FitOptimizer, SWAGPosteriorApproximator

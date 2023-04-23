@@ -71,7 +71,7 @@ for i, idx in enumerate(KFold(n_splits=n_splits).split(X_train)):
 # Given the model outputs, we compute conformal intervals obtained using CV+.
 
 # %%
-from fortuna.calibration import CVPlusConformalRegressor
+from fortuna.conformal import CVPlusConformalRegressor
 
 cvplus_interval = CVPlusConformalRegressor().conformal_interval(
     cross_val_outputs=cross_val_outputs,
@@ -94,13 +94,18 @@ from sklearn.model_selection import LeaveOneOut
 import jax.numpy as jnp
 
 loo_val_outputs, loo_val_targets, loo_test_outputs = [], [], []
+c = 0
 for i, idx in enumerate(LeaveOneOut().split(X_train)):
+    if c >= 30:
+        break
     print(f"Split #{i + 1} out of {X_train.shape[0]}.", end="\r")
     model = GradientBoostingRegressor()
     model.fit(X_train[idx[0]], y_train[idx[0]])
     loo_val_outputs.append(model.predict(X_train[idx[1]]))
     loo_val_targets.append(y_train[idx[1]])
     loo_test_outputs.append(model.predict(X_test))
+    c += 1
+
 loo_val_outputs = jnp.array(loo_val_outputs)
 loo_val_targets = jnp.array(loo_val_targets)
 loo_test_outputs = jnp.array(loo_test_outputs)
@@ -109,7 +114,7 @@ loo_test_outputs = jnp.array(loo_test_outputs)
 # Given the model outputs, we compute conformal intervals obtained using jackknife+ and jackknife-minmax.
 
 # %%
-from fortuna.calibration import (
+from fortuna.conformal import (
     JackknifePlusConformalRegressor,
     JackknifeMinmaxConformalRegressor,
 )

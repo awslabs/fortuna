@@ -6,9 +6,9 @@ from flax import jax_utils
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
-from fortuna.calibration.output_calib_model.output_calibrator import (OutputCalibratorABC, JittedMixin,
-                                                                      MultiDeviceMixin)
-from fortuna.calibration.output_calib_model.state import OutputCalibState
+from fortuna.training.output_calibrator import (OutputCalibratorABC, JittedMixin,
+                                                MultiDeviceMixin)
+from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.data import TargetsLoader
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams
 
@@ -16,7 +16,7 @@ from fortuna.typing import Array, Batch, CalibMutable, CalibParams
 class ProbModelOutputCalibrator(OutputCalibratorABC):
     def training_loss_step(
         self,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: CalibParams,
         batch: Batch,
         outputs: Array,
@@ -27,7 +27,7 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
         return_aux = ["outputs"]
         if mutable is not None:
             return_aux += ["mutable"]
-        loss, aux = fun(
+        loss, aux = loss_fun(
             batch,
             n_data=n_data,
             return_aux=["outputs", "calib_mutable"],
@@ -36,7 +36,6 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
             calib_mutable=mutable,
             rng=rng,
         )
-        loss = -loss
         logging_kwargs = None
         return (
             loss,
@@ -52,11 +51,11 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
         state: OutputCalibState,
         batch: Batch,
         outputs: Array,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
-        log_joint_probs, aux = fun(
+        loss, aux = loss_fun(
             batch,
             n_data=n_data,
             return_aux=["outputs"],
@@ -65,7 +64,7 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
             calib_mutable=state.mutable,
             rng=rng,
         )
-        return -log_joint_probs, aux
+        return loss, aux
 
     def __str__(self):
         return "calibration"

@@ -29,10 +29,10 @@ statistics.
 The default output calibrator is temperature scaling, that is what we use in this example.
 
 .. code-block:: python
-    :caption: **References:** :class:`~fortuna.calibration.output_calib_model.classification.OutputCalibClassifier`
+    :caption: **References:** :class:`~fortuna.output_calib_model.classification.OutputCalibClassifier`
 
-    from fortuna.calibration import OutputCalibClassifier
-    calib_model = OutputCalibClassifier()
+    from fortuna.output_calib_model import OutputCalibClassifier
+    output_calib_model = OutputCalibClassifier()
 
 Calibrate the model outputs
 -----------------------------
@@ -45,7 +45,7 @@ In this example, we will stick with the default configuration options.
 
 .. code-block:: python
 
-    status = calib_model.calibrate(
+    status = output_calib_model.calibrate(
         calib_outputs=calib_outputs,
         calib_targets=calib_targets
     )
@@ -56,7 +56,7 @@ Given some test model outputs :code:`test_outputs`,
 and potentially an array of test target variables :code:`test_targets`,
 we are ready to estimate predictive statistics.
 These include predictive mode, mean, log-pdf, variance, entropy, etc;
-please consult the :ref:`predictive <calib_predictive_regression>` reference.
+please consult the :ref:`predictive <output_calib_predictive_regression>` reference.
 
 .. note::
     In classification, the predictive *mode* gives label predictions, i.e. the label
@@ -64,15 +64,15 @@ please consult the :ref:`predictive <calib_predictive_regression>` reference.
     probability of each label.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.calibration.output_calib_model.predictive.classification.ClassificationPredictive.log_prob`, :meth:`~fortuna.calibration.output_calib_model.predictive.classification.ClassificationPredictive.mode`, :meth:`~fortuna.calibration.output_calib_model.predictive.classification.ClassificationPredictive.mean`
+    :caption: **References:** :meth:`~fortuna.output_calib_model.predictive.classification.ClassificationPredictive.log_prob`, :meth:`~fortuna.output_calib_model.predictive.classification.ClassificationPredictive.mode`, :meth:`~fortuna.output_calib_model.predictive.classification.ClassificationPredictive.mean`
 
-    test_logprob = calib_model.predictive.log_prob(
+    test_logprob = output_calib_model.predictive.log_prob(
         outputs=test_outputs, targets=test_targets
     )
-    test_modes = calib_model.predictive.mode(
+    test_modes = output_calib_model.predictive.mode(
         outputs=test_outputs
     )
-    test_means = calib_model.predictive.mean(
+    test_means = output_calib_model.predictive.mean(
         outputs=test_outputs
     )
 
@@ -107,9 +107,9 @@ We denote :code:`val_outputs` to be validation model outputs,
 and :code:`val_targets` to be the corresponding validation target variables.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.calibration.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier.conformal_set`
+    :caption: **References:** :meth:`~fortuna.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier.conformal_set`
 
-    from fortuna.calibration import AdaptivePredictionConformalClassifier
+    from fortuna.conformal import AdaptivePredictionConformalClassifier
     val_means = calib_model.predictive.mean(
         outputs=val_outputs
     )
@@ -148,10 +148,10 @@ statistics.
 The default output calibrator is temperature scaling, that is what we use in this example.
 
 .. code-block:: python
-    :caption: **References:** :class:`~fortuna.calibration.output_calib_model.regressor.OutputCalibRegressor`
+    :caption: **References:** :class:`~fortuna.output_calib_model.regressor.OutputCalibRegressor`
 
-    from fortuna.calibration import CalibRegression
-    calib_model = OutputCalibRegressor()
+    from fortuna.calib_model import CalibRegression
+    output_calib_model = OutputCalibRegressor()
 
 Calibrate the model outputs
 -----------------------------
@@ -164,7 +164,7 @@ In this example, we will stick with the default configuration options.
 
 .. code-block:: python
 
-    status = calib_model.calibrate(
+    status = output_calib_model.calibrate(
         calib_outputs=calib_outputs,
         calib_targets=calib_targets
     )
@@ -175,22 +175,22 @@ Given some test model outputs :code:`test_outputs`,
 and potentially an array of test target variables :code:`test_targets`,
 we are ready to estimate predictive statistics.
 These include predictive mode, mean, log-pdf, variance, entropy, etc;
-please consult the :ref:`predictive <calib_predictive_classification>` reference.
+please consult the :ref:`predictive <output_calib_predictive_classification>` reference.
 
 .. note::
     In contrast with classification, in regression both the predictive *mean* and the predictive *mode* provide
     predictions for the target variables, and do not represent measures of uncertainty.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.calibration.output_calib_model.predictive.regression.RegressionPredictive.log_prob`, :meth:`~fortuna.calibration.output_calib_model.predictive.regression.RegressionPredictive.mean`, :meth:`~fortuna.calibration.output_calib_model.predictive.regression.RegressionPredictive.credible_interval`
+    :caption: **References:** :meth:`~fortuna.output_calib_model.predictive.regression.RegressionPredictive.log_prob`, :meth:`~fortuna.output_calib_model.predictive.regression.RegressionPredictive.mean`, :meth:`~fortuna.output_calib_model.predictive.regression.RegressionPredictive.credible_interval`
 
-    test_logprob = calib_model.predictive.log_prob(
+    test_logprob = output_calib_model.predictive.log_prob(
         outputs=test_outputs, targets=test_targets
     )
-    test_means = calib_model.predictive.mean(
+    test_means = output_calib_model.predictive.mean(
         outputs=test_outputs
     )
-    test_cred_intervals = calib_model.predictive.credible_interval(
+    test_cred_intervals = output_calib_model.predictive.credible_interval(
         outputs=test_outputs
     )
 
@@ -225,9 +225,9 @@ We denote :code:`val_outputs` to be validation model outputs,
 and :code:`val_targets` to be the corresponding validation target variables.
 
 .. code-block:: python
-    :caption: **References:** :meth:`~fortuna.calibration.conformal.regression.quantile.QuantileConformalRegressor.conformal_interval`
+    :caption: **References:** :meth:`~fortuna.conformal.regression.quantile.QuantileConformalRegressor.conformal_interval`
 
-    from fortuna.calibration import QuantileConformalRegressor
+    from fortuna.conformal import QuantileConformalRegressor
     val_cred_intervals = calib_model.predictive.credible_interval(
         outputs=val_outputs
     )

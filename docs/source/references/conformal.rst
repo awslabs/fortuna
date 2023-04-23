@@ -8,28 +8,28 @@ and :ref:`regression <conformal_regression>`.
 
 .. _conformal_classification:
 
-.. automodule:: fortuna.calibration.conformal.classification.adaptive_prediction
+.. automodule:: fortuna.conformal.classification.adaptive_prediction
 
-.. automodule:: fortuna.calibration.conformal.classification.simple_prediction
+.. automodule:: fortuna.conformal.classification.simple_prediction
 
-.. automodule:: fortuna.calibration.conformal.classification.adaptive_conformal_classifier
+.. automodule:: fortuna.conformal.classification.adaptive_conformal_classifier
 
-.. automodule:: fortuna.calibration.conformal.classification.batch_mvp
+.. automodule:: fortuna.conformal.classification.batch_mvp
 
 .. _conformal_regression:
 
-.. automodule:: fortuna.calibration.conformal.regression.quantile
+.. automodule:: fortuna.conformal.regression.quantile
 
-.. automodule:: fortuna.calibration.conformal.regression.onedim_uncertainty
+.. automodule:: fortuna.conformal.regression.onedim_uncertainty
 
-.. automodule:: fortuna.calibration.conformal.regression.cvplus
+.. automodule:: fortuna.conformal.regression.cvplus
 
-.. automodule:: fortuna.calibration.conformal.regression.jackknifeplus
+.. automodule:: fortuna.conformal.regression.jackknifeplus
 
-.. automodule:: fortuna.calibration.conformal.regression.jackknife_minmax
+.. automodule:: fortuna.conformal.regression.jackknife_minmax
 
-.. automodule:: fortuna.calibration.conformal.regression.enbpi
+.. automodule:: fortuna.conformal.regression.enbpi
 
-.. automodule:: fortuna.calibration.conformal.regression.adaptive_conformal_regressor
+.. automodule:: fortuna.conformal.regression.adaptive_conformal_regressor
 
-.. automodule:: fortuna.calibration.conformal.regression.batch_mvp
+.. automodule:: fortuna.conformal.regression.batch_mvp

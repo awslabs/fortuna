@@ -77,7 +77,7 @@ class DataFrameBootstrapper:
 
 import numpy as np
 
-n_bs_samples = 20
+n_bs_samples = 10
 bs_indices, bs_train_data = DataFrameBootstrapper(n_samples=n_bs_samples)(
     X_train, y_train
 )
@@ -137,7 +137,7 @@ for i, batch in enumerate(bs_train_data):
 # We exploit the EnbPI implementation in Fortuna to compute the conformal intervals over the test data of the time series, given the training and test bootstrap predictions above. We choose a coverage error equal to 0.05, corresponding to a confidence of 95%.
 
 # %%
-from fortuna.calibration import EnbPI
+from fortuna.conformal import EnbPI
 
 conformal_intervals = EnbPI().conformal_interval(
     bootstrap_indices=bs_indices,
@@ -148,7 +148,7 @@ conformal_intervals = EnbPI().conformal_interval(
 )
 
 # %% [markdown]
-# In order to evaluate conditional coverage, we measure the Prediction Interval Coverage Probability (PICP), i.e. the percentage of test target variables that actually falls within the conformal intervals. Please note that the data points of a time series are **not** independent, therefore such percentage does not provide an unbiased estimate of the coverage probability. Nevertheless, we use this metric as a proxy. We further measure the percentage of intervals that contain the point predictions given by the model. Finally, we measure the size of the conformal intervals, which EnbPI takes to be the same for every intervals if no online feedback is provided, like in this case.
+# In order to evaluate conditional coverage, we measure the Prediction Interval Coverage Probability (PICP), i.e. the percentage of test target variables that actually falls within the conformal intervals. We further measure the percentage of intervals that contain the point predictions given by the model. Finally, we measure the size of the conformal intervals, which EnbPI takes to be the same for every intervals if no online feedback is provided, like in this case.
 
 # %%
 from fortuna.metric.regression import prediction_interval_coverage_probability
@@ -165,7 +165,7 @@ print(f"Size of the conformal intervals: {np.diff(conformal_intervals)[0][0]}")
 
 
 # %% [markdown]
-# It is good to see that all intervals contain the respective point predictions. On the other hand, the estimated conditional coverage probability is around 80%, which is lower than the desired 95%. As mentioned above, however, the empirical metric is just a proxy, since the data points are not independent. Furthermore, EnbPI satisfies an approximate marginal coverage guarantee, not a conditional one, and only under the assumption that the residual errors in the data are identically distributed at every time step. These facts may explain the insufficient coverage observed here.
+# It is good to see that all intervals contain the respective point predictions. On the other hand, the estimated conditional coverage probability is around 80%, which is lower than the desired 95%. Note that EnbPI satisfies an approximate marginal coverage guarantee, not a conditional one, and only under the assumption that the residual errors in the data are identically distributed at every time step. These facts may explain the insufficient coverage observed here.
 
 
 # %%
@@ -238,7 +238,7 @@ print(
 )
 
 # %% [markdown]
-# Again, it is good to see that all conformal intervals include the point predictions. Also, while we remind that the computed percentage is just a proxy of the true coverage since the data are dependent, the percentage of intervals containing the true targets increased to around 83%, getting closer to the desired coverage of 95%.
+# Again, it is good to see that all conformal intervals include the point predictions. Also, the percentage of intervals containing the true targets increased to around 83%, getting closer to the desired coverage of 95%.
 
 # %%
 plt.figure(figsize=(12, 2))
@@ -267,111 +267,3 @@ plt.legend(fontsize=12)
 
 # %% [markdown]
 # We should remark again that the feedback on the conformal intervals was provided without having to retrain the model, which is useful in practice. However, if the distribution of the data starts drifting over time, the conformal intervals may progressively become large and unusable. In such case, one may track the conformal interval size and trigger retraining after it reaches a certain threshold.
-
-# %% [markdown]
-# # Triggering retraining based on uncertainty
-
-# %% [markdown]
-# As discussed above, EnbPI allows to incorporate online feedback without retraining, which is appealing from a computational perspective. However, in particular in the occurrence of distributional shifts, retraining the model may be beneficial in order to improve predictions and reduce uncertainty. In this section, we show how one can use the size of the conformal intervals to trigger retraining. Whenever the size of the conformal intervals increases over 10% from the size of the ones computed just after retraining, then retraining is triggered. Better triggering strategies are beyond the purpose of this example.
-
-# %%
-retrain_percentage_increse = 0.1
-init_avg_size, avg_size = 0.0, np.inf
-X_train3, y_train3, X_test3, y_test3 = X_train, y_train, X_test, y_test
-bs_indices3, bs_train_preds3, bs_test_preds3 = (
-    np.copy(bs_indices),
-    np.copy(bs_train_preds),
-    np.copy(bs_test_preds),
-)
-retrain_idx = 0
-
-batch_size = 1
-conformal_intervals3 = np.zeros((len(y_test), 2))
-for i in range(0, len(y_test), batch_size):
-    if avg_size > (1 + retrain_percentage_increse) * init_avg_size:
-        if i != 0:
-            retrain_idx = i
-            X_train3, y_train3 = (
-                X[i : i + X_train.shape[0]],
-                y[i : i + X_train.shape[0]],
-            )
-            X_test3, y_test3 = X[i + X_train.shape[0] :], y[i + X_train.shape[0] :]
-            bs_indices3, bs_train_data3 = DataFrameBootstrapper(n_samples=n_bs_samples)(
-                X_train3, y_train3
-            )
-
-            for j, batch in enumerate(bs_train_data3):
-                gbrt_pipeline.fit(*batch)
-                bs_train_preds3[j] = gbrt_pipeline.predict(X_train3)
-                bs_test_preds3[j, i:] = gbrt_pipeline.predict(X_test3)
-
-        (
-            conformal_intervals3[i : i + batch_size],
-            train_residuals,
-        ) = EnbPI().conformal_interval(
-            bootstrap_indices=bs_indices3,
-            bootstrap_train_preds=bs_train_preds3,
-            bootstrap_test_preds=bs_test_preds3[:, i : i + batch_size],
-            train_targets=y_train3.values,
-            error=0.05,
-            return_residuals=True,
-        )
-
-        init_avg_size = np.diff(conformal_intervals3[i : i + batch_size]).mean()
-        avg_size = np.copy(init_avg_size)
-    else:
-        (
-            conformal_intervals3[i : i + batch_size],
-            train_residuals,
-        ) = EnbPI().conformal_interval_from_residuals(
-            train_residuals=train_residuals,
-            bootstrap_new_train_preds=bs_test_preds3[:, i - batch_size : i],
-            bootstrap_new_test_preds=bs_test_preds3[:, i : i + batch_size],
-            new_train_targets=y_test3.values[
-                i - retrain_idx - batch_size : i - retrain_idx
-            ],
-            error=0.05,
-        )
-
-        avg_size = np.diff(conformal_intervals3[i : i + batch_size]).mean()
-
-# %% [markdown]
-# The conformal interval size comparison below shows that the size of the conformal intervals goes sharply down when retraining is triggered, as expected.
-
-# %%
-plt.figure(figsize=(12, 2))
-plt.title("Conformal interval size comparison")
-plt.plot(np.diff(conformal_intervals), label="without online feedback")
-plt.plot(np.diff(conformal_intervals2), label="with online feedback")
-plt.plot(
-    np.diff(conformal_intervals3), label="with online feedback and triggered retraining"
-)
-plt.xlabel("test set", fontsize=14)
-plt.ylabel("size", fontsize=14)
-plt.legend(fontsize=12)
-
-# %% [markdown]
-# Furthermore, the coverage estimation seems to further improve, reaching about 85%.
-
-# %%
-print(
-    "Percentage of intervals containing average bootstrap predictions: "
-    f"{prediction_interval_coverage_probability(*conformal_intervals3.T, bs_test_preds3.mean(0))}."
-)
-print(
-    "Percentage of intervals containing true targets: "
-    f"{prediction_interval_coverage_probability(*conformal_intervals3.T, y_test.values)}."
-)
-
-# %%
-plt.figure(figsize=(12, 2))
-plt.plot(weakly_avg(y_test.values), label="weekly averaged true test target")
-plt.fill_between(
-    np.arange(n_weeks),
-    *weakly_avg(conformal_intervals3).T,
-    alpha=0.5,
-    color="C0",
-    label="weekly averaged conformal interval",
-)
-plt.xlabel("test weeks", fontsize=14)
-plt.legend(fontsize=11, loc="upper right")

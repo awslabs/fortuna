@@ -164,7 +164,7 @@ plt.title("Loss decays")
 # As test data points get sequentially observed, we want to build conformal intervals for the next target variables. To do this, as validation data we use estimates of credible intervals for all the data initially devoted for validation, plus the estimates of credible intervals for the test data points that have already been observed. We estimate conformal intervals in two ways: using Conformalized Quantile Regression (CQR) from [Romano et al., 2019](https://proceedings.neurips.cc/paper/2019/file/5103c3584b063c431bd1268e9b5e76fb-Paper.pdf) and using CQR with the additional coverage error update funcionality given by Adaptive Conformal Inference (ACI) from [Gibbs et al, 2021](https://proceedings.neurips.cc/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html).
 
 # %%
-from fortuna.calibration import (
+from fortuna.conformal import (
     QuantileConformalRegressor,
     AdaptiveConformalRegressor,
 )
