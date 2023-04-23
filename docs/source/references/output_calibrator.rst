@@ -18,7 +18,7 @@ Alternatively, you can bring in your own output calibrator by overwriting :mod:`
 .. automodule:: fortuna.output_calibrator.regression
     :no-inherited-members:
 
-.. autoclass:: fortuna.calibration.output_calib_model.state.OutputCalibState
+.. autoclass:: fortuna.output_calib_model.state.OutputCalibState
     :no-inherited-members:
     :exclude-members: params, mutable, encoded_name, replace
 

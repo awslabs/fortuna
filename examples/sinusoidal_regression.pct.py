@@ -174,7 +174,7 @@ print(f"PICP for 95% credible intervals of test inputs: {cred_picp}")
 # The PICP metric shows that the 95% credible intervals above are not perfectly calibrated. Conformal prediction methods provide a way to correct them and improve their calibration.
 
 # %%
-from fortuna.calibration import QuantileConformalRegressor
+from fortuna.conformal import QuantileConformalRegressor
 
 val_inputs_loader = val_data_loader.to_inputs_loader()
 val_cred_intervals = prob_model.predictive.credible_interval(
@@ -199,7 +199,7 @@ print(f"PICP for 95% conformal intervals of test inputs: {conformal_picp}")
 # Another possibility is to get conformal interval starting from a one-dimensinal uncertainty statistic, e.g. the standard deviation.
 
 # %%
-from fortuna.calibration import OneDimensionalUncertaintyConformalRegressor
+from fortuna.conformal import OneDimensionalUncertaintyConformalRegressor
 
 val_means = prob_model.predictive.mean(inputs_loader=val_inputs_loader)
 val_stds = prob_model.predictive.std(inputs_loader=val_inputs_loader)
@@ -242,7 +242,7 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.calibration import OutputCalibRegressor
+from fortuna.output_calib_model import OutputCalibRegressor
 
 calib_model = OutputCalibRegressor()
 calib_status = calib_model.calibrate(

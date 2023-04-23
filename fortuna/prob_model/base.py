@@ -5,7 +5,7 @@ from typing import Callable, Dict, Optional
 import jax
 import jax.numpy as jnp
 
-from fortuna.calibration.output_calib_model.state import OutputCalibState
+from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config.base import FitConfig
@@ -192,7 +192,7 @@ class ProbModel(abc.ABC):
             state, status = calibrator.train(
                 rng=self.rng.get(),
                 state=state,
-                fun=self.predictive._batched_log_joint_prob,
+                loss_fun=self.predictive._batched_negative_log_joint_prob,
                 training_data_loader=calib_data_loader,
                 training_dataset_size=calib_size,
                 n_epochs=calib_config.optimizer.n_epochs,

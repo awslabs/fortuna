@@ -157,7 +157,7 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.calibration.output_calib_model.classification import OutputCalibClassifier
+from fortuna.output_calib_model.classification import OutputCalibClassifier
 
 calib_model = OutputCalibClassifier()
 calib_status = calib_model.calibrate(

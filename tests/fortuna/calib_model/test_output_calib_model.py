@@ -4,12 +4,12 @@ import unittest
 
 import jax.numpy as jnp
 
-from fortuna.calibration.output_calib_model.config.base import Config
-from fortuna.calibration.output_calib_model.config.checkpointer import Checkpointer
-from fortuna.calibration.output_calib_model.config.monitor import Monitor
-from fortuna.calibration.output_calib_model.config.optimizer import Optimizer
-from fortuna.calibration.output_calib_model.classification import OutputCalibClassifier
-from fortuna.calibration.output_calib_model.regression import OutputCalibRegressor
+from fortuna.output_calib_model.config.base import Config
+from fortuna.output_calib_model.config.checkpointer import Checkpointer
+from fortuna.output_calib_model.config.monitor import Monitor
+from fortuna.output_calib_model.config.optimizer import Optimizer
+from fortuna.output_calib_model.classification import OutputCalibClassifier
+from fortuna.output_calib_model.regression import OutputCalibRegressor
 from fortuna.data.loader import DataLoader
 from fortuna.metric.classification import accuracy, brier_score
 from fortuna.metric.regression import rmse

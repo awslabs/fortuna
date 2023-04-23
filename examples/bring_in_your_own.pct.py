@@ -140,7 +140,7 @@ class MLP(nn.Module):
 # You can now set your MLP as the output calibrator of a probabilistic model, or a calibration model. We do it here for a calibration regressor.
 
 # %%
-from fortuna.calibration import OutputCalibRegressor
+from fortuna.output_calib_model import OutputCalibRegressor
 
 calib_model = OutputCalibRegressor(output_calibrator=MLP(features=(4, 2, 1)))
 

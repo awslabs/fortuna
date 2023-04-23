@@ -184,6 +184,35 @@ class Predictive(WithRNG):
             return log_pred, aux
         return log_pred
 
+    def _batched_negative_log_joint_prob(
+        self,
+        batch: Batch,
+        n_data: int,
+        n_posterior_samples: int = 30,
+        return_aux: Optional[List[str]] = None,
+        ensemble_outputs: Optional[jnp.ndarray] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
+        outs = self._batched_log_joint_prob(
+            batch,
+            n_data,
+            n_posterior_samples,
+            return_aux,
+            ensemble_outputs,
+            calib_params,
+            calib_mutable,
+            rng,
+            **kwargs
+        )
+        if len(return_aux) > 0:
+            loss, aux = outs
+            loss *= -1
+            return loss, aux
+        return -outs
+
     def sample(
         self,
         inputs_loader: InputsLoader,

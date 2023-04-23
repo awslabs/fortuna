@@ -133,7 +133,7 @@ print(f"ECE: {ece}")
 # Fortuna allows to produce conformal prediction sets, that are sets of likely labels up to some coverage probability threshold. These can be computed starting from probability estimates obtained with or without Fortuna.
 
 # %%
-from fortuna.calibration import AdaptivePredictionConformalClassifier
+from fortuna.conformal import AdaptivePredictionConformalClassifier
 
 val_means = prob_model.predictive.mean(inputs_loader=val_data_loader.to_inputs_loader())
 conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
@@ -186,7 +186,7 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.calibration import OutputCalibClassifier
+from fortuna.output_calib_model import OutputCalibClassifier
 
 calib_model = OutputCalibClassifier()
 calib_status = calib_model.calibrate(

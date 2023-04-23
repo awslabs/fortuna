@@ -59,13 +59,13 @@ test_data_loader = DataLoader.from_tensorflow_data_loader(test_data_loader)
 # We now introduce `CalibClassifier`, i.e. Fortuna's calibration classifier purposed to obtain calibrated predictions. 
 
 from fortuna.model import LeNet5
-from fortuna.calibration.calib_model import CalibClassifier
+from fortuna.calib_model import CalibClassifier
 calib_model = CalibClassifier(model=LeNet5(output_dim=10))
 
 # Let's calibrate this model! At first, we will run the calibration from scratch, thus this can just be seen as training the model. By default, the calibration exploits a focal loss [Mukhoti et al., 2020](https://proceedings.neurips.cc/paper/2020/file/aeb7b30ef1d024a76f21a1d40e30c302-Paper.pdf) with `gamma=2.`, but other custom losses may be used. During the calibration, we will enable early stopping and monitor accuracy and Brier score - we will just have to adust the signature to make sure it is compatible with one that the `CalibClassifier` expects. 
 
 # +
-from fortuna.calibration.calib_model import Config, Monitor
+from fortuna.calib_model import Config, Monitor
 from fortuna.metric.classification import brier_score, accuracy
 
 def brier(preds, uncertainties, targets): 
@@ -104,7 +104,7 @@ print(f"ECE: {ece}.")
 #
 # In order to start from the pre-trained state, we simply enable the flag `start_from_current_state` in the `Checkpointer`.
 
-from fortuna.calibration.calib_model import Optimizer, Checkpointer
+from fortuna.calib_model import Optimizer, Checkpointer
 status = calib_model.calibrate(
     train_data_loader, 
     val_data_loader=val_data_loader,

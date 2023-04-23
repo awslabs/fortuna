@@ -1,6 +1,6 @@
 import enum
 
-from fortuna.calibration.output_calib_model.state import OutputCalibState
+from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.prob_model.posterior.laplace.laplace_state import LaplaceState
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import \

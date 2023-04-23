@@ -32,9 +32,7 @@ class DataLoader:
 
         Parameters
         ----------
-        data_loader : Union[FromIterableToDataLoader, FromCallableIterableToDataLoader, FromArrayDataToDataLoader,
-                      FromTensorFlowDataLoaderToDataLoader, FromTorchDataLoaderToDataLoader,
-                      FromDataLoaderToTransformedDataLoader, FromInputsLoadersToDataLoader]
+        data_loader : Union[FromIterableToDataLoader, FromCallableIterableToDataLoader, FromArrayDataToDataLoader, FromTensorFlowDataLoaderToDataLoader, FromTorchDataLoaderToDataLoader, FromDataLoaderToTransformedDataLoader, FromInputsLoadersToDataLoader]
             A data loader.
         """
         self._data_loader = data_loader
@@ -414,9 +412,7 @@ class InputsLoader:
 
         Parameters
         ----------
-        inputs_loader : Union[FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader,
-                        FromCallableIterableToInputsLoader, FromIterableToInputsLoader,
-                        FromInputsLoaderToTransformedInputsLoader]
+        inputs_loader : Union[FromArrayInputsToInputsLoader, FromDataLoaderToInputsLoader, FromCallableIterableToInputsLoader, FromIterableToInputsLoader, FromInputsLoaderToTransformedInputsLoader]
             An inputs loader.
         """
         self._inputs_loader = inputs_loader
@@ -691,9 +687,7 @@ class TargetsLoader:
 
         Parameters
         ----------
-        targets_loader : Union[FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader,
-                         FromCallableIterableToTargetsLoader, FromIterableToTargetsLoader,
-                         FromTargetsLoaderToTransformedTargetsLoader]
+        targets_loader : Union[FromArrayTargetsToTargetsLoader, FromDataLoaderToTargetsLoader, FromCallableIterableToTargetsLoader, FromIterableToTargetsLoader, FromTargetsLoaderToTransformedTargetsLoader]
             A targets loader.
         """
         self._targets_loader = targets_loader
