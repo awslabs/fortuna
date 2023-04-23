@@ -93,7 +93,7 @@ status = prob_model.train(
     train_data_loader=train_data_loader,
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
-    fit_config=FitConfig(monitor=FitMonitor(metrics=(rmse,))),
+    fit_config=FitConfig(monitor=FitMonitor(early_stopping_patience=2, metrics=(rmse,))),
 )
 
 # %%
