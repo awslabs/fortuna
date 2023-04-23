@@ -148,7 +148,7 @@ If you choose to pursue this way, first install Poetry and add it to your PATH
 
 .. code-block::
 
-    poetry install
+    poetry install 
 
 All the dependecies will be installed at their required versions.
 If you also want to install the optional Sphinx dependencies to build the documentation,
