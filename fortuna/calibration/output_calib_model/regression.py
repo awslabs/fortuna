@@ -77,8 +77,8 @@ class OutputCalibRegressor(OutputCalibModel):
             Validation model outputs.
         val_targets: Optional[Array]
             Validation target variables.
-        loss_fn: Optional[Loss]
-            A custom loss function.
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray]
+            The loss function to use for calibration.
         config : Config
             An object to configure the calibration.
 

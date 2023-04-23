@@ -18,6 +18,35 @@ class CalibClassifier(CalibModel):
             self,
             model: nn.Module,
             seed: int = 0):
+        r"""
+        A calibration classifier class.
+
+        Parameters
+        ----------
+        model : nn.Module
+            A model describing the deterministic relation between inputs and outputs. The outputs must correspond to
+            the logits of a softmax probability vector. The output dimension must be the same as the number of classes.
+            Let :math:`x` be input variables and :math:`w` the random model parameters. Then the model is described by
+            a function :math:`f(w, x)`, where each component of :math:`f` corresponds to one of the classes.
+        seed: int
+            A random seed.
+
+        Attributes
+        ----------
+        model : nn.Module
+            See `model` in `Parameters`.
+        model_manager : ClassificationModelManager
+            This object orchestrates the model's forward pass.
+        prob_output_layer : ClassificationProbOutputLayer
+            This object characterizes the distribution of target variable given the outputs. It is defined
+            by :math:`p(y|o)=\text{Categorical}(y|p=softmax(o))`,
+            where :math:`o` denotes the outputs and :math:`y` denotes a target variable.
+        likelihood : ClassificationLikelihood
+            The likelihood function. This is defined by
+            :math:`p(y|w, \phi, x) = \text{Categorical}(y|p=\text{softmax}(g(\phi, f(w, x)))`.
+        predictive : ClassificationPredictive
+            This denotes the predictive distribution, that is :math:`p(y|x, \mathcal{D})`.
+        """
         self.model_manager = ClassificationModelManager(model)
         self.prob_output_layer = ClassificationProbOutputLayer()
         self.likelihood = ClassificationLikelihood(
@@ -54,6 +83,25 @@ class CalibClassifier(CalibModel):
         loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = focal_loss_fn,
         config: Config = Config()
     ) -> Status:
+        """
+        Calibrate the calibration classifier.
+
+        Parameters
+        ----------
+        calib_data_loader : DataLoader
+            A calibration data loader.
+        val_data_loader : DataLoader
+            A validation data loader.
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray]
+            The loss function to use for calibration.
+        config : Config
+            An object to configure the calibration.
+
+        Returns
+        -------
+        Status
+            A calibration status object. It provides information about the calibration.
+        """
         self._check_output_dim(calib_data_loader)
         if val_data_loader is not None:
             self._check_output_dim(val_data_loader)

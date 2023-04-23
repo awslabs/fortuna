@@ -319,7 +319,7 @@ class TrainerABC(
         self,
         current_epoch: int,
         loss_fun: Callable,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], jnp.ndarray], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
         training_dataloader: DataLoader,

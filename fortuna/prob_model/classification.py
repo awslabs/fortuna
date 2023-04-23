@@ -71,8 +71,8 @@ class ProbClassifier(ProbModel):
             See `output_calibrator` in `Parameters`.
         prob_output_layer : ClassificationProbOutputLayer
             This object characterizes the distribution of target variable given the calibrated outputs. It is defined
-            by :math:`p(y|\omega)=\text{Categorical}(y|p=softmax(o))`,
-            where :math:`o` denote the outputs and :math:`y` denotes a target variable.
+            by :math:`p(y|o)=\text{Categorical}(y|p=softmax(o))`,
+            where :math:`o` denotes the calibrated outputs and :math:`y` denotes a target variable.
         likelihood : ClassificationLikelihood
             The likelihood function. This is defined by
             :math:`p(y|w, \phi, x) = \text{Categorical}(y|p=\text{softmax}(g(\phi, f(w, x)))`.

@@ -16,8 +16,8 @@ class Predictive(WithRNG):
 
         Parameters
         ----------
-        posterior : Posterior
-             A posterior distribution object.
+        likelihood : Likelihood
+             A likelihood object.
         """
         self.likelihood = likelihood
         self.state = None
@@ -42,11 +42,6 @@ class Predictive(WithRNG):
         ----------
         data_loader : DataLoader
             A data loader.
-        n_posterior_samples : int
-            Number of posterior samples to draw in order to approximate the predictive log-pdf.
-            that would be produced using the posterior distribution state.
-        rng : Optional[PRNGKeyArray]
-            A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
 
@@ -87,8 +82,6 @@ class Predictive(WithRNG):
             A loader of input data points.
         n_samples : int
             Number of target samples to sample for each input data point.
-        return_aux : Optional[List[str]]
-            Return auxiliary objects. We currently support 'outputs'.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
@@ -96,8 +89,8 @@ class Predictive(WithRNG):
 
         Returns
         -------
-        Union[jnp.ndarray, Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]]
-            Samples for each input data point. Optionally, an auxiliary object is returned.
+        jnp.ndarray
+            Samples for each input data point.
         """
         state = self.state.get()
         return self.likelihood.sample(
@@ -130,10 +123,6 @@ class Predictive(WithRNG):
         ----------
         inputs_loader : InputsLoader
             A loader of input data points.
-        n_posterior_samples : int
-            Number of samples to draw from the posterior distribution for each input.
-        rng: Optional[PRNGKeyArray]
-            A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
 
@@ -170,12 +159,6 @@ class Predictive(WithRNG):
         ----------
         inputs_loader : InputsLoader
             A loader of input data points.
-        n_posterior_samples : int
-            Number of samples to draw from the posterior distribution for each input.
-        means : Optional[jnp.ndarray] = None
-            An estimate of the predictive mean.
-        rng : Optional[PRNGKeyArray]
-            A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
 
@@ -214,14 +197,6 @@ class Predictive(WithRNG):
         ----------
         inputs_loader : InputsLoader
             A loader of input data points.
-        n_posterior_samples : int
-            Number of samples to draw from the posterior distribution for each input.
-        aleatoric_variances: Optional[jnp.ndarray]
-            An estimate of the aleatoric predictive variance for each input.
-        epistemic_variances: Optional[jnp.ndarray]
-            An estimate of the epistemic predictive variance for each input.
-        rng : Optional[PRNGKeyArray]
-            A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
 
@@ -259,12 +234,8 @@ class Predictive(WithRNG):
         ----------
         inputs_loader : InputsLoader
             A loader of input data points.
-        n_posterior_samples : int
-            Number of samples to draw from the posterior distribution for each input.
         variances: Optional[jnp.ndarray]
-            An estimate of the predictive variance.
-        rng : Optional[PRNGKeyArray]
-            A random number generator. If not passed, this will be taken from the attributes of this class.
+            An estimate of the predictive variance.passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
 
