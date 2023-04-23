@@ -27,7 +27,6 @@ Please find their references below.
    predictive
    posterior/posterior
    joint
-   likelihood
    prior
    fit_config
    prob_calib_config
