@@ -295,7 +295,7 @@ class RegressionPredictive(Predictive):
         if interval_type not in supported_types:
             raise ValueError(
                 "`type={}` not recognised. Please choose among the following supported types: {}.".format(
-                    supported_types
+                    interval_type, supported_types
                 )
             )
         q = (

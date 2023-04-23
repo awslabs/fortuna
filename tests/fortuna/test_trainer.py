@@ -9,10 +9,11 @@ from jax import numpy as jnp
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
 
-from fortuna.prob_model.fit_config.callbacks import Callback
+from fortuna.training.callback import Callback
 from fortuna.training.train_state import TrainState
 from fortuna.training.trainer import TrainerABC
 from fortuna.typing import Params, Batch, Mutable, CalibParams, CalibMutable
+from fortuna.metric.classification import accuracy
 
 
 class FakeTrainState:
@@ -571,7 +572,7 @@ class TestTrainer(unittest.TestCase):
             state=None,
             validation_dataloader=validation_dataloader,
             validation_dataset_size=2,
-            fun=lambda x: x,
+            loss_fun=lambda x: x,
             rng=jax.random.PRNGKey(0),
             metrics=("accuracy",),
             training_kwargs=FrozenDict({}),
@@ -591,9 +592,9 @@ class TestTrainer(unittest.TestCase):
             state=None,
             validation_dataloader=validation_dataloader,
             validation_dataset_size=2,
-            fun=lambda x: x,
+            loss_fun=lambda x: x,
             rng=jax.random.PRNGKey(0),
-            metrics=("accuracy",),
+            metrics=(accuracy,),
             training_kwargs=FrozenDict({}),
             unravel=None,
             verbose=True,
@@ -620,8 +621,8 @@ class TestTrainer(unittest.TestCase):
             observed_train_epoch_metrics_str,
         ) = trainer._training_loop(
             current_epoch=1,
-            fun=lambda x: x,
-            metrics=("accuracy",),
+            loss_fun=lambda x: x,
+            metrics=(accuracy,),
             rng=jax.random.PRNGKey(0),
             state=FakeTrainState(),
             training_dataloader=training_dataloader,

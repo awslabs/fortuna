@@ -15,3 +15,7 @@ Array = Union[jnp.ndarray, np.ndarray]
 Status = Dict[str, Array]
 Path = Union[str, pathlib.Path]
 Batch = Tuple[Array, Array]
+Outputs = jnp.ndarray
+Targets = Array
+Uncertainties = jnp.ndarray
+Predictions = jnp.ndarray

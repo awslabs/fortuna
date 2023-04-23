@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Callable
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -14,7 +14,8 @@ from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
-from fortuna.typing import Array, Status
+from fortuna.loss.classification.focal_loss import focal_loss_fn
+from fortuna.typing import Array, Status, Outputs, Targets
 
 
 class OutputCalibClassifier(OutputCalibModel):
@@ -65,6 +66,7 @@ class OutputCalibClassifier(OutputCalibModel):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = focal_loss_fn,
         config: Config = Config(),
     ) -> Status:
         """
@@ -80,6 +82,8 @@ class OutputCalibClassifier(OutputCalibModel):
             Validation model outputs.
         val_targets: Optional[Array]
             Validation target variables.
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray]
+            The loss function to use for calibration.
         config : Config
             An object to configure the calibration.
 
@@ -99,10 +103,12 @@ class OutputCalibClassifier(OutputCalibModel):
             calib_targets=calib_targets,
             val_outputs=val_outputs,
             val_targets=val_targets,
+            loss_fn=loss_fn,
             config=config,
         )
 
-    def _check_output_dim(self, outputs: jnp.ndarray, targets: jnp.array):
+    @staticmethod
+    def _check_output_dim(outputs: jnp.ndarray, targets: jnp.array):
         n_classes = len(np.unique(targets))
         if outputs.shape[1] != n_classes:
             raise ValueError(

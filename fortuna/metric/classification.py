@@ -84,6 +84,8 @@ def compute_counts_confs_accs(
 
     if plot:
         idx = confs != 0
+        if plot_options is None:
+            plot_options = dict()
         plot_reliability_diagram(accs[idx], confs[idx], **plot_options)
 
     return counts, confs, accs

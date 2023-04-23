@@ -4,12 +4,11 @@ import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 
-from fortuna.data.loader import DataLoader
 from fortuna.model.model_manager.state import ModelManagerState
 from fortuna.output_calibrator.output_calib_manager.state import \
     OutputCalibManagerState
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.likelihood.base import Likelihood
+from fortuna.likelihood.base import Likelihood
 from fortuna.prob_model.prior.base import Prior
 from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
 from fortuna.utils.random import WithRNG
@@ -109,6 +108,39 @@ class Joint(WithRNG):
             return batched_log_lik + log_prior, aux
         batched_log_lik = outs
         return batched_log_lik + log_prior
+
+    def _batched_negative_log_joint_prob(
+        self,
+        params: Params,
+        batch: Batch,
+        n_data: int,
+        mutable: Optional[Mutable] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        return_aux: Optional[List[str]] = None,
+        train: Optional[bool] = False,
+        outputs: Optional[jnp.ndarray] = None,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs
+    ) -> Union[float, Tuple[float, dict]]:
+        outs = self._batched_log_joint_prob(
+            params,
+            batch,
+            n_data,
+            mutable,
+            calib_params,
+            calib_mutable,
+            return_aux,
+            train,
+            outputs,
+            rng,
+            **kwargs
+        )
+        if len(return_aux) > 0:
+            loss, aux = outs
+            loss *= -1
+            return loss, aux
+        return -outs
 
     def init(self, input_shape: Tuple, **kwargs) -> JointState:
         """

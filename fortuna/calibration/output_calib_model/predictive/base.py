@@ -59,7 +59,7 @@ class Predictive(WithRNG, abc.ABC):
 
     def sample(
         self,
-        n_target_samples: int,
+        n_samples: int,
         outputs: Array,
         rng: Optional[PRNGKeyArray] = None,
         calibrated: bool = True,
@@ -70,7 +70,7 @@ class Predictive(WithRNG, abc.ABC):
 
         Parameters
         ----------
-        n_target_samples: int
+        n_samples: int
             The number of target samples to draw for each of the outputs.
         outputs : Array
             Calibrated outputs.
@@ -93,7 +93,7 @@ class Predictive(WithRNG, abc.ABC):
                 outputs=outputs,
                 mutable=state.mutable["output_calibrator"],
             )
-        return self.prob_output_layer.sample(n_target_samples, outputs, rng, **kwargs)
+        return self.prob_output_layer.sample(n_samples, outputs, rng, **kwargs)
 
     def mean(self, outputs: Array, calibrated: bool = True, **kwargs) -> jnp.ndarray:
         """

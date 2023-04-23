@@ -13,7 +13,7 @@ from optax._src.base import PyTree
 from fortuna.distribution.base import Distribution
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.prob_model.fit_config.callbacks import Callback
+from fortuna.training.callback import Callback
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params, Mutable
 
 
@@ -74,7 +74,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
 
     def training_loss_step(
         self,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: Params,
         batch: Batch,
         mutable: Mutable,
@@ -90,8 +90,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             return_aux += ["mutable"]
         rng, key = random.split(rng)
         v, ldj = self.sample_forward(key, tuple(params.values()), kwargs["n_samples"])
-        logp, aux = vmap(
-            lambda _params: fun(
+        neg_logp, aux = vmap(
+            lambda _params: loss_fun(
                 unravel(_params),
                 batch,
                 n_data=n_data,
@@ -104,7 +104,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             )
         )(v)
         return (
-            -(jnp.mean(logp) + jnp.mean(ldj)),
+            jnp.mean(neg_logp) - jnp.mean(ldj),
             {
                 "outputs": aux.get("outputs"),
                 "mutable": tree_map(lambda x: x[-1], aux.get("mutable")),
@@ -196,7 +196,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         self,
         state: PosteriorState,
         batch: Batch,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float]], ...] = None,
@@ -207,8 +207,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         v, ldj = self.sample_forward(
             key, tuple(state.params.values()), kwargs["n_samples"]
         )
-        logp, aux = vmap(
-            lambda _params: fun(
+        neg_logp, aux = vmap(
+            lambda _params: loss_fun(
                 unravel(_params),
                 batch,
                 n_data=n_data,
@@ -220,7 +220,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
                 calib_mutable=state.calib_mutable,
             )
         )(v)
-        loss = -(jnp.mean(logp) + jnp.mean(ldj))
+        loss = jnp.mean(neg_logp) - jnp.mean(ldj)
         if metrics is not None:
             preds = self.predict_fn(aux["outputs"])
             val_metrics = vmap(lambda p: self.compute_metrics(p, batch[1], metrics))(
