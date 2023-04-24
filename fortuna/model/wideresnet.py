@@ -8,6 +8,7 @@ from typing import Any, Callable, Tuple
 import flax.linen as nn
 import jax.numpy as jnp
 
+from fortuna.model.utils.spectral_norm import WithSpectralConv2DNormMixin
 from fortuna.typing import Array
 
 ModuleDef = Any
@@ -347,3 +348,10 @@ class WideResNet(nn.Module):
 
 
 WideResNet28_10 = partial(WideResNet, depth=28, widen_factor=10)
+
+
+class WideResNetDeepFeatureExtractorSubNetWithSN(WithSpectralConv2DNormMixin, DeepFeatureExtractorSubNet):
+    pass
+
+# define the feature extractors with spectral norm
+WideResNetD28W10DeepFeatureExtractorSubNetWithSN = partial(WideResNetDeepFeatureExtractorSubNetWithSN, depth=28, widen_factor=10)

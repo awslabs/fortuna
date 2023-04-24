@@ -32,7 +32,7 @@ class MLP(nn.Module):
     widths: Optional[Tuple[int]] = (30, 30)
     activations: Optional[Tuple[Callable[[Array], Array]]] = (nn.relu, nn.relu)
     dropout: ModuleDef = nn.Dropout
-    dropout_rate: float = 0.1
+    dropout_rate: float = 0.
     dense: ModuleDef = nn.Dense
 
     def setup(self):
@@ -87,7 +87,7 @@ class MLPDeepFeatureExtractorSubNet(nn.Module):
     activations: Tuple[Callable[[Array], Array]]
     dense: ModuleDef = nn.Dense
     dropout: ModuleDef = nn.Dropout
-    dropout_rate: float = 0.1
+    dropout_rate: float = 0.
 
     """
     MLP Deep feature extractor sub-network.
@@ -154,7 +154,7 @@ class DeepResidualFeatureExtractorSubNet(MLPDeepFeatureExtractorSubNet):
         x: Array
             Inputs.
         train: bool
-            Whether it is training or inference.
+            Whether it is training or prediction.
 
         Returns
         -------

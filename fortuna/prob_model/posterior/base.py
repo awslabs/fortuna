@@ -1,5 +1,5 @@
 import abc
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Dict, Any
 
 from jax._src.prng import PRNGKeyArray
 
@@ -23,6 +23,10 @@ class PosteriorApproximator(abc.ABC):
     @abc.abstractmethod
     def __str__(self):
         pass
+
+    @property
+    def posterior_method_kwargs(self) -> Dict[str, Any]:
+        return {}
 
 
 class Posterior(WithRNG, WithPosteriorCheckpointingMixin):

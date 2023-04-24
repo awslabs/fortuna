@@ -26,6 +26,7 @@
 # Let us first download two-moons data from [scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html).
 
 # %%
+
 TRAIN_DATA_SIZE = 2000
 
 from sklearn.datasets import make_moons
@@ -39,9 +40,9 @@ test_data = make_moons(n_samples=500, noise=0.1, random_state=2)
 
 # %%
 from fortuna.data import DataLoader
-train_data_loader = DataLoader.from_array_data(train_data, batch_size=128, shuffle=True, prefetch=True)
-val_data_loader = DataLoader.from_array_data(val_data, batch_size=128, prefetch=True)
-test_data_loader = DataLoader.from_array_data(test_data, batch_size=128, prefetch=True)
+train_data_loader = DataLoader.from_array_data(train_data, batch_size=256, shuffle=True, prefetch=True)
+val_data_loader = DataLoader.from_array_data(val_data, batch_size=256, prefetch=True)
+test_data_loader = DataLoader.from_array_data(test_data, batch_size=256, prefetch=True)
 
 # %% [markdown]
 # ### Define some utils for plotting the estimated uncertainty
@@ -87,7 +88,7 @@ model = DeepResidualNet(
 # %%
 from fortuna.prob_model import ProbClassifier
 from fortuna.prob_model.posterior import MAPPosteriorApproximator
-from fortuna.prob_model.fit_config import FitConfig, FitMonitor, FitOptimizer
+from fortuna.prob_model.fit_config import FitConfig, FitMonitor, FitOptimizer, FitProcessor
 from fortuna.metric.classification import accuracy
 import optax
 
@@ -113,7 +114,7 @@ plt.show()
 
 # %% [markdown]
 # ### Define the SNGP model
-# Compared to the determnistic model obtained above, SNGP has two crucial differences:
+# Compared to the deterministic model obtained above, SNGP has two crucial differences:
 #
 #   1. [Spectral Normalization](https://arxiv.org/abs/1802.05957) is applied to all Dense (or Convolutional) layers.
 #   2. The Dense output layers is replaced with a Gaussian Process layer.
@@ -121,14 +122,10 @@ plt.show()
 # Let's see how to do it in Fortuna:
 
 # %% [markdown]
-# In Fortuna, models are made of two main componets:
-#
-# - A deep feature extractor
-# - An output layer
-#
 # In order to add Spectral Normalization to a deterministic network we just need to define a new Deep Feature extractor,
 # inheriting from both the feature extractor used by the deterministic model (in this case `MLPDeepFeatureExtractorSubNet`)
-# and `WithSpectralNorm`:
+# and `WithSpectralNorm`. It is worth highlighting that `WithSpectralNorm` should be taken as is, while the deep feature extractor
+# can be replaced with any custom object:
 
 # %%
 from fortuna.model.mlp import DeepResidualFeatureExtractorSubNet
@@ -140,69 +137,49 @@ class SNGPDeepFeatureExtractorSubNet(WithSpectralNorm, DeepResidualFeatureExtrac
 # %% [markdown]
 # Then, we can define our SNGP model by:
 #
-# - Changing the deep feature extractor: from `MLPDeepFeatureExtractorSubNet` to `SNGPDeepFeatureExtractorSubNet`
-# - Changing the output layer: from `Dense` to `RandomFeatureGaussianProcess`.
+# - Replacing the deep feature extractor: from `MLPDeepFeatureExtractorSubNet` to `SNGPDeepFeatureExtractorSubNet`
+# - Using the `SNGPPosteriorApproximator` as the `posterior_approximator` for the `ProbModel`.
+#
+# Nothing else is needed, Fortuna will take care of the rest for you!
+#
+# %%
 
 # %%
-from fortuna.model.utils.random_features import RandomFeatureGaussianProcess
-
-from fortuna.model.sngp import SNGPMixin
-class SNGPModel(SNGPMixin, DeepResidualNet):
-    def setup(self):
-        if len(self.widths) != len(self.activations):
-            raise Exception(
-                "`widths` and `activations` must have the same number of elements."
-            )
-        self.dfe_subnet = SNGPDeepFeatureExtractorSubNet(
-            dense=self.dense,
-            widths=self.widths,
-            activations=self.activations[:-1],
-            dropout=self.dropout,
-            dropout_rate=self.dropout_rate,
-            spectral_norm_bound=self.spectral_norm_bound,
-            spectral_norm_iteration=self.spectral_norm_iteration,
-        )
-        self.output_subnet = RandomFeatureGaussianProcess(
-            features=self.output_dim,
-            hidden_features=self.gp_hidden_features,
-            normalize_input=self.normalize_input,
-            covmat_kwargs={
-            "ridge_penalty": self.ridge_penalty,
-            "momentum": self.momentum,
-        },
-        )
-
-    def __call__(self, x, train=False, **kwargs):
-        x = self.dfe_subnet(x, train)
-        x = self.output_subnet(x, return_full_covmat=self.use_full_covmat)
-        return x
-
-# %%
-model = SNGPModel(
-        output_dim=output_dim,
-        activations=(nn.relu, nn.relu, nn.relu, nn.relu, nn.relu, nn.relu),
-        widths=(128,128,128,128,128,128),
-        dropout_rate=0.1,
-        gp_hidden_features=1024,
-        spectral_norm_bound=0.9,
-        ridge_penalty=1,
-    )
-
-# %%
-from functools import partial
 import jax.numpy as jnp
 
-from fortuna.model.model_manager.classification import SNGPModelManager
 from fortuna.prob_model.callbacks.sngp import ResetCovarianceCallback
 from fortuna.prob_model.prior import IsotropicGaussianPrior
+from fortuna.prob_model.posterior.sngp.sngp_approximator import SNGPPosteriorApproximator
+
+output_dim = 2
+model = SNGPDeepFeatureExtractorSubNet(
+        activations=tuple([nn.relu]*6),
+        widths=tuple([128]*6),
+        dropout_rate=0.1,
+        spectral_norm_bound=0.9,
+    )
 
 prob_model = ProbClassifier(
     model=model,
     prior=IsotropicGaussianPrior(log_var=jnp.log(1./1e-4) - jnp.log(TRAIN_DATA_SIZE)),
-    posterior_approximator=MAPPosteriorApproximator(),
+    posterior_approximator=SNGPPosteriorApproximator(output_dim=output_dim),
     output_calibrator=None,
-    model_manager_cls=partial(SNGPModelManager, mean_field_factor=1),
 )
+
+# %% [markdown]
+# Notice that the only required argument when initializing `SNGPPosteriorApproximator` is
+# `output_dim`, which should be set to the number of classes in the classification task.
+# `SNGPPosteriorApproximator` has more optional parameters that you can play with, to gain a better understanding of those you can
+# check out the documentation and/or the [original paper](https://arxiv.org/abs/2006.10108).
+#
+# %%
+
+# %% [markdown]
+# We are now ready to train the model as we usually do:
+#
+# %%
+
+# %%
 status = prob_model.train(
     train_data_loader=train_data_loader,
     val_data_loader=val_data_loader,
@@ -210,10 +187,6 @@ status = prob_model.train(
     fit_config=FitConfig(
         monitor=FitMonitor(metrics=(accuracy,)),
         optimizer=FitOptimizer(method=optax.adam(1e-4), n_epochs=100),
-        callbacks=[ResetCovarianceCallback(
-            precision_matrix_key_name='precision_matrix',
-            ridge_penalty=1
-        )]
     )
 )
 

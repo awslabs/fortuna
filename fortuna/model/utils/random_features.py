@@ -51,8 +51,8 @@ class RandomFeatureGaussianProcess(nn.Module):
         Optional keyword arguments to the random feature layer.
     output_kwargs: Mapping[str, Any]
         Optional keyword arguments to the predictive logit layer.
-    covmat_kwargs: Mapping[str, Any]
-        Optional keyword arguments to the predictive covmat layer.
+    covariance_kwargs: Mapping[str, Any]
+        Optional keyword arguments to the predictive covariance layer.
     """
     features: int
     hidden_features: int = 1024
@@ -62,7 +62,7 @@ class RandomFeatureGaussianProcess(nn.Module):
     norm_kwargs: Mapping[str, Any] = default_kwarg_dict()
     hidden_kwargs: Mapping[str, Any] = default_kwarg_dict()
     output_kwargs: Mapping[str, Any] = default_kwarg_dict()
-    covmat_kwargs: Mapping[str, Any] = default_kwarg_dict()
+    covariance_kwargs: Mapping[str, Any] = default_kwarg_dict()
 
     def setup(self):
         # pylint:disable=invalid-name,not-a-mapping
@@ -71,21 +71,21 @@ class RandomFeatureGaussianProcess(nn.Module):
             # (see [[Xu et al., 2019]](https://papers.nips.cc/paper/2019/file/2f4fe03d77724a7217006e5d16728874-Paper.pdf))
             # Can be overwritten by passing norm_kwargs=dict(use_bias=..., use_scales=...).
             LayerNorm = functools.partial(nn.LayerNorm, use_bias=False, use_scale=False)
-            self.norm_layer = LayerNorm(**self.norm_kwargs)
+            self.sngp_norm_layer = LayerNorm(**self.norm_kwargs)
 
-        self.random_features_layer = RandomFourierFeatures(
-            features=self.hidden_features, **self.hidden_kwargs
+        self.sngp_random_features_layer = RandomFourierFeatures(
+            features=self.hidden_features, **self.hidden_kwargs,
         )
-        self.output_layer = nn.Dense(features=self.features, **self.output_kwargs)
-        self.covmat_layer = LaplaceRandomFeatureCovariance(
-            hidden_features=self.hidden_features, **self.covmat_kwargs
+        self.sngp_dense_layer = nn.Dense(features=self.features, **self.output_kwargs)
+        self.sngp_covariance_layer = LaplaceRandomFeatureCovariance(
+            hidden_features=self.hidden_features, **self.covariance_kwargs
         )
         # pylint:enable=invalid-name,not-a-mapping
 
     def __call__(
         self,
         inputs: Array,
-        return_full_covmat: bool = False,
+        return_full_covariance: bool = False,
     ) -> Tuple[Array, Array]:
         """
         Computes Gaussian process outputs.
@@ -94,7 +94,7 @@ class RandomFeatureGaussianProcess(nn.Module):
         ----------
         inputs: Array
             The nd-array of shape (batch_size, ..., input_dim).
-        return_full_covmat: bool
+        return_full_covariance: bool
             Whether to return the full covariance matrix, shape
             (batch_size, batch_size), or only return the predictive variances with
             shape (batch_size, ).
@@ -102,17 +102,17 @@ class RandomFeatureGaussianProcess(nn.Module):
         Returns
         -------
         Tuple[Array, Array]
-          A tuple of predictive logits, predictive covmat and (optionally)
+          A tuple of predictive logits, predictive covariance and (optionally)
           random Fourier features.
         """
-        gp_inputs = self.norm_layer(inputs) if self.normalize_input else inputs
-        gp_features = self.random_features_layer(gp_inputs)
+        gp_inputs = self.sngp_norm_layer(inputs) if self.normalize_input else inputs
+        gp_features = self.sngp_random_features_layer(gp_inputs)
 
-        gp_logits = self.output_layer(gp_features)
-        gp_covmat = self.covmat_layer(
-            gp_features, gp_logits, diagonal_only=not return_full_covmat
+        gp_logits = self.sngp_dense_layer(gp_features)
+        gp_covariance = self.sngp_covariance_layer(
+            gp_features, gp_logits, diagonal_only=not return_full_covariance
         )
-        return gp_logits, gp_covmat
+        return gp_logits, gp_covariance
 
 
 class RandomFourierFeatures(nn.Module):
@@ -246,10 +246,6 @@ class LaplaceRandomFeatureCovariance(nn.Module):
         covariance matrix by passing through data once (say in the final epoch).
         In this case, make sure to reset the precision matrix variable between
         epochs to avoid double counting.
-    likelihood: str
-        The likelihood to use for computing Laplace approximation for
-        the covariance matrix. Can be one of ('binary_logistic', 'poisson',
-        'gaussian').
     dtype: Type
         The dtype of the computation
     """
@@ -257,7 +253,6 @@ class LaplaceRandomFeatureCovariance(nn.Module):
     hidden_features: int
     ridge_penalty: float = 1.0
     momentum: Optional[float] = None
-    likelihood: str = "gaussian"
     collection_name: str = "laplace_covariance"
     dtype: Type = jnp.float32
 
@@ -267,12 +262,6 @@ class LaplaceRandomFeatureCovariance(nn.Module):
                 raise ValueError(
                     f"`momentum` must be between (0, 1). " f"Got {self.momentum}."
                 )
-
-        if self.likelihood not in SUPPORTED_LIKELIHOOD:
-            raise ValueError(
-                f'"likelihood" must be one of {SUPPORTED_LIKELIHOOD}, '
-                f"got {self.likelihood}."
-            )
 
     @nn.compact
     def __call__(
@@ -296,7 +285,7 @@ class LaplaceRandomFeatureCovariance(nn.Module):
             The nd-array of random fourier features, shape (batch_size, ..., hidden_features).
         gp_logits: Optional[Array]
             The nd-array of predictive logits, shape (batch_size, ..., logit_dim).
-            Cannot be None if self.likelihood is not `gaussian`.
+            Cannot be None.
         diagonal_only: bool
             Whether to return only the diagonal elements of the predictive covariance matrix (i.e., the predictive variance).
 
@@ -361,31 +350,9 @@ class LaplaceRandomFeatureCovariance(nn.Module):
         -------
         Array
             Updated precision matrix, shape (hidden_features, hidden_features).
-
-        Raises
-        ------
-        ValueError If the logit is None or not univariate when likelihood is not Gaussian.
         """
-        if self.likelihood != "gaussian":
-            if gp_logits is None:
-                raise ValueError(
-                    f"`gp_logits` cannot be None when likelihood=`{self.likelihood}`"
-                )
-
-            if gp_logits.ndim > 1 and gp_logits.shape[-1] != 1:
-                raise ValueError(
-                    f"likelihood `{self.likelihood}` only support univariate logits. "
-                    f"Got logits dimension: {gp_logits.shape[-1]}"
-                )
-
         # Computes precision matrix within new batch.
-        if self.likelihood == "binary_logistic":
-            prob = nn.sigmoid(gp_logits)
-            prob_multiplier = prob * (1.0 - prob)
-        elif self.likelihood == "poisson":
-            prob_multiplier = jnp.exp(gp_logits)
-        else:
-            prob_multiplier = 1.0
+        prob_multiplier = 1.0
 
         gp_features_adj = jnp.sqrt(prob_multiplier) * gp_features
         batch_prec_mat = jnp.matmul(jnp.transpose(gp_features_adj), gp_features_adj)

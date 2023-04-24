@@ -8,3 +8,5 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import
     ADVIPosteriorApproximator
 from fortuna.prob_model.posterior.swag.swag_approximator import \
     SWAGPosteriorApproximator
+from fortuna.prob_model.posterior.sngp.sngp_approximator import \
+    SNGPPosteriorApproximator

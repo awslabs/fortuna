@@ -1,0 +1,53 @@
+import logging
+from typing import Optional
+
+from fortuna.data import DataLoader
+from fortuna.prob_model.callbacks.sngp import ResetCovarianceCallback
+from fortuna.prob_model.fit_config import FitConfig
+from fortuna.prob_model.joint.base import Joint
+from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
+from fortuna.prob_model.posterior.sngp.sngp_approximator import SNGPPosteriorApproximator
+from fortuna.prob_model.posterior.sngp import SNGP_NAME
+from fortuna.typing import Status
+
+logger = logging.getLogger(__name__)
+
+
+class SNGPPosterior(MAPPosterior):
+    def __init__(
+        self,
+        joint: Joint,
+        posterior_approximator: SNGPPosteriorApproximator,
+    ):
+        """
+        Maximum-a-Posteriori (MAP) approximate posterior class.
+
+        Parameters
+        ----------
+        joint: Joint
+            A Joint distribution object.
+        posterior_approximator: SNGPPosteriorApproximator
+            An SNGP posterior approximator.
+        """
+        super().__init__(joint=joint, posterior_approximator=posterior_approximator)
+
+    def fit(
+        self,
+        train_data_loader: DataLoader,
+        val_data_loader: Optional[DataLoader] = None,
+        fit_config: FitConfig = FitConfig(),
+        **kwargs
+    ) -> Status:
+        # set sngp callback to reset covariance
+        callbacks = [ResetCovarianceCallback(
+            precision_matrix_key_name='precision_matrix',
+            ridge_penalty=self.joint.likelihood.model_manager.ridge_penalty,
+        )]
+        if fit_config.callbacks is None:
+            fit_config.callbacks = callbacks
+        else:
+            fit_config.callbacks = fit_config.callbacks + callbacks
+        return super(SNGPPosterior, self).fit(train_data_loader, val_data_loader, fit_config, **kwargs)
+
+    def __str__(self):
+        return SNGP_NAME

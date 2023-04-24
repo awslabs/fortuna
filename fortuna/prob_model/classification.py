@@ -4,8 +4,7 @@ import flax.linen as nn
 import numpy as np
 
 from fortuna.data.loader import DataLoader
-from fortuna.model.model_manager import classification
-from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.model.model_manager.classification import ClassificationModelManager, ClassificationModelManagers
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
 from fortuna.output_calibrator.output_calib_manager.base import \
@@ -37,7 +36,6 @@ class ProbClassifier(ProbModel):
         prior: Prior = IsotropicGaussianPrior(),
         posterior_approximator: PosteriorApproximator = SWAGPosteriorApproximator(),
         output_calibrator: Optional[nn.Module] = ClassificationTemperatureScaler(),
-        model_manager_cls: Union[Type, Callable] = ClassificationModelManager,
         seed: int = 0,
     ):
         r"""
@@ -60,10 +58,6 @@ class ProbClassifier(ProbModel):
             logits with a scalar temperature parameter. Given outputs :math:`o` of the model manager, the output
             calibrator is described by a function :math:`g(\phi, o)`, where `phi` are deterministic
             calibration parameters.
-        model_manager_cls: Union[Type, Callable]
-            Either a class of a function returning a class for the model manager.
-            A class different then `ClassificationModelManager` can be provided when custom implementation
-            are required for model inference/prediction.
         seed: int
             A random seed.
 
@@ -101,18 +95,14 @@ class ProbClassifier(ProbModel):
         self.prior = prior
         self.output_calibrator = output_calibrator
 
-        allowed_model_managers_cls = list(map(lambda n: getattr(classification, n), classification.__all__))
-        if model_manager_cls in allowed_model_managers_cls:
-            self.model_manager = model_manager_cls(model=model)
-        elif hasattr(model_manager_cls, "func") and model_manager_cls.func in allowed_model_managers_cls:
-            self.model_manager = model_manager_cls(model=model)
-        else:
-           raise ValueError(f"model_manager_cls has to be one of this classes {allowed_model_managers_cls}")
-        self.model_manager = model_manager_cls(model=model)
         self.output_calib_manager = OutputCalibManager(
             output_calibrator=output_calibrator
         )
         self.prob_output_layer = ClassificationProbOutputLayer()
+
+        self.model_manager = getattr(
+            ClassificationModelManagers, posterior_approximator.__str__()
+        ).value(model=model, **posterior_approximator.posterior_method_kwargs)
 
         self.likelihood = ClassificationLikelihood(
             self.model_manager, self.prob_output_layer, self.output_calib_manager

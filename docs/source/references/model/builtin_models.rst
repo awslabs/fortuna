@@ -15,4 +15,3 @@ We support several built-in models:
    scalar_constant
    hyper
    scalar_hyper
-   sngp

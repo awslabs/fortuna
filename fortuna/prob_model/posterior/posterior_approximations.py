@@ -13,6 +13,8 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_posterior import \
     ADVIPosterior
 from fortuna.prob_model.posterior.swag import SWAG_NAME
 from fortuna.prob_model.posterior.swag.swag_posterior import SWAGPosterior
+from fortuna.prob_model.posterior.sngp import SNGP_NAME
+from fortuna.prob_model.posterior.sngp.sngp_posterior import SNGPPosterior
 
 
 class PosteriorApproximations(enum.Enum):
@@ -23,3 +25,4 @@ class PosteriorApproximations(enum.Enum):
     vars()[DEEP_ENSEMBLE_NAME] = DeepEnsemblePosterior
     vars()[LAPLACE_NAME] = LaplacePosterior
     vars()[SWAG_NAME] = SWAGPosterior
+    vars()[SNGP_NAME] = SNGPPosterior
