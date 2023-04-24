@@ -26,25 +26,19 @@ jobs:
         with:
           persist-credentials: false
 
-      # Create a virtual environment
-      - name: create Conda environment
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          python-version: ${{ matrix.python-version }}
-
       # Install Poetry and build the documentation
       - name: Install and configure Poetry
         uses: snok/install-poetry@v1
         with:
           version: 1.2.2
-          virtualenvs-create: false
+          virtualenvs-create: true
           virtualenvs-in-project: false
           installer-parallel: true
 
       - name: Build the documentation with Sphinx
         run: |
-          poetry install --all-extras --with docs
-          conda install pandoc
+          poetry install --all-extras
+          sudo apt install pandoc
+          pip install pandoc
           cd docs
-          make html
+          poetry run sphinx-build -b html -j auto source build/html

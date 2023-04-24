@@ -2,7 +2,7 @@ Predictive distribution
 ============================
 The predictive distribution is the component of the probabilistic model responsible for the computation of predictive
 statistics. We support a :ref:`classification predictive <output_calib_predictive_classification>` for classification and a
-:ref:`regression predictive <calib_predictive_regression>` for regression. Please find their references below.
+:ref:`regression predictive <output_calib_predictive_regression>` for regression. Please find their references below.
 
 .. _output_calib_predictive:
 
