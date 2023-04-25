@@ -180,7 +180,7 @@ class SpectralNormalizationConv2D(SpectralNormalization):
 
 
 @dataclasses.dataclass
-class WithSpectralConv2DNormMixin:
+class WithSpectralConv2DNorm:
     """
     Attributes
     ----------

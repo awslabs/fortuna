@@ -176,7 +176,6 @@ def nested_update(d: Dict[AnyKey, Any], *updating_d: Dict[AnyKey, Any]) -> Dict[
     Update a nested dictionary `d` with the content of an other dictionary `updating_d`.
     """
     # from https://github.com/pydantic/pydantic/blob/9d631a3429a66f30742c1a52c94ac18ec6ba848d/pydantic/utils.py#L198
-    # need to check license
     updated_mapping = d.copy()
     for updating_mapping in updating_d:
         for k, v in updating_mapping.items():

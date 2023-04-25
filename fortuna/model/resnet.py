@@ -12,7 +12,7 @@ from typing import Any, Callable, Sequence, Tuple
 import flax.linen as nn
 import jax.numpy as jnp
 
-from fortuna.model.utils.spectral_norm import WithSpectralConv2DNormMixin
+from fortuna.model.utils.spectral_norm import WithSpectralConv2DNorm
 from fortuna.typing import Array
 
 ModuleDef = Any
@@ -315,7 +315,7 @@ ResNet152 = partial(ResNet, stage_sizes=[3, 8, 36, 3], block_cls=BottleneckResNe
 ResNet200 = partial(ResNet, stage_sizes=[3, 24, 36, 3], block_cls=BottleneckResNetBlock)
 
 
-class ResNetDeepFeatureExtractorSubNetWithSN(WithSpectralConv2DNormMixin, DeepFeatureExtractorSubNet):
+class ResNetDeepFeatureExtractorSubNetWithSN(WithSpectralConv2DNorm, DeepFeatureExtractorSubNet):
     pass
 
 # define the feature extractors with spectral norm

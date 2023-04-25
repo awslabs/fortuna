@@ -9,7 +9,7 @@ from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_model import (CalibConfig, CalibMonitor,
-                                             CalibOptimizer)
+                                CalibOptimizer, SNGPPosteriorApproximator)
 from fortuna.prob_model.classification import ProbClassifier
 from fortuna.prob_model import FitConfig, FitMonitor
 from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer
@@ -27,7 +27,7 @@ from fortuna.prob_model.posterior.swag.swag_posterior import \
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
-from tests.make_model import MyModel
+from tests.make_model import MyModel, MyModelWithSpectralNorm
 import numpy as np
 
 np.random.seed(42)
@@ -939,6 +939,91 @@ class TestApproximations(unittest.TestCase):
             status = prob_class.train(
                 train_data_loader=self.class_train_data_loader,
                 map_fit_config=self.class_fit_config_nodir_nodump,
+                fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+
+            # load state
+            prob_class.load_state(checkpoint_path=tmp_dir)
+
+            # save state
+            prob_class.save_state(checkpoint_path=tmp_dir)
+
+    def test_dryrun_class_sngp_no_sn(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            prob_class = ProbClassifier(
+                model=MyModel(32),
+                posterior_approximator=SNGPPosteriorApproximator(
+                    output_dim=self.class_output_dim
+                ),
+                output_calibrator=ClassificationTemperatureScaler(),
+            )
+            # no save dir, no dump
+            with self.assertRaises(ValueError):
+                status = prob_class.train(
+                    train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
+                    fit_config=self.class_fit_config_nodir_nodump,
+                    calib_config=self.class_calib_config_nodir_nodump,
+                )
+
+    def test_dryrun_class_sngp(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            prob_class = ProbClassifier(
+                model=MyModelWithSpectralNorm(32),
+                posterior_approximator=SNGPPosteriorApproximator(
+                    output_dim=self.class_output_dim
+                ),
+                output_calibrator=ClassificationTemperatureScaler(),
+            )
+            # no save dir, no dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+
+            # no save dir but dump
+            with self.assertRaises(ValueError):
+                status = prob_class.train(
+                    train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
+                    fit_config=self.class_fit_config_nodir_dump,
+                    calib_config=self.class_calib_config_nodir_nodump,
+                )
+
+            # save dir, no dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+            prob_class.posterior.load_state(tmp_dir)
+
+            # save dir and dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+            prob_class.posterior.load_state(tmp_dir)
+
+            # restore
+            prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
                 fit_config=self.class_fit_config_restore(tmp_dir),
                 calib_config=self.class_calib_config_nodir_nodump,
             )

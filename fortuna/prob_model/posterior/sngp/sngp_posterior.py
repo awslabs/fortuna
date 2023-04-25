@@ -8,7 +8,9 @@ from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.sngp.sngp_approximator import SNGPPosteriorApproximator
 from fortuna.prob_model.posterior.sngp import SNGP_NAME
+from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Status
+from fortuna.utils.nested_dicts import find_one_path_to_key
 
 logger = logging.getLogger(__name__)
 
@@ -51,3 +53,11 @@ class SNGPPosterior(MAPPosterior):
 
     def __str__(self):
         return SNGP_NAME
+
+    @staticmethod
+    def _check_state(state: PosteriorState) -> None:
+        path = find_one_path_to_key(state.mutable, "spectral_stats")
+        if len(path) == 0:
+            raise ValueError(f"It looks like your deep feature extractor does not have Spectral Normalization, which is"
+                             f"required by SNGP. Please include spectral normalization in your model."
+                             f"Check out `fortuna.model.utils.spectral_norm.WithSpectralNorm` for more details.")

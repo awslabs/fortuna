@@ -96,6 +96,7 @@ class MAPPosterior(Posterior):
                 calib_params=init_prob_model_state.calib_params,
                 calib_mutable=init_prob_model_state.calib_mutable,
             )
+        self._check_state(state)
         logging.info("Run MAP.")
         state, status = trainer.train(
             rng=self.rng.get(),
