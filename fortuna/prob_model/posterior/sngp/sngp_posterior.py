@@ -2,8 +2,8 @@ import logging
 from typing import Optional
 
 from fortuna.data import DataLoader
-from fortuna.prob_model.callbacks.sngp import ResetCovarianceCallback
-from fortuna.prob_model.fit_config import FitConfig
+from fortuna.prob_model.posterior.sngp.sngp_callback import ResetCovarianceCallback
+from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.sngp.sngp_approximator import SNGPPosteriorApproximator
@@ -20,7 +20,7 @@ class SNGPPosterior(MAPPosterior):
         posterior_approximator: SNGPPosteriorApproximator,
     ):
         """
-        Maximum-a-Posteriori (MAP) approximate posterior class.
+        Spectral-normalized Neural Gaussian Process (`SNGP <https://arxiv.org/abs/2006.10108>`_) approximate posterior class.
 
         Parameters
         ----------

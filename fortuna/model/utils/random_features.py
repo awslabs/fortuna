@@ -15,10 +15,10 @@ linalg = lax.linalg
 
 # Default config for random features.
 default_rbf_bias_init = nn.initializers.uniform(scale=2.0 * jnp.pi)
-# Using "he_normal" style random feature distribution. Effectively, this is
-# equivalent to approximating a RBF kernel but with the input standardized by
+# Using "he_normal" style random feature distribution (see https://arxiv.org/abs/1502.01852).
+# Effectively, this is equivalent to approximating a RBF kernel but with the input standardized by
 # its dimensionality (i.e., input_scaled = input * sqrt(2. / dim_input)) and
-# # empirically leads to better performance for neural network inputs.
+# empirically leads to better performance for neural network inputs.
 # default_rbf_kernel_init = nn.initializers.variance_scaling(
 #     scale=2.0, mode="fan_in", distribution="normal"
 # )
@@ -68,7 +68,7 @@ class RandomFeatureGaussianProcess(nn.Module):
         # pylint:disable=invalid-name,not-a-mapping
         if self.normalize_input:
             # Prefer a parameter-free version of LayerNorm by default
-            # (see [[Xu et al., 2019]](https://papers.nips.cc/paper/2019/file/2f4fe03d77724a7217006e5d16728874-Paper.pdf))
+            # (see `Xu et al., 2019 <https://papers.nips.cc/paper/2019/file/2f4fe03d77724a7217006e5d16728874-Paper.pdf>`_)
             # Can be overwritten by passing norm_kwargs=dict(use_bias=..., use_scales=...).
             LayerNorm = functools.partial(nn.LayerNorm, use_bias=False, use_scale=False)
             self.sngp_norm_layer = LayerNorm(**self.norm_kwargs)
@@ -226,7 +226,7 @@ class RandomFourierFeatures(nn.Module):
 
 class LaplaceRandomFeatureCovariance(nn.Module):
     """
-    Computes the Gaussian Process covariance using Laplace method.
+    Computes the approximated posterior covariance using Laplace method.
 
     Attributes
     ----------

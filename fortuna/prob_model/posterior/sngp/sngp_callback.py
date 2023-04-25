@@ -1,7 +1,7 @@
 from flax.core import FrozenDict
 import jax.numpy as jnp
 
-from fortuna.prob_model.callbacks.base import Callback
+from fortuna.training.callback import Callback
 from fortuna.training.train_state import TrainState
 from fortuna.utils.nested_dicts import find_one_path_to_key, nested_get, nested_update
 

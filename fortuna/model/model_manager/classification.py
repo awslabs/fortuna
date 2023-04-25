@@ -1,6 +1,5 @@
 from functools import partial
 from typing import Dict, Optional, Tuple, Union
-import enum
 
 import flax.linen as nn
 import jax
@@ -13,12 +12,6 @@ from jax._src.prng import PRNGKeyArray
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.model.utils.random_features import RandomFeatureGaussianProcess
 from fortuna.typing import Array, Mutable, Params
-from fortuna.prob_model.posterior.deep_ensemble import DEEP_ENSEMBLE_NAME
-from fortuna.prob_model.posterior.laplace import LAPLACE_NAME
-from fortuna.prob_model.posterior.map import MAP_NAME
-from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
-from fortuna.prob_model.posterior.swag import SWAG_NAME
-from fortuna.prob_model.posterior.sngp import SNGP_NAME
 from fortuna.utils.nested_dicts import nested_update
 
 
@@ -240,14 +233,3 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
         params = nested_update(model_params.unfreeze(), gp_params.unfreeze())
         return dict(model=FrozenDict(params))
-
-
-class ClassificationModelManagers(enum.Enum):
-    """Map approximator name to model manager classes"""
-
-    vars()[MAP_NAME] = ClassificationModelManager
-    vars()[ADVI_NAME] = ClassificationModelManager
-    vars()[DEEP_ENSEMBLE_NAME] = ClassificationModelManager
-    vars()[LAPLACE_NAME] = ClassificationModelManager
-    vars()[SWAG_NAME] = ClassificationModelManager
-    vars()[SNGP_NAME] = SNGPClassificationModelManager

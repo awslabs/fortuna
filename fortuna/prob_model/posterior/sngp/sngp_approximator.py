@@ -17,6 +17,7 @@ class SNGPPosteriorApproximator(PosteriorApproximator):
             **kwargs
     ):
         """
+        SNGP posterior approximator. It is responsible to define how the posterior distribution is approximated.
 
         Parameters
         ----------

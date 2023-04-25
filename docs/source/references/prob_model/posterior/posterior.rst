@@ -11,6 +11,7 @@ calibration parameters. We support several posterior approximations:
    deep_ensemble
    laplace
    swag
+   sngp
 
 .. _posterior:
 

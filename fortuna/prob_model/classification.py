@@ -1,10 +1,11 @@
-from typing import Dict, Optional, Type, Callable, Union
+from typing import Dict, Optional
 
 import flax.linen as nn
 import numpy as np
 
 from fortuna.data.loader import DataLoader
-from fortuna.model.model_manager.classification import ClassificationModelManager, ClassificationModelManagers
+from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.model.model_manager.name_to_model_manager import ClassificationModelManagers
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
 from fortuna.output_calibrator.output_calib_manager.base import \

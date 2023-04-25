@@ -1,6 +1,6 @@
 .. _builtin_models:
 
-Model's Utils
+Model Utils
 ===============
 
 .. toctree::

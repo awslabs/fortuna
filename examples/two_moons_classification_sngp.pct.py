@@ -18,12 +18,12 @@
 
 # %% [markdown]
 # In this notebook we show how to train an [SNGP](https://arxiv.org/abs/2006.10108) model using Fortuna, showing improved
-# uncertainty estimation on the two moons dataset w.r.t it's deterministic counterpart.
+# uncertainty estimation on the two moons dataset with respect to it's deterministic counterpart.
 
 
 # %% [markdown]
-# ### Download Two-Moons data from scikit-learn
-# Let us first download two-moons data from [scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html).
+# ### Download the Two-Moons data from scikit-learn
+# Let us first download the two-moons data from [scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html).
 
 # %%
 
@@ -36,7 +36,7 @@ test_data = make_moons(n_samples=500, noise=0.1, random_state=2)
 
 # %% [markdown]
 # ### Convert data to a compatible data loader
-# Fortuna helps you converting data and data loaders into a data loader that Fortuna can digest.
+# Fortuna helps you convert data and data loaders into a data loader that Fortuna can digest.
 
 # %%
 from fortuna.data import DataLoader
@@ -49,10 +49,11 @@ test_data_loader = DataLoader.from_array_data(test_data, batch_size=256, prefetc
 
 # %%
 import matplotlib.pyplot as plt
-from fortuna.data import InputsLoader
 import numpy as np
+from fortuna.data import InputsLoader
+from fortuna.prob_model import ProbClassifier
 
-def plot_uncertainty(prob_model, test_data_loader, grid_size=100):
+def plot_uncertainty(prob_model: ProbClassifier, test_data_loader: DataLoader, grid_size: int = 100):
     test_inputs_loader = test_data_loader.to_inputs_loader()
     test_means = prob_model.predictive.mean(inputs_loader=test_inputs_loader)
     test_modes = prob_model.predictive.mode(inputs_loader=test_inputs_loader, means=test_means)
@@ -71,7 +72,8 @@ def plot_uncertainty(prob_model, test_data_loader, grid_size=100):
 
 # %% [markdown]
 # ### Define the deterministic model
-# In this tutorial we will use a deep residual network.
+# In this tutorial we will use a deep residual network, see `fortuna.model.mlp.DeepResidualNet` for
+# more details on the model.
 
 # %%
 from fortuna.model.mlp import DeepResidualNet
@@ -86,9 +88,8 @@ model = DeepResidualNet(
 )
 
 # %%
-from fortuna.prob_model import ProbClassifier
-from fortuna.prob_model.posterior import MAPPosteriorApproximator
-from fortuna.prob_model.fit_config import FitConfig, FitMonitor, FitOptimizer, FitProcessor
+from fortuna.prob_model import MAPPosteriorApproximator
+from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer
 from fortuna.metric.classification import accuracy
 import optax
 
@@ -117,12 +118,12 @@ plt.show()
 # Compared to the deterministic model obtained above, SNGP has two crucial differences:
 #
 #   1. [Spectral Normalization](https://arxiv.org/abs/1802.05957) is applied to all Dense (or Convolutional) layers.
-#   2. The Dense output layers is replaced with a Gaussian Process layer.
+#   2. The Dense output layer is replaced with a Gaussian Process layer.
 #
 # Let's see how to do it in Fortuna:
 
 # %% [markdown]
-# In order to add Spectral Normalization to a deterministic network we just need to define a new Deep Feature extractor,
+# In order to add Spectral Normalization to a deterministic network we just need to define a new deep feature extractor,
 # inheriting from both the feature extractor used by the deterministic model (in this case `MLPDeepFeatureExtractorSubNet`)
 # and `WithSpectralNorm`. It is worth highlighting that `WithSpectralNorm` should be taken as is, while the deep feature extractor
 # can be replaced with any custom object:
@@ -147,9 +148,8 @@ class SNGPDeepFeatureExtractorSubNet(WithSpectralNorm, DeepResidualFeatureExtrac
 # %%
 import jax.numpy as jnp
 
-from fortuna.prob_model.callbacks.sngp import ResetCovarianceCallback
 from fortuna.prob_model.prior import IsotropicGaussianPrior
-from fortuna.prob_model.posterior.sngp.sngp_approximator import SNGPPosteriorApproximator
+from fortuna.prob_model import SNGPPosteriorApproximator
 
 output_dim = 2
 model = SNGPDeepFeatureExtractorSubNet(
