@@ -4,6 +4,7 @@ import abc
 from typing import Any, Callable, Dict, Optional, Tuple, Union, List
 
 import jax.numpy as jnp
+import numpy as np
 from flax.core import FrozenDict
 from jax import random, vmap
 from jax._src.prng import PRNGKeyArray
@@ -15,6 +16,7 @@ from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.training.callback import Callback
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params, Mutable
+from fortuna.utils.nested_dicts import nested_set
 
 
 class NormalizingFlowTrainer(PosteriorTrainerABC):
@@ -22,27 +24,38 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
     def __str__(self):
         pass
 
-    def __init__(self, *, base: Distribution, architecture: object, **kwargs):
+    def sample_forward(self, rng: jnp.array, params: any, n_samples: int) -> tuple:
         """
-        This is a Normalizing Flow. It is able to transform a `base` distribution into a target one via an invertible
-        `architecture`.
+        Sample from the push-forward distribution.
 
-        :param base: object
-            Base distribution. It must include the following methods:
-                - sample(rng: jnp.array, n_samples: int) -> jnp.array
-                    It draws `n_samples` samples from the distribution.
-                - log_joint_prob(x: jnp.array) -> float
-                    It evaluates the log-probability density function at `x`.
-            Common distribution are already available in `prob.distribution`.
-        :param architecture: object
-            Invertible architecture. It must include the following methods:
-                - forward(params: jnp.array, u: jnp.array) ->  jnp.array
-                    It applies on `u` the transformation parametrized by `params`.
-                - backward(params: jnp.array, v: jnp.array) ->  jnp.array
-                    It applies on `v` the inverse transformation parametrized by `params`.
-                - init_params(rng: jnp.array)
-                    It initializes the parameters of the transformation.
+        Parameters
+        ----------
+        rng: PRNGKeyArray
+            Random number generator.
+        params: Params
+            Transformation parameters.
+        n_samples: int
+            Number of samples to draw.
+
+        Returns
+        -------
+        tuple
+            forward_samples: jnp.ndarray
+                Samples.
+            ldj: jnp.ndarray
+                Log-determinant of the Jacobians.
         """
+        return self.forward(params, self.sample_base(rng, n_samples))
+
+    def __init__(self, *,
+                 base: Distribution,
+                 architecture: object,
+                 which_params: Optional[Tuple[List[str]]],
+                 all_params: Optional[Params] = None,
+                 sizes: Optional[List[int]] = None,
+                 unravel: Union[List[Callable], Callable],
+                 **kwargs
+                 ):
         super(NormalizingFlowTrainer, self).__init__(**kwargs)
         # base distribution
         self.sample_base = base.sample
@@ -53,24 +66,11 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         self.backward = architecture.backward
         self.init_params = architecture.init_params
 
-    def sample_forward(self, rng: jnp.array, params: any, n_samples: int) -> tuple:
-        """
-        Sample from the push-forward distribution.
-
-        :param rng: jnp.array
-            Random number generator.
-        :param params: any
-            Transformation parameters.
-        :param n_samples:
-            Number of samples to draw.
-
-        :return: tuple
-            forward_samples: jnp.array
-                Samples.
-            ldj: jnp.array
-                Log-determinant of the Jacobians.
-        """
-        return self.forward(params, self.sample_base(rng, n_samples))
+        # ADVI on subsets of the model parameters
+        self._which_params = which_params
+        self._all_params = all_params
+        self._idx = np.concatenate((np.array([0]), np.cumsum(sizes))) if sizes is not None else None
+        self._unravel = unravel
 
     def training_loss_step(
         self,
@@ -91,8 +91,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         rng, key = random.split(rng)
         v, ldj = self.sample_forward(key, tuple(params.values()), kwargs["n_samples"])
         neg_logp, aux = vmap(
-            lambda _params: loss_fun(
-                unravel(_params),
+            lambda _rav_params: loss_fun(
+                self._get_params_from_rav(_rav_params, unravel),
                 batch,
                 n_data=n_data,
                 mutable=mutable,
@@ -122,29 +122,6 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[PosteriorState, Dict[str, jnp.ndarray]]:
-        """
-        Perform training batch metrics_names computation and save checkpoint if needed.
-
-        :param current_epoch: int
-            Current epoch.
-        :param state: TrainState
-            The training state.
-        :param aux: Dict[str, Any]
-            The dictionary obtained from a call to `training_loss_step()`. It must have a key name `outputs` which
-            contains the model's prediction for the given `batch`.
-        :param batch: Batch
-            The input data and the targets.
-        :param metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]]
-            A tuple of metrics.
-        :param callbacks: Optional[List[Callback]]
-            A list of user-defined callbacks that runs sequentially.
-        :param kwargs: FrozenDict[str, Any]
-            Any other extra argument. They have to be explicitly passed within a dictionary and cannot be provided as
-            named arguments due to `jax.jit`.
-
-        :return: Dict[str, jnp.ndarray]
-            A dictionary containing `metrics_names` values on the given input batch.
-        """
         if (
             self.save_checkpoint_dir
             and self.save_every_n_steps
@@ -208,8 +185,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             key, tuple(state.params.values()), kwargs["n_samples"]
         )
         neg_logp, aux = vmap(
-            lambda _params: loss_fun(
-                unravel(_params),
+            lambda _rav_params: loss_fun(
+                self._get_params_from_rav(_rav_params, unravel),
                 batch,
                 n_data=n_data,
                 mutable=state.mutable,
@@ -232,3 +209,14 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
                 **{f"val_{m}": v for m, v in val_metrics.items()},
             }
         return dict(val_loss=loss)
+
+    def _get_params_from_rav(self, _rav, unravel) -> Params:
+        if self._which_params is None:
+            return unravel(_rav)
+        return FrozenDict(
+            nested_set(
+                self._all_params.unfreeze(),
+                self._which_params,
+                tuple([_unravel(_rav[self._idx[i]:self._idx[i+1]]) for i, _unravel in enumerate(unravel)]),
+            )
+        )

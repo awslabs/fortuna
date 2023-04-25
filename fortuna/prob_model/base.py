@@ -4,6 +4,7 @@ from typing import Callable, Dict, Optional
 
 import jax
 import jax.numpy as jnp
+from jax.tree_util import tree_map
 
 from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.data.loader import DataLoader
