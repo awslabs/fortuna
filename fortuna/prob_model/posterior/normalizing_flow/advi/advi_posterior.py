@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import DataLoader
 from fortuna.distribution.gaussian import DiagGaussian
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.base import Posterior
+from fortuna.prob_model.posterior.gaussian_posterior import GaussianPosterior
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import \
     ADVIPosteriorApproximator
@@ -26,8 +26,13 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import \
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
-from fortuna.typing import Array, Status
+from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.utils.nested_dicts import nested_get, nested_unpair
+from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
+from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
+from fortuna.prob_model.posterior.state import PosteriorState
 
 
 class JittedADVITrainer(JittedMixin, ADVITrainer):
@@ -38,7 +43,7 @@ class MultiDeviceADVITrainer(MultiDeviceMixin, ADVITrainer):
     pass
 
 
-class ADVIPosterior(Posterior):
+class ADVIPosterior(GaussianPosterior):
     def __init__(
         self,
         joint: Joint,
@@ -63,6 +68,7 @@ class ADVIPosterior(Posterior):
         self,
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
+        map_fit_config: Optional[FitConfig] = None,
         fit_config: FitConfig = FitConfig(),
         **kwargs,
     ) -> Status:
@@ -74,11 +80,35 @@ class ADVIPosterior(Posterior):
                 "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
             )
 
-        init_prob_model_state, n_train_data, n_val_data = self._init(
-            train_data_loader, val_data_loader
+        stds = None
+
+        state, status, n_train_data, n_val_data = self._init_state(
+            train_data_loader=train_data_loader,
+            val_data_loader=val_data_loader,
+            fit_config=fit_config,
+            map_fit_config=map_fit_config,
+            **kwargs
         )
 
-        rav, self.unravel = ravel_pytree(init_prob_model_state.params)
+        if self.posterior_approximator.which_params is None:
+            rav, self._unravel = ravel_pytree(state.params)
+            rav_stds = ravel_pytree(stds)[0] if stds is not None else None
+        else:
+            def unravel_fn(_params, _path):
+                return ravel_pytree(nested_get(_params, _path))
+            rav, self._unravel, sizes, rav_stds = [], [], [], []
+            for path in self.posterior_approximator.which_params:
+                _rav, _unravel = unravel_fn(state.params, path)
+                self._unravel.append(_unravel)
+                rav.append(_rav)
+                if stds is not None:
+                    rav_stds.append(unravel_fn(stds, path)[0])
+                sizes.append(len(_rav))
+            rav = jnp.concatenate(rav)
+            if stds is not None:
+                rav_stds = jnp.concatenate(rav_stds)
+            self._unravel = tuple(self._unravel)
+
         size_rav = len(rav)
         self.base = DiagGaussian(
             mean=jnp.zeros(size_rav),
@@ -108,35 +138,30 @@ class ADVIPosterior(Posterior):
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
             base=self.base,
             architecture=self.architecture,
+            which_params=self.posterior_approximator.which_params,
+            all_params=state.params if self.posterior_approximator.which_params else None,
+            sizes=sizes if self.posterior_approximator.which_params else None,
+            unravel=self._unravel
         )
 
-        state = None
-        if fit_config.checkpointer.restore_checkpoint_path:
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
-                optimizer=fit_config.optimizer.method,
-            )
+        state = ADVIState.init(
+            FrozenDict(
+                zip(
+                    ("mean", "logvar"),
+                    trainer.init_params(
+                        self.rng.get(),
+                        mean=rav
+                    ) if stds is None else (rav, 2 * jnp.log(rav_stds)),
+                )
+            ),
+            getattr(state, "mutable", state.mutable),
+            fit_config.optimizer.method,
+            getattr(state, "calib_params", state.calib_params),
+            getattr(state, "calib_mutable", state.calib_mutable),
+        )
 
-        if type(state) != ADVIState:
-            state = ADVIState.init(
-                FrozenDict(
-                    zip(
-                        ("mean", "logvar"),
-                        trainer.init_params(
-                            self.rng.get(),
-                            mean=ravel_pytree(
-                                getattr(state, "params", init_prob_model_state.params)
-                            )[0],
-                        ),
-                    )
-                ),
-                getattr(state, "mutable", init_prob_model_state.mutable),
-                fit_config.optimizer.method,
-                getattr(state, "calib_params", init_prob_model_state.calib_params),
-                getattr(state, "calib_mutable", init_prob_model_state.calib_mutable),
-            )
         logging.info("Run ADVI.")
-        state, status = trainer.train(
+        state, status["advi"] = trainer.train(
             rng=self.rng.get(),
             state=state,
             loss_fun=self.joint._batched_negative_log_joint_prob,
@@ -147,10 +172,12 @@ class ADVIPosterior(Posterior):
             validation_dataloader=val_data_loader,
             validation_dataset_size=n_val_data,
             verbose=fit_config.monitor.verbose,
-            unravel=self.unravel,
+            unravel=self._unravel,
             n_samples=self.posterior_approximator.n_loss_samples,
             callbacks=fit_config.callbacks,
         )
+        trainer._all_params = None
+
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
             if fit_config.checkpointer.dump_state is True
@@ -163,66 +190,61 @@ class ADVIPosterior(Posterior):
     def sample(
         self,
         rng: Optional[PRNGKeyArray] = None,
-        input_shape: Optional[Tuple[int, ...]] = None,
-        inputs_loader: Optional[InputsLoader] = None,
-        inputs: Optional[Array] = None,
         **kwargs,
     ) -> JointState:
-        """
-        Sample from the posterior distribution. Either `input_shape` or `_inputs_loader` must be passed.
+        return self._sample_diag_gaussian(rng=rng, **kwargs)
 
-        Parameters
-        ----------
-        rng : Optional[PRNGKeyArray]
-            A random number generator. If not passed, this will be taken from the attributes of this class.
-        input_shape: Optional[Tuple[int, ...]]
-            Shape of a single input.
-        inputs_loader: Optional[InputsLoader]
-            Input data loader. If `input_shape` is passed, then `inputs` and `inputs_loader` are ignored.
-        inputs: Optional[Array]
-            Input variables.
+    def _init_state(
+            self,
+            train_data_loader: DataLoader,
+            val_data_loader: DataLoader,
+            fit_config: FitConfig,
+            map_fit_config: Optional[FitConfig] = None,
+            **kwargs
+    ) -> Tuple[PosteriorState, Dict[str, Status], int, Optional[int]]:
+        allowed_states = (MAPState, ADVIState)
+        state = None
+        status = dict()
 
-        Returns
-        -------
-        JointState
-            A sample from the posterior distribution.
-        """
-        if rng is None:
-            rng = self.rng.get()
-        state = self.state.get()
-        state = state.replace(params=tuple(state.params.values()))
-        n_params = len(state.params[0])
-        if not hasattr(self, "base"):
-            self.base = DiagGaussian(
-                mean=jnp.zeros(n_params),
-                std=self.posterior_approximator.std_base * jnp.ones(n_params),
-            )
-        if not hasattr(self, "architecture"):
-            self.architecture = ADVIArchitecture(
-                n_params, std_init_params=self.posterior_approximator.std_init_params
+        if fit_config.checkpointer.restore_checkpoint_path is not None:
+            state = self.restore_checkpoint(
+                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
+                optimizer=fit_config.optimizer.method,
             )
 
-        if not hasattr(self, "unravel"):
-            if input_shape is None:
-                if inputs is not None:
-                    input_shape = inputs.shape[1:]
-                else:
-                    if inputs_loader is None:
-                        raise ValueError(
-                            "Either `input_shape` or `inputs_loader` or `inputs` must be passed."
-                        )
-                    for x in inputs_loader:
-                        input_shape = x.shape[1:]
-                        break
-            model_manager_state = self.joint.likelihood.model_manager.init(input_shape)
-            self.unravel = ravel_pytree(model_manager_state.params)[1]
-        sample_params = self.unravel(
-            self.architecture.forward(state.params, self.base.sample(rng))[0][0]
+            if not isinstance(state, allowed_states):
+                raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
+                                 f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                                 f"with type {type(state)}.")
+
+            if isinstance(state, ADVIState):
+                means, stds = nested_unpair(
+                    d=state.params.unfreeze(),
+                    key_paths=self.posterior_approximator.which_params,
+                    labels=("mean", "std")
+                ) if self.posterior_approximator.which_params is not None else \
+                    [FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()}) for s in ["mean", "std"]]
+                means, stds = FrozenDict(means), FrozenDict(stds)
+                state = state.replace(params=means)
+                del means
+        elif map_fit_config is not None:
+            map_posterior = MAPPosterior(
+                self.joint, posterior_approximator=MAPPosteriorApproximator()
+            )
+            map_posterior.rng = self.rng
+            logging.info("Do a preliminary run of MAP.")
+            status["map"] = map_posterior.fit(
+                rng=self.rng.get(),
+                train_data_loader=train_data_loader,
+                val_data_loader=val_data_loader,
+                fit_config=map_fit_config,
+                **kwargs,
+            )
+            logging.info("Preliminary run with MAP completed.")
+            state = map_posterior.state.get()
+
+        state, n_train_data, n_val_data = self._init(
+            train_data_loader, val_data_loader, state
         )
 
-        return JointState(
-            params=FrozenDict(sample_params),
-            mutable=state.mutable,
-            calib_params=state.calib_params,
-            calib_mutable=state.calib_mutable,
-        )
+        return state, status, n_train_data, n_val_data

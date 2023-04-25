@@ -359,6 +359,88 @@ class TestApproximations(unittest.TestCase):
                 calib_config=self.reg_calib_config_nodir_nodump,
             )
 
+            # now use which params
+            prob_reg = ProbRegressor(
+                model=MyModel(self.reg_output_dim),
+                likelihood_log_variance_model=MyModel(self.reg_output_dim),
+                posterior_approximator=ADVIPosteriorApproximator(
+                    which_params=(["model", "params", "l1", "bias"], ["model", "params", "l2", "kernel"])
+                ),
+                output_calibrator=RegressionTemperatureScaler(),
+            )
+            # no save dir, no dump
+            status = prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                fit_config=self.reg_fit_config_nodir_nodump,
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            sample = prob_reg.posterior.sample()
+
+            # no save dir but dump
+            with self.assertRaises(ValueError):
+                status = prob_reg.train(
+                    train_data_loader=self.reg_train_data_loader,
+                    calib_data_loader=self.reg_val_data_loader,
+                    val_data_loader=self.reg_val_data_loader,
+                    fit_config=self.reg_fit_config_nodir_dump,
+                    calib_config=self.reg_calib_config_nodir_nodump,
+                )
+
+            # save dir, no dump
+            status = prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            sample = prob_reg.posterior.sample()
+            prob_reg.posterior.load_state(tmp_dir)
+
+            # save dir and dump
+            status = prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            sample = prob_reg.posterior.sample()
+            prob_reg.posterior.load_state(tmp_dir)
+
+            # restore from advi
+            prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+
+            #now use which params
+            prob_reg_map = ProbRegressor(
+                model=MyModel(self.reg_output_dim),
+                likelihood_log_variance_model=MyModel(self.reg_output_dim),
+                posterior_approximator=MAPPosteriorApproximator(),
+                output_calibrator=RegressionTemperatureScaler(),
+            )
+            status = prob_reg_map.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+
             # load state
             prob_reg.load_state(checkpoint_path=tmp_dir)
 
@@ -370,6 +452,91 @@ class TestApproximations(unittest.TestCase):
             prob_class = ProbClassifier(
                 model=MyModel(self.class_output_dim),
                 posterior_approximator=ADVIPosteriorApproximator(),
+                output_calibrator=ClassificationTemperatureScaler(),
+            )
+            # no save dir, no dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+
+            # no save dir but dump
+            with self.assertRaises(ValueError):
+                status = prob_class.train(
+                    train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
+                    fit_config=self.class_fit_config_nodir_dump,
+                    calib_config=self.class_calib_config_nodir_nodump,
+                )
+
+            # save dir, no dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+            prob_class.posterior.load_state(tmp_dir)
+
+            # save dir and dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+            prob_class.posterior.load_state(tmp_dir)
+
+            # restore from advi
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+
+            # restore from map
+            prob_class_map = ProbClassifier(
+                model=MyModel(self.class_output_dim),
+                posterior_approximator=MAPPosteriorApproximator(),
+                output_calibrator=ClassificationTemperatureScaler(),
+            )
+            status = prob_class_map.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+
+            # load state
+            prob_class.load_state(checkpoint_path=tmp_dir)
+
+            # save state
+            prob_class.save_state(checkpoint_path=tmp_dir)
+
+            # now use which params
+            prob_class = ProbClassifier(
+                model=MyModel(self.class_output_dim),
+                posterior_approximator=ADVIPosteriorApproximator(
+                    which_params=(["model", "params", "l1", "bias"], ["model", "params", "l2", "kernel"])),
                 output_calibrator=ClassificationTemperatureScaler(),
             )
             # no save dir, no dump
@@ -667,6 +834,95 @@ class TestApproximations(unittest.TestCase):
                 calib_config=self.reg_calib_config_nodir_nodump,
             )
 
+            # now with which params
+            prob_reg = ProbRegressor(
+                model=MyModel(self.reg_output_dim),
+                likelihood_log_variance_model=MyModel(self.reg_output_dim),
+                posterior_approximator=LaplacePosteriorApproximator(
+                    which_params=(["model", "params", "l1", "bias"], ["model", "params", "l2", "kernel"])
+                ),
+                output_calibrator=RegressionTemperatureScaler(),
+            )
+            # no save dir, no dump
+            status = prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                map_fit_config=self.reg_fit_config_nodir_nodump,
+                fit_config=self.reg_fit_config_nodir_nodump,
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            sample = prob_reg.posterior.sample()
+
+            # no save dir but dump
+            with self.assertRaises(ValueError):
+                status = prob_reg.train(
+                    train_data_loader=self.reg_train_data_loader,
+                    calib_data_loader=self.reg_val_data_loader,
+                    val_data_loader=self.reg_val_data_loader,
+                    map_fit_config=self.reg_fit_config_nodir_nodump,
+                    fit_config=self.reg_fit_config_nodir_dump,
+                    calib_config=self.reg_calib_config_nodir_nodump,
+                )
+
+            # save dir, no dump
+            status = prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                map_fit_config=self.reg_fit_config_nodir_nodump,
+                fit_config=self.reg_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            sample = prob_reg.posterior.sample()
+            prob_reg.posterior.load_state(tmp_dir)
+
+            # save dir and dump
+            status = prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                map_fit_config=self.reg_fit_config_nodir_nodump,
+                fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            sample = prob_reg.posterior.sample()
+            prob_reg.posterior.load_state(tmp_dir)
+
+            # restore from laplace
+            prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                map_fit_config=self.reg_fit_config_nodir_nodump,
+                fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+
+            # restore from map
+            prob_reg_map = ProbRegressor(
+                model=MyModel(self.reg_output_dim),
+                likelihood_log_variance_model=MyModel(self.reg_output_dim),
+                posterior_approximator=MAPPosteriorApproximator(),
+                output_calibrator=RegressionTemperatureScaler(),
+            )
+            status = prob_reg_map.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                map_fit_config=self.reg_fit_config_nodir_nodump,
+                fit_config=self.reg_fit_config_dir_dump(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+            status = prob_reg.train(
+                train_data_loader=self.reg_train_data_loader,
+                calib_data_loader=self.reg_val_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                map_fit_config=self.reg_fit_config_nodir_nodump,
+                fit_config=self.reg_fit_config_restore(tmp_dir),
+                calib_config=self.reg_calib_config_nodir_nodump,
+            )
+
             # load state
             prob_reg.load_state(checkpoint_path=tmp_dir)
 
@@ -678,6 +934,93 @@ class TestApproximations(unittest.TestCase):
             prob_class = ProbClassifier(
                 model=MyModel(self.class_output_dim),
                 posterior_approximator=LaplacePosteriorApproximator(),
+                output_calibrator=ClassificationTemperatureScaler(),
+            )
+            # no save dir, no dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                map_fit_config=self.class_fit_config_nodir_nodump,
+                fit_config=self.class_fit_config_nodir_nodump,
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+
+            # no save dir but dump
+            with self.assertRaises(ValueError):
+                status = prob_class.train(
+                    train_data_loader=self.class_train_data_loader,
+                    calib_data_loader=self.class_val_data_loader,
+                    val_data_loader=self.class_val_data_loader,
+                    map_fit_config=self.class_fit_config_nodir_nodump,
+                    fit_config=self.class_fit_config_nodir_dump,
+                    calib_config=self.class_calib_config_nodir_nodump,
+                )
+
+            # save dir, no dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                map_fit_config=self.class_fit_config_nodir_nodump,
+                fit_config=self.class_fit_config_dir_nodump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+            prob_class.posterior.load_state(tmp_dir)
+
+            # save dir and dump
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                map_fit_config=self.class_fit_config_nodir_nodump,
+                fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            sample = prob_class.posterior.sample()
+            prob_class.posterior.load_state(tmp_dir)
+
+            # restore from laplace
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                map_fit_config=self.class_fit_config_nodir_nodump,
+                fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+
+            # restore from map
+            prob_class_map = ProbClassifier(
+                model=MyModel(self.class_output_dim),
+                posterior_approximator=MAPPosteriorApproximator(),
+                output_calibrator=ClassificationTemperatureScaler(),
+            )
+            status = prob_class_map.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                map_fit_config=self.class_fit_config_nodir_nodump,
+                fit_config=self.class_fit_config_dir_dump(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+            status = prob_class.train(
+                train_data_loader=self.class_train_data_loader,
+                calib_data_loader=self.class_val_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                map_fit_config=self.class_fit_config_nodir_nodump,
+                fit_config=self.class_fit_config_restore(tmp_dir),
+                calib_config=self.class_calib_config_nodir_nodump,
+            )
+
+            # now with which params
+            prob_class = ProbClassifier(
+                model=MyModel(self.class_output_dim),
+                posterior_approximator=LaplacePosteriorApproximator(
+                    which_params=(["model", "params", "l1", "bias"], ["model", "params", "l2", "kernel"])
+                ),
                 output_calibrator=ClassificationTemperatureScaler(),
             )
             # no save dir, no dump

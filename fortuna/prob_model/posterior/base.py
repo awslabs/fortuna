@@ -1,12 +1,11 @@
 import abc
 from typing import Optional, Tuple, Union, Dict, Any
 
-from jax._src.prng import PRNGKeyArray
+from jax.tree_util import tree_map
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.posterior_mixin import \
     WithPosteriorCheckpointingMixin
 from fortuna.prob_model.posterior.posterior_state_repository import \
@@ -14,6 +13,12 @@ from fortuna.prob_model.posterior.posterior_state_repository import \
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Path, Status
 from fortuna.utils.random import WithRNG
+from fortuna.training.train_state import TrainState
+from fortuna.utils.nested_dicts import nested_get, nested_set, nested_unpair
+from flax.core import FrozenDict
+from jax._src.prng import PRNGKeyArray
+from fortuna.utils.random import generate_random_normal_like_tree
+from fortuna.prob_model.joint.state import JointState
 
 
 class PosteriorApproximator(abc.ABC):
@@ -53,7 +58,8 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         self,
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
-    ) -> Tuple[JointState, int, Union[int, None]]:
+        state: Optional[TrainState] = None,
+    ) -> Tuple[Union[JointState, TrainState], int, Union[int, None]]:
         for i, (batch_inputs, batch_targets) in enumerate(train_data_loader):
             if i == 0:
                 input_shape = batch_inputs.shape[1:]
@@ -63,7 +69,9 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         if val_data_loader is not None:
             n_val_data = val_data_loader.size
 
-        return self.joint.init(input_shape), n_train_data, n_val_data
+        if state is None:
+            state = self.joint.init(input_shape)
+        return state, n_train_data, n_val_data
 
     @staticmethod
     def _check_state(state: PosteriorState) -> None:
