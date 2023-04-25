@@ -22,16 +22,17 @@ class TrainStateRepository(WithCheckpointingMixin):
     ) -> Union[Dict, TrainState]:
         if not checkpoint_path and not self.checkpoint_dir and not self.__state:
             raise ValueError("No state available.")
-        return (
-            self.restore_checkpoint(
+        if checkpoint_path or self.checkpoint_dir:
+            return self.restore_checkpoint(
                 restore_checkpoint_path=checkpoint_path or self.checkpoint_dir,
                 optimizer=optimizer,
                 prefix=prefix,
                 **kwargs
             )
-            if checkpoint_path or self.checkpoint_dir
-            else deepcopy(self.__state)
-        )
+        if optimizer is not None:
+            self.__state = self.__state.replace(tx=optimizer, opt_state=optimizer.init(self.__state.params))
+            # return self.__state.init_from_dict(vars(self.__state), optimizer=optimizer)
+        return deepcopy(self.__state)
 
     def put(
         self,

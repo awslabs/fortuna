@@ -10,7 +10,7 @@ from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
 from fortuna.prob_model.joint.base import Joint
-from fortuna.prob_model.likelihood.regression import RegressionLikelihood
+from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from tests.make_data import make_array_random_data

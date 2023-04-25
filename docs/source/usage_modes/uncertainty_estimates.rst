@@ -32,7 +32,7 @@ Please check :class:`~fortuna.conformal.classification.adaptive_prediction.Adapt
 .. code-block:: python
     :caption: **References:** :meth:`~fortuna.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier.conformal_set`
 
-    from fortuna.conformal.classification import AdaptivePredictionConformalClassifier
+    from fortuna.conformal import AdaptivePredictionConformalClassifier
     conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
         val_probs=val_probs,
         test_probs=test_probs,
@@ -79,7 +79,7 @@ Please see :class:`~fortuna.conformal.regression.quantile.QuantileConformalRegre
 .. code-block:: python
     :caption: **References:** :meth:`~fortuna.conformal.regression.quantile.QuantileConformalRegressor.conformal_interval`
 
-    from fortuna.conformal.regression import QuantileConformalRegressor
+    from fortuna.conformal import QuantileConformalRegressor
     conformal_intervals = QuantileConformalRegressor().conformal_interval(
         val_lower_bounds=val_lower_bounds,
         val_upper_bounds=val_upper_bounds,
@@ -107,7 +107,7 @@ Please see :class:`~fortuna.conformal.regression.onedim_uncertainty.OneDimension
 .. code-block:: python
     :caption: **References:** :meth:`~fortuna.conformal.regression.onedim_uncertainty.OneDimensionalUncertaintyConformalRegressor.conformal_interval`
 
-    from fortuna.conformal.regression import OneDimensionalUncertaintyConformalRegressor
+    from fortuna.conformal import OneDimensionalUncertaintyConformalRegressor
     conformal_intervals = OneDimensionalUncertaintyConformalRegressor().conformal_interval(
         val_preds=val_preds,
         val_uncertainties=val_uncertainties,

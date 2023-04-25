@@ -47,9 +47,8 @@ test_data_loader = DataLoader.from_array_data(test_data, batch_size=128, prefetc
 # Let us build a probabilistic classifier. This is an interface object containing several attributes that you can configure, i.e. `model`, `prior`, `posterior_approximator`, `output_calibrator`. In this example, we use an MLP model, an Automatic Differentiation Variational Inference posterior approximator, and the default temperature scaling output calibrator.
 
 # %%
-from fortuna.prob_model import ProbClassifier
+from fortuna.prob_model import ProbClassifier, ADVIPosteriorApproximator
 from fortuna.model import MLP
-from fortuna.prob_model.posterior import ADVIPosteriorApproximator
 import flax.linen as nn
 
 output_dim = 2
@@ -63,7 +62,7 @@ prob_model = ProbClassifier(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model.
 
 # %%
-from fortuna.prob_model.fit_config import FitConfig, FitMonitor, FitOptimizer
+from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer
 from fortuna.metric.classification import accuracy
 import optax
 
@@ -158,9 +157,9 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.calib_model.classification import CalibClassifier
+from fortuna.output_calib_model.classification import OutputCalibClassifier
 
-calib_model = CalibClassifier()
+calib_model = OutputCalibClassifier()
 calib_status = calib_model.calibrate(
     calib_outputs=calib_outputs, calib_targets=calib_targets
 )

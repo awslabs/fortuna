@@ -61,9 +61,8 @@ test_data_loader = DataLoader.from_tensorflow_data_loader(test_data_loader)
 # Let us build a probabilistic classifier. This is an interface object containing several attributes that you can configure, i.e. `model`, `prior`, `posterior_approximator`, `output_calibrator`. In this example, we use a LeNet5 model, a Laplace posterior approximator acting on the last layer on the model, and the default temperature scaling output calibrator.
 
 # %%
-from fortuna.prob_model import ProbClassifier
+from fortuna.prob_model import ProbClassifier, LaplacePosteriorApproximator
 from fortuna.model import LeNet5
-from fortuna.prob_model.posterior import LaplacePosteriorApproximator
 
 output_dim = 10
 prob_model = ProbClassifier(
@@ -79,7 +78,7 @@ prob_model = ProbClassifier(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model. As we are using a Laplace approximation, which start from a Maximum-A-Posteriori (MAP) approximation, we configure MAP via the argument `map_fit_config`.
 
 # %%
-from fortuna.prob_model.fit_config import FitConfig, FitMonitor
+from fortuna.prob_model import FitConfig, FitMonitor
 from fortuna.metric.classification import accuracy
 
 status = prob_model.train(
@@ -134,7 +133,7 @@ print(f"ECE: {ece}")
 # Fortuna allows to produce conformal prediction sets, that are sets of likely labels up to some coverage probability threshold. These can be computed starting from probability estimates obtained with or without Fortuna.
 
 # %%
-from fortuna.conformal.classification import AdaptivePredictionConformalClassifier
+from fortuna.conformal import AdaptivePredictionConformalClassifier
 
 val_means = prob_model.predictive.mean(inputs_loader=val_data_loader.to_inputs_loader())
 conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
@@ -187,9 +186,9 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.calib_model.classification import CalibClassifier
+from fortuna.output_calib_model import OutputCalibClassifier
 
-calib_model = CalibClassifier()
+calib_model = OutputCalibClassifier()
 calib_status = calib_model.calibrate(
     calib_outputs=calib_outputs, calib_targets=calib_targets
 )

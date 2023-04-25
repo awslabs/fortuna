@@ -11,9 +11,8 @@ from fortuna.model.model_manager.classification import \
 from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
     OutputCalibManager
-from fortuna.prob_model.likelihood.classification import \
-    ClassificationLikelihood
-from fortuna.prob_model.likelihood.regression import RegressionLikelihood
+from fortuna.likelihood.classification import ClassificationLikelihood
+from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer

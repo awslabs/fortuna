@@ -4,7 +4,7 @@ from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer
 from fortuna.prob_model.fit_config.monitor import FitMonitor
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
 from fortuna.prob_model.fit_config.processor import FitProcessor
-from fortuna.prob_model.callbacks.base import Callback
+from fortuna.prob_model.fit_config.callback import FitCallback
 
 
 class FitConfig:
@@ -14,7 +14,7 @@ class FitConfig:
         checkpointer: FitCheckpointer = FitCheckpointer(),
         monitor: FitMonitor = FitMonitor(),
         processor: FitProcessor = FitProcessor(),
-        callbacks: Optional[List[Callback]] = None
+        callbacks: Optional[List[FitCallback]] = None
     ):
         """
         Configure the posterior distribution fitting.
@@ -29,9 +29,9 @@ class FitConfig:
             It monitors training progress and might induce early stopping.
         processor: FitProcessor
             It processes where computation takes place.
-        callbacks:  Optional[List[Callback]]
+        callbacks:  Optional[List[FitCallback]]
             A list of user-defined callbacks to be called during training.
-            Callbacks run sequentially in the order defined by the user.
+            Callback run sequentially in the order defined by the user.
         """
         self.optimizer = optimizer
         self.checkpointer = checkpointer

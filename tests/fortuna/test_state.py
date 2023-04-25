@@ -2,7 +2,7 @@ import unittest
 
 import jax.numpy as jnp
 
-from fortuna.calibration.state import CalibState
+from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.output_calibrator.output_calib_manager.state import \
     OutputCalibManagerState
 from fortuna.prob_model.joint.state import JointState
@@ -39,7 +39,7 @@ class TestStates(unittest.TestCase):
         assert cs.mutable == dict(output_calibrator=dict(batch_stats=jnp.array([0.0])))
 
     def test_calib_state(self):
-        cs = CalibState.init_from_dict(dict(params=dict(a=1), mutable=dict(b=2)))
+        cs = OutputCalibState.init_from_dict(dict(params=dict(a=1), mutable=dict(b=2)))
         assert hasattr(cs.params, "unfreeze")
         assert "a" in cs.params
         assert hasattr(cs.mutable, "unfreeze")

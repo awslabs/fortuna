@@ -16,4 +16,5 @@ In this section we show some examples of how to use Fortuna in classification an
    multivalid_coverage
    sinusoidal_regression
    two_moons_classification
+   subnet_calibration
    two_moons_classification_sngp

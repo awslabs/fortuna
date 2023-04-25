@@ -20,5 +20,5 @@ class WithPosteriorCheckpointingMixin(WithCheckpointingMixin):
             restore_checkpoint_path,
             optimizer,
             prefix,
-            name_to_train_state=NameToPosteriorState,
+            name_to_train_state=name_to_train_state,
         )

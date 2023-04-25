@@ -9,7 +9,7 @@ from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 
 from fortuna.data.loader import DataLoader, InputsLoader
-from fortuna.prob_model.fit_config import FitConfig
+from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
@@ -137,7 +137,7 @@ class SWAGPosterior(Posterior):
         state, status["swag"] = trainer.train(
             rng=self.rng.get(),
             state=state,
-            fun=self.joint._batched_log_joint_prob,
+            loss_fun=self.joint._batched_negative_log_joint_prob,
             training_dataloader=train_data_loader,
             training_dataset_size=n_train_data,
             n_epochs=fit_config.optimizer.n_epochs,

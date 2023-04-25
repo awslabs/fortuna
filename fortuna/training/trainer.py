@@ -17,7 +17,7 @@ from tqdm import trange
 from tqdm.std import tqdm as TqdmDecorator
 
 from fortuna.data.loader import DataLoader
-from fortuna.prob_model.callbacks.base import Callback
+from fortuna.training.callback import Callback
 from fortuna.training.mixin import (InputValidatorMixin,
                                     WithCheckpointingMixin,
                                     WithEarlyStoppingMixin)
@@ -37,6 +37,7 @@ class TrainerABC(
         self,
         *args,
         predict_fn: Callable[[jnp.ndarray], jnp.ndarray],
+        uncertainty_fn: Optional[Callable[[jnp.ndarray], jnp.ndarray]] = None,
         save_checkpoint_dir: Optional[Path] = None,
         save_every_n_steps: Optional[int] = None,
         keep_top_n_checkpoints: int = 2,
@@ -46,6 +47,7 @@ class TrainerABC(
     ):
         super(TrainerABC, self).__init__(*args, **kwargs)
         self.predict_fn = predict_fn
+        self.uncertainty_fn = uncertainty_fn
         self.save_checkpoint_dir = save_checkpoint_dir
         self.save_every_n_steps = save_every_n_steps
         self.keep_top_n_checkpoints = keep_top_n_checkpoints
@@ -58,7 +60,7 @@ class TrainerABC(
     @abc.abstractmethod
     def training_loss_step(
         self,
-        fun: Callable[[Any], Union[float, Tuple[float, dict]]],
+        loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: Params,
         batch: Batch,
         mutable: Mutable,
@@ -75,7 +77,7 @@ class TrainerABC(
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
@@ -86,7 +88,7 @@ class TrainerABC(
 
         grad_fn = value_and_grad(
             lambda params: self.training_loss_step(
-                fun,
+                loss_fun,
                 params,
                 batch,
                 state.mutable,
@@ -117,7 +119,7 @@ class TrainerABC(
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
@@ -132,12 +134,11 @@ class TrainerABC(
         state: TrainState,
         aux: Dict[str, Any],
         batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        metrics: Optional[Tuple[Union[Callable[[jnp.ndarray, Array], float], Callable[[jnp.ndarray, jnp.ndarray, Array], float]], ...]],
         callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
-        if (
-            self.save_checkpoint_dir is not None
+        if (self.save_checkpoint_dir is not None
             and self.save_every_n_steps is not None
             and self.save_every_n_steps > 0
             and self._global_training_step >= self.save_every_n_steps
@@ -154,16 +155,31 @@ class TrainerABC(
 
         if not self.disable_training_metrics_computation and metrics is not None:
             preds = self.predict_fn(aux["outputs"], train=True)
-            if self.multi_device:
-                training_batch_metrics = self.compute_metrics(
-                    preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
-                    batch[1].reshape(
-                        (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
-                    ),
-                    metrics,
-                )
+            if self.uncertainty_fn is not None:
+                uncertainties = self.uncertainty_fn(aux["outputs"])
+                if self.multi_device:
+                    training_batch_metrics = self.compute_metrics(
+                        preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
+                        batch[1].reshape(
+                            (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
+                        ),
+                        metrics,
+                        uncertainties.reshape(
+                            (uncertainties.shape[0] * uncertainties.shape[1],) + uncertainties.shape[2:]),
+                    )
+                else:
+                    training_batch_metrics = self.compute_metrics(preds, batch[1], metrics, uncertainties)
             else:
-                training_batch_metrics = self.compute_metrics(preds, batch[1], metrics)
+                if self.multi_device:
+                    training_batch_metrics = self.compute_metrics(
+                        preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
+                        batch[1].reshape(
+                            (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
+                        ),
+                        metrics,
+                    )
+                else:
+                    training_batch_metrics = self.compute_metrics(preds, batch[1], metrics)
             for k, v in training_batch_metrics.items():
                 training_losses_and_metrics[k] = v
 
@@ -202,7 +218,7 @@ class TrainerABC(
         self,
         rng: PRNGKeyArray,
         state: TrainState,
-        fun: Callable,
+        loss_fun: Callable,
         training_dataloader: DataLoader,
         training_dataset_size: int,
         n_epochs: int = 1,
@@ -237,7 +253,7 @@ class TrainerABC(
                 training_batch_metrics_str,
             ) = self._training_loop(
                 epoch,
-                fun,
+                loss_fun,
                 metrics,
                 rng,
                 state,
@@ -263,7 +279,7 @@ class TrainerABC(
                     validation_losses_and_metrics_current_epoch,
                     validation_epoch_metrics_str,
                 ) = self._validation_loop(
-                    fun=fun,
+                    loss_fun=loss_fun,
                     metrics=metrics,
                     rng=rng,
                     state=state,
@@ -302,8 +318,8 @@ class TrainerABC(
     def _training_loop(
         self,
         current_epoch: int,
-        fun: Callable,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        loss_fun: Callable,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], jnp.ndarray], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
         training_dataloader: DataLoader,
@@ -322,7 +338,7 @@ class TrainerABC(
             state, aux = self.training_step(
                 state,
                 batch,
-                fun,
+                loss_fun,
                 rng,
                 training_dataset_size,
                 unravel,
@@ -369,7 +385,7 @@ class TrainerABC(
 
     def _validation_loop(
         self,
-        fun: Callable,
+        loss_fun: Callable,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
@@ -385,7 +401,7 @@ class TrainerABC(
             validation_losses_and_metrics_current_batch = self.validation_step(
                 state,
                 batch,
-                fun,
+                loss_fun,
                 rng,
                 validation_dataset_size,
                 metrics,
@@ -462,10 +478,11 @@ class TrainerABC(
         preds: Array,
         targets: Array,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        uncertainties: Optional[Array] = None
     ) -> Dict[str, float]:
         metrics_vals = {}
         for metric in metrics:
-            metrics_vals[metric.__name__] = metric(preds, targets)
+            metrics_vals[metric.__name__] = metric(preds, targets) if uncertainties is None else metric(preds, uncertainties, targets)
         return metrics_vals
 
 
@@ -475,20 +492,20 @@ class JittedMixin:
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(state, batch, fun, rng, n_data, unravel, kwargs)
+        return super().training_step(state, batch, loss_fun, rng, n_data, unravel, kwargs)
 
     @partial(jax.jit, static_argnums=(0, 3, 5, 6, 7, 8))
     def validation_step(
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
@@ -496,7 +513,7 @@ class JittedMixin:
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         return super().validation_step(
-            state, batch, fun, rng, n_data, metrics, unravel, kwargs
+            state, batch, loss_fun, rng, n_data, metrics, unravel, kwargs
         )
 
 
@@ -585,13 +602,13 @@ class MultiDeviceMixin:
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(state, batch, fun, rng, n_data, unravel, kwargs)
+        return super().training_step(state, batch, loss_fun, rng, n_data, unravel, kwargs)
 
     def training_step_end(
         self,
@@ -618,7 +635,7 @@ class MultiDeviceMixin:
         self,
         state: TrainState,
         batch: Batch,
-        fun: Callable,
+        loss_fun: Callable,
         rng: PRNGKeyArray,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
@@ -626,6 +643,6 @@ class MultiDeviceMixin:
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         validation_losses_and_metrics = super().validation_step(
-            state, batch, fun, rng, n_data, metrics, unravel, kwargs
+            state, batch, loss_fun, rng, n_data, metrics, unravel, kwargs
         )
         return lax.pmean(validation_losses_and_metrics, axis_name="batch")

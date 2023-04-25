@@ -1,300 +1,252 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import jax.numpy as jnp
 from jax._src.prng import PRNGKeyArray
 
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
-from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import Array, CalibMutable, CalibParams
+from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.likelihood.base import Likelihood
 from fortuna.utils.random import WithRNG
 
 
-class Predictive(WithRNG, abc.ABC):
-    def __init__(
-        self,
-        output_calib_manager: OutputCalibManager,
-        prob_output_layer: ProbOutputLayer,
-    ):
-        r"""
-        Abstract predictive distribution. It characterizes the distribution of the target variable given the
-        calibrated outputs. It can be see as :math:`p(y|\omega)`, where :math:`y` is a target variable and
-        :math:`\omega` a calibrated output.
+class Predictive(WithRNG):
+    def __init__(self, likelihood: Likelihood):
         """
-        self.output_calib_manager = output_calib_manager
-        self.prob_output_layer = prob_output_layer
+        Predictive distribution abstract class.
+
+        Parameters
+        ----------
+        likelihood : Likelihood
+             A likelihood object.
+        """
+        self.likelihood = likelihood
         self.state = None
 
     def log_prob(
-        self, outputs: Array, targets: Array, calibrated: bool = True, **kwargs
+        self,
+        data_loader: DataLoader,
+        distribute: bool = True
     ) -> jnp.ndarray:
-        """
-        Evaluate the log-probability density function (a.k.a. log-pdf) given the outputs and target data.
+        r"""
+        Estimate the predictive log-probability density function (a.k.a. log-pdf), that is
+
+        .. math::
+            \log p(y|x, \mathcal{D}),
+
+        where:
+         - :math:`x` is an observed input variable;
+         - :math:`y` is an observed target variable;
+         - :math:`\mathcal{D}` is the observed training data set.
 
         Parameters
         ----------
-        outputs : Array
-            Calibrated outputs.
-        targets : Array
-            Target data points.
-        calibrated : bool
-            Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
-            model must have been calibrated beforehand.
+        data_loader : DataLoader
+            A data loader.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
-            An evaluation of the log-pdf for each data point.
+            An estimate of the predictive log-pdf for each data point.
         """
-        if calibrated:
-            self._check_calibrated()
-            state = self.state.get()
-            outputs = self.output_calib_manager.apply(
-                params=state.params["output_calibrator"],
-                outputs=outputs,
-                mutable=state.mutable["output_calibrator"],
-            )
-        return self.prob_output_layer.log_prob(outputs, targets, **kwargs)
+        state = self.state.get()
+        return self.likelihood.log_prob(
+            params=state.params,
+            data_loader=data_loader,
+            mutable=state.mutable,
+            distribute=distribute
+        )
 
     def sample(
         self,
-        n_target_samples: int,
-        outputs: Array,
+        inputs_loader: InputsLoader,
+        n_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
-        calibrated: bool = True,
-        **kwargs
+        distribute: bool = True,
     ) -> jnp.ndarray:
-        """
-        Sample target variables for each outputs.
+        r"""
+        Sample from an approximation of the predictive distribution for each input data point, that is
+
+        .. math::
+            y^{(i)}\sim p(\cdot|x, \mathcal{D}),
+
+        where:
+         - :math:`x` is an observed input variable;
+         - :math:`\mathcal{D}` is the observed training data set;
+         - :math:`y^{(i)}` is a sample of the target variable for the input :math:`x`.
 
         Parameters
         ----------
-        n_target_samples: int
-            The number of target samples to draw for each of the outputs.
-        outputs : Array
-            Calibrated outputs.
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        n_samples : int
+            Number of target samples to sample for each input data point.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        calibrated : bool
-            Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
-            model must have been calibrated beforehand.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
-            Samples of the target variable for each output.
+            Samples for each input data point.
         """
-        if calibrated:
-            self._check_calibrated()
-            state = self.state.get()
-            outputs = self.output_calib_manager.apply(
-                params=state.params["output_calibrator"],
-                outputs=outputs,
-                mutable=state.mutable["output_calibrator"],
-            )
-        return self.prob_output_layer.sample(n_target_samples, outputs, rng, **kwargs)
+        state = self.state.get()
+        return self.likelihood.sample(
+            n_target_samples=n_samples,
+            params=state.params,
+            inputs_loader=inputs_loader,
+            mutable=state.mutable,
+            rng=rng,
+            distribute=distribute
+        )
 
-    def mean(self, outputs: Array, calibrated: bool = True, **kwargs) -> jnp.ndarray:
-        """
-        Estimate the mean of the target variable given the output, with respect to the predictive distribution.
+    def mean(
+        self,
+        inputs_loader: InputsLoader,
+        distribute: bool = True,
+    ) -> jnp.ndarray:
+        r"""
+        Estimate the predictive mean of the target variable, that is
+
+        .. math::
+            \mathbb{E}_{Y|x, \mathcal{D}}[Y],
+
+        where:
+         - :math:`x` is an observed input variable;
+         - :math:`Y` is a random target variable;
+         - :math:`\mathcal{D}` is the observed training data set;
+         - :math:`W` denotes the random model parameters.
 
         Parameters
         ----------
-        outputs : Array
-            Model outputs.
-        calibrated : bool
-            Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
-            model must have been calibrated beforehand.
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
-            The estimated mean for each output.
+            An estimate of the predictive mean for each input.
         """
-        if calibrated:
-            self._check_calibrated()
-            state = self.state.get()
-            outputs = self.output_calib_manager.apply(
-                params=state.params["output_calibrator"],
-                outputs=outputs,
-                mutable=state.mutable["output_calibrator"],
-            )
-        return self.prob_output_layer.mean(outputs, **kwargs)
+        state = self.state.get()
+        return self.likelihood.mean(
+            params=state.params,
+            inputs_loader=inputs_loader,
+            mutable=state.mutable,
+            distribute=distribute
+        )
 
-    def mode(self, outputs: Array, calibrated: bool = True, **kwargs) -> jnp.ndarray:
-        """
-        Estimate the mode of the target variable given the output, with respect to the predictive distribution.
+    def mode(
+        self,
+        inputs_loader: InputsLoader,
+        distribute: bool = True,
+    ) -> jnp.ndarray:
+        r"""
+        Estimate the predictive mode of the target variable, that is
+
+        .. math::
+            \text{argmax}_y\ p(y|x, \mathcal{D}),
+
+        where:
+         - :math:`x` is an observed input variable;
+         - :math:`\mathcal{D}` is the observed training data set;
+         - :math:`y` is the target variable to optimize upon.
 
         Parameters
         ----------
-        outputs : Array
-            Model outputs.
-        calibrated : bool
-            Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
-            model must have been calibrated beforehand.
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
-            The estimated mode for each output.
+            An estimate of the predictive mode for each input.
         """
-        if calibrated:
-            self._check_calibrated()
-            state = self.state.get()
-            outputs = self.output_calib_manager.apply(
-                params=state.params["output_calibrator"],
-                outputs=outputs,
-                mutable=state.mutable["output_calibrator"],
-            )
-        return self.prob_output_layer.mode(outputs, **kwargs)
+        state = self.state.get()
+        return self.likelihood.mode(
+            params=state.params,
+            inputs_loader=inputs_loader,
+            mutable=state.mutable,
+            distribute=distribute
+        )
 
     def variance(
-        self, outputs: jnp.ndarray, calibrated: bool = True, **kwargs
+        self,
+        inputs_loader: InputsLoader,
+        distribute: bool = True,
     ) -> jnp.ndarray:
-        """
-        Estimate the variance of the target variable given the output, with respect to the predictive distribution.
+        r"""
+        Estimate the predictive variance of the target variable, that is
+
+        .. math::
+            \text{Var}_{Y|x, D}[Y],
+
+        where:
+         - :math:`x` is an observed input variable;
+         - :math:`Y` is a random target variable;
+         - :math:`\mathcal{D}` is the observed training data set.
+
+        Note that the predictive variance above corresponds to the sum of its aleatoric and epistemic components.
 
         Parameters
         ----------
-        outputs : jnp.ndarray
-            Model outputs.
-        calibrated : bool
-            Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
-            model must have been calibrated beforehand.
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
-            The estimated variance for each output.
+            An estimate of the predictive variance for each input.
         """
-        if calibrated:
-            self._check_calibrated()
-            state = self.state.get()
-            outputs = self.output_calib_manager.apply(
-                params=state.params["output_calibrator"],
-                outputs=outputs,
-                mutable=state.mutable["output_calibrator"],
-            )
-        return self.prob_output_layer.variance(outputs, **kwargs)
+        state = self.state.get()
+        return self.likelihood.variance(
+            params=state.params,
+            inputs_loader=inputs_loader,
+            mutable=state.mutable,
+            distribute=distribute
+        )
 
     def std(
         self,
-        outputs: jnp.ndarray,
+        inputs_loader: InputsLoader,
         variances: Optional[jnp.ndarray] = None,
-        calibrated: bool = True,
+        distribute: bool = True,
     ) -> jnp.ndarray:
-        """
-        Estimate the standard deviation of the target variable given the output, with respect to the predictive
-        distribution.
+        r"""
+        Estimate the predictive standard deviation of the target variable, that is
+
+        .. math::
+            \text{Var}_{Y|x, D}[Y],
+
+        where:
+         - :math:`x` is an observed input variable;
+         - :math:`Y` is a random target variable;
+         - :math:`\mathcal{D}` is the observed training data set.
 
         Parameters
         ----------
-        outputs : jnp.ndarray
-            Model outputs.
+        inputs_loader : InputsLoader
+            A loader of input data points.
         variances: Optional[jnp.ndarray]
-            Variance for each output.
-        calibrated : bool
-            Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
-            model must have been calibrated beforehand.
+            An estimate of the predictive variance.passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
 
         Returns
         -------
         jnp.ndarray
-            The estimated standard deviation for each output.
+            An estimate of the predictive standard deviation for each input.
         """
-        if calibrated:
-            self._check_calibrated()
-            state = self.state.get()
-            outputs = self.output_calib_manager.apply(
-                params=state.params["output_calibrator"],
-                outputs=outputs,
-                mutable=state.mutable["output_calibrator"],
+        if variances is None:
+            variances = self.variance(
+                inputs_loader=inputs_loader,
+                distribute=distribute,
             )
-        return self.prob_output_layer.std(outputs, variances=variances)
-
-    def entropy(
-        self, outputs: jnp.ndarray, calibrated: bool = True, **kwargs
-    ) -> jnp.ndarray:
-        """
-        Estimate the entropy of the target variable given the output, with respect to the predictive distribution.
-
-        Parameters
-        ----------
-        outputs : jnp.ndarray
-            Model outputs.
-        calibrated : bool
-            Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
-            model must have been calibrated beforehand.
-
-        Returns
-        -------
-        jnp.ndarray
-            The estimated mean for each output.
-        """
-        if calibrated:
-            self._check_calibrated()
-            state = self.state.get()
-            outputs = self.output_calib_manager.apply(
-                params=state.params["output_calibrator"],
-                outputs=outputs,
-                mutable=state.mutable["output_calibrator"],
-            )
-        return self.prob_output_layer.entropy(outputs, **kwargs)
-
-    def _check_calibrated(self) -> None:
-        """
-        Check that the model has been calibrated beforehand.
-        """
-        if self.state is None:
-            raise ValueError(
-                "No calibration state was found. The model must be calibrated beforehand."
-            )
-
-    def _log_joint_prob(
-        self,
-        params: CalibParams,
-        targets: Array,
-        outputs: Array,
-        mutable: Optional[CalibMutable] = None,
-        rng: Optional[PRNGKeyArray] = None,
-        return_aux: Optional[List[str]] = None,
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
-        if return_aux is None:
-            return_aux = []
-        supported_aux = ["outputs", "mutable"]
-        unsupported_aux = [s for s in return_aux if s not in supported_aux]
-        if sum(unsupported_aux) > 0:
-            raise AttributeError(
-                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux` 
-                            belong to the following list: {}""".format(
-                    unsupported_aux, supported_aux
-                )
-            )
-        aux = dict()
-        outs = self.output_calib_manager.apply(
-            params=params["output_calibrator"],
-            outputs=outputs,
-            mutable=mutable["output_calibrator"],
-            rng=rng,
-            calib="mutable" in return_aux,
-        )
-        if (
-            mutable is not None
-            and mutable["output_calibrator"] is not None
-            and "mutable" in return_aux
-        ):
-            outputs, aux["mutable"] = outs
-            aux["mutable"] = dict(output_calibrator=aux["mutable"])
-        else:
-            outputs = outs
-            if "mutable" in return_aux:
-                aux["mutable"] = dict(output_calibrator=None)
-        log_joint_prob = self.prob_output_layer.log_prob(outputs, targets).sum()
-
-        if len(return_aux) == 0:
-            return log_joint_prob
-        else:
-            if "outputs" in return_aux:
-                aux["outputs"] = outputs
-            return log_joint_prob, aux
+        return jnp.sqrt(variances)

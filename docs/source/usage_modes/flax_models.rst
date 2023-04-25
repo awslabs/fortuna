@@ -95,7 +95,7 @@ training returns a status object, describing the progress of the training proces
 You are encouraged to configure fitting and calibration as you please. You can specify the optimization
 process, saving and restoring checkpoints, monitoring the training and enable early stopping, and
 select your computation device; please consult the :ref:`fit configuration <fit_config>` and
-:ref:`calibration configuration <prob_model_calib_config>` references. In this example, we will stick with the
+:ref:`calibration configuration <prob_calib_config>` references. In this example, we will stick with the
 default configuration options.
 
 .. code-block:: python
@@ -186,7 +186,7 @@ but a new one could be used.
 .. code-block:: python
     :caption: **References:** :meth:`~fortuna.conformal.classification.adaptive_prediction.AdaptivePredictionConformalClassifier.conformal_set`
 
-    from fortuna.conformal.classification import AdaptivePredictionConformalClassifier
+    from fortuna.conformal import AdaptivePredictionConformalClassifier
     calib_inputs_loader = calib_data_loader.to_inputs_loader()
     calib_targets = calib_data_loader.to_array_targets()
     calib_means = prob_model.predictive.mean(
@@ -280,7 +280,7 @@ training returns a status object, describing the progress of the training proces
 You are invited to configure fitting and calibration as you please. You can specify the optimization
 process, saving and restoring checkpoints, monitoring the training and enable early stopping, and
 select your computation device; please consult the :ref:`fit configuration <fit_config>` and
-:ref:`calibration configuration <prob_model_calib_config>` references. In this example, we will stick with the
+:ref:`calibration configuration <prob_calib_config>` references. In this example, we will stick with the
 default configuration options.
 
 .. code-block:: python
@@ -366,7 +366,7 @@ but a new one could be used.
 .. code-block:: python
     :caption: **References:** :meth:`~fortuna.conformal.regression.quantile.QuantileConformalRegressor.conformal_interval`
 
-    from fortuna.conformal.regression import QuantileConformalRegressor
+    from fortuna.conformal import QuantileConformalRegressor
     calib_inputs_loader = calib_data_loader.to_inputs_loader()
     calib_targets = calib_data_loader.to_array_targets()
     calib_cred_intervals = prob_model.predictive.credible_interval(

@@ -12,6 +12,10 @@ and :ref:`regression <conformal_regression>`.
 
 .. automodule:: fortuna.conformal.classification.simple_prediction
 
+.. automodule:: fortuna.conformal.classification.adaptive_conformal_classifier
+
+.. automodule:: fortuna.conformal.classification.batch_mvp
+
 .. _conformal_regression:
 
 .. automodule:: fortuna.conformal.regression.quantile
@@ -25,3 +29,7 @@ and :ref:`regression <conformal_regression>`.
 .. automodule:: fortuna.conformal.regression.jackknife_minmax
 
 .. automodule:: fortuna.conformal.regression.enbpi
+
+.. automodule:: fortuna.conformal.regression.adaptive_conformal_regressor
+
+.. automodule:: fortuna.conformal.regression.batch_mvp

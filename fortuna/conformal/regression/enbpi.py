@@ -69,6 +69,7 @@ class EnbPI(ConformalRegressor):
         return_residuals: bool
             If True, return the residual errors computed over the training data. These are used in
             :meth:`~fortuna.conformal.regression.enbpi.EnbPI.conformal_interval_from_residuals`.
+
         Returns
         -------
         Union[Array, Tuple[Array, Array]]

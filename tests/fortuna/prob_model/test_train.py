@@ -8,10 +8,10 @@ from fortuna.model.mlp import MLP
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
-from fortuna.prob_model.calib_config import (CalibConfig, CalibMonitor,
+from fortuna.prob_model import (CalibConfig, CalibMonitor,
                                              CalibOptimizer)
 from fortuna.prob_model.classification import ProbClassifier
-from fortuna.prob_model.fit_config import FitConfig, FitMonitor
+from fortuna.prob_model import FitConfig, FitMonitor
 from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_posterior import \

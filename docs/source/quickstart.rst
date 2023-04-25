@@ -41,7 +41,7 @@ i.e. calibrated versions of you test credible intervals.
 .. code-block:: python
       :caption: **References:** :meth:`~fortuna.conformal.regression.quantile.QuantileConformalRegressor.conformal_interval`
 
-      from fortuna.conformal.regression import QuantileConformalRegressor
+      from fortuna.conformal import QuantileConformalRegressor
       conformal_intervals = QuantileConformalRegressor().conformal_interval(
             val_lower_bounds=val_lower_bounds, val_upper_bounds=val_upper_bounds,
             test_lower_bounds=test_lower_bounds, test_upper_bounds=test_upper_bounds,
@@ -71,10 +71,10 @@ Furthermore, you have some arrays of calibration target variables :code:`calib_t
 The following code provides a minimal classification example to get calibrated predictive entropy estimates.
 
 .. code-block:: python
-      :caption: **References:** :class:`~fortuna.calib_model.classification.CalibClassifier`, :meth:`~fortuna.calib_model.classification.CalibClassifier.calibrate`, :meth:`~fortuna.calib_model.predictive.classification.ClassificationPredictive.entropy`
+      :caption: **References:** :class:`~fortuna.output_calib_model.classification.OutputCalibClassifier`, :meth:`~fortuna.output_calib_model.classification.OutputCalibClassifier.calibrate`, :meth:`~fortuna.output_calib_model.predictive.classification.ClassificationPredictive.entropy`
 
-      from fortuna.calib_model import CalibClassifier
-      calib_model = CalibClassifier()
+      from fortuna.output_calib_model import OutputCalibClassifier
+      calib_model = OutputCalibClassifier()
       status = calib_model.calibrate(calib_outputs=calib_outputs, calib_targets=calib_targets)
       test_entropies = calib_model.predictive.entropy(outputs=test_outputs)
 

@@ -3,11 +3,11 @@ import unittest
 import jax.numpy as jnp
 import numpy as np
 
-from fortuna.conformal.classification import (
+from fortuna.conformal import (
     AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier, AdaptiveConformalClassifier,
     BatchMVPConformalClassifier
 )
-from fortuna.conformal.regression import (
+from fortuna.conformal import (
     CVPlusConformalRegressor, EnbPI, JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
     OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, AdaptiveConformalRegressor,
@@ -16,12 +16,10 @@ from fortuna.conformal.regression import (
 from fortuna.data.loader import DataLoader, InputsLoader
 
 
-np.random.rand(42)
-
-
 class TestConformalMethods(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._rng = np.random.default_rng(0)
 
     def test_prediction_conformal_classifier(self):
         val_probs = np.array([[0.1, 0.9], [0.8, 0.2], [0.3, 0.7]])
@@ -63,11 +61,11 @@ class TestConformalMethods(unittest.TestCase):
     def test_quantile_conformal_regressor(self):
         n_val_inputs = 100
         n_test_inputs = 100
-        val_lower_quantiles = np.random.normal(size=n_val_inputs)
-        val_upper_quantiles = np.random.normal(size=n_val_inputs)
-        test_lower_quantiles = np.random.normal(size=n_test_inputs)
-        test_upper_quantiles = np.random.normal(size=n_test_inputs)
-        val_targets = np.random.normal(size=(n_val_inputs, 1))
+        val_lower_quantiles = self._rng.normal(size=n_val_inputs)
+        val_upper_quantiles = self._rng.normal(size=n_val_inputs)
+        test_lower_quantiles = self._rng.normal(size=n_test_inputs)
+        test_upper_quantiles = self._rng.normal(size=n_test_inputs)
+        val_targets = self._rng.normal(size=(n_val_inputs, 1))
 
         conformal = QuantileConformalRegressor()
         scores = conformal.score(val_lower_quantiles, val_upper_quantiles, val_targets)
@@ -94,11 +92,11 @@ class TestConformalMethods(unittest.TestCase):
     def test_one_dimensional_uncertainty_conformal_regressor(self):
         n_val_inputs = 100
         n_test_inputs = 10
-        val_preds = np.random.normal(size=n_val_inputs)[:, None]
-        val_uncertainties = np.exp(np.random.normal(size=n_val_inputs))[:, None]
-        test_preds = np.random.normal(size=n_test_inputs)[:, None]
-        test_uncertainties = np.exp(np.random.normal(size=n_test_inputs))[:, None]
-        val_targets = np.random.normal(size=(n_val_inputs, 1))
+        val_preds = self._rng.normal(size=n_val_inputs)[:, None]
+        val_uncertainties = np.exp(self._rng.normal(size=n_val_inputs))[:, None]
+        test_preds = self._rng.normal(size=n_test_inputs)[:, None]
+        test_uncertainties = np.exp(self._rng.normal(size=n_test_inputs))[:, None]
+        val_targets = self._rng.normal(size=(n_val_inputs, 1))
 
         conformal = OneDimensionalUncertaintyConformalRegressor()
         scores = conformal.score(val_preds, val_uncertainties, val_targets)
@@ -131,19 +129,19 @@ class TestConformalMethods(unittest.TestCase):
         k1, k2, k3 = 100, 101, 102
         m = 99
         cross_val_outputs = [
-            np.random.normal(size=(k1, 1)),
-            np.random.normal(size=(k2, 1)),
-            np.random.normal(size=(k3, 1)),
+            self._rng.normal(size=(k1, 1)),
+            self._rng.normal(size=(k2, 1)),
+            self._rng.normal(size=(k3, 1)),
         ]
         cross_val_targets = [
-            np.random.normal(size=(k1, 1)),
-            np.random.normal(size=(k2, 1)),
-            np.random.normal(size=(k3, 1)),
+            self._rng.normal(size=(k1, 1)),
+            self._rng.normal(size=(k2, 1)),
+            self._rng.normal(size=(k3, 1)),
         ]
         cross_test_outputs = [
-            np.random.normal(size=(m, 1)),
-            np.random.normal(size=(m, 1)),
-            np.random.normal(size=(m, 1)),
+            self._rng.normal(size=(m, 1)),
+            self._rng.normal(size=(m, 1)),
+            self._rng.normal(size=(m, 1)),
         ]
 
         intervals = CVPlusConformalRegressor().conformal_interval(
@@ -159,9 +157,9 @@ class TestConformalMethods(unittest.TestCase):
     def test_jackknifeplus_conformal_regressor(self):
         n = 100
         m = 99
-        loo_val_outputs = np.random.normal(size=(n, 1))
-        loo_val_targets = np.random.normal(size=(n, 1))
-        loo_test_outputs = np.random.normal(size=(n, m, 1))
+        loo_val_outputs = self._rng.normal(size=(n, 1))
+        loo_val_targets = self._rng.normal(size=(n, 1))
+        loo_test_outputs = self._rng.normal(size=(n, m, 1))
 
         intervals = JackknifePlusConformalRegressor().conformal_interval(
             loo_val_outputs, loo_val_targets, loo_test_outputs, 0.05
@@ -176,9 +174,9 @@ class TestConformalMethods(unittest.TestCase):
     def test_jackknife_minmax_conformal_regressor(self):
         n = 100
         m = 99
-        loo_val_outputs = np.random.normal(size=(n, 1))
-        loo_val_targets = np.random.normal(size=(n, 1))
-        loo_test_outputs = np.random.normal(size=(n, m, 1))
+        loo_val_outputs = self._rng.normal(size=(n, 1))
+        loo_val_targets = self._rng.normal(size=(n, 1))
+        loo_test_outputs = self._rng.normal(size=(n, m, 1))
 
         intervals = JackknifeMinmaxConformalRegressor().conformal_interval(
             loo_val_outputs, loo_val_targets, loo_test_outputs, 0.05
@@ -198,10 +196,10 @@ class TestConformalMethods(unittest.TestCase):
 
         for b in bs:
             # all without extra scalar dimension
-            bootstrap_indices = np.random.choice(t, size=(b, t))
-            bootstrap_train_preds = np.random.normal(size=(b, t))
-            bootstrap_test_preds = np.random.normal(size=(b, t1))
-            train_targets = np.random.normal(size=t)
+            bootstrap_indices = self._rng.choice(t, size=(b, t))
+            bootstrap_train_preds = self._rng.normal(size=(b, t))
+            bootstrap_test_preds = self._rng.normal(size=(b, t1))
+            train_targets = self._rng.normal(size=t)
 
             intervals = EnbPI().conformal_interval(
                 bootstrap_indices=bootstrap_indices,
@@ -218,9 +216,9 @@ class TestConformalMethods(unittest.TestCase):
             assert len(np.unique(intervals[:, 1])) > 1
 
             # all with extra scalar dimension
-            bootstrap_train_preds = np.random.normal(size=(b, t, 1))
-            bootstrap_test_preds = np.random.normal(size=(b, t1, 1))
-            train_targets = np.random.normal(size=(t, 1))
+            bootstrap_train_preds = self._rng.normal(size=(b, t, 1))
+            bootstrap_test_preds = self._rng.normal(size=(b, t1, 1))
+            train_targets = self._rng.normal(size=(t, 1))
 
             intervals = EnbPI().conformal_interval(
                 bootstrap_indices=bootstrap_indices,
@@ -237,7 +235,7 @@ class TestConformalMethods(unittest.TestCase):
             assert len(np.unique(intervals[:, 1])) > 1
 
             # predictions with and targets without extra scalar dimension
-            train_targets = np.random.normal(size=t)
+            train_targets = self._rng.normal(size=t)
 
             intervals = EnbPI().conformal_interval(
                 bootstrap_indices=bootstrap_indices,
@@ -254,7 +252,7 @@ class TestConformalMethods(unittest.TestCase):
             assert len(np.unique(intervals[:, 1])) > 1
 
             # return also residuals
-            train_targets = np.random.normal(size=t)
+            train_targets = self._rng.normal(size=t)
 
             intervals, residuals = EnbPI().conformal_interval(
                 bootstrap_indices=bootstrap_indices,
@@ -277,14 +275,14 @@ class TestConformalMethods(unittest.TestCase):
     def test_adaptive_conformal_regressor(self):
         acr = AdaptiveConformalRegressor(conformal_regressor=QuantileConformalRegressor())
         error = acr.update_error(
-            conformal_interval=np.random.normal(size=2),
+            conformal_interval=self._rng.normal(size=2),
             error=0.01,
             target=np.array([1.2]),
             target_error=0.05
         )
 
         error = acr.update_error(
-            conformal_interval=np.random.normal(size=2),
+            conformal_interval=self._rng.normal(size=2),
             error=0.01,
             target=np.array([1.2]),
             target_error=0.05,
@@ -317,11 +315,11 @@ class TestConformalMethods(unittest.TestCase):
             bounds_fn=lambda x, t: (x - t, x + t)
         )
         val_data_loader = DataLoader.from_array_data(
-            (np.random.normal(size=(50,)), np.random.normal(size=(50,))),
+            (self._rng.normal(size=(50,)), self._rng.normal(size=(50,))),
             batch_size=32,
         )
         test_inputs_loader = InputsLoader.from_array_inputs(
-            np.random.normal(size=(150,)),
+            self._rng.normal(size=(150,)),
             batch_size=32,
         )
 
@@ -335,11 +333,11 @@ class TestConformalMethods(unittest.TestCase):
             n_classes=2
         )
         val_data_loader = DataLoader.from_array_data(
-            (np.random.normal(size=(50, 1)), np.random.choice(2, 50)),
+            (self._rng.normal(size=(50, 1)), self._rng.choice(2, 50)),
             batch_size=32,
         )
         test_inputs_loader = InputsLoader.from_array_inputs(
-            np.random.normal(size=(150, 1)),
+            self._rng.normal(size=(150, 1)),
             batch_size=32,
         )
 
