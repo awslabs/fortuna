@@ -8,6 +8,7 @@ from typing import Any, Callable, Tuple
 import flax.linen as nn
 import jax.numpy as jnp
 
+from fortuna.model.utils.spectral_norm import WithSpectralConv2DNorm
 from fortuna.typing import Array
 
 ModuleDef = Any
@@ -29,7 +30,9 @@ class WideResnetBlock(nn.Module):
         Number of filters.
     strides: Tuple[int, int]
         Strides.
-    :param dropout_rate: float
+    dropout: ModuleDef
+        Dropout module.
+    dropout_rate: float
         Dropout rate.
     """
 
@@ -38,6 +41,7 @@ class WideResnetBlock(nn.Module):
     activation: Callable
     filters: int
     strides: Tuple[int, int] = (1, 1)
+    dropout: ModuleDef = nn.Dropout
     dropout_rate: float = 0.0
 
     @nn.compact
@@ -57,10 +61,12 @@ class WideResnetBlock(nn.Module):
         jnp.ndarray
             Block outputs.
         """
-        dropout = nn.Dropout(rate=self.dropout_rate)
+        dropout = self.dropout(rate=self.dropout_rate, broadcast_dims=(1,2))
 
         y = self.norm(name="bn1")(x)
         y = nn.relu(y)
+        if self.dropout_rate > 0.0:
+            y = dropout(y, deterministic=not train)
         y = self.conv(self.filters, (3, 3), self.strides, name="conv1")(y)
         y = self.norm(name="bn2")(y)
         y = nn.relu(y)
@@ -90,6 +96,8 @@ class WideResnetGroup(nn.Module):
         Number of blocks per group.
     strides: Tuple[int, int]
         Strides.
+    dropout: ModuleDef
+        Dropout module.
     dropout_rate: float
         Dropout rate.
     """
@@ -100,6 +108,7 @@ class WideResnetGroup(nn.Module):
     blocks_per_group: int
     filters: int
     strides: Tuple[int, int] = (1, 1)
+    dropout: ModuleDef = nn.Dropout
     dropout_rate: float = 0.0
 
     @nn.compact
@@ -126,6 +135,7 @@ class WideResnetGroup(nn.Module):
                 activation=self.activation,
                 filters=self.filters,
                 strides=self.strides if i == 0 else (1, 1),
+                dropout=self.dropout,
                 dropout_rate=self.dropout_rate,
             )(x, train=train)
         return x
@@ -149,6 +159,8 @@ class DeepFeatureExtractorSubNet(nn.Module):
         Activation function.
     conv: ModuleDef
         Convolution module.
+    dropout: ModuleDef
+        Dropout module.
     """
 
     depth: int = 28
@@ -157,6 +169,7 @@ class DeepFeatureExtractorSubNet(nn.Module):
     dtype: Any = jnp.float32
     activation: Callable = nn.relu
     conv: ModuleDef = nn.Conv
+    dropout: ModuleDef = nn.Dropout
 
     @nn.compact
     def __call__(self, x: Array, train: bool = True) -> jnp.ndarray:
@@ -175,9 +188,15 @@ class DeepFeatureExtractorSubNet(nn.Module):
         jnp.ndarray
             Deep feature extractor representation.
         """
+        if hasattr(self, 'spectral_norm'):
+            conv = self.spectral_norm(self.conv, train=train)
+        else:
+            conv = self.conv
+
         blocks_per_group = (self.depth - 4) // 6
 
-        conv = partial(self.conv, use_bias=False, dtype=self.dtype)
+        dropout = self.dropout(rate=self.dropout_rate, broadcast_dims=(1,2))
+        conv = partial(conv, use_bias=False, dtype=self.dtype)
         norm = partial(
             nn.BatchNorm,
             use_running_average=not train,
@@ -187,6 +206,8 @@ class DeepFeatureExtractorSubNet(nn.Module):
         )
 
         x = conv(16, (3, 3), name="init_conv")(x)
+        if self.dropout_rate > 0.0:
+            x = dropout(x, deterministic=not train)
         x = WideResnetGroup(
             conv=conv,
             norm=norm,
@@ -194,6 +215,7 @@ class DeepFeatureExtractorSubNet(nn.Module):
             blocks_per_group=blocks_per_group,
             filters=16 * self.widen_factor,
             strides=(1, 1),
+            dropout=self.dropout,
             dropout_rate=self.dropout_rate,
         )(x, train=train)
         x = WideResnetGroup(
@@ -203,6 +225,7 @@ class DeepFeatureExtractorSubNet(nn.Module):
             blocks_per_group=blocks_per_group,
             filters=32 * self.widen_factor,
             strides=(2, 2),
+            dropout=self.dropout,
             dropout_rate=self.dropout_rate,
         )(x, train=train)
         x = WideResnetGroup(
@@ -212,6 +235,7 @@ class DeepFeatureExtractorSubNet(nn.Module):
             blocks_per_group=blocks_per_group,
             filters=64 * self.widen_factor,
             strides=(2, 2),
+            dropout=self.dropout,
             dropout_rate=self.dropout_rate,
         )(x, train=train)
         x = norm()(x)
@@ -277,6 +301,8 @@ class WideResNet(nn.Module):
         Activation function.
     conv: ModuleDef
         Convolution module.
+    dropout: ModuleDef
+        Dropout module.
     """
 
     output_dim: int
@@ -286,6 +312,7 @@ class WideResNet(nn.Module):
     dtype: Any = jnp.float32
     activation: Callable = nn.relu
     conv: ModuleDef = nn.Conv
+    dropout: ModuleDef = nn.Dropout
 
     def setup(self):
         self.dfe_subnet = DeepFeatureExtractorSubNet(
@@ -295,6 +322,7 @@ class WideResNet(nn.Module):
             dtype=self.dtype,
             activation=self.activation,
             conv=self.conv,
+            dropout=self.dropout,
         )
         self.output_subnet = OutputSubNet(output_dim=self.output_dim, dtype=self.dtype)
 
@@ -320,3 +348,10 @@ class WideResNet(nn.Module):
 
 
 WideResNet28_10 = partial(WideResNet, depth=28, widen_factor=10)
+
+
+class WideResNetDeepFeatureExtractorSubNetWithSN(WithSpectralConv2DNorm, DeepFeatureExtractorSubNet):
+    pass
+
+# define the feature extractors with spectral norm
+WideResNetD28W10DeepFeatureExtractorSubNetWithSN = partial(WideResNetDeepFeatureExtractorSubNetWithSN, depth=28, widen_factor=10)

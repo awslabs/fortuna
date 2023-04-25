@@ -154,7 +154,7 @@ class TrainerABC(
                 training_losses_and_metrics[k] = v
 
         if not self.disable_training_metrics_computation and metrics is not None:
-            preds = self.predict_fn(aux["outputs"])
+            preds = self.predict_fn(aux["outputs"], train=True)
             if self.uncertainty_fn is not None:
                 uncertainties = self.uncertainty_fn(aux["outputs"])
                 if self.multi_device:

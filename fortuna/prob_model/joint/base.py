@@ -160,9 +160,10 @@ class Joint(WithRNG):
                 input_shape, rng=self.rng.get(), **kwargs
             )
         )
-        output_dim = self.likelihood.model_manager.apply(
+        outputs = self.likelihood.model_manager.apply(
             oms.params, jnp.zeros((1,) + input_shape), mutable=oms.mutable
-        ).shape[-1]
+        )
+        output_dim = outputs[0].shape[-1] if isinstance(outputs, (list, tuple)) else outputs.shape[-1]
         ocms = OutputCalibManagerState.init_from_dict(
             FrozenDict(
                 output_calibrator=self.likelihood.output_calib_manager.init(

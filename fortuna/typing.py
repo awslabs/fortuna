@@ -1,5 +1,5 @@
 import pathlib
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, Iterable
 
 import jax.numpy as jnp
 import numpy as np
@@ -19,3 +19,5 @@ Outputs = jnp.ndarray
 Targets = Array
 Uncertainties = jnp.ndarray
 Predictions = jnp.ndarray
+AnyKey = Union[str, int]
+Shape = Iterable[int]

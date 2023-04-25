@@ -1,5 +1,5 @@
 import abc
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Dict, Any
 
 from jax._src.prng import PRNGKeyArray
 
@@ -11,6 +11,7 @@ from fortuna.prob_model.posterior.posterior_mixin import \
     WithPosteriorCheckpointingMixin
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
+from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Path, Status
 from fortuna.utils.random import WithRNG
 
@@ -23,6 +24,10 @@ class PosteriorApproximator(abc.ABC):
     @abc.abstractmethod
     def __str__(self):
         pass
+
+    @property
+    def posterior_method_kwargs(self) -> Dict[str, Any]:
+        return {}
 
 
 class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
@@ -59,6 +64,10 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
             n_val_data = val_data_loader.size
 
         return self.joint.init(input_shape), n_train_data, n_val_data
+
+    @staticmethod
+    def _check_state(state: PosteriorState) -> None:
+        pass
 
     @abc.abstractmethod
     def fit(

@@ -1,0 +1,1 @@
+SNGP_NAME = "sngp"

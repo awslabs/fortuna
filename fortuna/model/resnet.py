@@ -12,6 +12,7 @@ from typing import Any, Callable, Sequence, Tuple
 import flax.linen as nn
 import jax.numpy as jnp
 
+from fortuna.model.utils.spectral_norm import WithSpectralConv2DNorm
 from fortuna.typing import Array
 
 ModuleDef = Any
@@ -177,7 +178,11 @@ class DeepFeatureExtractorSubNet(nn.Module):
         jnp.ndarray
             Deep feature extractor representation.
         """
-        conv = partial(self.conv, use_bias=False, dtype=self.dtype)
+        if hasattr(self, 'spectral_norm'):
+            conv = self.spectral_norm(self.conv, train=train)
+        else:
+            conv = self.conv
+        conv = partial(conv, use_bias=False, dtype=self.dtype)
         norm = partial(
             nn.BatchNorm,
             use_running_average=not train,
@@ -308,3 +313,15 @@ ResNet50 = partial(ResNet, stage_sizes=[3, 4, 6, 3], block_cls=BottleneckResNetB
 ResNet101 = partial(ResNet, stage_sizes=[3, 4, 23, 3], block_cls=BottleneckResNetBlock)
 ResNet152 = partial(ResNet, stage_sizes=[3, 8, 36, 3], block_cls=BottleneckResNetBlock)
 ResNet200 = partial(ResNet, stage_sizes=[3, 24, 36, 3], block_cls=BottleneckResNetBlock)
+
+
+class ResNetDeepFeatureExtractorSubNetWithSN(WithSpectralConv2DNorm, DeepFeatureExtractorSubNet):
+    pass
+
+# define the feature extractors with spectral norm
+ResNet18DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock)
+ResNet34DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 4, 6, 3], block_cls=ResNetBlock)
+ResNet50DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 4, 6, 3], block_cls=BottleneckResNetBlock)
+ResNet101DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 4, 23, 3], block_cls=BottleneckResNetBlock)
+ResNet152DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 8, 36, 3], block_cls=BottleneckResNetBlock)
+ResNet200DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 24, 36, 3], block_cls=BottleneckResNetBlock)

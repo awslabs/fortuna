@@ -4,8 +4,8 @@ import flax.linen as nn
 import numpy as np
 
 from fortuna.data.loader import DataLoader
-from fortuna.model.model_manager.classification import \
-    ClassificationModelManager
+from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.model.model_manager.name_to_model_manager import ClassificationModelManagers
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
 from fortuna.output_calibrator.output_calib_manager.base import \
@@ -95,11 +95,14 @@ class ProbClassifier(ProbModel):
         self.prior = prior
         self.output_calibrator = output_calibrator
 
-        self.model_manager = ClassificationModelManager(model)
         self.output_calib_manager = OutputCalibManager(
             output_calibrator=output_calibrator
         )
         self.prob_output_layer = ClassificationProbOutputLayer()
+
+        self.model_manager = getattr(
+            ClassificationModelManagers, posterior_approximator.__str__()
+        ).value(model=model, **posterior_approximator.posterior_method_kwargs)
 
         self.likelihood = ClassificationLikelihood(
             self.model_manager, self.prob_output_layer, self.output_calib_manager
@@ -126,7 +129,8 @@ class ProbClassifier(ProbModel):
         outputs = self.model_manager.apply(
             params=s.params, inputs=np.zeros((1,) + input_shape), mutable=s.mutable
         )
-        if outputs.shape[1] != output_dim:
+        model_output_dim = outputs[0].shape[1] if isinstance(outputs, (list, tuple)) else outputs.shape[1]
+        if model_output_dim != output_dim:
             raise ValueError(
                 f"""The outputs dimension of `model` must correspond to the number of different classes
             in the target variables of `_data_loader`. However, {outputs.shape[1]} and {output_dim} were found,
