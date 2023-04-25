@@ -29,9 +29,9 @@
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
-X, y = make_regression(n_samples=2000, n_features=3, n_targets=1)
+X, y = make_regression(n_samples=500, n_features=3, n_targets=1)
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, random_state=0, test_size=1000
+    X, y, random_state=0, test_size=250
 )
 
 # %% [markdown]
