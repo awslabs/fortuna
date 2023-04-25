@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, List
+from typing import Optional, Tuple, Dict
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
@@ -13,7 +13,7 @@ from fortuna.distribution.gaussian import DiagGaussian
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.base import Posterior
+from fortuna.prob_model.posterior.gaussian_posterior import GaussianPosterior
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import \
     ADVIPosteriorApproximator
@@ -32,6 +32,7 @@ from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.utils.nested_dicts import nested_get, nested_unpair
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
+from fortuna.prob_model.posterior.state import PosteriorState
 
 
 class JittedADVITrainer(JittedMixin, ADVITrainer):
@@ -42,7 +43,7 @@ class MultiDeviceADVITrainer(MultiDeviceMixin, ADVITrainer):
     pass
 
 
-class ADVIPosterior(Posterior):
+class ADVIPosterior(GaussianPosterior):
     def __init__(
         self,
         joint: Joint,
@@ -79,50 +80,14 @@ class ADVIPosterior(Posterior):
                 "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
             )
 
-        state = None
         stds = None
-        allowed_states = [MAPState, ADVIState]
-        status = dict()
 
-        if fit_config.checkpointer.restore_checkpoint_path is not None:
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
-                optimizer=fit_config.optimizer.method,
-            )
-
-            if type(state) not in allowed_states:
-                raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
-                                 f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
-                                 f"with type {type(state)}.")
-
-            if type(state) == ADVIState:
-                means, stds = nested_unpair(
-                    state.params.unfreeze(),
-                    self.posterior_approximator.which_params,
-                    ("mean", "std")
-                ) if self.posterior_approximator.which_params is not None else \
-                    [FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()}) for s in ["mean", "std"]]
-                means, stds = FrozenDict(means), FrozenDict(stds)
-                state = state.replace(params=means)
-                del means
-        elif map_fit_config is not None:
-            map_posterior = MAPPosterior(
-                self.joint, posterior_approximator=MAPPosteriorApproximator()
-            )
-            map_posterior.rng = self.rng
-            logging.info("Do a preliminary run of MAP.")
-            status["map"] = map_posterior.fit(
-                rng=self.rng.get(),
-                train_data_loader=train_data_loader,
-                val_data_loader=val_data_loader,
-                fit_config=map_fit_config,
-                **kwargs,
-            )
-            logging.info("Preliminary run with MAP completed.")
-            state = map_posterior.state.get()
-
-        state, n_train_data, n_val_data = self._init(
-            train_data_loader, val_data_loader, state
+        state, status, n_train_data, n_val_data = self._init_state(
+            train_data_loader=train_data_loader,
+            val_data_loader=val_data_loader,
+            fit_config=fit_config,
+            map_fit_config=map_fit_config,
+            **kwargs
         )
 
         if self.posterior_approximator.which_params is None:
@@ -228,3 +193,58 @@ class ADVIPosterior(Posterior):
         **kwargs,
     ) -> JointState:
         return self._sample_diag_gaussian(rng=rng, **kwargs)
+
+    def _init_state(
+            self,
+            train_data_loader: DataLoader,
+            val_data_loader: DataLoader,
+            fit_config: FitConfig,
+            map_fit_config: Optional[FitConfig] = None,
+            **kwargs
+    ) -> Tuple[PosteriorState, Dict[str, Status], int, Optional[int]]:
+        allowed_states = (MAPState, ADVIState)
+        state = None
+        status = dict()
+
+        if fit_config.checkpointer.restore_checkpoint_path is not None:
+            state = self.restore_checkpoint(
+                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
+                optimizer=fit_config.optimizer.method,
+            )
+
+            if not isinstance(state, allowed_states):
+                raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
+                                 f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                                 f"with type {type(state)}.")
+
+            if isinstance(state, ADVIState):
+                means, stds = nested_unpair(
+                    d=state.params.unfreeze(),
+                    key_paths=self.posterior_approximator.which_params,
+                    labels=("mean", "std")
+                ) if self.posterior_approximator.which_params is not None else \
+                    [FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()}) for s in ["mean", "std"]]
+                means, stds = FrozenDict(means), FrozenDict(stds)
+                state = state.replace(params=means)
+                del means
+        elif map_fit_config is not None:
+            map_posterior = MAPPosterior(
+                self.joint, posterior_approximator=MAPPosteriorApproximator()
+            )
+            map_posterior.rng = self.rng
+            logging.info("Do a preliminary run of MAP.")
+            status["map"] = map_posterior.fit(
+                rng=self.rng.get(),
+                train_data_loader=train_data_loader,
+                val_data_loader=val_data_loader,
+                fit_config=map_fit_config,
+                **kwargs,
+            )
+            logging.info("Preliminary run with MAP completed.")
+            state = map_posterior.state.get()
+
+        state, n_train_data, n_val_data = self._init(
+            train_data_loader, val_data_loader, state
+        )
+
+        return state, status, n_train_data, n_val_data

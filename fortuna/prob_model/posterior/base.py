@@ -54,7 +54,7 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
         state: Optional[TrainState] = None,
-    ) -> Tuple[JointState, int, Union[int, None]]:
+    ) -> Tuple[Union[JointState, TrainState], int, Union[int, None]]:
         for i, (batch_inputs, batch_targets) in enumerate(train_data_loader):
             if i == 0:
                 input_shape = batch_inputs.shape[1:]
@@ -152,59 +152,4 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
             self.state.get(),
             checkpoint_path=checkpoint_path,
             keep=keep_top_n_checkpoints,
-        )
-
-    def _sample_diag_gaussian(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:
-        if rng is None:
-            rng = self.rng.get()
-        state = self.state.get()
-
-        if self.posterior_approximator.which_params is not None:
-            mean, std = nested_unpair(
-                state.params.unfreeze(),
-                self.posterior_approximator.which_params,
-                ("mean", "std"),
-            )
-
-            noise = generate_random_normal_like_tree(rng, std)
-            params = nested_set(
-                mean,
-                self.posterior_approximator.which_params,
-                tuple(
-                    [
-                        tree_map(
-                            lambda m, s, e: m + s * e,
-                            nested_get(mean, keys),
-                            nested_get(std, keys),
-                            nested_get(noise, keys),
-                        )
-                        for keys in self.posterior_approximator.which_params
-                    ]
-                ),
-            )
-            for k, v in params.items():
-                params[k] = FrozenDict(v)
-            state = state.replace(params=FrozenDict(params))
-        else:
-            mean, std = dict(), dict()
-            for k, v in state.params.items():
-                mean[k] = FrozenDict({"params": v["params"]["mean"]})
-                std[k] = FrozenDict({"params": v["params"]["std"]})
-
-            state = state.replace(
-                params=FrozenDict(
-                    tree_map(
-                        lambda m, s, e: m + s * e,
-                        mean,
-                        std,
-                        generate_random_normal_like_tree(rng, std),
-                    )
-                )
-            )
-
-        return JointState(
-            params=state.params,
-            mutable=state.mutable,
-            calib_params=state.calib_params,
-            calib_mutable=state.calib_mutable,
         )

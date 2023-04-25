@@ -215,8 +215,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             return unravel(_rav)
         return FrozenDict(
             nested_set(
-                self._all_params.unfreeze(),
-                self._which_params,
-                tuple([_unravel(_rav[self._idx[i]:self._idx[i+1]]) for i, _unravel in enumerate(unravel)]),
+                d=self._all_params.unfreeze(),
+                key_paths=self._which_params,
+                objs=tuple([_unravel(_rav[self._idx[i]:self._idx[i+1]]) for i, _unravel in enumerate(unravel)]),
             )
         )

@@ -16,10 +16,10 @@ class LaplacePosteriorApproximator(PosteriorApproximator):
             approximation. If `which_params` is not available, the Laplace approximation will be over all parameters.
         """
         if which_params:
-            if type(which_params) != tuple:
+            if not isinstance(which_params, tuple):
                 raise ValueError("`which_params` must be a tuple of lists.")
             for list_keys in which_params:
-                if type(list_keys) != list:
+                if not isinstance(list_keys, list):
                     raise ValueError("Each element in `which_params` must be a list.")
         self.which_params = which_params
 
