@@ -27,7 +27,7 @@
 
 # %%
 
-TRAIN_DATA_SIZE = 2000
+TRAIN_DATA_SIZE = 500
 
 from sklearn.datasets import make_moons
 train_data = make_moons(n_samples=TRAIN_DATA_SIZE, noise=0.1, random_state=0)
@@ -83,7 +83,7 @@ output_dim = 2
 model = DeepResidualNet(
     output_dim=output_dim,
     activations=(nn.relu, nn.relu, nn.relu, nn.relu, nn.relu, nn.relu),
-    widths=(128,128,128,128,128,128),
+    widths=(128, 128, 128, 128, 128, 128),
     dropout_rate=0.1,
 )
 
@@ -142,8 +142,6 @@ class SNGPDeepFeatureExtractorSubNet(WithSpectralNorm, DeepResidualFeatureExtrac
 # - Using the `SNGPPosteriorApproximator` as the `posterior_approximator` for the `ProbModel`.
 #
 # Nothing else is needed, Fortuna will take care of the rest for you!
-#
-# %%
 
 # %%
 import jax.numpy as jnp
@@ -171,13 +169,9 @@ prob_model = ProbClassifier(
 # `output_dim`, which should be set to the number of classes in the classification task.
 # `SNGPPosteriorApproximator` has more optional parameters that you can play with, to gain a better understanding of those you can
 # check out the documentation and/or the [original paper](https://arxiv.org/abs/2006.10108).
-#
-# %%
 
 # %% [markdown]
 # We are now ready to train the model as we usually do:
-#
-# %%
 
 # %%
 status = prob_model.train(

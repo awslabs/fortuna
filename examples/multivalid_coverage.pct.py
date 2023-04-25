@@ -72,9 +72,9 @@ def plot_intervals(xx, means, intervals, test_data, method):
 # Let us first generate training, calibration and test data points.
 
 # %%
-train_data = generate_data(10000)
-calib_data = generate_data(1000)
-test_data = generate_data(1000)
+train_data = generate_data(500)
+calib_data = generate_data(500)
+test_data = generate_data(500)
 
 # %% [markdown]
 # We then plot the training data. We see that when $x<0$ the data is much less noisy than when $x>0$.
@@ -124,11 +124,14 @@ idx_left, idx_right = [group_fns[i](test_data[0]) for i in range(2)]
 # We start by training a probabilistic classifier based on a MultiLayer Perceptron (MLP) model. Under the hood, posterior inference is performed by SWAG [Maddox W. J. et al., 2019](https://proceedings.neurips.cc/paper/2019/hash/118921efba23fc329e6560b27861f0c2-Abstract.html).
 
 # %%
-from fortuna.prob_model import ProbRegressor
+from fortuna.prob_model import ProbRegressor, FitConfig, FitMonitor
 from fortuna.model import MLP
 
 prob_model = ProbRegressor(model=MLP(1), likelihood_log_variance_model=MLP(1))
-status = prob_model.train(train_data_loader)
+status = prob_model.train(
+    train_data_loader,
+    map_fit_config=FitConfig(monitor=FitMonitor(early_stopping_patience=2))
+)
 
 # %% [markdown]
 # We then compute predictive mean and 95% credible intervals, and we measure marginal coverage on the full domain and on each of the two groups. We notice that the method tend to undercover overall and also on each group, compared to the desired coverage of 95%. Better hyper-parameter configurations and generating more samples to compute statistics may help achieve a better coverage already, but for the purpose of this example we will directly look at how to calibrate it with conformal prediction methods.

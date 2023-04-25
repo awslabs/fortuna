@@ -25,9 +25,9 @@
 # %%
 from sklearn.datasets import make_moons
 
-train_data = make_moons(n_samples=10000, noise=0.07, random_state=0)
-val_data = make_moons(n_samples=1000, noise=0.07, random_state=1)
-test_data = make_moons(n_samples=1000, noise=0.07, random_state=2)
+train_data = make_moons(n_samples=500, noise=0.07, random_state=0)
+val_data = make_moons(n_samples=500, noise=0.07, random_state=1)
+test_data = make_moons(n_samples=500, noise=0.07, random_state=2)
 
 # %% [markdown]
 # ### Convert data to a compatible data loader
@@ -62,7 +62,7 @@ prob_model = ProbClassifier(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model.
 
 # %%
-from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer
+from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer, CalibConfig, CalibMonitor
 from fortuna.metric.classification import accuracy
 import optax
 
@@ -71,9 +71,10 @@ status = prob_model.train(
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
     fit_config=FitConfig(
-        monitor=FitMonitor(metrics=(accuracy,)),
+        monitor=FitMonitor(metrics=(accuracy,), early_stopping_patience=2),
         optimizer=FitOptimizer(method=optax.adam(1e-1)),
     ),
+    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2))
 )
 
 # %% [markdown]
@@ -157,11 +158,12 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.output_calib_model.classification import OutputCalibClassifier
+from fortuna.output_calib_model import OutputCalibClassifier, Config, Monitor
 
 calib_model = OutputCalibClassifier()
 calib_status = calib_model.calibrate(
-    calib_outputs=calib_outputs, calib_targets=calib_targets
+    calib_outputs=calib_outputs, calib_targets=calib_targets,
+    config=Config(monitor=Monitor(early_stopping_patience=2))
 )
 
 # %% [markdown]

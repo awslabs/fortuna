@@ -27,7 +27,7 @@ import tensorflow_datasets as tfds
 
 def download(split_range, shuffle=False):
     ds = tfds.load(
-        name="mnist_corrupted",
+        name="mnist",
         split=f"train[{split_range}]",
         as_supervised=True,
         shuffle_files=True,

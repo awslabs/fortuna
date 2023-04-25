@@ -38,9 +38,9 @@ def make_sinusoidal(n_data: int, noise: float = 0.1, seed: int = 0):
     return x[:, None], y[:, None]
 
 
-train_data = make_sinusoidal(n_data=10000, seed=0)
-val_data = make_sinusoidal(n_data=1000, seed=1)
-test_data = make_sinusoidal(n_data=1000, seed=2)
+train_data = make_sinusoidal(n_data=500, seed=0)
+val_data = make_sinusoidal(n_data=500, seed=1)
+test_data = make_sinusoidal(n_data=500, seed=2)
 
 fig, axes = plt.subplots(1, 3, figsize=(10, 1))
 axes[0].scatter(*train_data, s=1, label="training data", c="C0")
@@ -86,7 +86,7 @@ prob_model = ProbRegressor(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model.
 
 # %%
-from fortuna.prob_model import FitConfig, FitMonitor
+from fortuna.prob_model import FitConfig, FitMonitor, CalibConfig, CalibMonitor
 from fortuna.metric.regression import rmse
 
 status = prob_model.train(
@@ -94,6 +94,7 @@ status = prob_model.train(
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
     fit_config=FitConfig(monitor=FitMonitor(early_stopping_patience=2, metrics=(rmse,))),
+    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2))
 )
 
 # %%
@@ -242,15 +243,17 @@ test_targets = test_data_loader.to_array_targets()
 # We now invoke a calibration classifier, with default temperature scaling output calibrator, and calibrate the model outputs.
 
 # %% pycharm={"name": "#%%\n"}
-from fortuna.output_calib_model import OutputCalibRegressor
+from fortuna.output_calib_model import OutputCalibRegressor, Config, Monitor
 
 calib_model = OutputCalibRegressor()
 calib_status = calib_model.calibrate(
-    calib_outputs=calib_outputs, calib_targets=calib_targets
+    calib_outputs=calib_outputs,
+    calib_targets=calib_targets,
+    config=Config(monitor=Monitor(early_stopping_patience=2))
 )
 
 
-# %% [markdown]
+# %% [markdown] d
 # Similarly as above, we can now compute predictive statistics.
 
 # %% pycharm={"name": "#%%\n"}

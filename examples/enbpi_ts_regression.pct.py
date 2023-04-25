@@ -48,7 +48,9 @@ _ = ax.set(
 
 # %%
 from sklearn.model_selection import train_test_split
+import numpy as np
 
+df = df.sample(1000)
 y = df["count"] / df["count"].max()
 X = df.drop("count", axis="columns")
 X_train, X_test = train_test_split(X, test_size=0.1, shuffle=False)
@@ -61,9 +63,6 @@ y_train, y_test = train_test_split(y, test_size=0.1, shuffle=False)
 # EnbPI requires bootstrapping the data, i.e. sampling with replacement random subsets of the time series and training a model for each of these samples.
 
 # %%
-import numpy as np
-
-
 class DataFrameBootstrapper:
     def __init__(self, n_samples: int):
         self.n_samples = n_samples
