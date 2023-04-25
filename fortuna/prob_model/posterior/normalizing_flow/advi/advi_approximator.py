@@ -26,7 +26,7 @@ class ADVIPosteriorApproximator(PosteriorApproximator):
             Number of samples to approximate the loss, that is the KL divergence (or the ELBO, equivalently).
         which_params: Optional[Tuple[List, ...]]
             Sequences of keys to the parameters of the probabilistic model for which to define the Laplace
-            approximation. If `which_params` is not available, the Laplace approximation will be over all parameters.
+            approximation. If `which_params` is not available, the posterior approximation will be over all parameters.
         """
         self.std_init_params = std_init_params
         self.std_base = std_base
