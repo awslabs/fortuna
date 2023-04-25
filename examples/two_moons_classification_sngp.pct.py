@@ -91,7 +91,6 @@ model = DeepResidualNet(
 from fortuna.prob_model import MAPPosteriorApproximator
 from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer
 from fortuna.metric.classification import accuracy
-import optax
 
 
 prob_model = ProbClassifier(
@@ -105,7 +104,7 @@ status = prob_model.train(
     calib_data_loader=val_data_loader,
     fit_config=FitConfig(
         monitor=FitMonitor(metrics=(accuracy,)),
-        optimizer=FitOptimizer(method=optax.adam(1e-4), n_epochs=100),
+        optimizer=FitOptimizer(n_epochs=100),
     )
 )
 
@@ -180,7 +179,7 @@ status = prob_model.train(
     calib_data_loader=val_data_loader,
     fit_config=FitConfig(
         monitor=FitMonitor(metrics=(accuracy,)),
-        optimizer=FitOptimizer(method=optax.adam(1e-4), n_epochs=100),
+        optimizer=FitOptimizer(n_epochs=100),
     )
 )
 
