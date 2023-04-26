@@ -7,8 +7,7 @@ from jax import jit, pmap
 from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import (DataLoader,
-                                 DeviceDimensionAugmentedDataLoader,
-                                 DeviceDimensionAugmentedInputsLoader,
+                                 DeviceDimensionAugmentedLoader,
                                  InputsLoader)
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.output_calibrator.output_calib_manager.base import \
@@ -455,7 +454,7 @@ class Likelihood(WithRNG):
             distribute = False
 
         if distribute:
-            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
 
         @jit
         def fun(_inputs):
@@ -782,7 +781,7 @@ class Likelihood(WithRNG):
             return fun(params, _inputs, mutable, calib_params, calib_mutable, **kwargs)
 
         if distribute:
-            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
             fun2 = pmap(fun2)
             return jnp.concatenate(
                 [self._unshard_array(fun2(inputs)) for inputs in inputs_loader], 0
@@ -808,7 +807,7 @@ class Likelihood(WithRNG):
             return fun(params, _batch, mutable, calib_params, calib_mutable, **kwargs)
 
         if distribute:
-            data_loader = DeviceDimensionAugmentedDataLoader(data_loader)
+            data_loader = DeviceDimensionAugmentedLoader(data_loader)
             fun2 = pmap(fun2)
             return jnp.concatenate(
                 [self._unshard_array(fun2(batch)) for batch in data_loader], 0

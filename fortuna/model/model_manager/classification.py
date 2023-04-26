@@ -78,7 +78,7 @@ class ClassificationModelManager(ModelManager):
 class SNGPClassificationModelManager(ClassificationModelManager):
     def __init__(
         self,
-        *args,
+        model: nn.Module,
         output_dim: int,
         gp_hidden_features: int = 1024,
         normalize_input: bool = False,
@@ -92,6 +92,11 @@ class SNGPClassificationModelManager(ClassificationModelManager):
 
         Parameters
         ----------
+        model : nn.Module
+            A model describing the deterministic relation between inputs and outputs. The outputs of the model
+            is the latent representation of the input, which in this case, does not correspond to the logits of a
+            softmax probability vector. The output dimension of the model is not dependent on the number
+            of classes in the classification task.
         output_dim: int
             The output dimension of the network.
         normalize_input: bool
@@ -117,7 +122,7 @@ class SNGPClassificationModelManager(ClassificationModelManager):
             posterior variance in posterior mean approximation.
             See `Zhiyun L. et al., 2020 <https://arxiv.org/abs/2006.07584>`_ for more details.
         """
-        super(SNGPClassificationModelManager, self).__init__(*args, **kwargs)
+        super(SNGPClassificationModelManager, self).__init__(model)
         self.output_dim = output_dim
         self.gp_hidden_features = gp_hidden_features
         self.normalize_input = normalize_input
