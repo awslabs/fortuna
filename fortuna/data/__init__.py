@@ -1,1 +1,1 @@
-from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
+from fortuna.data.loader import BaseInputsLoader, BaseTargetsLoader, DeviceDimensionAugmentedLoader, DataLoader, InputsLoader, TargetsLoader

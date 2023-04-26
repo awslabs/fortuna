@@ -9,8 +9,7 @@ from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
 from fortuna.data.loader import (DataLoader,
-                                 DeviceDimensionAugmentedDataLoader,
-                                 DeviceDimensionAugmentedInputsLoader,
+                                 DeviceDimensionAugmentedLoader,
                                  InputsLoader, TargetsLoader)
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams
@@ -263,7 +262,7 @@ class Predictive(WithRNG):
             )
 
         if distribute:
-            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
             fun = pmap(fun)
             if return_aux is None or len(return_aux) == 0:
                 return jnp.concatenate(
@@ -451,7 +450,7 @@ class Predictive(WithRNG):
             distribute = False
 
         if distribute:
-            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
 
         @jit
         def _sample(key, _inputs):
@@ -863,7 +862,7 @@ class Predictive(WithRNG):
             return fun(_inputs, n_posterior_samples, rng, **kwargs)
 
         if distribute:
-            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
             fun2 = pmap(fun2)
             return jnp.concatenate(
                 [
@@ -891,7 +890,7 @@ class Predictive(WithRNG):
             return fun(_batch, n_posterior_samples, rng, **kwargs)
 
         if distribute:
-            data_loader = DeviceDimensionAugmentedDataLoader(data_loader)
+            data_loader = DeviceDimensionAugmentedLoader(data_loader)
             fun2 = pmap(fun2)
             return jnp.concatenate(
                 [self.likelihood._unshard_array(fun2(batch)) for batch in data_loader],
@@ -916,7 +915,7 @@ class Predictive(WithRNG):
             return fun(_inputs, n_posterior_samples, rng, **kwargs)
 
         if distribute:
-            inputs_loader = DeviceDimensionAugmentedInputsLoader(inputs_loader)
+            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
             fun2 = pmap(fun2)
             return jnp.concatenate(
                 [

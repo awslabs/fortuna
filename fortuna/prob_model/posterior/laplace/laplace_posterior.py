@@ -9,7 +9,7 @@ from jax import hessian, lax, vjp, devices, jit, pmap
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 
-from fortuna.data.loader import DataLoader, DeviceDimensionAugmentedDataLoader
+from fortuna.data.loader import DataLoader, DeviceDimensionAugmentedLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
@@ -164,7 +164,7 @@ class LaplacePosterior(GaussianPosterior):
 
         n_gpu_devices = len([d for d in devices() if d.platform == "gpu"])
         if n_gpu_devices > 0:
-            train_data_loader = DeviceDimensionAugmentedDataLoader(train_data_loader)
+            train_data_loader = DeviceDimensionAugmentedLoader(train_data_loader)
             compute_hess_batch = pmap(compute_hess_batch, axis_name="batch")
         else:
             compute_hess_batch = jit(compute_hess_batch)
