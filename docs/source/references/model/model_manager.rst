@@ -8,7 +8,8 @@ and a :ref:`regression model manager <model_manager_regression>` for regression.
 
 .. _model_manager_classification:
 
-.. automodule:: fortuna.model.model_manager.classification
+.. autoclass:: fortuna.model.model_manager.classification.ClassificationModelManager
+    :no-inherited-members:
 
 .. _model_manager_regression:
 

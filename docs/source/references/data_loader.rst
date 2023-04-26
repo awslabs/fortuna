@@ -1,7 +1,7 @@
 Data loader
 ===========
 This section describes Fortuna's data loader functionalities. A :class:`~fortuna.data.loader.DataLoader` object
-is an iterable of twoo-dimensional tuples of arrays (either `NumPy <https://numpy.org/doc/stable/>`__-arrays or `JAX-NumPy <https://jax.readthedocs.io/en/latest/jax.numpy.html>`__-arrays),
+is an iterable of two-dimensional tuples of arrays (either `NumPy <https://numpy.org/doc/stable/>`__-arrays or `JAX-NumPy <https://jax.readthedocs.io/en/latest/jax.numpy.html>`__-arrays),
 where the first components are input variables and the second components are target variables. If your dispose of a data loader
 of `TensorFlow <https://www.tensorflow.org/guide/data>`__ or `PyTorch <https://pytorch.org/tutorials/beginner/basics/data_tutorial.html>`__ tensors, or others, you can convert them into something digestible by Fortuna using
 the appropriate :class:`~fortuna.data.loader.DataLoader` functionality
@@ -24,17 +24,3 @@ arrays (check :meth:`~fortuna.data.loader.DataLoader.to_array_inputs`, :meth:`~f
 .. _targets_loader:
 
 .. autoclass:: fortuna.data.loader.TargetsLoader
-
-.. autoclass:: fortuna.data.loader.FromIterableToDataLoader
-
-.. autoclass:: fortuna.data.loader.FromCallableIterableToDataLoader
-
-.. autoclass:: fortuna.data.loader.FromArrayDataToDataLoader
-
-.. autoclass:: fortuna.data.loader.FromArrayInputsToInputsLoader
-
-.. autoclass:: fortuna.data.loader.FromDataLoaderToInputsLoader
-
-.. autoclass:: fortuna.data.loader.FromArrayTargetsToTargetsLoader
-
-.. autoclass:: fortuna.data.loader.FromDataLoaderToTargetsLoader

@@ -8,3 +8,8 @@ Spectral-normalized Neural Gaussian Process (SNGP)
     :no-inherited-members:
     :exclude-members: state
     :members: fit, sample, load_state, save_state
+
+
+.. autoclass:: fortuna.model.model_manager.classification.SNGPClassificationModelManager
+
+.. autoclass:: fortuna.prob_model.posterior.sngp.sngp_callback.ResetCovarianceCallback
