@@ -7,7 +7,7 @@ class ADVIPosteriorApproximator(PosteriorApproximator):
     def __init__(
         self,
         std_init_params: float = 0.1,
-        std_base: float = 0.1,
+        log_std_base: float = -2.3,
         n_loss_samples: int = 3,
         which_params: Optional[Tuple[List, ...]] = None
     ):
@@ -19,9 +19,9 @@ class ADVIPosteriorApproximator(PosteriorApproximator):
         ----------
         std_init_params : float
             The standard deviation of the Gaussian distribution used to initialize the parameters of the flow.
-        std_base : float
+        log_std_base : float
             The normalizing flow transforms a base distribution into an approximation of the posterior. The base
-            distribution is assumed to be an isotropic Gaussian, with this argument as standard deviation.
+            distribution is assumed to be an isotropic Gaussian, with this argument as the log-standard deviation.
         n_loss_samples : int
             Number of samples to approximate the loss, that is the KL divergence (or the ELBO, equivalently).
         which_params: Optional[Tuple[List, ...]]
@@ -29,7 +29,7 @@ class ADVIPosteriorApproximator(PosteriorApproximator):
             approximation. If `which_params` is not available, the posterior approximation will be over all parameters.
         """
         self.std_init_params = std_init_params
-        self.std_base = std_base
+        self.log_std_base = log_std_base
         self.n_loss_samples = n_loss_samples
 
         if which_params:

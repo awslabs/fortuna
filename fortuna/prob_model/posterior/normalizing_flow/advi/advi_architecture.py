@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple, Dict
 
 import jax.numpy as jnp
 from jax import random
@@ -13,79 +13,96 @@ class ADVIArchitecture(HashableMixin):
     def __init__(self, dim: int, std_init_params: float = 0.1):
         """
         ADVI architecture. This consists of a simple component-wise linear transformation of the input. The
-        transformation includes a mean and a log-scale parameters. With this architecture, when the base distribution
+        transformation includes a mean and a log-std parameters. With this architecture, when the base distribution
         is a diagonal Gaussian, the resulting push-forward will also be. See
          [Dinh et al., 2017](https://arxiv.org/abs/1605.08803) for reference.
 
-        :param dim: int
+        Parameters
+        ----------
+        dim: int
             Dimension of input and output of the invertible transformation.
-        :param std_init_params: float
+        std_init_params: float
             Standard deviation of the random Gaussian initializing the parameters.
         """
         self.dim = dim
         self.std_init_params = std_init_params
 
-    def forward(self, params: Tuple[jnp.array, jnp.array], u: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    def forward(self, params: Dict[str, jnp.ndarray], u: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Component-wise forward linear transformation.
 
-        :param params: Tuple[jnp.array, jnp.array]
-            Mean and log-scale parameters.
-        :param u: np.ndarray
+        Parameters
+        ----------
+        params: Dict[str, jnp.ndarray]
+            Mean and log-std parameters.
+        u: jnp.ndarray
             Input to transform forward.
 
-        :return: Tuple[jnp.ndarray, jnp.ndarray]
+        Returns
+        -------
+        Tuple[jnp.ndarray, jnp.ndarray]
             v: jnp.ndarray
                 Output of the forward pass.
             ldj: jnp.ndarray
                 Log-determinant of the Jacobian of the forward pass.
         """
-        mean, logscale = params
         return (
-            mean + jnp.exp(logscale) * u,
-            jnp.repeat(jnp.sum(logscale, -1), u.shape[0]),
+            params["mean"] + jnp.exp(params["log_std"]) * u,
+            jnp.repeat(jnp.sum(params["log_std"], -1), u.shape[0]),
         )
 
-    def backward(self, params: Tuple[jnp.array, jnp.array], v: jnp.ndarray) -> Tuple[jnp.array, jnp.array]:
+    def backward(self, params: Dict[str, jnp.ndarray], v: jnp.ndarray) -> Tuple[jnp.array, jnp.array]:
         """
         Component-wise backward linear transformation.
 
-        :param params: Tuple[jnp.array, jnp.array]
-            Mean and log-scale parameters.
-        :param v: jnp.ndarray
+        Parameters
+        ----------
+        params: Dict[str, jnp.ndarray]
+            Mean and log-std parameters.
+        v: jnp.ndarray
             Input to transform backward.
 
-        :return: Tuple[jnp.array, jnp.array]
+        Returns
+        -------
+        Tuple[jnp.array, jnp.array]
             v: jnp.ndarray
                 Output of the backward pass.
             ldj: jnp.ndarray
                 Log-determinant of the Jacobian of the backward pass.
         """
-        mean, logscale = params
         return (
-            jnp.exp(-logscale) * (v - mean),
-            jnp.repeat(-jnp.sum(logscale, -1), v.shape[0]),
+            jnp.exp(-params["log_std"]) * (v - params["mean"]),
+            jnp.repeat(-jnp.sum(params["log_std"], -1), v.shape[0]),
         )
 
     def init_params(
         self,
         rng: PRNGKeyArray,
         mean: Optional[jnp.ndarray] = None,
-    ) -> Tuple[jnp.array, jnp.array]:
+        log_std: Optional[jnp.ndarray] = None
+    ) -> Dict[str, jnp.ndarray]:
         """
-        Initialize mean and log-scale parameters.
+        Initialize architecture parameters.
 
-        :param rng: PRNGKeyArray
+        Parameters
+        ----------
+        rng: PRNGKeyArray
             Random number generator.
-        :param mean: jnp.ndarray
+        mean: jnp.ndarray
             If the main model has already been initialized calling `model.init`, the already
-            initialized parameter values can be provided here.
+            initialized mean parameter values can be provided here.
+        log_std: jnp.ndarray
+            If the main model has already been initialized calling `model.init`, the already
+            initialized log-std parameter values can be provided here.
 
-        :return: Tuple[jnp.array, jnp.array]
+        Returns
+        -------
+        Tuple[jnp.array, jnp.array]
             Transformation parameters.
         """
-        rng, key_mean, key_logscale = random.split(rng, 3)
+        rng, key_mean, key_log_std = random.split(rng, 3)
         if mean is None:
             mean = self.std_init_params * random.normal(key_mean, (self.dim,))
-        logscale = self.std_init_params * random.normal(key_logscale, (self.dim,))
-        return mean, logscale
+        if log_std is None:
+            log_std = self.std_init_params * random.normal(key_log_std, (self.dim,))
+        return dict(mean=mean, log_std=log_std)

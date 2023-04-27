@@ -8,7 +8,7 @@ from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 
-from fortuna.data.loader import DataLoader
+from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.distribution.gaussian import DiagGaussian
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -22,25 +22,17 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_architecture import
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import \
     ADVIState
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import \
-    ADVITrainer
+    ADVITrainer, JittedADVITrainer, MultiDeviceADVITrainer
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
-from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
-from fortuna.typing import Status
+from fortuna.typing import Status, Array
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.utils.nested_dicts import nested_get, nested_unpair
+from fortuna.utils.nested_dicts import nested_get, nested_unpair, nested_set
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
 from fortuna.prob_model.posterior.state import PosteriorState
-
-
-class JittedADVITrainer(JittedMixin, ADVITrainer):
-    pass
-
-
-class MultiDeviceADVITrainer(MultiDeviceMixin, ADVITrainer):
-    pass
+import numpy as np
 
 
 class ADVIPosterior(GaussianPosterior):
@@ -71,7 +63,7 @@ class ADVIPosterior(GaussianPosterior):
         map_fit_config: Optional[FitConfig] = None,
         fit_config: FitConfig = FitConfig(),
         **kwargs,
-    ) -> Status:
+    ) -> Dict[str, Status]:
         if (
             fit_config.checkpointer.dump_state is True
             and not fit_config.checkpointer.save_checkpoint_dir
@@ -80,7 +72,7 @@ class ADVIPosterior(GaussianPosterior):
                 "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
             )
 
-        stds = None
+        log_stds = None
 
         state, status, n_train_data, n_val_data = self._init_state(
             train_data_loader=train_data_loader,
@@ -90,29 +82,12 @@ class ADVIPosterior(GaussianPosterior):
             **kwargs
         )
 
-        if self.posterior_approximator.which_params is None:
-            rav, self._unravel = ravel_pytree(state.params)
-            rav_stds = ravel_pytree(stds)[0] if stds is not None else None
-        else:
-            def unravel_fn(_params, _path):
-                return ravel_pytree(nested_get(_params, _path))
-            rav, self._unravel, sizes, rav_stds = [], [], [], []
-            for path in self.posterior_approximator.which_params:
-                _rav, _unravel = unravel_fn(state.params, path)
-                self._unravel.append(_unravel)
-                rav.append(_rav)
-                if stds is not None:
-                    rav_stds.append(unravel_fn(stds, path)[0])
-                sizes.append(len(_rav))
-            rav = jnp.concatenate(rav)
-            if stds is not None:
-                rav_stds = jnp.concatenate(rav_stds)
-            self._unravel = tuple(self._unravel)
+        rav, self._unravel, self._indices, rav_log_stds = self._get_unravel(state.params, log_stds)
 
         size_rav = len(rav)
         self.base = DiagGaussian(
             mean=jnp.zeros(size_rav),
-            std=self.posterior_approximator.std_base * jnp.ones(size_rav),
+            std=jnp.exp(self.posterior_approximator.log_std_base) * jnp.ones(size_rav),
         )
         self.architecture = ADVIArchitecture(
             size_rav, std_init_params=self.posterior_approximator.std_init_params
@@ -140,24 +115,22 @@ class ADVIPosterior(GaussianPosterior):
             architecture=self.architecture,
             which_params=self.posterior_approximator.which_params,
             all_params=state.params if self.posterior_approximator.which_params else None,
-            sizes=sizes if self.posterior_approximator.which_params else None,
+            indices=self._indices,
             unravel=self._unravel
         )
 
         state = ADVIState.init(
-            FrozenDict(
-                zip(
-                    ("mean", "logvar"),
+            params=FrozenDict(
                     trainer.init_params(
                         self.rng.get(),
-                        mean=rav
-                    ) if stds is None else (rav, 2 * jnp.log(rav_stds)),
-                )
-            ),
-            getattr(state, "mutable", state.mutable),
-            fit_config.optimizer.method,
-            getattr(state, "calib_params", state.calib_params),
-            getattr(state, "calib_mutable", state.calib_mutable),
+                        mean=rav,
+                        log_std=None if log_stds is None else (rav, rav_log_stds)
+                    ),
+                ),
+            mutable=getattr(state, "mutable", state.mutable),
+            optimizer=fit_config.optimizer.method,
+            calib_params=getattr(state, "calib_params", state.calib_params),
+            calib_mutable=getattr(state, "calib_mutable", state.calib_mutable),
         )
 
         logging.info("Run ADVI.")
@@ -190,9 +163,95 @@ class ADVIPosterior(GaussianPosterior):
     def sample(
         self,
         rng: Optional[PRNGKeyArray] = None,
+        input_shape: Optional[Tuple[int, ...]] = None,
+        inputs_loader: Optional[InputsLoader] = None,
+        inputs: Optional[Array] = None,
         **kwargs,
     ) -> JointState:
-        return self._sample_diag_gaussian(rng=rng, **kwargs)
+        """
+        Sample from the posterior distribution. Either `input_shape` or `_inputs_loader` must be passed.
+        Parameters
+        ----------
+        rng : Optional[PRNGKeyArray]
+            A random number generator. If not passed, this will be taken from the attributes of this class.
+        input_shape: Optional[Tuple[int, ...]]
+            Shape of a single input.
+        inputs_loader: Optional[InputsLoader]
+            Input data loader. If `input_shape` is passed, then `inputs` and `inputs_loader` are ignored.
+        inputs: Optional[Array]
+            Input variables.
+        Returns
+        -------
+        JointState
+            A sample from the posterior distribution.
+        """
+        if rng is None:
+            rng = self.rng.get()
+        state = self.state.get()
+
+        if not hasattr(self, "base") or not hasattr(self, "_unravel"):
+            if self.posterior_approximator.which_params is None:
+                n_params = len(ravel_pytree(state.params)[0]) // 2
+            else:
+                n_params = len(ravel_pytree(
+                    nested_unpair(
+                        d=state.params.unfreeze(),
+                        key_paths=self.posterior_approximator.which_params,
+                        labels=("mean", "log_std")
+                    )[0]
+                )[0])
+            self.base = DiagGaussian(
+                mean=jnp.zeros(n_params),
+                std=jnp.exp(self.posterior_approximator.log_std_base) * jnp.ones(n_params),
+            )
+            self.architecture = ADVIArchitecture(
+                n_params, std_init_params=self.posterior_approximator.std_init_params
+            )
+            self._unravel, self._indices = self._get_unravel(state.params)[1:2]
+
+        if self.posterior_approximator.which_params is None:
+            means = self._unravel(
+                self.architecture.forward(
+                    {s: ravel_pytree({k: v["params"][s] for k, v in state.params.items()})[0] for s in ["mean", "log_std"]},
+                    self.base.sample(rng)
+                )[0][0]
+            )
+        else:
+            means, log_stds = nested_unpair(
+                        d=state.params.unfreeze(),
+                        key_paths=self.posterior_approximator.which_params,
+                        labels=("mean", "log_std")
+                    )
+            rav_params = {
+                k: ravel_pytree(
+                    [nested_get(
+                        d=d,
+                        keys=path
+                    ) for path in self.posterior_approximator.which_params]
+                )[0] for k, d in zip(
+                    ["mean", "log_std"],
+                    [means, log_stds]
+                )
+            }
+            rav_params = self.architecture.forward(
+                params=rav_params,
+                u=self.base.sample(rng)
+            )[0][0]
+
+            means = FrozenDict(
+                nested_set(
+                    d=means,
+                    key_paths=self.posterior_approximator.which_params,
+                    objs=tuple([_unravel(rav_params[self._indices[i]:self._indices[i + 1]]) for i, _unravel in enumerate(self._unravel)]),
+                )
+            )
+
+        return JointState(
+            params=FrozenDict(means),
+            mutable=state.mutable,
+            calib_params=state.calib_params,
+            calib_mutable=state.calib_mutable,
+        )
 
     def _init_state(
             self,
@@ -218,13 +277,13 @@ class ADVIPosterior(GaussianPosterior):
                                  f"with type {type(state)}.")
 
             if isinstance(state, ADVIState):
-                means, stds = nested_unpair(
+                means, log_stds = nested_unpair(
                     d=state.params.unfreeze(),
                     key_paths=self.posterior_approximator.which_params,
-                    labels=("mean", "std")
+                    labels=("mean", "log_std")
                 ) if self.posterior_approximator.which_params is not None else \
-                    [FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()}) for s in ["mean", "std"]]
-                means, stds = FrozenDict(means), FrozenDict(stds)
+                    [FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()}) for s in ["mean", "log_std"]]
+                means, log_stds = FrozenDict(means), FrozenDict(log_stds)
                 state = state.replace(params=means)
                 del means
         elif map_fit_config is not None:
@@ -242,9 +301,42 @@ class ADVIPosterior(GaussianPosterior):
             )
             logging.info("Preliminary run with MAP completed.")
             state = map_posterior.state.get()
+        elif self.posterior_approximator.which_params is not None:
+            logging.warning(
+                f"ADVI will run exclusively over the parameters specified in `which_params`."
+                f"All the other parameters will be initialized randomly. "
+                f"If you want to train the other parameters too, "
+                f"and yet run ADVI only on the parameters in `which_params`, "
+                f"you can either restore an existing checkpoint, or set `map_fit_config`. "
+                f"In the latter case, a pre-run of MAP will run before ADVI.")
 
         state, n_train_data, n_val_data = self._init(
             train_data_loader, val_data_loader, state
         )
 
         return state, status, n_train_data, n_val_data
+
+    def _get_unravel(self, params, log_stds: Optional[Array] = None):
+        if self.posterior_approximator.which_params is None:
+            rav, unravel = ravel_pytree(params)
+            rav_log_stds = ravel_pytree(log_stds)[0] if log_stds is not None else None
+            indices = None
+        else:
+            def unravel_fn(_params, _path):
+                return ravel_pytree(nested_get(_params, _path))
+            rav, unravel, indices, rav_log_stds = [], [], [], []
+            for path in self.posterior_approximator.which_params:
+                _rav, _unravel = unravel_fn(params, path)
+                unravel.append(_unravel)
+                rav.append(_rav)
+                if log_stds is not None:
+                    rav_log_stds.append(unravel_fn(log_stds, path)[0])
+                indices.append(len(_rav))
+            rav = jnp.concatenate(rav)
+            if log_stds is not None:
+                rav_log_stds = jnp.concatenate(rav_log_stds)
+            else:
+                rav_log_stds = None
+            unravel = tuple(unravel)
+            indices = np.concatenate((np.array([0]), np.cumsum(indices)))
+        return rav, unravel, indices, rav_log_stds
