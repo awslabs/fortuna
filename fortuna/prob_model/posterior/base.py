@@ -121,33 +121,33 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         """
         pass
 
-    def load_state(self, checkpoint_path: Path) -> None:
+    def load_state(self, checkpoint_dir: Path) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be
         compatible with the current probabilistic model.
 
         Parameters
         ----------
-        checkpoint_path: Path
+        checkpoint_dir: Path
             Path to checkpoint file or directory to restore.
         """
         try:
-            self.restore_checkpoint(checkpoint_path)
+            self.restore_checkpoint(checkpoint_dir)
         except ValueError:
             raise ValueError(
-                f"No checkpoint was found in `checkpoint_path={checkpoint_path}`."
+                f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
             )
-        self.state = PosteriorStateRepository(checkpoint_dir=checkpoint_path)
+        self.state = PosteriorStateRepository(checkpoint_dir=checkpoint_dir)
 
     def save_state(
-        self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1
+        self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1
     ) -> None:
         """
         Save the state of the posterior distribution to a checkpoint directory.
 
         Parameters
         ----------
-        checkpoint_path: Path
+        checkpoint_dir: Path
             Path to checkpoint file or directory to restore.
         keep_top_n_checkpoints: int
             Number of past checkpoint files to keep.
@@ -159,6 +159,6 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
             )
         return self.state.put(
             self.state.get(),
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             keep=keep_top_n_checkpoints,
         )

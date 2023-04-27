@@ -118,7 +118,7 @@ class TestApproximations(unittest.TestCase):
         )
         self.class_fit_config_restore = lambda restore_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
-            checkpointer=FitCheckpointer(restore_checkpoint_path=restore_dir),
+            checkpointer=FitCheckpointer(restore_checkpoint_dir=restore_dir),
         )
         self.reg_fit_config_nodir_nodump = FitConfig(
             optimizer=FitOptimizer(n_epochs=3), monitor=FitMonitor(metrics=(rmse,))
@@ -140,7 +140,7 @@ class TestApproximations(unittest.TestCase):
         )
         self.reg_fit_config_restore = lambda restore_dir: FitConfig(
             optimizer=FitOptimizer(n_epochs=3),
-            checkpointer=FitCheckpointer(restore_checkpoint_path=restore_dir),
+            checkpointer=FitCheckpointer(restore_checkpoint_dir=restore_dir),
         )
         self.class_calib_config_nodir_nodump = CalibConfig(
             optimizer=CalibOptimizer(n_epochs=3), monitor=CalibMonitor(metrics=(brier,))
@@ -209,10 +209,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_reg.load_state(checkpoint_path=tmp_dir)
+            prob_reg.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_reg.save_state(checkpoint_path=tmp_dir)
+            prob_reg.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_class_map(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -273,10 +273,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_class.load_state(checkpoint_path=tmp_dir)
+            prob_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_class.save_state(checkpoint_path=tmp_dir)
+            prob_class.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_reg_advi(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -442,10 +442,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_reg.load_state(checkpoint_path=tmp_dir)
+            prob_reg.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_reg.save_state(checkpoint_path=tmp_dir)
+            prob_reg.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_class_advi(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -527,10 +527,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_class.load_state(checkpoint_path=tmp_dir)
+            prob_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_class.save_state(checkpoint_path=tmp_dir)
+            prob_class.save_state(checkpoint_dir=tmp_dir)
 
             # now use which params
             prob_class = ProbClassifier(
@@ -612,10 +612,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_class.load_state(checkpoint_path=tmp_dir)
+            prob_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_class.save_state(checkpoint_path=tmp_dir)
+            prob_class.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_reg_deep_ensemble(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -677,10 +677,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_reg.load_state(checkpoint_path=tmp_dir)
+            prob_reg.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_reg.save_state(checkpoint_path=tmp_dir)
+            prob_reg.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_class_deep_ensemble(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -741,10 +741,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_class.load_state(checkpoint_path=tmp_dir)
+            prob_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_class.save_state(checkpoint_path=tmp_dir)
+            prob_class.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_reg_laplace(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -924,10 +924,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_reg.load_state(checkpoint_path=tmp_dir)
+            prob_reg.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_reg.save_state(checkpoint_path=tmp_dir)
+            prob_reg.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_class_laplace(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1103,10 +1103,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_class.load_state(checkpoint_path=tmp_dir)
+            prob_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_class.save_state(checkpoint_path=tmp_dir)
+            prob_class.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_reg_swag(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1197,10 +1197,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_reg.load_state(checkpoint_path=tmp_dir)
+            prob_reg.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_reg.save_state(checkpoint_path=tmp_dir)
+            prob_reg.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_class_swag(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1287,10 +1287,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_class.load_state(checkpoint_path=tmp_dir)
+            prob_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_class.save_state(checkpoint_path=tmp_dir)
+            prob_class.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_class_sngp_no_sn(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1372,10 +1372,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            prob_class.load_state(checkpoint_path=tmp_dir)
+            prob_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            prob_class.save_state(checkpoint_path=tmp_dir)
+            prob_class.save_state(checkpoint_dir=tmp_dir)
 
     def test_error_when_empty_data_loader(self):
         prob_class_map = ProbClassifier(

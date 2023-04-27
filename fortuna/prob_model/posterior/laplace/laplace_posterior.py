@@ -198,7 +198,7 @@ class LaplacePosterior(GaussianPosterior):
 
         status = {}
 
-        if not fit_config.checkpointer.restore_checkpoint_path:
+        if not fit_config.checkpointer.restore_checkpoint_dir:
             map_posterior = MAPPosterior(
                 self.joint, posterior_approximator=MAPPosteriorApproximator()
             )
@@ -217,7 +217,7 @@ class LaplacePosterior(GaussianPosterior):
             state = map_posterior.state.get()
         else:
             state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path
+                restore_checkpoint_dir=fit_config.checkpointer.restore_checkpoint_dir
             )
 
         if type(state) == MAPState:

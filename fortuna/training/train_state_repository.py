@@ -15,16 +15,16 @@ class TrainStateRepository(WithCheckpointingMixin):
 
     def get(
         self,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
         **kwargs
     ) -> Union[Dict, TrainState]:
-        if not checkpoint_path and not self.checkpoint_dir and not self.__state:
+        if not checkpoint_dir and not self.checkpoint_dir and not self.__state:
             raise ValueError("No state available.")
-        if checkpoint_path or self.checkpoint_dir:
+        if checkpoint_dir or self.checkpoint_dir:
             return self.restore_checkpoint(
-                restore_checkpoint_path=checkpoint_path or self.checkpoint_dir,
+                restore_checkpoint_dir=checkpoint_dir or self.checkpoint_dir,
                 optimizer=optimizer,
                 prefix=prefix,
                 **kwargs
@@ -37,14 +37,14 @@ class TrainStateRepository(WithCheckpointingMixin):
     def put(
         self,
         state: TrainState,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         keep: int = 1,
         prefix: str = "checkpoint_",
     ) -> None:
-        if checkpoint_path or self.checkpoint_dir:
+        if checkpoint_dir or self.checkpoint_dir:
             self.save_checkpoint(
                 state=state,
-                save_checkpoint_dir=checkpoint_path or self.checkpoint_dir,
+                save_checkpoint_dir=checkpoint_dir or self.checkpoint_dir,
                 keep=keep,
                 force_save=True,
                 prefix=prefix,
@@ -54,20 +54,20 @@ class TrainStateRepository(WithCheckpointingMixin):
 
     def pull(
         self,
-        checkpoint_path: Path = None,
+        checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
         **kwargs
     ) -> TrainState:
         state = self.get(
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
             prefix=prefix,
             **kwargs
         )
-        if checkpoint_path or self.checkpoint_dir:
+        if checkpoint_dir or self.checkpoint_dir:
             os.remove(
-                checkpoint_path
+                checkpoint_dir
                 or self.get_path_latest_checkpoint(self.checkpoint_dir, prefix=prefix)
             )
         return state
@@ -75,27 +75,27 @@ class TrainStateRepository(WithCheckpointingMixin):
     def update(
         self,
         variables: Dict,
-        checkpoint_path: Path = None,
+        checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         keep: int = 1,
         prefix: str = "checkpoint_",
         **kwargs
     ):
         state = self.pull(
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
             prefix=prefix,
             **kwargs
         )
         state = state.replace(**variables)
-        self.put(state, checkpoint_path=checkpoint_path, keep=keep, prefix=prefix)
+        self.put(state, checkpoint_dir=checkpoint_dir, keep=keep, prefix=prefix)
 
     def extract(
         self,
         keys: List[str],
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         prefix: str = "checkpoint_",
         **kwargs
     ) -> Dict:
-        state = self.get(checkpoint_path=checkpoint_path, prefix=prefix, **kwargs)
+        state = self.get(checkpoint_dir=checkpoint_dir, prefix=prefix, **kwargs)
         return {k: getattr(state, k) for k in keys}

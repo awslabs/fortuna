@@ -43,20 +43,20 @@ class WithCheckpointingMixin:
 
     def restore_checkpoint(
         self,
-        restore_checkpoint_path: Path,
+        restore_checkpoint_dir: Path,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
         name_to_train_state: NameToTrainState = NameToTrainState,
         **kwargs,
     ) -> TrainState:
-        if not os.path.isdir(restore_checkpoint_path) and not os.path.isfile(
-            restore_checkpoint_path
+        if not os.path.isdir(restore_checkpoint_dir) and not os.path.isfile(
+            restore_checkpoint_dir
         ):
             raise ValueError(
-                f"`restore_checkpoint_path={restore_checkpoint_path}` was not found."
+                f"`restore_checkpoint_dir={restore_checkpoint_dir}` was not found."
             )
         d = checkpoints.restore_checkpoint(
-            ckpt_dir=str(restore_checkpoint_path),
+            ckpt_dir=str(restore_checkpoint_dir),
             target=None,
             step=None,
             prefix=prefix,
@@ -64,7 +64,7 @@ class WithCheckpointingMixin:
         )
         if d is None:
             raise ValueError(
-                f"No checkpoint was found in `restore_checkpoint_path={restore_checkpoint_path}`."
+                f"No checkpoint was found in `restore_checkpoint_dir={restore_checkpoint_dir}`."
             )
         name = "".join([chr(n) for n in d["encoded_name"].tolist()])
         return name_to_train_state[name].value.init_from_dict(d, optimizer, **kwargs)

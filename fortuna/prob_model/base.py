@@ -173,7 +173,7 @@ class ProbModel(abc.ABC):
                 early_stopping_patience=calib_config.monitor.early_stopping_patience,
             )
 
-            if calib_config.checkpointer.restore_checkpoint_path is None:
+            if calib_config.checkpointer.restore_checkpoint_dir is None:
                 calib_dict = self.posterior.state.extract_calib_keys()
 
                 state = OutputCalibState.init(
@@ -183,7 +183,7 @@ class ProbModel(abc.ABC):
                 )
             else:
                 state = self.posterior.restore_checkpoint(
-                    calib_config.checkpointer.restore_checkpoint_path,
+                    calib_config.checkpointer.restore_checkpoint_dir,
                     optimizer=calib_config.optimizer.method,
                 )
 
@@ -213,7 +213,7 @@ class ProbModel(abc.ABC):
                 if calib_config.monitor.verbose:
                     logging.info("Dump state to disk.")
                 self.save_state(
-                    checkpoint_path=calib_config.checkpointer.save_checkpoint_dir
+                    checkpoint_dir=calib_config.checkpointer.save_checkpoint_dir
                 )
 
             if calib_config.monitor.verbose:
@@ -221,29 +221,29 @@ class ProbModel(abc.ABC):
 
             return status
 
-    def load_state(self, checkpoint_path: Path) -> None:
+    def load_state(self, checkpoint_dir: Path) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
         probabilistic model.
 
         Parameters
         ----------
-        checkpoint_path : Path
+        checkpoint_dir : Path
             Path to a checkpoint file or directory to restore.
         """
-        return self.posterior.load_state(checkpoint_path)
+        return self.posterior.load_state(checkpoint_dir)
 
     def save_state(
-        self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1
+        self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1
     ) -> None:
         """
         Save the posterior distribution state as a checkpoint.
 
         Parameters
         ----------
-        checkpoint_path : Path
+        checkpoint_dir : Path
             Path to file or directory where to save the current state.
         keep_top_n_checkpoints : int
             Number of past checkpoint files to keep.
         """
-        return self.posterior.save_state(checkpoint_path, keep_top_n_checkpoints)
+        return self.posterior.save_state(checkpoint_dir, keep_top_n_checkpoints)

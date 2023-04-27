@@ -10,14 +10,14 @@ from fortuna.typing import OptaxOptimizer, Path
 class WithPosteriorCheckpointingMixin(WithCheckpointingMixin):
     def restore_checkpoint(
         self,
-        restore_checkpoint_path: Path,
+        restore_checkpoint_dir: Path,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
         name_to_train_state: NameToPosteriorState = NameToPosteriorState,
         **kwargs,
     ) -> PosteriorState:
         return super().restore_checkpoint(
-            restore_checkpoint_path,
+            restore_checkpoint_dir,
             optimizer,
             prefix,
             name_to_train_state=name_to_train_state,

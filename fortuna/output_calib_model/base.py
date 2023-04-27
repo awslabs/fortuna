@@ -76,7 +76,7 @@ class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
             early_stopping_patience=config.monitor.early_stopping_patience,
         )
 
-        if config.checkpointer.restore_checkpoint_path is None:
+        if config.checkpointer.restore_checkpoint_dir is None:
             state = OutputCalibManagerState.init_from_dict(
                 d=FrozenDict(
                     output_calibrator=self.output_calib_manager.init(
@@ -91,7 +91,7 @@ class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
             )
         else:
             state = self.restore_checkpoint(
-                config.checkpointer.restore_checkpoint_path,
+                config.checkpointer.restore_checkpoint_dir,
                 optimizer=config.optimizer.method,
             )
 
@@ -119,33 +119,33 @@ class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
         )
         return status
 
-    def load_state(self, checkpoint_path: Path) -> None:
+    def load_state(self, checkpoint_dir: Path) -> None:
         """
         Load a calibration state from a checkpoint path.
         The checkpoint must be compatible with the calibration model.
 
         Parameters
         ----------
-        checkpoint_path : Path
+        checkpoint_dir : Path
             Path to a checkpoint file or directory to restore.
         """
         try:
-            self.restore_checkpoint(checkpoint_path)
+            self.restore_checkpoint(checkpoint_dir)
         except ValueError:
             raise ValueError(
-                f"No checkpoint was found in `checkpoint_path={checkpoint_path}`."
+                f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
             )
-        self.predictive.state = OutputCalibStateRepository(checkpoint_dir=checkpoint_path)
+        self.predictive.state = OutputCalibStateRepository(checkpoint_dir=checkpoint_dir)
 
     def save_state(
-        self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1
+        self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1
     ) -> None:
         """
         Save the calibration state as a checkpoint.
 
         Parameters
         ----------
-        checkpoint_path : Path
+        checkpoint_dir : Path
             Path to file or directory where to save the current state.
         keep_top_n_checkpoints : int
             Number of past checkpoint files to keep.
@@ -156,6 +156,6 @@ class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
             )
         return self.predictive.state.put(
             self.predictive.state.get(),
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             keep=keep_top_n_checkpoints,
         )

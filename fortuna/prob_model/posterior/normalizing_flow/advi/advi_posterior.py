@@ -206,15 +206,15 @@ class ADVIPosterior(GaussianPosterior):
         state = None
         status = dict()
 
-        if fit_config.checkpointer.restore_checkpoint_path is not None:
+        if fit_config.checkpointer.restore_checkpoint_dir is not None:
             state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
+                restore_checkpoint_dir=fit_config.checkpointer.restore_checkpoint_dir,
                 optimizer=fit_config.optimizer.method,
             )
 
             if not isinstance(state, allowed_states):
                 raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
-                                 f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                                 f"However, {fit_config.checkpointer.restore_checkpoint_dir} pointed to a state "
                                  f"with type {type(state)}.")
 
             if isinstance(state, ADVIState):

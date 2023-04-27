@@ -9,10 +9,10 @@ from fortuna.typing import Path
 class PosteriorStateRepository(WithPosteriorCheckpointingMixin, TrainStateRepository):
     def extract_calib_keys(
         self,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         prefix: str = "checkpoint_",
         **kwargs
     ) -> Dict:
         return super().extract(
-            ["calib_params", "calib_mutable"], checkpoint_path, prefix, **kwargs
+            ["calib_params", "calib_mutable"], checkpoint_dir, prefix, **kwargs
         )

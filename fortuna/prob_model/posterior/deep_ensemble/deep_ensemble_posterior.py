@@ -93,10 +93,10 @@ class DeepEnsemblePosterior(Posterior):
                 early_stopping_patience=fit_config.monitor.early_stopping_patience,
             )
 
-            if fit_config.checkpointer.restore_checkpoint_path:
+            if fit_config.checkpointer.restore_checkpoint_dir:
                 state = self.restore_checkpoint(
-                    restore_checkpoint_path=str(
-                        fit_config.checkpointer.restore_checkpoint_path
+                    restore_checkpoint_dir=str(
+                        fit_config.checkpointer.restore_checkpoint_dir
                     )
                     + "/"
                     + str(i),
