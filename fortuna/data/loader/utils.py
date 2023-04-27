@@ -56,10 +56,11 @@ class IterableData:
         return cls(_inner)
 
     @classmethod
-    def from_array_data(cls, data: Array, batch_size: Optional[int] = None, shuffle: bool = False,  prefetch: bool = False):
+    def from_array_data(cls, data: Array, batch_size: Optional[int] = None, shuffle: bool = False, prefetch: bool = False, seed: Optional[int] = 0):
             def _inner():
                 if shuffle:
-                    perm = np.random.choice(
+                    rng = np.random.default_rng(seed)
+                    perm = rng.choice(
                         data.shape[0], data.shape[0], replace=False
                     )
                 if batch_size is None:
@@ -79,10 +80,11 @@ class IterableData:
             return cls(_inner)
 
     @classmethod
-    def from_batch_array_data(cls, data: Tuple[Array, Array], batch_size: Optional[int] = None, shuffle: bool = False,  prefetch: bool = False):
+    def from_batch_array_data(cls, data: Tuple[Array, Array], batch_size: Optional[int] = None, shuffle: bool = False, prefetch: bool = False, seed: Optional[int] = 0):
             def _inner():
                 if shuffle:
-                    perm = np.random.choice(
+                    rng = np.random.default_rng(seed)
+                    perm = rng.choice(
                         data[0].shape[0], data[0].shape[0], replace=False
                     )
                 if batch_size is None:
