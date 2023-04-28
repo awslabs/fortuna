@@ -11,7 +11,7 @@ from fortuna.utils.random import generate_random_normal_like_tree
 
 
 class GaussianPosterior(Posterior, abc.ABC):
-    def _sample_diag_gaussian(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:
+    def _sample_diag_gaussian_from_mean_and_std(self, rng: Optional[PRNGKeyArray] = None) -> JointState:
         if rng is None:
             rng = self.rng.get()
         state = self.state.get()

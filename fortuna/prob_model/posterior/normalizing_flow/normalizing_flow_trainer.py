@@ -4,7 +4,6 @@ import abc
 from typing import Any, Callable, Dict, Optional, Tuple, Union, List
 
 import jax.numpy as jnp
-import numpy as np
 from flax.core import FrozenDict
 from jax import random, vmap
 from jax._src.prng import PRNGKeyArray
@@ -52,7 +51,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
                  architecture: object,
                  which_params: Optional[Tuple[List[str]]],
                  all_params: Optional[Params] = None,
-                 sizes: Optional[List[int]] = None,
+                 indices: Optional[List[int]] = None,
                  unravel: Union[List[Callable], Callable],
                  **kwargs
                  ):
@@ -69,7 +68,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         # ADVI on subsets of the model parameters
         self._which_params = which_params
         self._all_params = all_params
-        self._idx = np.concatenate((np.array([0]), np.cumsum(sizes))) if sizes is not None else None
+        self._indices = indices
         self._unravel = unravel
 
     def training_loss_step(
@@ -89,7 +88,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         if mutable is not None:
             return_aux += ["mutable"]
         rng, key = random.split(rng)
-        v, ldj = self.sample_forward(key, tuple(params.values()), kwargs["n_samples"])
+        v, ldj = self.sample_forward(key, params, kwargs["n_samples"])
         neg_logp, aux = vmap(
             lambda _rav_params: loss_fun(
                 self._get_params_from_rav(_rav_params, unravel),
@@ -182,7 +181,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
     ) -> Dict[str, jnp.ndarray]:
         rng, key = random.split(rng)
         v, ldj = self.sample_forward(
-            key, tuple(state.params.values()), kwargs["n_samples"]
+            key, state.params, kwargs["n_samples"]
         )
         neg_logp, aux = vmap(
             lambda _rav_params: loss_fun(
@@ -217,6 +216,6 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             nested_set(
                 d=self._all_params.unfreeze(),
                 key_paths=self._which_params,
-                objs=tuple([_unravel(_rav[self._idx[i]:self._idx[i+1]]) for i, _unravel in enumerate(unravel)]),
+                objs=tuple([_unravel(_rav[self._indices[i]:self._indices[i+1]]) for i, _unravel in enumerate(unravel)]),
             )
         )

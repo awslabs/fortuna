@@ -258,4 +258,4 @@ class LaplacePosterior(GaussianPosterior):
         rng: Optional[PRNGKeyArray] = None,
         **kwargs,
     ) -> JointState:
-        return self._sample_diag_gaussian(rng=rng, **kwargs)
+        return self._sample_diag_gaussian_from_mean_and_std(rng=rng)

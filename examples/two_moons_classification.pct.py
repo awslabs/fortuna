@@ -71,7 +71,7 @@ status = prob_model.train(
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
     fit_config=FitConfig(
-        monitor=FitMonitor(metrics=(accuracy,), early_stopping_patience=2),
+        monitor=FitMonitor(metrics=(accuracy,), early_stopping_patience=10),
         optimizer=FitOptimizer(method=optax.adam(1e-1)),
     ),
     calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2))
@@ -111,6 +111,7 @@ plt.scatter(
     c=["C0" if i == 1 else "C1" for i in test_modes],
 )
 plt.colorbar()
+plt.show()
 
 # %% [markdown]
 # ### Compute metrics
