@@ -10,6 +10,12 @@ from fortuna.typing import Batch, Array
 
 
 class DataLoader(BaseDataLoaderABC):
+    @property
+    def num_unique_labels(self) -> Optional[int]:
+        if self._num_unique_labels is None:
+            self._num_unique_labels = len(np.unique(self.to_array_targets()))
+        return self._num_unique_labels
+
     @classmethod
     def from_array_data(
         cls,

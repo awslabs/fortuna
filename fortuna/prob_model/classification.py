@@ -121,7 +121,7 @@ class ProbClassifier(ProbModel):
             raise ValueError(
                 """`data_loader` is either empty or incorrectly constructed."""
             )
-        output_dim = len(np.unique(data_loader.to_array_targets()))
+        output_dim = data_loader.num_unique_labels
         for x, y in data_loader:
             input_shape = x.shape[1:]
             break

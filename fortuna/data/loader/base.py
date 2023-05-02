@@ -14,8 +14,9 @@ T = TypeVar('T')
 
 
 class BaseDataLoaderABC(abc.ABC):
-    def __init__(self, iterable: IterableData):
+    def __init__(self, iterable: IterableData, num_unique_labels: int = None):
         self._iterable = iterable
+        self._num_unique_labels = num_unique_labels
 
     def __iter__(self) -> Iterable[Batch]:
         yield from self._iterable
@@ -36,6 +37,20 @@ class BaseDataLoaderABC(abc.ABC):
                 inputs = inputs[list(inputs.keys())[0]]
             c += inputs.shape[0]
         return c
+
+    @property
+    @abc.abstractmethod
+    def num_unique_labels(self) -> Optional[int]:
+        """
+        Number of unique target labels in the task (classification only)
+
+        Returns
+        -------
+        int
+            Number of unique target labels in the task if it is a classification one.
+            Otherwise returns None.
+        """
+        return self._num_unique_labels
 
     @abc.abstractmethod
     def to_inputs_loader(self) -> BaseInputsLoader:
