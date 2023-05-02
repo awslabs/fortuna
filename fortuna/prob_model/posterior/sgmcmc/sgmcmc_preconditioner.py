@@ -53,8 +53,8 @@ def rmsprop_preconditioner(
 
     Returns
     -------
-    preconditioner: Preconditioner
-        An instance of RMSProp preconditioner.
+        preconditioner: Preconditioner
+            An instance of RMSProp preconditioner.
     """
 
     def init_fn(params):

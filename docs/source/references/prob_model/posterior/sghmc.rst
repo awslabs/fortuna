@@ -19,7 +19,7 @@ Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)
     :no-special-members:
 
 
-Step schedule
+Step schedules
 ==============
 
 Fortuna supports various step schedulers for SG-MCMC
@@ -30,10 +30,19 @@ size as an output.
 .. automodule:: fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule
 
 
-Preconditioner
+Preconditioners
 ===============
 
 Fortuna provides implementations of preconditioners to improve samplers efficacy.
 
 .. automodule:: fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner
     :exclude-members: Preconditioner, PreconditionerState, RMSPropPreconditionerState, IdentityPreconditionerState
+
+
+Diagnostics
+===========
+
+The library includes toolings necessary for diagnostics of the convergence of
+SG-MCMC sampling algorithms.
+
+.. automodule:: fortuna.prob_model.posterior.sgmcmc.sgmcmc_diagnostic
