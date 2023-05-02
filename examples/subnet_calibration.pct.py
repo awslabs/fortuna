@@ -100,7 +100,7 @@ print(f"ECE: {ece}.")
 
 # With the only purpose of demonstrating the functionality, let us now show how you can start from a pre-trained model and fine-tune only a subset of model parameters, perhaps with the purpose of achieving better calibration. 
 #
-# All you need to do is pass `freeze_map` to the `Optimizer` in the `Config` object, and declare which parameters you want to be `trainable` and which `frozen`. In this example, the parameters of the LeNet-5 model in use are internally organized in a deep feature extractor sub-network (`dfe_subnet`) and an output sub-network. Then we simply freeze `dfe_subnet` and let the model fine-tune only the output layer.
+# All you need to do is pass `freeze_fun` to the `Optimizer` in the `Config` object, and declare which parameters you want to be `trainable` and which `frozen`. In this example, the parameters of the LeNet-5 model in use are internally organized in a deep feature extractor sub-network (`dfe_subnet`) and an output sub-network. Then we simply freeze `dfe_subnet` and let the model fine-tune only the output layer.
 #
 # In order to start from the pre-trained state, we simply enable the flag `start_from_current_state` in the `Checkpointer`.
 
@@ -111,6 +111,6 @@ status = calib_model.calibrate(
     config=Config(
         monitor=Monitor(early_stopping_patience=2, metrics=(brier, acc)),
         checkpointer=Checkpointer(start_from_current_state=True),
-        optimizer=Optimizer(freeze_map=lambda path, v: 'frozen' if "dfe_subnet" in path else 'trainable')
+        optimizer=Optimizer(freeze_fun=lambda path, v: 'frozen' if "dfe_subnet" in path else 'trainable')
     )
 )

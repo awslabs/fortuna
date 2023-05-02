@@ -13,9 +13,6 @@ from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
-from fortuna.prob_model.posterior.map.map_approximator import \
-    MAPPosteriorApproximator
-from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
@@ -27,6 +24,7 @@ from fortuna.prob_model.posterior.swag.swag_trainer import (
     JittedSWAGTrainer, MultiDeviceSWAGTrainer, SWAGTrainer)
 from fortuna.typing import Array, Status
 from fortuna.utils.device import select_trainer_given_devices
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 
 
 class SWAGPosterior(Posterior):
@@ -52,15 +50,10 @@ class SWAGPosterior(Posterior):
         val_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
         map_fit_config: Optional[FitConfig] = None,
-        *kwargs,
+        **kwargs,
     ) -> Status:
-        if (
-            fit_config.checkpointer.dump_state is True
-            and not fit_config.checkpointer.save_checkpoint_dir
-        ):
-            raise ValueError(
-                "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
-            )
+        super()._checks_on_fit_start(fit_config, map_fit_config)
+
         if self.posterior_approximator.rank < 2:
             raise ValueError("`rank` must be at least 2.")
         if fit_config.optimizer.n_epochs <= self.posterior_approximator.rank:
@@ -81,39 +74,35 @@ class SWAGPosterior(Posterior):
             was rather to enable early stopping in MAP, please configure `map_fit_config` accordingly."""
             )
 
-        init_prob_model_state, n_train_data, n_val_data = self._init(
-            train_data_loader, val_data_loader
-        )
+        status = dict()
 
-        status = {}
-
-        if not fit_config.checkpointer.restore_checkpoint_path:
-            map_posterior = MAPPosterior(
-                self.joint, posterior_approximator=MAPPosteriorApproximator()
+        if super()._is_state_available_somewhere(fit_config):
+            state = super()._restore_state_from_somewhere(
+                fit_config=fit_config,
+                allowed_states=(MAPState, SWAGState)
             )
-            map_posterior.rng = self.rng
-            logging.info("Do a preliminary run of MAP.")
-            status["map"] = map_posterior.fit(
+
+        elif super()._should_run_preliminary_map(fit_config, map_fit_config):
+            state, status["map"] = run_preliminary_map(
+                joint=self.joint,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
-                fit_config=map_fit_config
-                if map_fit_config is not None
-                else FitConfig(),
+                map_fit_config=map_fit_config,
+                rng=self.rng,
+                **kwargs
             )
-            state = SWAGState.convert_from_map_state(
-                map_state=map_posterior.state.get(),
-                optimizer=fit_config.optimizer.method,
-            )
-            logging.info("Preliminary run with MAP completed.")
         else:
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
-                optimizer=fit_config.optimizer.method,
-            )
-            if type(state) == MAPState:
-                state = SWAGState.convert_from_map_state(
-                    map_state=state, optimizer=fit_config.optimizer.method
-                )
+            raise ValueError("The SWAG approximation must start from a preliminary run of MAP or an existing "
+                             "checkpoint or state. Please configure `map_fit_config`, or "
+                             "`fit_config.checkpointer.restore_checkpoint_path`, "
+                             "or `fit_config.checkpointer.start_from_current_state`.")
+
+        state = SWAGState.convert_from_map_state(
+            map_state=state,
+            optimizer=fit_config.optimizer.method,
+        )
+
+        state = super()._freeze_optimizer_in_state(state, fit_config)
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
@@ -139,11 +128,11 @@ class SWAGPosterior(Posterior):
             state=state,
             loss_fun=self.joint._batched_negative_log_joint_prob,
             training_dataloader=train_data_loader,
-            training_dataset_size=n_train_data,
+            training_dataset_size=train_data_loader.size,
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=n_val_data,
+            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
             verbose=fit_config.monitor.verbose,
             callbacks=fit_config.callbacks,
             **kwargs,

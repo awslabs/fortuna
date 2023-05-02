@@ -8,8 +8,7 @@ class ADVIPosteriorApproximator(PosteriorApproximator):
         self,
         std_init_params: float = 0.1,
         log_std_base: float = -2.3,
-        n_loss_samples: int = 3,
-        which_params: Optional[Tuple[List, ...]] = None
+        n_loss_samples: int = 3
     ):
         """
         Automatic Differentiation Variational Inference (ADVI) approximator. It is responsible to define how the
@@ -24,21 +23,10 @@ class ADVIPosteriorApproximator(PosteriorApproximator):
             distribution is assumed to be an isotropic Gaussian, with this argument as the log-standard deviation.
         n_loss_samples : int
             Number of samples to approximate the loss, that is the KL divergence (or the ELBO, equivalently).
-        which_params: Optional[Tuple[List, ...]]
-            Sequences of keys to the parameters of the probabilistic model for which to define the Laplace
-            approximation. If `which_params` is not available, the posterior approximation will be over all parameters.
         """
         self.std_init_params = std_init_params
         self.log_std_base = log_std_base
         self.n_loss_samples = n_loss_samples
-
-        if which_params:
-            if not isinstance(which_params, tuple):
-                raise ValueError("`which_params` must be a tuple of lists.")
-            for list_keys in which_params:
-                if not isinstance(list_keys, list):
-                    raise ValueError("Each element in `which_params` must be a list.")
-        self.which_params = which_params
 
     def __str__(self):
         return ADVI_NAME
