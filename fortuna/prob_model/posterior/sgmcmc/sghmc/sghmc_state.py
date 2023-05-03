@@ -16,3 +16,30 @@ class SGHMCState(PosteriorState):
     """
 
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("SGHMCState")
+
+    @classmethod
+    def convert_from_map_state(
+        cls, map_state: MAPState, optimizer: OptaxOptimizer
+    ) -> SGHMCState:
+        """
+        Convert a MAP state into an SGHMC state.
+
+        Parameters
+        ----------
+        map_state: MAPState
+            A MAP posterior state.
+        optimizer: OptaxOptimizer
+            An Optax optimizer.
+
+        Returns
+        -------
+        SGHMCState
+            An SGHMC state.
+        """
+        return SGHMCState.init(
+            params=map_state.params,
+            mutable=map_state.mutable,
+            optimizer=optimizer,
+            calib_params=map_state.calib_params,
+            calib_mutable=map_state.calib_mutable,
+        )
