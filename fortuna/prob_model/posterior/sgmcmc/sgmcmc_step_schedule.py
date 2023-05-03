@@ -48,6 +48,29 @@ def cosine_schedule(init_step_size: float, total_steps: int) -> StepSchedule:
     return schedule
 
 
+def polynomial_schedule(a: float = 1., b: float = 1., gamma: float = 0.55) -> StepSchedule:
+    """Create a polynomial step schedule.
+
+    Parameters
+    ----------
+    a: float
+        Scale of all step sizes.
+    b: float
+        The stabilization constant.
+    gamma: float
+        The decay rate :math:`\gamma \in (0.5, 1.0]`.
+
+    Returns
+    -------
+    schedule_fn: StepSchedule
+    """
+
+    def schedule(step: Array):
+        return a * (b + step) ** (- gamma)
+
+    return schedule
+
+
 def constant_schedule_with_cosine_burnin(
     init_step_size: float, final_step_size: float, burnin_steps: int
 ) -> StepSchedule:

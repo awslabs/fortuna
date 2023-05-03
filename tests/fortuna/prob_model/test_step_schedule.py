@@ -5,6 +5,7 @@ import jax.numpy as jnp
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
     constant_schedule,
     cosine_schedule,
+    polynomial_schedule,
     constant_schedule_with_cosine_burnin,
     cyclical_cosine_schedule_with_const_burnin,
 )
@@ -28,6 +29,10 @@ class TestStepSchedule(unittest.TestCase):
         )
         assert jnp.allclose(schedule_fn(self.count + 10), 0)
         assert jnp.allclose(schedule_fn(self.count + 20), 1e-1)
+
+    def test_polynomial(self):
+        schedule_fn = polynomial_schedule()
+        assert schedule_fn(self.count + 1) < schedule_fn(self.count)
 
     def test_cosine_burnin(self):
         schedule_fn = constant_schedule_with_cosine_burnin(
