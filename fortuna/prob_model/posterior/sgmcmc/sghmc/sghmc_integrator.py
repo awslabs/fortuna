@@ -13,7 +13,7 @@ from fortuna.utils.random import generate_random_normal_like_tree
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
 from optax import GradientTransformation
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Optional
 
 
 class OptaxSGHMCState(NamedTuple):
@@ -27,6 +27,7 @@ class OptaxSGHMCState(NamedTuple):
 
 def sghmc_integrator(
     momentum_decay: float,
+    momentum_resample_steps: Optional[int],
     rng_key: PRNGKeyArray,
     step_schedule: StepSchedule,
     preconditioner: Preconditioner,
@@ -65,11 +66,18 @@ def sghmc_integrator(
         noise = generate_random_normal_like_tree(key, gradient)
         noise = preconditioner.multiply_by_m_sqrt(noise, preconditioner_state)
 
+        momentum = jax.lax.cond(
+            momentum_resample_steps is not None
+            and state.count % momentum_resample_steps == 0,
+            lambda: jax.tree_util.tree_map(jnp.zeros_like, gradient), ## generate_random_normal_like_tree(key, gradient, 0, jnp.sqrt(step_size)
+            lambda: state.momentum,
+        )
+
         momentum = jax.tree_map(
             lambda m, g, n: momentum_decay * m
             + g * jnp.sqrt(step_size)
             + n * jnp.sqrt(2 * (1 - momentum_decay)),
-            state.momentum,
+            momentum,
             gradient,
             noise,
         )
