@@ -11,6 +11,7 @@ from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.sngp import SNGP_NAME
 from fortuna.prob_model.posterior.swag import SWAG_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
 
 
 class ClassificationModelManagers(enum.Enum):
@@ -23,3 +24,4 @@ class ClassificationModelManagers(enum.Enum):
     vars()[SWAG_NAME] = ClassificationModelManager
     vars()[SNGP_NAME] = SNGPClassificationModelManager
     vars()[SGHMC_NAME] = ClassificationModelManager
+    vars()[CYCLICAL_SGLD_NAME] = ClassificationModelManager

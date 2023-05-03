@@ -28,4 +28,7 @@ from fortuna.prob_model.posterior.swag.swag_approximator import (
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
     SGHMCPosteriorApproximator,
 )
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import (
+    CyclicalSGLDPosteriorApproximator,
+)
 from fortuna.prob_model.regression import ProbRegressor
