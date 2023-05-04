@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, List, Union, Callable
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
@@ -13,7 +13,6 @@ from fortuna.distribution.gaussian import DiagGaussian
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.gaussian_posterior import GaussianPosterior
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import \
     ADVIPosteriorApproximator
@@ -25,17 +24,17 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import \
     ADVITrainer, JittedADVITrainer, MultiDeviceADVITrainer
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
-from fortuna.typing import Status, Array
+from fortuna.typing import Status, Array, AnyKey, Params, OptaxOptimizer
 from fortuna.utils.device import select_trainer_given_devices
-from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.utils.nested_dicts import nested_get, nested_unpair, nested_set
-from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
-from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
-from fortuna.prob_model.posterior.state import PosteriorState
 import numpy as np
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.prob_model.posterior.base import Posterior
 
 
-class ADVIPosterior(GaussianPosterior):
+class ADVIPosterior(Posterior):
     def __init__(
         self,
         joint: Joint,
@@ -60,29 +59,51 @@ class ADVIPosterior(GaussianPosterior):
         self,
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
-        map_fit_config: Optional[FitConfig] = None,
         fit_config: FitConfig = FitConfig(),
+        map_fit_config: Optional[FitConfig] = None,
         **kwargs,
     ) -> Dict[str, Status]:
-        if (
-            fit_config.checkpointer.dump_state is True
-            and not fit_config.checkpointer.save_checkpoint_dir
-        ):
-            raise ValueError(
-                "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
+        super()._checks_on_fit_start(fit_config, map_fit_config)
+
+        status = dict()
+
+        if super()._is_state_available_somewhere(fit_config):
+            state = super()._restore_state_from_somewhere(
+                fit_config=fit_config,
+                allowed_states=(MAPState, ADVIState)
             )
 
-        log_stds = None
+        elif super()._should_run_preliminary_map(fit_config, map_fit_config):
+            state, status["map"] = run_preliminary_map(
+                joint=self.joint,
+                train_data_loader=train_data_loader,
+                val_data_loader=val_data_loader,
+                map_fit_config=map_fit_config,
+                rng=self.rng,
+                **kwargs
+            )
+        else:
+            state = None
 
-        state, status, n_train_data, n_val_data = self._init_state(
-            train_data_loader=train_data_loader,
-            val_data_loader=val_data_loader,
-            fit_config=fit_config,
-            map_fit_config=map_fit_config,
-            **kwargs
+        state, log_stds = self._init_map_state(
+            state=state,
+            data_loader=train_data_loader,
+            fit_config=fit_config
         )
 
-        rav, self._unravel, self._indices, rav_log_stds = self._get_unravel(state.params, log_stds)
+        if fit_config.optimizer.freeze_fun is not None:
+            which_params = get_trainable_paths(
+                params=state.params,
+                freeze_fun=fit_config.optimizer.freeze_fun
+            )
+        else:
+            which_params = None
+
+        rav, self._unravel, self._indices, rav_log_stds = self._get_unravel(
+            params=state.params,
+            log_stds=log_stds,
+            which_params=which_params
+        )
 
         size_rav = len(rav)
         self.base = DiagGaussian(
@@ -113,24 +134,18 @@ class ADVIPosterior(GaussianPosterior):
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
             base=self.base,
             architecture=self.architecture,
-            which_params=self.posterior_approximator.which_params,
-            all_params=state.params if self.posterior_approximator.which_params else None,
+            which_params=which_params,
+            all_params=state.params if which_params else None,
             indices=self._indices,
             unravel=self._unravel
         )
 
-        state = ADVIState.init(
-            params=FrozenDict(
-                    trainer.init_params(
-                        self.rng.get(),
-                        mean=rav,
-                        log_std=None if log_stds is None else (rav, rav_log_stds)
-                    ),
-                ),
-            mutable=getattr(state, "mutable", state.mutable),
+        state = self._init_advi_from_map_state(
+            rav=rav,
+            rav_log_stds=rav_log_stds,
+            state=state,
+            init_params=self.architecture.init_params,
             optimizer=fit_config.optimizer.method,
-            calib_params=getattr(state, "calib_params", state.calib_params),
-            calib_mutable=getattr(state, "calib_mutable", state.calib_mutable),
         )
 
         logging.info("Run ADVI.")
@@ -139,17 +154,21 @@ class ADVIPosterior(GaussianPosterior):
             state=state,
             loss_fun=self.joint._batched_negative_log_joint_prob,
             training_dataloader=train_data_loader,
-            training_dataset_size=n_train_data,
+            training_dataset_size=train_data_loader.size,
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=n_val_data,
+            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
             verbose=fit_config.monitor.verbose,
             unravel=self._unravel,
             n_samples=self.posterior_approximator.n_loss_samples,
             callbacks=fit_config.callbacks,
         )
         trainer._all_params = None
+
+        state = state.replace(
+            _which_params=which_params
+        )
 
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
@@ -190,13 +209,13 @@ class ADVIPosterior(GaussianPosterior):
         state = self.state.get()
 
         if not hasattr(self, "base") or not hasattr(self, "_unravel"):
-            if self.posterior_approximator.which_params is None:
+            if state._which_params is None:
                 n_params = len(ravel_pytree(state.params)[0]) // 2
             else:
                 n_params = len(ravel_pytree(
                     nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=self.posterior_approximator.which_params,
+                        key_paths=state._which_params,
                         labels=("mean", "log_std")
                     )[0]
                 )[0])
@@ -209,7 +228,7 @@ class ADVIPosterior(GaussianPosterior):
             )
             self._unravel, self._indices = self._get_unravel(state.params)[1:2]
 
-        if self.posterior_approximator.which_params is None:
+        if state._which_params is None:
             means = self._unravel(
                 self.architecture.forward(
                     {s: ravel_pytree({k: v["params"][s] for k, v in state.params.items()})[0] for s in ["mean", "log_std"]},
@@ -219,7 +238,7 @@ class ADVIPosterior(GaussianPosterior):
         else:
             means, log_stds = nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=self.posterior_approximator.which_params,
+                        key_paths=state._which_params,
                         labels=("mean", "log_std")
                     )
             rav_params = {
@@ -227,7 +246,7 @@ class ADVIPosterior(GaussianPosterior):
                     [nested_get(
                         d=d,
                         keys=path
-                    ) for path in self.posterior_approximator.which_params]
+                    ) for path in state._which_params]
                 )[0] for k, d in zip(
                     ["mean", "log_std"],
                     [means, log_stds]
@@ -241,7 +260,7 @@ class ADVIPosterior(GaussianPosterior):
             means = FrozenDict(
                 nested_set(
                     d=means,
-                    key_paths=self.posterior_approximator.which_params,
+                    key_paths=state._which_params,
                     objs=tuple([_unravel(rav_params[self._indices[i]:self._indices[i + 1]]) for i, _unravel in enumerate(self._unravel)]),
                 )
             )
@@ -253,90 +272,99 @@ class ADVIPosterior(GaussianPosterior):
             calib_mutable=state.calib_mutable,
         )
 
-    def _init_state(
+    def _init_map_state(
             self,
-            train_data_loader: DataLoader,
-            val_data_loader: DataLoader,
-            fit_config: FitConfig,
-            map_fit_config: Optional[FitConfig] = None,
-            **kwargs
-    ) -> Tuple[PosteriorState, Dict[str, Status], int, Optional[int]]:
-        allowed_states = (MAPState, ADVIState)
-        state = None
-        status = dict()
+            state: Optional[Union[MAPState, ADVIState]],
+            data_loader: DataLoader,
+            fit_config: FitConfig
+    ) -> Tuple[MAPState, Params]:
+        if state is None:
+            state = super()._init_joint_state(data_loader)
 
-        if fit_config.checkpointer.restore_checkpoint_path is not None:
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
-                optimizer=fit_config.optimizer.method,
-            )
+        log_stds = None
 
-            if not isinstance(state, allowed_states):
-                raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
-                                 f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
-                                 f"with type {type(state)}.")
-
-            if isinstance(state, ADVIState):
+        if isinstance(state, ADVIState):
+            if state._which_params is not None:
                 means, log_stds = nested_unpair(
-                    d=state.params.unfreeze(),
-                    key_paths=self.posterior_approximator.which_params,
-                    labels=("mean", "log_std")
-                ) if self.posterior_approximator.which_params is not None else \
-                    [FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()}) for s in ["mean", "log_std"]]
+                        d=state.params.unfreeze(),
+                        key_paths=state._which_params,
+                        labels=("mean", "log_std")
+                    )
                 means, log_stds = FrozenDict(means), FrozenDict(log_stds)
-                state = state.replace(params=means)
-                del means
-        elif map_fit_config is not None:
-            map_posterior = MAPPosterior(
-                self.joint, posterior_approximator=MAPPosteriorApproximator()
-            )
-            map_posterior.rng = self.rng
-            logging.info("Do a preliminary run of MAP.")
-            status["map"] = map_posterior.fit(
-                rng=self.rng.get(),
-                train_data_loader=train_data_loader,
-                val_data_loader=val_data_loader,
-                fit_config=map_fit_config,
-                **kwargs,
-            )
-            logging.info("Preliminary run with MAP completed.")
-            state = map_posterior.state.get()
-        elif self.posterior_approximator.which_params is not None:
-            logging.warning(
-                f"ADVI will run exclusively over the parameters specified in `which_params`."
-                f"All the other parameters will be initialized randomly. "
-                f"If you want to train the other parameters too, "
-                f"and yet run ADVI only on the parameters in `which_params`, "
-                f"you can either restore an existing checkpoint, or set `map_fit_config`. "
-                f"In the latter case, a pre-run of MAP will run before ADVI.")
+            else:
+                means, log_stds = [
+                    FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()})
+                    for s in ["mean", "log_std"]
+                ]
+            state = state.replace(params=means)
+            del means
 
-        state, n_train_data, n_val_data = self._init(
-            train_data_loader, val_data_loader, state
+        state = MAPState.init(
+            params=state.params,
+            mutable=state.mutable,
+            optimizer=fit_config.optimizer.method,
+            calib_params=state.calib_params,
+            calib_mutable=state.calib_mutable,
         )
 
-        return state, status, n_train_data, n_val_data
+        return state, log_stds
 
-    def _get_unravel(self, params, log_stds: Optional[Array] = None):
-        if self.posterior_approximator.which_params is None:
+    def _init_advi_from_map_state(
+            self,
+            rav: Array,
+            rav_log_stds: Optional[Array],
+            state: MAPState,
+            init_params: Callable,
+            optimizer: OptaxOptimizer
+    ) -> ADVIState:
+        return ADVIState.init(
+            params=FrozenDict(
+                    init_params(
+                        self.rng.get(),
+                        mean=rav,
+                        log_std=rav_log_stds
+                    ),
+                ),
+            mutable=state.mutable,
+            optimizer=optimizer,
+            calib_params=state.calib_params,
+            calib_mutable=state.calib_mutable,
+        )
+
+    def _get_unravel(
+            self,
+            params,
+            log_stds: Optional[Params] = None,
+            which_params: Optional[Tuple[List[AnyKey], ...]] = None
+    ):
+        if which_params is None:
             rav, unravel = ravel_pytree(params)
             rav_log_stds = ravel_pytree(log_stds)[0] if log_stds is not None else None
             indices = None
         else:
             def unravel_fn(_params, _path):
                 return ravel_pytree(nested_get(_params, _path))
+
             rav, unravel, indices, rav_log_stds = [], [], [], []
-            for path in self.posterior_approximator.which_params:
+
+            for path in which_params:
                 _rav, _unravel = unravel_fn(params, path)
                 unravel.append(_unravel)
                 rav.append(_rav)
+
                 if log_stds is not None:
                     rav_log_stds.append(unravel_fn(log_stds, path)[0])
+
                 indices.append(len(_rav))
+
             rav = jnp.concatenate(rav)
+
             if log_stds is not None:
                 rav_log_stds = jnp.concatenate(rav_log_stds)
             else:
                 rav_log_stds = None
+
             unravel = tuple(unravel)
             indices = np.concatenate((np.array([0]), np.cumsum(indices)))
+
         return rav, unravel, indices, rav_log_stds

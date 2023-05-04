@@ -26,7 +26,7 @@ def nested_get(d: Union[FrozenDict[AnyKey, Any], Dict[AnyKey, Any]], keys: List[
     return nested_get(d[keys[0]], keys[1:])
 
 
-def nested_set(d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey]], objs: Tuple[Any]) -> Dict[AnyKey, Any]:
+def nested_set(d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey], ...], objs: Tuple[Any]) -> Dict[AnyKey, Any]:
     """
     Set the values of a nested dictionary for the specified sequences of keys.
 
@@ -111,7 +111,7 @@ def nested_pair(
 
 
 def nested_unpair(
-    d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey]], labels: Tuple[str, str]
+    d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey], ...], labels: Tuple[str, str]
 ) -> Tuple[Dict[AnyKey, Any], Dict[AnyKey, Any]]:
     """
     Form two dictionaries out of the initial dictionary `d`. In correspondence to the sequences of keys in `key_paths`,

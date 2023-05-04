@@ -67,9 +67,7 @@ from fortuna.model import LeNet5
 output_dim = 10
 prob_model = ProbClassifier(
     model=LeNet5(output_dim=output_dim),
-    posterior_approximator=LaplacePosteriorApproximator(
-        which_params=(["model", "params", "output_subnet"],)
-    ),
+    posterior_approximator=LaplacePosteriorApproximator(),
 )
 
 
@@ -78,15 +76,19 @@ prob_model = ProbClassifier(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model. As we are using a Laplace approximation, which start from a Maximum-A-Posteriori (MAP) approximation, we configure MAP via the argument `map_fit_config`.
 
 # %%
-from fortuna.prob_model import FitConfig, FitMonitor, CalibConfig, CalibMonitor
+from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer, CalibConfig, CalibMonitor
 from fortuna.metric.classification import accuracy
 
 status = prob_model.train(
     train_data_loader=train_data_loader,
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
+    fit_config=FitConfig(
+        optimizer=FitOptimizer(freeze_fun=lambda path, val: "trainable" if "output_subnet" in path else "frozen")
+    ),
     map_fit_config=FitConfig(
-        monitor=FitMonitor(early_stopping_patience=2, metrics=(accuracy,))
+        monitor=FitMonitor(early_stopping_patience=2, metrics=(accuracy,)),
+        optimizer=FitOptimizer()
     ),
     calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2))
 )

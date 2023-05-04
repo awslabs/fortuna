@@ -31,7 +31,6 @@ class TrainStateRepository(WithCheckpointingMixin):
             )
         if optimizer is not None:
             self.__state = self.__state.replace(tx=optimizer, opt_state=optimizer.init(self.__state.params))
-            # return self.__state.init_from_dict(vars(self.__state), optimizer=optimizer)
         return deepcopy(self.__state)
 
     def put(

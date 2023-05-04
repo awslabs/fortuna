@@ -1,36 +1,37 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple, Union
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax import hessian, lax, vjp, devices, jit, pmap
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+from jax.tree_util import tree_map
 
 from fortuna.data.loader import DataLoader, DeviceDimensionAugmentedLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.gaussian_posterior import GaussianPosterior
 from fortuna.prob_model.posterior.laplace import LAPLACE_NAME
 from fortuna.prob_model.posterior.laplace.laplace_approximator import \
     LaplacePosteriorApproximator
 from fortuna.prob_model.posterior.laplace.laplace_state import LaplaceState
-from fortuna.prob_model.posterior.map.map_approximator import \
-    MAPPosteriorApproximator
-from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.prob_model.prior.gaussian import (DiagonalGaussianPrior,
                                                IsotropicGaussianPrior)
-from fortuna.typing import CalibMutable, CalibParams, Mutable, Params, Status
-from fortuna.utils.nested_dicts import nested_get, nested_set
+from fortuna.typing import CalibMutable, CalibParams, Mutable, Params, Status, AnyKey
+from fortuna.utils.nested_dicts import nested_get, nested_set, nested_unpair
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.random import generate_random_normal_like_tree
+from fortuna.prob_model.posterior.base import Posterior
 
 
-class LaplacePosterior(GaussianPosterior):
+class LaplacePosterior(Posterior):
     def __init__(
         self,
         joint: Joint,
@@ -65,6 +66,7 @@ class LaplacePosterior(GaussianPosterior):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        which_params: Optional[Tuple[List[AnyKey, ...]]] = None,
         factorization: str = "diagonal",
         verbose: bool = True,
     ) -> Params:
@@ -84,6 +86,8 @@ class LaplacePosterior(GaussianPosterior):
             The calibration parameters of the probabilistic model.
         calib_mutable : Optional[CalibMutable] = None
             The calibration mutable objects used to evaluate the calibrators.
+        which_params : Optional[Tuple[List[AnyKey, ...]]]
+            Sequences of keys indicating which parameters to compute the Hessian upon.
         factorization: str = "diagonal"
             Factorization of the GGN approximation. Currently, only "diagonal" is supported.
         verbose: bool
@@ -98,10 +102,10 @@ class LaplacePosterior(GaussianPosterior):
             tuple(
                 [
                     nested_get(params, keys)
-                    for keys in self.posterior_approximator.which_params
+                    for keys in which_params
                 ]
             )
-            if self.posterior_approximator.which_params
+            if which_params
             else params
         )
 
@@ -111,11 +115,11 @@ class LaplacePosterior(GaussianPosterior):
                 FrozenDict(
                     nested_set(
                         params.unfreeze(),
-                        self.posterior_approximator.which_params,
+                        which_params,
                         unrav,
                     )
                 )
-                if self.posterior_approximator.which_params
+                if which_params
                 else unrav
             )
 
@@ -188,37 +192,43 @@ class LaplacePosterior(GaussianPosterior):
         map_fit_config: Optional[FitConfig] = None,
         **kwargs,
     ) -> Dict[str, Status]:
-        if (
-            fit_config.checkpointer.dump_state is True
-            and not fit_config.checkpointer.save_checkpoint_dir
-        ):
-            raise ValueError(
-                "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
+        super()._checks_on_fit_start(fit_config, map_fit_config)
+
+        status = dict()
+
+        if super()._is_state_available_somewhere(fit_config):
+            state = super()._restore_state_from_somewhere(
+                fit_config=fit_config,
+                allowed_states=(MAPState, LaplaceState)
             )
 
-        status = {}
-
-        if not fit_config.checkpointer.restore_checkpoint_path:
-            map_posterior = MAPPosterior(
-                self.joint, posterior_approximator=MAPPosteriorApproximator()
-            )
-            map_posterior.rng = self.rng
-            logging.info("Do a preliminary run of MAP.")
-            status["map"] = map_posterior.fit(
-                rng=self.rng.get(),
+        elif super()._should_run_preliminary_map(fit_config, map_fit_config):
+            state, status["map"] = run_preliminary_map(
+                joint=self.joint,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
-                fit_config=map_fit_config
-                if map_fit_config is not None
-                else FitConfig(),
-                **kwargs,
+                map_fit_config=map_fit_config,
+                rng=self.rng,
+                **kwargs
             )
-            logging.info("Preliminary run with MAP completed.")
-            state = map_posterior.state.get()
         else:
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path
+            raise ValueError("The Laplace approximation must start from a preliminary run of MAP or an existing "
+                             "checkpoint or state. Please configure `map_fit_config`, or "
+                             "`fit_config.checkpointer.restore_checkpoint_path`, "
+                             "or `fit_config.checkpointer.start_from_current_state`.")
+
+        state = self._init_map_state(
+            state=state,
+            fit_config=fit_config
+        )
+
+        if fit_config.optimizer.freeze_fun is not None:
+            which_params = get_trainable_paths(
+                params=state.params,
+                freeze_fun=fit_config.optimizer.freeze_fun
             )
+        else:
+            which_params = None
 
         if type(state) == MAPState:
             logging.info("Run the Laplace approximation.")
@@ -228,12 +238,13 @@ class LaplacePosterior(GaussianPosterior):
                 mutable=state.mutable,
                 calib_params=state.calib_params,
                 calib_mutable=state.calib_mutable,
+                which_params=which_params,
                 verbose=fit_config.monitor.verbose,
             )
             state = LaplaceState.convert_from_map_state(
                 map_state=state,
                 std=std_params,
-                which_params=self.posterior_approximator.which_params,
+                which_params=which_params,
             )
 
         if fit_config.checkpointer.save_checkpoint_dir:
@@ -258,4 +269,87 @@ class LaplacePosterior(GaussianPosterior):
         rng: Optional[PRNGKeyArray] = None,
         **kwargs,
     ) -> JointState:
-        return self._sample_diag_gaussian_from_mean_and_std(rng=rng)
+        if rng is None:
+            rng = self.rng.get()
+        state = self.state.get()
+
+        if state._which_params is not None:
+            mean, std = nested_unpair(
+                state.params.unfreeze(),
+                state._which_params,
+                ("mean", "std"),
+            )
+
+            noise = generate_random_normal_like_tree(rng, std)
+            params = nested_set(
+                d=mean,
+                key_paths=state._which_params,
+                objs=tuple(
+                    [
+                        tree_map(
+                            lambda m, s, e: m + s * e,
+                            nested_get(mean, keys),
+                            nested_get(std, keys),
+                            nested_get(noise, keys),
+                        )
+                        for keys in state._which_params
+                    ]
+                ),
+            )
+            for k, v in params.items():
+                params[k] = FrozenDict(v)
+            state = state.replace(params=FrozenDict(params))
+        else:
+            mean, std = dict(), dict()
+            for k, v in state.params.items():
+                mean[k] = FrozenDict({"params": v["params"]["mean"]})
+                std[k] = FrozenDict({"params": v["params"]["std"]})
+
+            state = state.replace(
+                params=FrozenDict(
+                    tree_map(
+                        lambda m, s, e: m + s * e,
+                        mean,
+                        std,
+                        generate_random_normal_like_tree(rng, std),
+                    )
+                )
+            )
+
+        return JointState(
+            params=state.params,
+            mutable=state.mutable,
+            calib_params=state.calib_params,
+            calib_mutable=state.calib_mutable,
+        )
+
+    def _init_map_state(
+            self,
+            state: Union[MAPState, LaplaceState],
+            fit_config: FitConfig
+    ) -> MAPState:
+        if isinstance(state, LaplaceState):
+            if state._which_params is not None:
+                state = state.replace(
+                    params=FrozenDict(
+                        nested_unpair(
+                            d=state.params.unfreeze(),
+                            key_paths=state._which_params,
+                            labels=("mean", "std")
+                        )[0]
+                    )
+                )
+            else:
+                state = state.replace(
+                    params=FrozenDict({k: dict(params=v["params"]["mean"]) for k, v in state.params.items()})
+                )
+
+        state = MAPState.init(
+            params=state.params,
+            mutable=state.mutable,
+            optimizer=fit_config.optimizer.method,
+            calib_params=state.calib_params,
+            calib_mutable=state.calib_mutable,
+        )
+
+        return state
