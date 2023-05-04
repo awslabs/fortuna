@@ -168,15 +168,17 @@ class SGMCMCPosterior(Posterior):
             if fit_config.checkpointer.dump_state is True
             else None
         )
+        num_thinning = self.posterior_approximator.num_thinning or 1
         data_loader = cycle(iter(train_data_loader))
         for i in range(self.posterior_approximator.num_samples):
-            state, _aux = trainer.training_step(
-                state,
-                next(data_loader),
-                self.joint._batched_log_joint_prob,
-                self.rng.get(),
-                n_train_data,
-            )
+            for _ in range(num_thinning):
+                state, _aux = trainer.training_step(
+                    state,
+                    next(data_loader),
+                    self.joint._batched_log_joint_prob,
+                    self.rng.get(),
+                    n_train_data,
+                )
             if fit_config.checkpointer.save_checkpoint_dir:
                 trainer.save_checkpoint(
                     state,

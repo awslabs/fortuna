@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 from fortuna.prob_model.posterior.base import PosteriorApproximator
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
@@ -12,6 +12,7 @@ class CyclicalSGLDPosteriorApproximator(PosteriorApproximator):
     def __init__(
         self,
         num_samples: int = 10,
+        num_thinning: Optional[int] = 10,
         init_step_size: float = 1e-5,
         burnin_steps: int = 0,
         cycle_length: int = 1000,
@@ -25,6 +26,8 @@ class CyclicalSGLDPosteriorApproximator(PosteriorApproximator):
         ----------
         num_samples: int
             The desired number of the posterior samples.
+        num_thinning: int
+            If `num_thinning` is not `None`, keep only each `num_thinning` sample during the sampling phase.
         init_step_size: float
             The initial step size.
         burnin_steps: int
@@ -39,6 +42,7 @@ class CyclicalSGLDPosteriorApproximator(PosteriorApproximator):
 
         """
         self.num_samples = num_samples
+        self.num_thinning = num_thinning
         self.init_step_size = init_step_size
         self.burnin_steps = burnin_steps
         self.cycle_length = cycle_length
