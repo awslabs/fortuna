@@ -13,7 +13,7 @@ from fortuna.utils.random import generate_random_normal_like_tree
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
 from optax import GradientTransformation
-from typing import Callable, NamedTuple, Optional
+from typing import NamedTuple, Optional
 
 
 class OptaxSGHMCState(NamedTuple):

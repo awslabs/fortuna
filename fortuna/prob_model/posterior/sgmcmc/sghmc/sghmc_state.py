@@ -4,7 +4,8 @@ import jax.numpy as jnp
 
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.utils.strings import convert_string_to_jnp_array
-from fortuna.typing import Params
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.typing import OptaxOptimizer
 
 
 class SGHMCState(PosteriorState):

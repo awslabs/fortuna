@@ -2,8 +2,8 @@ import jax
 import jax.numpy as jnp
 
 from optax._src.base import PyTree
-from optax import Params, GradientTransformation
-from typing import NamedTuple, Callable, Any
+from optax import Params
+from typing import NamedTuple, Callable
 
 
 PreconditionerState = NamedTuple

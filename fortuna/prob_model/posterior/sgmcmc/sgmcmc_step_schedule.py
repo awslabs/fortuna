@@ -20,7 +20,7 @@ def constant_schedule(init_step_size: float) -> StepSchedule:
     schedule_fn: StepSchedule
     """
 
-    def schedule(step: Array):
+    def schedule(_step: Array):
         return init_step_size
 
     return schedule

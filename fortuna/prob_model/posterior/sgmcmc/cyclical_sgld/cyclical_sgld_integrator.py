@@ -1,13 +1,9 @@
 import jax
-import jax.numpy as jnp
 
 import optax
-from optax._src.base import PyTree
 from optax import GradientTransformation
 
-from fortuna.typing import Array
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
-    PreconditionerState,
     Preconditioner,
 )
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
@@ -16,9 +12,8 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import (
     sghmc_integrator,
 )
-from fortuna.utils.random import generate_random_normal_like_tree
 from jax._src.prng import PRNGKeyArray
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 
 class OptaxCyclicalSGLDState(NamedTuple):
@@ -31,7 +26,6 @@ class OptaxCyclicalSGLDState(NamedTuple):
 def cyclical_sgld_integrator(
     rng_key: PRNGKeyArray,
     init_step_size: float,
-    burnin_steps: int,
     cycle_length: int,
     exploration_ratio: float,
     preconditioner: Preconditioner,
@@ -49,7 +43,7 @@ def cyclical_sgld_integrator(
     """
     step_schedule = cyclical_cosine_schedule_with_const_burnin(
         init_step_size=init_step_size,
-        burnin_steps=burnin_steps,
+        burnin_steps=0,
         cycle_length=cycle_length,
     )
     sgld = sghmc_integrator(
