@@ -5,7 +5,9 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     Preconditioner,
     identity_preconditioner,
 )
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import (
+    CYCLICAL_SGLD_NAME,
+)
 
 
 class CyclicalSGLDPosteriorApproximator(PosteriorApproximator):
@@ -35,7 +37,7 @@ class CyclicalSGLDPosteriorApproximator(PosteriorApproximator):
         cycle_length: int
             The length of each training cycle, in steps.
         exploration_ratio: float
-            The fraction of steps to spend in SGD exploration, versus sampling from the posterior.
+            The fraction of steps to allocate to the mode exploration phase.
 
         preconditioner: Preconditioner
             A `Preconditioner` instance that preconditions the approximator with information about the posterior distribution, if available.

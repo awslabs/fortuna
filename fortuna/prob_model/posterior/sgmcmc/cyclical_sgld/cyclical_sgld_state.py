@@ -15,7 +15,9 @@ class CyclicalSGLDState(PosteriorState):
         CyclicalSGLDState state name encoded as an array.
     """
 
-    encoded_name: jnp.ndarray = convert_string_to_jnp_array("CyclicalSGLDState")
+    encoded_name: jnp.ndarray = convert_string_to_jnp_array(
+        "CyclicalSGLDState"
+    )
 
     @classmethod
     def convert_from_map_state(

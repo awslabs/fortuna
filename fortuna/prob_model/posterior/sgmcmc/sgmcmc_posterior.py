@@ -17,16 +17,16 @@ from fortuna.prob_model.posterior.map.map_trainer import (
     JittedMAPTrainer,
     MultiDeviceMAPTrainer,
 )
-from fortuna.prob_model.posterior.map.map_state import \
-    MAPState
-from fortuna.prob_model.posterior.map.map_posterior import \
-    MAPPosterior
-from fortuna.prob_model.posterior.map.map_approximator import \
-    MAPPosteriorApproximator
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
+from fortuna.prob_model.posterior.map.map_approximator import (
+    MAPPosteriorApproximator,
+)
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.base import PosteriorApproximator
-from fortuna.prob_model.posterior.posterior_multi_state_repository import \
-    PosteriorMultiStateRepository
+from fortuna.prob_model.posterior.posterior_multi_state_repository import (
+    PosteriorMultiStateRepository,
+)
 from fortuna.typing import Path, Status
 from fortuna.utils.device import select_trainer_given_devices
 
@@ -125,8 +125,10 @@ class SGMCMCPosterior(Posterior):
         status = {}
 
         if fit_config.checkpointer.restore_checkpoint_path:
-            restore_checkpoint_path = \
-                pathlib.Path(fit_config.checkpointer.restore_checkpoint_path) / "c"
+            restore_checkpoint_path = (
+                pathlib.Path(fit_config.checkpointer.restore_checkpoint_path)
+                / "c"
+            )
             state = self.restore_checkpoint(
                 restore_checkpoint_path=restore_checkpoint_path,
                 optimizer=fit_config.optimizer.method,
@@ -166,7 +168,7 @@ class SGMCMCPosterior(Posterior):
             size=self.posterior_approximator.num_samples,
             checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
             if fit_config.checkpointer.dump_state is True
-            else None
+            else None,
         )
         num_thinning = self.posterior_approximator.num_thinning or 1
         data_loader = cycle(iter(train_data_loader))
@@ -182,11 +184,14 @@ class SGMCMCPosterior(Posterior):
             if fit_config.checkpointer.save_checkpoint_dir:
                 trainer.save_checkpoint(
                     state,
-                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / str(i),
-                    force_save=True
+                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir)
+                    / str(i),
+                    force_save=True,
                 )
             self.state.put(
-                state=state, i=i, keep=fit_config.checkpointer.keep_top_n_checkpoints
+                state=state,
+                i=i,
+                keep=fit_config.checkpointer.keep_top_n_checkpoints,
             )
         logging.info("Fit completed.")
         return status
@@ -235,6 +240,10 @@ class SGMCMCPosterior(Posterior):
             checkpoint_dir=checkpoint_dir,
         )
 
-    def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
+    def save_state(
+        self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1
+    ) -> None:
         for i in range(self.posterior_approximator.num_samples):
-            self.state.put(state=self.state.get(i), i=i, keep=keep_top_n_checkpoints)
+            self.state.put(
+                state=self.state.get(i), i=i, keep=keep_top_n_checkpoints
+            )

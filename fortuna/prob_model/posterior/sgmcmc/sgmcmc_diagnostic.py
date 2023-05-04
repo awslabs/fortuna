@@ -7,8 +7,12 @@ from jax.flatten_util import ravel_pytree
 
 
 @jit
-def kernel_stein_discrepancy_imq(samples: List[PyTree], grads: List[PyTree],
-                                 c: float = 1.0, beta: float = -0.5) -> float:
+def kernel_stein_discrepancy_imq(
+    samples: List[PyTree],
+    grads: List[PyTree],
+    c: float = 1.0,
+    beta: float = -0.5,
+) -> float:
     """Kernel Stein Discrepancy with the Inverse Multiquadric (IMQ) kernel.
 
     See `Gorham J. and Mackey L., 2017 <https://proceedings.mlr.press/v70/gorham17a/gorham17a.pdf>`_ for more details.
@@ -40,7 +44,13 @@ def kernel_stein_discrepancy_imq(samples: List[PyTree], grads: List[PyTree],
         kern += -2 * beta * jnp.dot(grad1, diff) * base ** (beta - 1)
         kern += 2 * beta * jnp.dot(grad2, diff) * base ** (beta - 1)
         kern += -2 * dim * beta * (base ** (beta - 1))
-        kern += -4 * beta * (beta - 1) * base ** (beta - 2) * jnp.sum(jnp.square(diff))
+        kern += (
+            -4
+            * beta
+            * (beta - 1)
+            * base ** (beta - 2)
+            * jnp.sum(jnp.square(diff))
+        )
         return kern
 
     _batched_k_0 = vmap(_k_0, in_axes=(None, 0, None, 0, None, None))
@@ -54,8 +64,9 @@ def kernel_stein_discrepancy_imq(samples: List[PyTree], grads: List[PyTree],
     return jnp.sqrt(ksd_sum) / samples.shape[0]
 
 
-def effective_sample_size(samples: List[PyTree], filter_threshold:
-                          Optional[float] = 0.) -> PyTree:
+def effective_sample_size(
+    samples: List[PyTree], filter_threshold: Optional[float] = 0.0
+) -> PyTree:
     """Estimate the effective sample size of a sequence.
 
     For a sequence of length :math:`N`, the effective sample size is defined as
@@ -93,7 +104,7 @@ def effective_sample_size(samples: List[PyTree], filter_threshold:
 
         # Zero pad to the next power of 2 greater than 2 * x_len
         x_len = x.shape[-1]
-        pad_len = int(2. ** jnp.ceil(jnp.log2(x_len * 2)) - x_len)
+        pad_len = int(2.0 ** jnp.ceil(jnp.log2(x_len * 2)) - x_len)
         x = jnp.pad(x, (0, pad_len))[:-pad_len]
 
         # Autocorrelation is IFFT of power-spectral density
@@ -102,7 +113,7 @@ def effective_sample_size(samples: List[PyTree], filter_threshold:
         prod = jnp.real(prod[..., :x_len]).astype(dtype)
 
         # Divide to make obtain an unbiased estimate of the expectation
-        denominator = x_len - jnp.arange(0., x_len)
+        denominator = x_len - jnp.arange(0.0, x_len)
         res = prod / denominator
         return jnp.transpose(res, jnp.roll(jnp.arange(len(res.shape)), -shift))
 
@@ -110,13 +121,13 @@ def effective_sample_size(samples: List[PyTree], filter_threshold:
     auto_corr = auto_cov / auto_cov[:1]
 
     n = len(samples)
-    nk_factor = (n - jnp.arange(0., n)) / n
+    nk_factor = (n - jnp.arange(0.0, n)) / n
     weighted_auto_corr = nk_factor[..., None] * auto_corr
 
     if filter_threshold is not None:
         mask = (auto_corr < filter_threshold).astype(auto_corr.dtype)
         mask = jnp.cumsum(mask, axis=0)
-        mask = jnp.maximum(1. - mask, 0.)
+        mask = jnp.maximum(1.0 - mask, 0.0)
         weighted_auto_corr *= mask
 
     ess = n / (-1 + 2 * weighted_auto_corr.sum(axis=0))

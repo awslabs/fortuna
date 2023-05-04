@@ -48,7 +48,9 @@ def cosine_schedule(init_step_size: float, total_steps: int) -> StepSchedule:
     return schedule
 
 
-def polynomial_schedule(a: float = 1., b: float = 1., gamma: float = 0.55) -> StepSchedule:
+def polynomial_schedule(
+    a: float = 1.0, b: float = 1.0, gamma: float = 0.55
+) -> StepSchedule:
     """Create a polynomial step schedule.
 
     Parameters
@@ -66,7 +68,7 @@ def polynomial_schedule(a: float = 1., b: float = 1., gamma: float = 0.55) -> St
     """
 
     def schedule(step: Array):
-        return a * (b + step) ** (- gamma)
+        return a * (b + step) ** (-gamma)
 
     return schedule
 

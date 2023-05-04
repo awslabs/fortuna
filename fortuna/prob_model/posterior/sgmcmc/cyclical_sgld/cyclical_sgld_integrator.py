@@ -10,10 +10,12 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     PreconditionerState,
     Preconditioner,
 )
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import \
-    cyclical_cosine_schedule_with_const_burnin
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import \
-    sghmc_integrator
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
+    cyclical_cosine_schedule_with_const_burnin,
+)
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import (
+    sghmc_integrator,
+)
 from fortuna.utils.random import generate_random_normal_like_tree
 from jax._src.prng import PRNGKeyArray
 from typing import Callable, NamedTuple
@@ -21,6 +23,7 @@ from typing import Callable, NamedTuple
 
 class OptaxCyclicalSGLDState(NamedTuple):
     """Optax state for the Cyclical SGLD integrator."""
+
     sgd_state: NamedTuple
     sgld_state: NamedTuple
 
@@ -49,12 +52,14 @@ def cyclical_sgld_integrator(
         burnin_steps=burnin_steps,
         cycle_length=cycle_length,
     )
-    sgld = sghmc_integrator(momentum_decay=0.,
-                            momentum_resample_steps=None,
-                            rng_key=rng_key,
-                            step_schedule=step_schedule,
-                            preconditioner=preconditioner)
-    sgd = optax.sgd(learning_rate=1.)
+    sgld = sghmc_integrator(
+        momentum_decay=0.0,
+        momentum_resample_steps=None,
+        rng_key=rng_key,
+        step_schedule=step_schedule,
+        preconditioner=preconditioner,
+    )
+    sgd = optax.sgd(learning_rate=1.0)
 
     def init_fn(params):
         return OptaxCyclicalSGLDState(
@@ -70,13 +75,15 @@ def cyclical_sgld_integrator(
             )
             new_sgld_state = state.sgld_state._replace(
                 count=state.sgld_state.count + 1,
-                preconditioner_state=preconditioner_state
+                preconditioner_state=preconditioner_state,
             )
             rescaled_gradient = jax.tree_map(
-                lambda g: -1. * step_size * g,
+                lambda g: -1.0 * step_size * g,
                 gradient,
             )
-            updates, new_sgd_state = sgd.update(rescaled_gradient, state.sgd_state)
+            updates, new_sgd_state = sgd.update(
+                rescaled_gradient, state.sgd_state
+            )
             new_state = OptaxCyclicalSGLDState(
                 sgd_state=new_sgd_state,
                 sgld_state=new_sgld_state,
@@ -92,7 +99,8 @@ def cyclical_sgld_integrator(
             return updates, new_state
 
         updates, state = jax.lax.cond(
-            ((state.sgld_state.count % cycle_length) / cycle_length) >= exploration_ratio,
+            ((state.sgld_state.count % cycle_length) / cycle_length)
+            >= exploration_ratio,
             sgld_step,
             sgd_step,
         )

@@ -26,6 +26,7 @@ class Preconditioner(NamedTuple):
             The function that multiples its input by the square root of mass matrix inverse.
 
     """
+
     init: Callable[[Params], PreconditionerState]
     update_preconditioner: Callable[
         [PyTree, PreconditionerState], PreconditionerState

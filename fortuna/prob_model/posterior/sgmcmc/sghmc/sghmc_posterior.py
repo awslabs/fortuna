@@ -10,12 +10,16 @@ from jax import pure_callback, random
 from fortuna.typing import Array
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import SGMCMCPosterior
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
+    SGMCMCPosterior,
+)
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import \
-    SGHMCPosteriorApproximator
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import \
-    sghmc_integrator
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
+    SGHMCPosteriorApproximator,
+)
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import (
+    sghmc_integrator,
+)
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_state import SGHMCState
 
 logger = logging.getLogger(__name__)

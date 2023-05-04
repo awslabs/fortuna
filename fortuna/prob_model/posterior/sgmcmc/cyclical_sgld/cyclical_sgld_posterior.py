@@ -10,13 +10,21 @@ from jax import pure_callback, random
 from fortuna.typing import Array
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import SGMCMCPosterior
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import \
-    CyclicalSGLDPosteriorApproximator
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_integrator import \
-    cyclical_sgld_integrator
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_state import CyclicalSGLDState
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
+    SGMCMCPosterior,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import (
+    CYCLICAL_SGLD_NAME,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import (
+    CyclicalSGLDPosteriorApproximator,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_integrator import (
+    cyclical_sgld_integrator,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_state import (
+    CyclicalSGLDState,
+)
 
 logger = logging.getLogger(__name__)
 
