@@ -5,9 +5,9 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.1
+#       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: python3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -16,7 +16,7 @@
 # # Stochastic Gradient Markov chain Monte Carlo (SG-MCMC) disagnostics
 
 # %% [markdown]
-# Markov chain Monte Carlo (MCMC) methods are powerful tools for approximating the posterior distribution. Stochastic variants, such as Stochastic Gradient Hamiltonian Monte Carlo, promise rapid sampling at the cost of more biased inference. However, it has been shown that standard MCMC diagnostics fail to detect these biases. Kernel Stein discrepancy approach (KSD) with the recently proposed inverse multiquadric (IMQ) kernel [[Gorham and Mackey, 2017](https://proceedings.mlr.press/v70/gorham17a/gorham17a.pdf)] aims for  comparing biased, exact, and deterministic sample sequences, that is also particularly suitable for parallelized computation.
+# Markov chain Monte Carlo (MCMC) methods are powerful tools for approximating the posterior distribution. Stochastic procedures, such as Stochastic Gradient Hamiltonian Monte Carlo, enable rapid sampling at the cost of more biased inference. However, it has been shown that standard MCMC diagnostics fail to detect these biases. Kernel Stein discrepancy approach (KSD) with the recently proposed inverse multiquadric (IMQ) kernel [[Gorham and Mackey, 2017](https://proceedings.mlr.press/v70/gorham17a/gorham17a.pdf)] aims for comparing biased, exact, and deterministic sample sequences, that is also particularly suitable for parallelized computation.
 #
 # In this notebook, we show how to assess the quality of SG-MCMC samples.
 
@@ -68,29 +68,19 @@ for i, ax in enumerate(axs.flatten()):
 plt.show()
 
 # %% [markdown]
-# We construct the MVN log density function for the ground truth parameters, and compute its gradients at each sample.
-
-# %%
-def log_density_fn(params, mu=mu, sigma=sigma):
-    diff = params - mu
-    log_density = -jnp.log(2 * jnp.pi) * mu.size / 2
-    log_density -= jnp.log(jnp.linalg.det(sigma)) / 2
-    log_density -= diff.T @ jnp.linalg.inv(sigma) @ diff / 2
-    return log_density
-
-_, grads = vmap(vmap(value_and_grad(log_density_fn), 0, 0), 1, 1)(samples)
-
-# %% [markdown]
 # Kernel Stein discrepancy with inverse multiquadric kernel is computed over an array of samples and corresponding gradients. Note that it has quadratic time complexity that would make it challenging to scale to large sequences.
 
 # %%
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_diagnostic import kernel_stein_discrepancy_imq
 
+logpdf = lambda params: stats.multivariate_normal.logpdf(params, mu, sigma)
+_, grads = vmap(vmap(value_and_grad(logpdf), 0, 0), 1, 1)(samples)
+
 ksd = vmap(kernel_stein_discrepancy_imq, 0, 0)(samples, grads)
 log_ksd = jnp.log10(ksd)
 
 # %% [markdown]
-# As expected, the lowest value of (log-) KSD is obtained in the dataset that is sampled from the ground truth distribution.
+# As expected, the lowest value of (log-)KSD is obtained in the dataset that is sampled from the ground truth distribution.
 
 # %%
 fig, ax = plt.subplots(1, 1, figsize=(6, 3))
@@ -99,3 +89,24 @@ ax.plot(disp, log_ksd)
 ax.set_ylabel("log KSD")
 ax.set_xlabel("$\Sigma$")
 plt.show()
+
+# %% [markdown]
+# ### Estimating effective sample size
+#
+# Effective Sample Size (ESS) is a metric that quantifies autocorrelation in a sequence. Intuitively, ESS is the size of an i.i.d. sample with the same variance as the input sample. Typical usage includes computing the standard error for the MCMC estimator:
+
+
+# %%
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_diagnostic import effective_sample_size
+
+ess = effective_sample_size(samples[0])
+variance = jnp.var(samples[0], axis=0)
+standard_error = jnp.sqrt(variance / ess)
+standard_error
+
+# %% [markdown]
+# Note that a sequence of strongly autocorrelated samples leads to a very low ESS: 
+
+# %%
+print("ESS for no auto-correlation:", effective_sample_size(rng.normal(size=200)))
+print("ESS for strong auto-correlation:", effective_sample_size(jnp.arange(200) + rng.normal(size=200)))

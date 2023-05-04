@@ -1,4 +1,4 @@
-Stochastic Gradient Markov Chain Monte Carlo (SGMCMC)
+Stochastic Gradient Markov Chain Monte Carlo (SG-MCMC)
 ------------------------------------------------------
 
 Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)
@@ -53,7 +53,7 @@ procedure that adapts the cyclical cosine stepsize schedule, and alternates betw
 Step schedules
 ==============
 
-Fortuna supports various step schedulers for SGMCMC
+Fortuna supports various step schedulers for SG-MCMC
 algorithms. :class:`~fortuna.rob_model.posterior.sgmcmc.sgmcmc_step_schedule.StepSchedule`
 is a function that takes step count as an input and returns `float` step
 size as an output.
@@ -74,6 +74,6 @@ Diagnostics
 ===========
 
 The library includes toolings necessary for diagnostics of the convergence of
-SGMCMC sampling procedures.
+SG-MCMC sampling procedures.
 
 .. automodule:: fortuna.prob_model.posterior.sgmcmc.sgmcmc_diagnostic
