@@ -23,8 +23,6 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         tokenizer: PreTrainedTokenizer,
         max_length: int,
         padding: Union[bool, str, PaddingStrategy] = True,
-        per_device_train_batch_size: int = 8,
-        per_device_eval_batch_size: int = 8,
         num_unique_labels: Optional[int] = None,
     ):
         """
@@ -40,20 +38,12 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         padding: Union[bool, str, PaddingStrategy]
             See `Padding and Truncation <https://huggingface.co/docs/transformers/pad_truncation>`_
             for more information (`truncation` is always True).
-        per_device_train_batch_size: int
-            Batch size for each device to be used for training
-        per_device_eval_batch_size: int
-            Batch size for each device to be used for evaluation
         num_unique_labels: Optional[int]
             Number of unique target labels in the task (classification only)
         """
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.padding = padding
-        self.per_device_train_batch_size = per_device_train_batch_size
-        self.per_device_eval_batch_size = per_device_eval_batch_size
-        self.total_train_batch_size = per_device_train_batch_size * jax.local_device_count()
-        self.total_eval_batch_size = per_device_eval_batch_size * jax.local_device_count()
         self.num_unique_labels = num_unique_labels
         self._data_collator = None
 
@@ -86,7 +76,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         """
         pass
 
-    def get_dataloader(self, dataset: Dataset,  rng: PRNGKeyArray, train: bool = False, shuffle: bool = False, drop_last: bool = False, verbose: bool = False) -> HuggingFaceDataLoader:
+    def get_data_loader(self, dataset: Dataset,  per_device_batch_size: int, rng: PRNGKeyArray, shuffle: bool = False, drop_last: bool = False, verbose: bool = False) -> HuggingFaceDataLoader:
         """
         Build a :class:`~fortuna.data.loader.huggingface_loaders.HuggingFaceDataLoader` object from a
         tokenized dataset.
@@ -95,10 +85,10 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         ----------
         dataset: Dataset
             A tokenizeed dataset (see :meth:`.HuggingFaceClassificationDatasetABC.get_tokenized_datasets`).
+        per_device_batch_size: bool
+            Batch size for each device.
         rng: PRNGKeyArray
             Random number generator.
-        train: bool
-            Whether the dataloader will be used for training or evaluation.
         shuffle: bool
             if True, shuffle the data so that each batch is a ranom sample from the dataset.
         drop_last: bool
@@ -114,7 +104,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         iterable = IterableData.from_callable(
             lambda *args, **kwargs: self._get_data_loader(
                 dataset,
-                batch_size=self.total_train_batch_size if train else self.total_eval_batch_size,
+                batch_size=per_device_batch_size * jax.local_device_count(),
                 shuffle=shuffle,
                 drop_last=drop_last,
                 rng=rng,
@@ -131,7 +121,8 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
     def _collate(self, batch: Dict[str, Array], batch_size: int) -> Dict[str, Array]:
         pass
 
-    def _get_batches_idxs(self, rng: PRNGKeyArray, dataset_size: int, batch_size: int, shuffle: bool =False, drop_last: bool = False) -> Iterable[Array]:
+    @staticmethod
+    def _get_batches_idxs(rng: PRNGKeyArray, dataset_size: int, batch_size: int, shuffle: bool = False, drop_last: bool = False) -> Iterable[Array]:
         if shuffle:
             dataset_idxs = jax.random.permutation(rng, dataset_size)  # batch idxs
         else:
