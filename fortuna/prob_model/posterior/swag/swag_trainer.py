@@ -70,10 +70,11 @@ class SWAGTrainer(MAPTrainer):
                 ),
                 axis=1,
             )
-        if (
-            self.save_checkpoint_dir
+        if (self.save_checkpoint_dir is not None
             and self.save_every_n_steps is not None
-            and current_epoch % self.save_every_n_steps
+            and self.save_every_n_steps > 0
+            and self._global_training_step >= self.save_every_n_steps
+            and self._global_training_step % self.save_every_n_steps == 0
         ):
             state = self._update_state_with_stats(state)
         return super().training_step_end(

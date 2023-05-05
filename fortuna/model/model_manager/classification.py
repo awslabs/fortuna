@@ -1,5 +1,6 @@
 from functools import partial
-from typing import Dict, Optional, Tuple, Union
+import logging
+from typing import Dict, Optional, Tuple, Union, Mapping
 
 import flax.linen as nn
 import jax
@@ -8,27 +9,32 @@ from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
 from jax import random
 from jax._src.prng import PRNGKeyArray
+from transformers import FlaxPreTrainedModel
 
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.model.utils.random_features import RandomFeatureGaussianProcess
 from fortuna.typing import Array, Mutable, Params
 from fortuna.utils.nested_dicts import nested_update
+from fortuna.utils.data import get_inputs_from_shape
+
+
+logger = logging.getLogger(__name__)
 
 
 class ClassificationModelManager(ModelManager):
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: Union[nn.Module, FlaxPreTrainedModel]):
         r"""
         Classification model manager class. It orchestrates the forward pass of the model in the probabilistic model.
 
         Parameters
         ----------
-        model : nn.Module
+        model : Union[nn.Module, FlaxPreTrainedModel]
             A model describing the deterministic relation between inputs and outputs. The outputs must correspond to
             the logits of a softmax probability vector. The output dimension must be the same as the number of classes.
             Let :math:`x` be input variables and :math:`w` the random model parameters. Then the model is described by
             a function :math:`f(w, x)`, where each component of :math:`f` corresponds to one of the classes.
         """
-        self.model = model
+        super(ClassificationModelManager, self).__init__(model)
 
     def apply(
         self,
@@ -65,7 +71,7 @@ class ClassificationModelManager(ModelManager):
 
     def init(
         self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
-    ) -> Dict[str, FrozenDict]:
+    ) -> Dict[str, Mapping]:
         if rng is None:
             rng = self.rng.get()
         rng, params_key, dropout_key = random.split(rng, 3)
@@ -75,10 +81,10 @@ class ClassificationModelManager(ModelManager):
         )
 
 
-class SNGPClassificationModelManager(ClassificationModelManager):
+class SNGPClassificationModelManagerMixin:
     def __init__(
         self,
-        model: nn.Module,
+        *args,
         output_dim: int,
         gp_hidden_features: int = 1024,
         normalize_input: bool = False,
@@ -88,15 +94,10 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         **kwargs
     ):
         """
-        Classification model manager for SNGP models.
+        Classification model manager Mixin for SNGP models.
 
         Parameters
         ----------
-        model : nn.Module
-            A model describing the deterministic relation between inputs and outputs. The outputs of the model
-            is the latent representation of the input, which in this case, does not correspond to the logits of a
-            softmax probability vector. The output dimension of the model is not dependent on the number
-            of classes in the classification task.
         output_dim: int
             The output dimension of the network.
         normalize_input: bool
@@ -122,7 +123,7 @@ class SNGPClassificationModelManager(ClassificationModelManager):
             posterior variance in posterior mean approximation.
             See `Zhiyun L. et al., 2020 <https://arxiv.org/abs/2006.07584>`_ for more details.
         """
-        super(SNGPClassificationModelManager, self).__init__(model)
+        super(SNGPClassificationModelManagerMixin, self).__init__(*args, **kwargs)
         self.output_dim = output_dim
         self.gp_hidden_features = gp_hidden_features
         self.normalize_input = normalize_input
@@ -197,7 +198,9 @@ class SNGPClassificationModelManager(ClassificationModelManager):
             gp_model_mutable = {k:v for k,v in mutable['model'].items() if k in self._gp_output_model_mutable_keys}
         else:
             deep_feature_extractor_mutable = mutable
-        deep_feature_extractor_outputs = super(SNGPClassificationModelManager, self).apply(params, inputs, deep_feature_extractor_mutable, train, rng)
+        deep_feature_extractor_outputs = super(SNGPClassificationModelManagerMixin, self).apply(
+            params, inputs, deep_feature_extractor_mutable, train, rng
+        )
 
         variables = params["model"].unfreeze()
         if mutable:
@@ -221,6 +224,27 @@ class SNGPClassificationModelManager(ClassificationModelManager):
             )
             return self._mean_field_logits(logits, covariance)
 
+
+class SNGPClassificationModelManager(SNGPClassificationModelManagerMixin, ClassificationModelManager):
+    def __init__(
+        self,
+        model: nn.Module,
+        *args,
+        **kwargs
+    ):
+        """
+        Classification model manager for SNGP models.
+
+        Parameters
+        ----------
+        model : nn.Module
+            A model describing the deterministic relation between inputs and outputs. The outputs of the model
+            is the latent representation of the input, which in this case, does not correspond to the logits of a
+            softmax probability vector. The output dimension of the model is not dependent on the number
+            of classes in the classification task.
+        """
+        super(SNGPClassificationModelManager, self).__init__(model, *args, **kwargs)
+
     def init(
         self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
     ) -> Dict[str, FrozenDict]:
@@ -237,4 +261,85 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         self._gp_output_model = self._get_output_model()
         gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
         params = nested_update(model_params.unfreeze(), gp_params.unfreeze())
+        return dict(model=FrozenDict(params))
+
+
+class HuggingFaceClassificationModelManager(ClassificationModelManager):
+    def apply(
+        self,
+        params: Params,
+        inputs: Dict[str, Array],
+        mutable: Optional[Mutable] = None,
+        train: bool = False,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs,
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
+        if mutable is not None:
+            logger.warning("Usually when working with Transformers models `mutable` is None. Here it is not.")
+
+        # setup dropout key
+        if rng is not None:
+            rng, dropout_rng = random.split(rng, 2)
+        else:
+            dropout_rng = None
+
+        model_kwargs = {}
+        if mutable is not None:
+            model_kwargs = {'mutable': mutable}
+        outputs = self.model(
+            **inputs,
+            params=params['model']['params'],
+            dropout_rng=dropout_rng,
+            train=train,
+            output_attentions=kwargs.get("output_attentions"),
+            output_hidden_states=kwargs.get("output_hidden_states"),
+            return_dict=kwargs.get("return_dict"),
+            **model_kwargs,
+        )
+        if train and mutable:
+            outputs, mutable = outputs
+        if hasattr(outputs, "logits"):
+            outputs = outputs.logits
+        if train and mutable:
+            return outputs,  {"mutable": FrozenDict({"model": mutable})}
+        return outputs
+
+    def init(
+        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+    ) -> Dict[str, Mapping]:
+        assert self.model._is_initialized, "At the moment Fortuna supports models from Hugging Face that are loaded via " \
+                                           "`from_pretrained` method, which also takes care of model initialization."
+        return {'model': {'params': self.model.params}}
+
+
+class SNGPHuggingFaceClassificationModelManager(SNGPClassificationModelManagerMixin, HuggingFaceClassificationModelManager):
+    def __init__(
+        self,
+        model: nn.Module,
+        *args,
+        **kwargs
+    ):
+        super(SNGPHuggingFaceClassificationModelManager, self).__init__(model, *args, **kwargs)
+
+    def init(
+        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+    ) -> Dict[str, FrozenDict]:
+        if rng is None:
+            rng = self.rng.get()
+        assert self.model._is_initialized, "At the moment Fortuna supports models from Hugging Face that are loaded via " \
+                                           "`from_pretrained` method, which also takes care of model initialization."
+        output_shape = jax.eval_shape(
+            self.model.module.apply,
+            self.model.params,
+            **get_inputs_from_shape(input_shape)
+        ).shape
+        if len(output_shape[1:]) > 1:  # drop batch size
+            raise ValueError(f"The output shape for the given model is {output_shape}.\n"
+                             f"In order to use SNGP the output shape of the provide model has to be of shape"
+                             f"(batch_size, n_features).")
+        self._gp_output_model = self._get_output_model()
+        rng, params_key, dropout_key = random.split(rng, 3)
+        rngs = {"params": params_key, "dropout": dropout_key}
+        gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
+        params = nested_update(self.model.params, gp_params.unfreeze())
         return dict(model=FrozenDict(params))

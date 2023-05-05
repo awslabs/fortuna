@@ -10,8 +10,10 @@ from fortuna.prob_model.posterior.posterior_mixin import \
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import Path, Status, OptaxOptimizer
+from fortuna.typing import Path, Status
+from fortuna.utils.data import get_input_shape
 from fortuna.utils.random import WithRNG
+from fortuna.training.train_state import TrainState
 from jax._src.prng import PRNGKeyArray
 from fortuna.prob_model.joint.state import JointState
 from fortuna.utils.freeze import freeze_optimizer

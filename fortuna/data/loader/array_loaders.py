@@ -6,7 +6,7 @@ import numpy as np
 
 from fortuna.data.loader.base import BaseDataLoaderABC, BaseInputsLoader, BaseTargetsLoader
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Batch, Array
+from fortuna.typing import Batch, Array, Shape
 
 
 class DataLoader(BaseDataLoaderABC):
@@ -221,8 +221,7 @@ class DataLoader(BaseDataLoaderABC):
         return self.from_callable_iterable(fun)
 
     @property
-    def input_shape(self) -> Tuple[int, ...]:
-        """ Get the shape of the inputs in the data loader. """
+    def input_shape(self) -> Shape:
         def fun():
             for inputs, targets in self:
                 input_shape = inputs.shape[1:]
@@ -341,16 +340,6 @@ class InputsLoader(BaseInputsLoader):
                     break
 
         return self.from_callable_iterable(fun)
-
-    @property
-    def input_shape(self) -> Tuple[int, ...]:
-        """ Get the shape of the inputs in the inputs loader. """
-        def fun():
-            for inputs in self:
-                input_shape = inputs.shape[1:]
-                break
-            return input_shape
-        return fun()
 
     def split(self, n_data: int) -> Tuple[InputsLoader, InputsLoader]:
         """

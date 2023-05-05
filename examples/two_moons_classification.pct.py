@@ -34,7 +34,7 @@ test_data = make_moons(n_samples=500, noise=0.07, random_state=2)
 # Fortuna helps you converting data and data loaders into a data loader that Fortuna can digest.
 
 # %%
-from fortuna.data import DataLoader
+from fortuna.data.loader import DataLoader
 
 train_data_loader = DataLoader.from_array_data(
     train_data, batch_size=128, shuffle=True, prefetch=True
@@ -91,7 +91,7 @@ test_modes = prob_model.predictive.mode(
 
 # %%
 import matplotlib.pyplot as plt
-from fortuna.data import InputsLoader
+from fortuna.data.loader import InputsLoader
 import numpy as np
 
 fig = plt.figure(figsize=(6, 3))

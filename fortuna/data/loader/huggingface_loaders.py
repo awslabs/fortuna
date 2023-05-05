@@ -3,7 +3,7 @@ from jax import numpy as jnp
 
 from fortuna.data.loader.base import BaseDataLoaderABC, BaseInputsLoader, BaseTargetsLoader
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Array
+from fortuna.typing import Array, Shape
 
 
 class HuggingFaceDataLoader(BaseDataLoaderABC):
@@ -35,6 +35,15 @@ class HuggingFaceDataLoader(BaseDataLoaderABC):
             return self._num_inputs
         else:
             return super().size
+
+    @property
+    def input_shape(self) -> Shape:
+        def fun():
+            for inputs, _ in self:
+                input_shape = {k: v.shape[1:] for k,v in inputs.items()}
+                break
+            return input_shape
+        return fun()
 
     @property
     def num_unique_labels(self) -> Optional[int]:

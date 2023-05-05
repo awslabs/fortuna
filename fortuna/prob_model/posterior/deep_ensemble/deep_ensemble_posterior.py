@@ -22,6 +22,7 @@ from fortuna.prob_model.posterior.map.map_posterior import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
     JittedMAPTrainer, MAPTrainer, MultiDeviceMAPTrainer)
 from fortuna.typing import Path, Status
+from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.utils.nested_dicts import nested_set, nested_get
@@ -132,6 +133,8 @@ class DeepEnsemblePosterior(Posterior):
                 validation_dataset_size=val_data_size,
                 verbose=fit_config.monitor.verbose,
                 callbacks=fit_config.callbacks,
+                max_grad_norm=fit_config.hyperparameters.max_grad_norm,
+                gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
             )
 
         if isinstance(self.state, DeepEnsemblePosteriorStateRepository):
@@ -205,6 +208,11 @@ class DeepEnsemblePosterior(Posterior):
                 optimizer=fit_config.optimizer.method,
                 calib_params=state.calib_params,
                 calib_mutable=state.calib_mutable,
+                dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                    getattr(self.joint.likelihood.model_manager.model, "dtype")
+                    if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                    else None
+                )
             )
         else:
             random_state = super()._init_joint_state(data_loader)

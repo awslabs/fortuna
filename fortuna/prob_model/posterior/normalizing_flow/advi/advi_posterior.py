@@ -26,6 +26,8 @@ from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.typing import Status, Array, AnyKey, Params, OptaxOptimizer
 from fortuna.utils.device import select_trainer_given_devices
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
 from fortuna.utils.nested_dicts import nested_get, nested_unpair, nested_set
 import numpy as np
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
@@ -163,6 +165,8 @@ class ADVIPosterior(Posterior):
             unravel=self._unravel,
             n_samples=self.posterior_approximator.n_loss_samples,
             callbacks=fit_config.callbacks,
+            max_grad_norm=fit_config.hyperparameters.max_grad_norm,
+            gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
         )
         trainer._all_params = None
 
@@ -305,6 +309,11 @@ class ADVIPosterior(Posterior):
             optimizer=fit_config.optimizer.method,
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
+            dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                getattr(self.joint.likelihood.model_manager.model, "dtype")
+                if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                else None
+            )
         )
 
         return state, log_stds
@@ -329,6 +338,11 @@ class ADVIPosterior(Posterior):
             optimizer=optimizer,
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
+            dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                getattr(self.joint.likelihood.model_manager.model, "dtype")
+                if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                else None
+            )
         )
 
     def _get_unravel(

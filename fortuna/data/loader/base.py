@@ -8,7 +8,7 @@ from flax import jax_utils
 from jax.tree_util import tree_map
 
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Batch, InputData, Array, Status, Targets
+from fortuna.typing import Batch, InputData, Array, Status, Targets, Shape
 
 T = TypeVar('T')
 
@@ -51,6 +51,14 @@ class BaseDataLoaderABC(abc.ABC):
             Otherwise returns None.
         """
         return self._num_unique_labels
+
+    @property
+    @abc.abstractmethod
+    def input_shape(self) -> Shape:
+        """
+        Get the shape of the inputs in the data loader.
+        """
+        pass
 
     @abc.abstractmethod
     def to_inputs_loader(self) -> BaseInputsLoader:
@@ -237,6 +245,19 @@ class BaseInputsLoader:
                 inputs = inputs[list(inputs.keys())[0]]
             c += inputs.shape[0]
         return c
+
+    @property
+    def input_shape(self) -> Shape:
+        """ Get the shape of the inputs in the inputs loader. """
+        def fun():
+            for inputs in self:
+                if isinstance(inputs, dict):
+                    input_shape = {k: v.shape[1:] for k, v in inputs.items()}
+                else:
+                    input_shape = inputs.shape[1:]
+                break
+            return input_shape
+        return fun()
 
     @classmethod
     def from_data_loader(cls: Type[T], data_loader: BaseDataLoaderABC) -> T:

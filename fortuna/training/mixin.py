@@ -32,7 +32,7 @@ class WithCheckpointingMixin:
         prefix: str = "checkpoint_",
     ) -> None:
         if save_checkpoint_dir:
-            checkpoints.save_checkpoint(
+            save_ckpt_fn = lambda state: checkpoints.save_checkpoint(
                 ckpt_dir=str(save_checkpoint_dir),
                 target=state,
                 step=state.step,
@@ -40,6 +40,12 @@ class WithCheckpointingMixin:
                 keep=keep,
                 overwrite=force_save,
             )
+            if hasattr(state, "grad_accumulated") and state.grad_accumulated is not None:
+                # do not save grad accumulated in the ckpt
+                state = state.replace(grad_accumulated=None)
+                save_ckpt_fn(state)
+            else:
+                save_ckpt_fn(state)
 
     def restore_checkpoint(
         self,

@@ -136,8 +136,6 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
             self, dataset: Dataset,  batch_size: int, shuffle: bool = False, drop_last: bool = False,
             rng: Optional[PRNGKeyArray] = None, verbose: bool = False,
     ) -> Union[Iterable[Dict[str, Array]], Iterable[Tuple[Dict[str, Array],Array]]]:
-        rng = jax.random.split(rng, 1)[0]
-
         batch_idxs_gen = self._get_batches_idxs(
             rng=rng,
             dataset_size=len(dataset),
@@ -172,7 +170,7 @@ class HuggingFaceClassificationDatasetForSequenceClassification(HuggingFaceClass
                 truncation=True,
             )
             if target_column in batch:
-                tokenized_inputs['labels'] = batch[target_column]
+                tokenized_inputs['label'] = batch[target_column]
             return tokenized_inputs
         tokenized_datasets = datasets.map(
             _tokenize_fn,
@@ -194,5 +192,8 @@ class HuggingFaceClassificationDatasetForSequenceClassification(HuggingFaceClass
     def _collate(self, batch: Dict[str, Array], batch_size: int) -> Dict[str, Array]:
         if self.padding and self.padding != "max_length":
             batch = self.data_collator(batch)
+        else:
+            if "label" in batch:
+                batch["labels"] = batch["label"]
+                del batch["label"]
         return batch
-

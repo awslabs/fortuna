@@ -55,7 +55,7 @@ axes[2].legend()
 # Fortuna helps you converting tuple of arrays into a compatible data loader.
 
 # %%
-from fortuna.data import DataLoader
+from fortuna.data.loader import DataLoader
 
 train_data_loader = DataLoader.from_array_data(
     train_data, batch_size=128, shuffle=True, prefetch=True
@@ -131,7 +131,7 @@ test_cred_intervals = prob_model.predictive.credible_interval(
 )
 
 # %%
-from fortuna.data import InputsLoader
+from fortuna.data.loader import InputsLoader
 
 mesh = np.linspace(-4, 4.2)
 mesh_loader = InputsLoader.from_array_inputs(mesh)

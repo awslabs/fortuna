@@ -4,6 +4,7 @@ from typing import Any, Dict, Optional
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from flax.training import dynamic_scale
 
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (CalibMutable, CalibParams, Mutable, OptaxOptimizer,
@@ -21,6 +22,8 @@ class PosteriorState(TrainState):
     mutable: Optional[Mutable] = None
     calib_params: Optional[CalibParams] = None
     calib_mutable: Optional[CalibMutable] = None
+    grad_accumulated: Optional[jnp.ndarray] = None
+    dynamic_scale: Optional[dynamic_scale.DynamicScale] = None
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("PosteriorState")
 
     @classmethod
@@ -31,6 +34,8 @@ class PosteriorState(TrainState):
         optimizer: Optional[OptaxOptimizer] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
+        grad_accumulated: Optional[jnp.ndarray] = None,
+        dynamic_scale: Optional[dynamic_scale.DynamicScale] = None,
         **kwargs,
     ) -> Any:
         """
@@ -48,7 +53,10 @@ class PosteriorState(TrainState):
             The parameters objects characterizing an approximation of the posterior distribution.
         calib_mutable : Optional[CalibMutable]
             The calibration mutable objects characterizing an approximation of the posterior distribution.
-
+        grad_accumulated : Optional[jnp.ndarray]
+            The gradients accumulated in consecutive training steps (used only when `gradient_accumulation_steps > 1`).
+        dynamic_scale: Optional[dynamic_scale.DynamicScale]
+            Dynamic loss scaling for mixed precision gradients.
         Returns
         -------
         Any
@@ -65,6 +73,8 @@ class PosteriorState(TrainState):
             tx=optimizer,
             calib_params=calib_params,
             calib_mutable=calib_mutable,
+            dynamic_scale=dynamic_scale,
+            grad_accumulated=grad_accumulated,
             **{
                 k: v
                 for k, v in kwargs.items()

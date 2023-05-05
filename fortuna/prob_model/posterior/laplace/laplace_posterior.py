@@ -157,7 +157,8 @@ class LaplacePosterior(Posterior):
                 (apply_calib_model_manager(params, _batch_inputs), _batch_targets),
             )
             ztj = lax.map(
-                lambda v: lax.map(vjp_fn(v[0]), v[1].T), (_batch_inputs[:, None], z)
+                lambda v: lax.map(vjp_fn(v[0]), v[1].T),
+                (tree_map(lambda x: x[:, None], _batch_inputs), z)
             )[0]
             if factorization == "diagonal":
                 return -jnp.sum(lam[:, :, None] * ztj**2, (0, 1))

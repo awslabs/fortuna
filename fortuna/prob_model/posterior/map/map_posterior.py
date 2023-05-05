@@ -17,6 +17,7 @@ from fortuna.prob_model.posterior.map.map_trainer import (
 from fortuna.prob_model.posterior.posterior_state_repository import \
     PosteriorStateRepository
 from fortuna.typing import Status
+from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
 from fortuna.utils.device import select_trainer_given_devices
 
 logger = logging.getLogger(__name__)
@@ -100,6 +101,8 @@ class MAPPosterior(Posterior):
             validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
             verbose=fit_config.monitor.verbose,
             callbacks=fit_config.callbacks,
+            max_grad_norm=fit_config.hyperparameters.max_grad_norm,
+            gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
         )
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
@@ -131,5 +134,10 @@ class MAPPosterior(Posterior):
             mutable=state.mutable,
             optimizer=fit_config.optimizer.method,
             calib_params=state.calib_params,
-            calib_mutable=state.calib_mutable
+            calib_mutable=state.calib_mutable,
+            dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                getattr(self.joint.likelihood.model_manager.model, "dtype")
+                if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                else None
+            )
         )

@@ -10,7 +10,8 @@ from fortuna.output_calibrator.output_calib_manager.state import \
 from fortuna.prob_model.joint.state import JointState
 from fortuna.likelihood.base import Likelihood
 from fortuna.prob_model.prior.base import Prior
-from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params, Shape
+from fortuna.utils.data import get_inputs_from_shape
 from fortuna.utils.random import WithRNG
 
 
@@ -142,13 +143,13 @@ class Joint(WithRNG):
             return loss, aux
         return -outs
 
-    def init(self, input_shape: Tuple, **kwargs) -> JointState:
+    def init(self, input_shape: Shape, **kwargs) -> JointState:
         """
         Initialize the state of the joint distribution.
 
         Parameters
         ----------
-        input_shape : Tuple
+        input_shape : Shape
             The shape of the input variable.
 
         Returns
@@ -160,8 +161,9 @@ class Joint(WithRNG):
                 input_shape, rng=self.rng.get(), **kwargs
             )
         )
+        inputs = get_inputs_from_shape(input_shape)
         outputs = self.likelihood.model_manager.apply(
-            oms.params, jnp.zeros((1,) + input_shape), mutable=oms.mutable
+            params=oms.params, inputs=inputs, mutable=oms.mutable
         )
         output_dim = outputs[0].shape[-1] if isinstance(outputs, (list, tuple)) else outputs.shape[-1]
         ocms = OutputCalibManagerState.init_from_dict(

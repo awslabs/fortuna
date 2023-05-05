@@ -85,7 +85,6 @@ class ProbModel(abc.ABC):
             fit_config=fit_config,
             map_fit_config=map_fit_config,
         )
-        logging.info("Fit completed.")
 
         calib_status = None
         if calib_data_loader:

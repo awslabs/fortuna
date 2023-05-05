@@ -1,10 +1,11 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, Callable, Type
 
 import flax.linen as nn
-import numpy as np
+from transformers import FlaxPreTrainedModel
 
 from fortuna.data.loader import DataLoader
-from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.model.model_manager.classification import ClassificationModelManager, \
+    HuggingFaceClassificationModelManager, SNGPClassificationModelManager, SNGPHuggingFaceClassificationModelManager
 from fortuna.model.model_manager.name_to_model_manager import ClassificationModelManagers
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
@@ -27,6 +28,7 @@ from fortuna.prob_model.prior.base import Prior
 from fortuna.prob_output_layer.classification import \
     ClassificationProbOutputLayer
 from fortuna.typing import Status
+from fortuna.utils.data import get_input_shape, get_inputs_from_shape
 
 
 class ProbClassifier(ProbModel):
@@ -100,9 +102,17 @@ class ProbClassifier(ProbModel):
         )
         self.prob_output_layer = ClassificationProbOutputLayer()
 
-        self.model_manager = getattr(
+        model_manager_cls = getattr(
             ClassificationModelManagers, posterior_approximator.__str__()
-        ).value(model=model, **posterior_approximator.posterior_method_kwargs)
+        ).value
+        if isinstance(model, FlaxPreTrainedModel) and model_manager_cls == SNGPClassificationModelManager:
+            self.model_manager = SNGPHuggingFaceClassificationModelManager(
+                model=model, **posterior_approximator.posterior_method_kwargs
+            )
+        elif isinstance(model, FlaxPreTrainedModel):
+            self.model_manager = HuggingFaceClassificationModelManager(model)
+        else:
+            self.model_manager = model_manager_cls(model=model, **posterior_approximator.posterior_method_kwargs)
 
         self.likelihood = ClassificationLikelihood(
             self.model_manager, self.prob_output_layer, self.output_calib_manager
@@ -123,17 +133,18 @@ class ProbClassifier(ProbModel):
             )
         output_dim = data_loader.num_unique_labels
         for x, y in data_loader:
-            input_shape = x.shape[1:]
+            input_shape = get_input_shape(x)
             break
         s = self.joint.init(input_shape)
+        inputs = get_inputs_from_shape(input_shape)
         outputs = self.model_manager.apply(
-            params=s.params, inputs=np.zeros((1,) + input_shape), mutable=s.mutable
+            params=s.params, inputs=inputs, mutable=s.mutable
         )
-        model_output_dim = outputs[0].shape[1] if isinstance(outputs, (list, tuple)) else outputs.shape[1]
+        model_output_dim = outputs[0].shape[-1] if isinstance(outputs, (list, tuple)) else outputs.shape[-1]
         if model_output_dim != output_dim:
             raise ValueError(
                 f"""The outputs dimension of `model` must correspond to the number of different classes
-            in the target variables of `_data_loader`. However, {outputs.shape[1]} and {output_dim} were found,
+            in the target variables of `_data_loader`. However, {model_output_dim} and {output_dim} were found,
             respectively."""
             )
 

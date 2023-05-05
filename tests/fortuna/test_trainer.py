@@ -1,14 +1,21 @@
 import unittest
 import unittest.mock as mock
+
+import chex
+import optax
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import jax.random
+import flax.linen as nn
 import numpy as np
 from flax.core import FrozenDict
 from jax import numpy as jnp
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
 
+from fortuna.model import MLP
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.prob_model.posterior.map.map_trainer import JittedMAPTrainer, MAPTrainer, MultiDeviceMAPTrainer
 from fortuna.training.callback import Callback
 from fortuna.training.train_state import TrainState
 from fortuna.training.trainer import TrainerABC
@@ -637,3 +644,114 @@ class TestTrainer(unittest.TestCase):
         self.assertDictEqual(
             observed_train_losses_and_metrics_current_epoch, {"loss": jnp.array(4.2)}
         )
+
+    def test_grad_acc_and_clipping(self):
+        def loss_fn(params, batch, **kwargs):
+            logits = model.apply(params['model'], batch[0])
+            return optax.softmax_cross_entropy_with_integer_labels(logits, batch[1]).mean(), {}
+
+        # setup
+        inputs = jax.random.uniform(jax.random.PRNGKey(0), (9, 28, 28, 1))
+        targets = jax.random.randint(jax.random.PRNGKey(0), (9,), minval=0, maxval=10)
+
+        rng, _ = jax.random.split(jax.random.PRNGKey(0), 2)
+        model = MLP(output_dim=10, widths=(20_000, 20_000), activations=(nn.relu, nn.relu))
+        params = model.init(rng, jnp.empty((1, *inputs.shape[1:])), train=False)
+        trainer = MultiDeviceMAPTrainer(predict_fn=None)
+        max_grad_norm = 0.1
+        gradient_accumulation_steps = 3
+
+
+        # full batch update
+        optimizer = optax.sgd(learning_rate=1e-4)
+        state = MAPState.init(params=FrozenDict({'model': params}), optimizer=optimizer)
+        new_state, _, rng = trainer.on_train_start(state, inputs, rng)
+        new_state, aux = trainer.training_step(
+            new_state,
+            (inputs[None], targets[None]),
+            loss_fn,
+            rng,
+            1,
+             None,
+            FrozenDict({"max_grad_norm": max_grad_norm})
+        )
+        loss = float(aux['loss'])
+
+        # grad acc update
+        optimizer = optax.sgd(learning_rate=1e-4)
+        state = MAPState.init(params=FrozenDict({'model': params}), optimizer=optimizer)
+        new_state_acc = state
+        loss_grad_acc = 0.
+        batches = [
+            (inputs[start:start+gradient_accumulation_steps][None], targets[start:start+gradient_accumulation_steps][None]) for start in range(0, 9, gradient_accumulation_steps)
+        ]
+        rng, _ = jax.random.split(jax.random.PRNGKey(0), 2)
+        new_state_acc, _, rng = trainer.on_train_start(new_state_acc, batches, rng)
+        for i, batch in enumerate(batches):
+            new_state_acc, aux_grad_acc = trainer.training_step(
+                new_state_acc,
+                batch,
+                loss_fn,
+                rng,
+                1,
+                None,
+                FrozenDict({"max_grad_norm": max_grad_norm, "gradient_accumulation_steps": gradient_accumulation_steps})
+            )
+            loss_grad_acc += float(aux_grad_acc['loss'])
+        chex.assert_tree_all_close(
+            new_state.params, new_state_acc.params, atol=1e-7
+        )
+        self.assertAlmostEqual(loss, loss_grad_acc / (i + 1), places=6)
+
+    def test_grad_acc_no_clipping(self):
+        def loss_fn(params, batch, **kwargs):
+            logits = model.apply(params['model'], batch[0])
+            return optax.softmax_cross_entropy_with_integer_labels(logits, batch[1]).mean(), {}
+
+        # setup
+        inputs = jax.random.uniform(jax.random.PRNGKey(0), (9, 28, 28, 1))
+        targets = jax.random.randint(jax.random.PRNGKey(0), (9,), minval=0, maxval=10)
+
+        rng, _ = jax.random.split(jax.random.PRNGKey(0), 2)
+        model = MLP(output_dim=10, widths=(10_000, 10_000), activations=(nn.relu, nn.relu))
+        params = model.init(rng, jnp.empty((1, *inputs.shape[1:])), train=False)
+        trainer = JittedMAPTrainer(predict_fn=None)
+        gradient_accumulation_steps = 3
+
+        # full batch update
+        optimizer = optax.sgd(learning_rate=1e-4)
+        state = MAPState.init(params=FrozenDict({'model': params}), optimizer=optimizer)
+        new_state, aux = trainer.training_step(
+            state=state,
+            batch=(inputs, targets),
+            rng=rng,
+            loss_fun=loss_fn,
+            n_data=1,
+        )
+        loss = float(aux['loss'])
+
+        # grad acc update
+        optimizer = optax.sgd(learning_rate=1e-4)
+        state = MAPState.init(params=FrozenDict({'model': params}), optimizer=optimizer)
+        new_state_acc = state
+        loss_grad_acc = 0.
+        batches = [
+            (inputs[0:3], targets[0:3]),
+            (inputs[3:6], targets[3:6]),
+            (inputs[6:9], targets[6:9]),
+        ]
+        for batch in batches:
+            new_state_acc, aux_grad_acc = trainer.training_step(
+                state=new_state_acc,
+                batch=batch,
+                rng=rng,
+                loss_fun=loss_fn,
+                n_data=1,
+                kwargs=FrozenDict(
+                    {"gradient_accumulation_steps": gradient_accumulation_steps})
+            )
+            loss_grad_acc += float(aux_grad_acc['loss'])
+        chex.assert_tree_all_close(
+            new_state.params, new_state_acc.params, atol=1e-7
+        )
+        self.assertAlmostEqual(loss, loss_grad_acc / 3, places=6)
