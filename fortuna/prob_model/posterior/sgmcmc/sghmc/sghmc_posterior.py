@@ -11,9 +11,9 @@ from fortuna.prob_model.posterior.map.map_trainer import (
     JittedMAPTrainer,
     MultiDeviceMAPTrainer,
 )
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
-from fortuna.prob_model.posterior.map.map_approximator import \
-    MAPPosteriorApproximator
+from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.posterior_multi_state_repository import \
     PosteriorMultiStateRepository
@@ -22,6 +22,8 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_mixin import \
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import \
     SGHMCPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_callback import \
+    SGHMCSamplingCallback
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import \
     sghmc_integrator
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_state import SGHMCState
@@ -62,18 +64,25 @@ class SGHMCPosterior(SGMCMCPosteriorMixin, Posterior):
         map_fit_config: Optional[FitConfig] = None,
         **kwargs,
     ) -> Status:
-        if (
-            fit_config.checkpointer.dump_state is True
-            and not fit_config.checkpointer.save_checkpoint_dir
-        ):
-            raise ValueError(
-                "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
+        super()._checks_on_fit_start(fit_config, map_fit_config)
+
+        status = {}
+
+        map_state = None
+        if map_fit_config is not None and fit_config.optimizer.freeze_fun is None:
+            logging.warning("It appears that you are trying to configure `map_fit_config`. "
+                            "However, a preliminary run with MAP is supported only if "
+                            "`fit_config.optimizer.freeze_fun` is given. "
+                            "Since the latter was not given, `map_fit_config` will be ignored.")
+        elif not super()._is_state_available_somewhere(fit_config) and super()._should_run_preliminary_map(fit_config, map_fit_config):
+            map_state, status["map"] = run_preliminary_map(
+                joint=self.joint,
+                train_data_loader=train_data_loader,
+                val_data_loader=val_data_loader,
+                map_fit_config=map_fit_config,
+                rng=self.rng,
+                **kwargs
             )
-        (
-            init_prob_model_state,
-            n_train_data,
-            n_val_data,
-        ) = self._init(train_data_loader, val_data_loader)
 
         if fit_config.optimizer.method is not None:
             logging.info(f"`FitOptimizer` method in SGHMC is ignored.")
@@ -111,75 +120,83 @@ class SGHMCPosterior(SGMCMCPosteriorMixin, Posterior):
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
         )
 
-        status = {}
-
-        if fit_config.checkpointer.restore_checkpoint_path:
-            restore_checkpoint_path = (
-                pathlib.Path(fit_config.checkpointer.restore_checkpoint_path)
-                / "c"
-            )
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=restore_checkpoint_path,
-                optimizer=fit_config.optimizer.method,
-            )
+        if super()._is_state_available_somewhere(fit_config):
+            state = self._restore_state_from_somewhere(fit_config=fit_config)
         else:
-            map_posterior = MAPPosterior(
-                self.joint, posterior_approximator=MAPPosteriorApproximator()
-            )
-            map_posterior.rng = self.rng
-            logging.info("Do a preliminary run of MAP.")
-            status["map"] = map_posterior.fit(
-                train_data_loader=train_data_loader,
-                val_data_loader=val_data_loader,
-                fit_config=map_fit_config
-                if map_fit_config is not None
-                else FitConfig(),
-            )
-            state = SGHMCState.convert_from_map_state(
-                map_state=map_posterior.state.get(),
-                optimizer=fit_config.optimizer.method,
-            )
-            logging.info("Preliminary run with MAP completed.")
-        logging.info(f"Run SGHMC.")
-        state, status["sghmc"] = trainer.train(
-            rng=self.rng.get(),
-            state=state,
-            loss_fun=self.joint._batched_log_joint_prob,
-            training_dataloader=train_data_loader,
-            training_dataset_size=n_train_data,
-            n_epochs=fit_config.optimizer.n_epochs,
-            metrics=fit_config.monitor.metrics,
-            validation_dataloader=val_data_loader,
-            validation_dataset_size=n_val_data,
-            verbose=fit_config.monitor.verbose,
-        )
+            state = self._init_map_state(map_state, train_data_loader, fit_config)
+
+        state = super()._freeze_optimizer_in_state(state, fit_config)
+
         self.state = PosteriorMultiStateRepository(
             size=self.posterior_approximator.n_samples,
             checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
             if fit_config.checkpointer.dump_state is True
             else None,
         )
-        data_loader = cycle(iter(train_data_loader))
-        for i in range(self.posterior_approximator.n_samples):
-            for _ in range(self.posterior_approximator.n_thinning):
-                state, _aux = trainer.training_step(
-                    state,
-                    next(data_loader),
-                    self.joint._batched_log_joint_prob,
-                    self.rng.get(),
-                    n_train_data,
-                )
-            if fit_config.checkpointer.save_checkpoint_dir:
-                trainer.save_checkpoint(
-                    state,
-                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir)
-                    / str(i),
-                    force_save=True,
-                )
-            self.state.put(
-                state=state,
-                i=i,
-                keep=fit_config.checkpointer.keep_top_n_checkpoints,
-            )
+
+        sghmc_sampling_callback = SGHMCSamplingCallback(
+            n_samples=self.posterior_approximator.n_samples,
+            n_thinning=self.posterior_approximator.n_thinning,
+            burnin_length=self.posterior_approximator.burnin_length,
+            trainer=trainer,
+            state_repository=self.state,
+            keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
+        )
+
+        logging.info(f"Run SGHMC.")
+        state, status["sghmc"] = trainer.train(
+            rng=self.rng.get(),
+            state=state,
+            loss_fun=self.joint._batched_log_joint_prob,
+            training_dataloader=train_data_loader,
+            training_dataset_size=train_data_loader.size,
+            n_epochs=fit_config.optimizer.n_epochs,
+            metrics=fit_config.monitor.metrics,
+            validation_dataloader=val_data_loader,
+            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
+            verbose=fit_config.monitor.verbose,
+            callbacks=[sghmc_sampling_callback],
+        )
         logging.info("Fit completed.")
+
+        if sghmc_sampling_callback.samples_count < self.posterior_approximator.n_samples:
+            raise RuntimeError(f"The number of sampled states {sghmc_sampling_callback.samples_count} "
+                               "is less than the desired number of samples "
+                               f"{self.posterior_approximator.n_samples}. Consider adjusting the burnin "
+                               "length or the thinning parameter.")
         return status
+
+    def _init_map_state(
+            self,
+            state: Optional[MAPState],
+            data_loader: DataLoader,
+            fit_config: FitConfig
+    ) -> MAPState:
+        if state is None or fit_config.optimizer.freeze_fun is None:
+            state = super()._init_joint_state(data_loader)
+
+            return MAPState.init(
+                params=state.params,
+                mutable=state.mutable,
+                optimizer=fit_config.optimizer.method,
+                calib_params=state.calib_params,
+                calib_mutable=state.calib_mutable,
+            )
+        else:
+            random_state = super()._init_joint_state(data_loader)
+            trainable_paths = get_trainable_paths(state.params, fit_config.optimizer.freeze_fun)
+            state = state.replace(
+                params=FrozenDict(
+                    nested_set(
+                        d=state.params.unfreeze(),
+                        key_paths=trainable_paths,
+                        objs=tuple([
+                            nested_get(d=random_state, keys=path)
+                            for path in trainable_paths
+                            ])
+                    )
+                )
+            )
+
+        return state

@@ -61,18 +61,7 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
         fit_config: FitConfig = FitConfig(),
         **kwargs,
     ) -> Status:
-        if (
-            fit_config.checkpointer.dump_state is True
-            and not fit_config.checkpointer.save_checkpoint_dir
-        ):
-            raise ValueError(
-                "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
-            )
-        (
-            init_prob_model_state,
-            n_train_data,
-            n_val_data,
-        ) = self._init(train_data_loader, val_data_loader)
+        super()._checks_on_fit_start(fit_config, map_fit_config=None)
 
         if fit_config.optimizer.method is not None:
             logging.info(f"`FitOptimizer` method in CyclicalSGLD is ignored.")
@@ -110,23 +99,14 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
         )
 
-        if fit_config.checkpointer.restore_checkpoint_path:
-            restore_checkpoint_path = (
-                pathlib.Path(fit_config.checkpointer.restore_checkpoint_path)
-                / "c"
-            )
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=restore_checkpoint_path,
-                optimizer=fit_config.optimizer.method,
-            )
+        if super()._is_state_available_somewhere(fit_config):
+            state = self._restore_state_from_somewhere(fit_config=fit_config)
         else:
-            state = CyclicalSGLDState.init(
-                params=init_prob_model_state.params,
-                mutable=init_prob_model_state.mutable,
-                optimizer=fit_config.optimizer.method,
-                calib_params=init_prob_model_state.calib_params,
-                calib_mutable=init_prob_model_state.calib_mutable,
+            state = self._init_state(
+                data_loader=train_data_loader,
+                fit_config=fit_config
             )
+
         self.state = PosteriorMultiStateRepository(
             size=self.posterior_approximator.n_samples,
             checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
@@ -146,17 +126,19 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
             save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
         )
 
+        state = super()._freeze_optimizer_in_state(state, fit_config)
+
         logging.info(f"Run CyclicalSGLD.")
         state, status = trainer.train(
             rng=self.rng.get(),
             state=state,
             loss_fun=self.joint._batched_log_joint_prob,
             training_dataloader=train_data_loader,
-            training_dataset_size=n_train_data,
+            training_dataset_size=train_data_loader.size,
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=n_val_data,
+            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
             verbose=fit_config.monitor.verbose,
             callbacks=[cyclical_sampling_callback],
         )
@@ -168,3 +150,18 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
                                f"{self.posterior_approximator.n_samples}. Consider adjusting the cycle "
                                "length or the thinning parameter.")
         return status
+
+    def _init_state(
+            self,
+            data_loader: DataLoader,
+            fit_config: FitConfig
+    ) -> CyclicalSGLDState:
+        state = super()._init_joint_state(data_loader=data_loader)
+
+        return CyclicalSGLDState.init(
+            params=state.params,
+            mutable=state.mutable,
+            optimizer=fit_config.optimizer.method,
+            calib_params=state.calib_params,
+            calib_mutable=state.calib_mutable
+        )

@@ -46,6 +46,7 @@ def cyclical_sgld_integrator(
         burnin_steps=0,
         cycle_length=cycle_length,
     )
+    # SGHMC with no momentum is equivalent to SGLD
     sgld = sghmc_integrator(
         momentum_decay=0.0,
         momentum_resample_steps=None,

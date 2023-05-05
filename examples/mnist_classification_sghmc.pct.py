@@ -69,7 +69,8 @@ from fortuna.model import MLP
 output_dim = 10
 prob_model = ProbClassifier(
     model=MLP(output_dim=output_dim, activations=(nn.tanh, nn.tanh)),
-    posterior_approximator=SGHMCPosteriorApproximator(step_schedule=4e-6),
+    posterior_approximator=SGHMCPosteriorApproximator(burnin_length=300,
+                                                      step_schedule=4e-6),
 )
 
 
@@ -87,7 +88,7 @@ status = prob_model.train(
     calib_data_loader=val_data_loader,
     fit_config=FitConfig(
         monitor=FitMonitor(metrics=(accuracy,)),
-        optimizer=FitOptimizer(n_epochs=20),
+        optimizer=FitOptimizer(n_epochs=30),
     ),
 )
 

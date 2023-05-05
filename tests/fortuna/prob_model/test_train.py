@@ -27,6 +27,12 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_posterior import (
     ADVIPosteriorApproximator,
 )
 from fortuna.prob_model.posterior.swag.swag_posterior import SWAGPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_posterior import (
+    SGHMCPosteriorApproximator,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_posterior import (
+    CyclicalSGLDPosteriorApproximator,
+)
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import (
@@ -34,7 +40,6 @@ from tests.make_model import (
     MyModelWithSpectralNorm,
 )
 
-np.random.seed(42)
 
 OUTPUT_DIM = 2
 
@@ -46,6 +51,12 @@ METHODS = {
     "swag": SWAGPosteriorApproximator(rank=2),
     "deep_ensemble": DeepEnsemblePosteriorApproximator(ensemble_size=2),
     "sngp": SNGPPosteriorApproximator(output_dim=OUTPUT_DIM),
+    "sghmc": SGHMCPosteriorApproximator(n_samples=3,
+                                        n_thinning=1,
+                                        burnin_length=1),
+    "cyclical_sgld": CyclicalSGLDPosteriorApproximator(n_samples=3,
+                                                       n_thinning=1,
+                                                       cycle_length=4),
 }
 TASKS_METHODS = [
     (task, method)

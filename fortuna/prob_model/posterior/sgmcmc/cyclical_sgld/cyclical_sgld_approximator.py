@@ -35,10 +35,8 @@ class CyclicalSGLDPosteriorApproximator(PosteriorApproximator):
             The initial step size.
         exploration_ratio: float
             The fraction of steps to allocate to the mode exploration phase.
-
         preconditioner: Preconditioner
             A `Preconditioner` instance that preconditions the approximator with information about the posterior distribution, if available.
-
         """
         self.n_samples = n_samples
         self.n_thinning = n_thinning or 1

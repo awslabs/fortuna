@@ -71,7 +71,7 @@ def sghmc_integrator(
             and state.count % momentum_resample_steps == 0,
             lambda: jax.tree_util.tree_map(
                 jnp.zeros_like, gradient
-            ),  ## generate_random_normal_like_tree(key, gradient, 0, jnp.sqrt(step_size)
+            ),
             lambda: state.momentum,
         )
 
