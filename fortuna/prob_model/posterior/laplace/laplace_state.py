@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
 
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import Params
+from fortuna.typing import Params, AnyKey
 from fortuna.utils.nested_dicts import nested_pair
 from fortuna.utils.strings import convert_string_to_jnp_array
 
@@ -21,13 +21,14 @@ class LaplaceState(PosteriorState):
     """
 
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("LaplaceState")
+    _which_params: Optional[Tuple[List[AnyKey], ...]] = None
 
     @classmethod
     def convert_from_map_state(
         cls,
         map_state: MAPState,
         std: Union[Params, Tuple[Params, ...]],
-        which_params: Tuple[List],
+        which_params: Tuple[List[AnyKey], ...],
     ) -> LaplaceState:
         """
         Convert a MAP state into a Laplace state.
@@ -38,7 +39,7 @@ class LaplaceState(PosteriorState):
             A MAP state.
         std: Union[Params, Tuple[Params, ...]]
             Standard deviation parameters.
-        which_params: Tuple[List]
+        which_params: Tuple[List[AnyKey], ...]
             Sequences of keys pointing to the parameters over which `std` is defined. If `which_params` is None,
             `std` must be defined for all parameters.
 
@@ -48,21 +49,22 @@ class LaplaceState(PosteriorState):
             A Laplace state instance.
         """
         params = map_state.params.unfreeze()
-        if which_params:
-            params = FrozenDict(
-                nested_pair(
-                    params,
-                    which_params,
-                    std,
-                    ("mean", "std"),
-                )
+        if which_params is not None:
+            params = nested_pair(
+                d=params,
+                key_paths=which_params,
+                objs=std,
+                labels=("mean", "std"),
             )
         else:
             for k, v in params.items():
                 params[k] = FrozenDict(
                     {"params": dict(mean=v["params"], std=std[k]["params"])}
                 )
-        map_state = map_state.replace(
-            params=FrozenDict(params), encoded_name=LaplaceState.encoded_name
+        d = vars(
+            map_state.replace(
+                params=FrozenDict(params), encoded_name=LaplaceState.encoded_name
+            )
         )
-        return LaplaceState.init_from_dict(vars(map_state))
+        d["_which_params"] = which_params
+        return LaplaceState.init_from_dict(d)

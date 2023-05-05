@@ -83,9 +83,9 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
 
         state = self._init_state(calib_data_loader, config)
 
-        if config.optimizer.freeze_map is not None:
+        if config.optimizer.freeze_fun is not None:
             partition_optimizers = {"trainable": config.optimizer.method, "frozen": optax.set_to_zero()}
-            partition_params = freeze(path_aware_map(config.optimizer.freeze_map, state.params))
+            partition_params = freeze(path_aware_map(config.optimizer.freeze_fun, state.params))
             config.optimizer.method = optax.multi_transform(partition_optimizers, partition_params)
             state = self._init_state(calib_data_loader, config)
 
