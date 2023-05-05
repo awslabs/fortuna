@@ -12,7 +12,7 @@ class HuggingFaceDataLoader(BaseDataLoaderABC):
             self,
             iterable: Union[Iterable[Dict[str, Array]], Iterable[Tuple[Dict[str, Array], Array]]],
             num_unique_labels: int = None,
-            num_input_samples: Optional[int] = None
+            num_inputs: Optional[int] = None
     ):
         """
         A data loader class.
@@ -21,14 +21,18 @@ class HuggingFaceDataLoader(BaseDataLoaderABC):
         ----------
         iterable : Union[Iterable[Dict[str, Array]], Iterable[Tuple[Dict[str, Array],Array]]]
             A data loader obtained via :func:`~HuggingFaceClassificationDataset.get_dataloader`.
+        num_unique_labels: int
+            Number of unique target labels in the task (classification only)
+        num_inputs: Optional[int]
+            Number of data points.
         """
         super().__init__(iterable, num_unique_labels)
-        self._num_input_samples = num_input_samples
+        self._num_inputs = num_inputs
 
     @property
     def size(self):
-        if self._num_input_samples:
-            return self._num_input_samples
+        if self._num_inputs:
+            return self._num_inputs
         else:
             return super().size
 
