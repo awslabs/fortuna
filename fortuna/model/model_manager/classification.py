@@ -329,8 +329,7 @@ class SNGPHuggingFaceClassificationModelManager(SNGPClassificationModelManagerMi
         assert self.model._is_initialized, "At the moment Fortuna supports models from Hugging Face that are loaded via " \
                                            "`from_pretrained` method, which also takes care of model initialization."
         output_shape = jax.eval_shape(
-            self.model.module.apply,
-            self.model.params,
+            self.model,
             **get_inputs_from_shape(input_shape)
         ).shape
         if len(output_shape[1:]) > 1:  # drop batch size
