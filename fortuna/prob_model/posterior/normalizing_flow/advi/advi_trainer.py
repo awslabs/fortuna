@@ -23,7 +23,10 @@ class ADVITrainer(NormalizingFlowTrainer):
             force_save: bool = False,
             prefix: str = "checkpoint_",
     ) -> None:
-        state = state.replace(params=self._unravel_params(state.params, self._all_params))
+        state = state.replace(
+            params=self._unravel_params(state.params, self._all_params),
+            _encoded_which_params=self._encoded_which_params
+        )
         super().save_checkpoint(
             state,
             save_checkpoint_dir,
@@ -65,7 +68,10 @@ class ADVITrainer(NormalizingFlowTrainer):
             keep=self.keep_top_n_checkpoints,
             force_save=True,
         )
-        return state.replace(params=self._unravel_params(state.params, self._all_params))
+        return state.replace(
+            params=self._unravel_params(state.params, self._all_params),
+            _encoded_which_params=self._encoded_which_params
+        )
 
 
 class JittedADVITrainer(JittedMixin, ADVITrainer):
@@ -81,4 +87,8 @@ class MultiDeviceADVITrainer(MultiDeviceMixin, ADVITrainer):
             force_save=True,
         )
         state = jax.device_get(tree_map(lambda x: x[0], state))
-        return state.replace(params=self._unravel_params(state.params, self._all_params))
+        return state.replace(
+            params=self._unravel_params(state.params, self._all_params),
+            _encoded_which_params=self._encoded_which_params
+
+        )

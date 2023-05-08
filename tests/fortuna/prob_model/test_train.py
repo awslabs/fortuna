@@ -66,7 +66,7 @@ def test_dryrun(task, method):
 
     freeze_fun = lambda p, v: "trainable" if "l2" in p and "model" in p else "frozen"
 
-    fit_config = lambda restore_path, start_current, save_dir, freeze: FitConfig(
+    fit_config = lambda restore_path, start_current, save_dir, dump_state, freeze: FitConfig(
             optimizer=FitOptimizer(
                 n_epochs=3,
                 freeze_fun=freeze
@@ -77,7 +77,8 @@ def test_dryrun(task, method):
             checkpointer=FitCheckpointer(
                 start_from_current_state=start_current,
                 restore_checkpoint_path=restore_path,
-                save_checkpoint_dir=save_dir
+                save_checkpoint_dir=save_dir,
+                dump_state=dump_state
             )
         )
 
@@ -85,12 +86,12 @@ def test_dryrun(task, method):
         optimizer=CalibOptimizer(n_epochs=3)
     )
 
-    def train_and_sample(restore_path=None, start_current=False, save_dir=None, freeze=None, map_fit_config=None):
+    def train_and_sample(restore_path=None, start_current=False, save_dir=None, dump_state=False, freeze=None, map_fit_config=None):
         prob_model.train(
             train_data_loader=train_data_loader,
             val_data_loader=val_data_loader,
             calib_data_loader=calib_data_loader,
-            fit_config=fit_config(restore_path, start_current, save_dir, freeze),
+            fit_config=fit_config(restore_path, start_current, save_dir, dump_state, freeze),
             calib_config=calib_config,
             map_fit_config=map_fit_config
         )
@@ -111,15 +112,15 @@ def test_dryrun(task, method):
             posterior_approximator=METHODS[method]
         )
 
-    train_and_sample(map_fit_config=fit_config(restore_path=None, start_current=None, save_dir=None, freeze=None))
+    train_and_sample(map_fit_config=fit_config(restore_path=None, start_current=None, save_dir=None, dump_state=False, freeze=None))
     train_and_sample(start_current=True)
     if method not in ["laplace", "swag"]:
         train_and_sample()
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        train_and_sample(map_fit_config=fit_config(restore_path=None, start_current=None, save_dir=None, freeze=None), save_dir=tmp_dir)
+        train_and_sample(map_fit_config=fit_config(restore_path=None, start_current=None, save_dir=None, dump_state=False, freeze=None), save_dir=tmp_dir, dump_state=True)
         train_and_sample(restore_path=tmp_dir)
         if method not in ["laplace", "swag"]:
             train_and_sample(freeze=freeze_fun)
         train_and_sample(start_current=True, freeze=freeze_fun)
-        train_and_sample(restore_path=tmp_dir, freeze=freeze_fun)
+        train_and_sample(save_dir=tmp_dir, dump_state=True, restore_path=tmp_dir, freeze=freeze_fun)

@@ -16,6 +16,7 @@ from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.training.callback import Callback
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params, Mutable
 from fortuna.utils.nested_dicts import nested_set
+from fortuna.utils.strings import convert_string_to_np_array
 
 
 class NormalizingFlowTrainer(PosteriorTrainerABC):
@@ -67,6 +68,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
 
         # ADVI on subsets of the model parameters
         self._which_params = which_params
+        self._encoded_which_params = tuple([[convert_string_to_np_array(s) for s in key_path] for key_path in which_params]) if which_params is not None else None
         self._all_params = all_params
         self._indices = indices
         self._unravel = unravel

@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+from jax.tree_util import tree_map
 
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.distribution.gaussian import DiagGaussian
@@ -166,10 +167,6 @@ class ADVIPosterior(Posterior):
         )
         trainer._all_params = None
 
-        state = state.replace(
-            _which_params=which_params
-        )
-
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
             if fit_config.checkpointer.dump_state is True
@@ -209,13 +206,14 @@ class ADVIPosterior(Posterior):
         state = self.state.get()
 
         if not hasattr(self, "base") or not hasattr(self, "_unravel"):
-            if state._which_params is None:
+            if state._encoded_which_params is None:
                 n_params = len(ravel_pytree(state.params)[0]) // 2
             else:
+                which_params = self._decode_encoded_which_params(state._encoded_which_params)
                 n_params = len(ravel_pytree(
                     nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=state._which_params,
+                        key_paths=which_params,
                         labels=("mean", "log_std")
                     )[0]
                 )[0])
@@ -228,7 +226,7 @@ class ADVIPosterior(Posterior):
             )
             self._unravel, self._indices = self._get_unravel(state.params)[1:2]
 
-        if state._which_params is None:
+        if state._encoded_which_params is None:
             means = self._unravel(
                 self.architecture.forward(
                     {s: ravel_pytree({k: v["params"][s] for k, v in state.params.items()})[0] for s in ["mean", "log_std"]},
@@ -236,9 +234,10 @@ class ADVIPosterior(Posterior):
                 )[0][0]
             )
         else:
+            which_params = self._decode_encoded_which_params(state._encoded_which_params)
             means, log_stds = nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=state._which_params,
+                        key_paths=which_params,
                         labels=("mean", "log_std")
                     )
             rav_params = {
@@ -246,7 +245,7 @@ class ADVIPosterior(Posterior):
                     [nested_get(
                         d=d,
                         keys=path
-                    ) for path in state._which_params]
+                    ) for path in which_params]
                 )[0] for k, d in zip(
                     ["mean", "log_std"],
                     [means, log_stds]
@@ -260,7 +259,7 @@ class ADVIPosterior(Posterior):
             means = FrozenDict(
                 nested_set(
                     d=means,
-                    key_paths=state._which_params,
+                    key_paths=which_params,
                     objs=tuple([_unravel(rav_params[self._indices[i]:self._indices[i + 1]]) for i, _unravel in enumerate(self._unravel)]),
                 )
             )
@@ -284,10 +283,11 @@ class ADVIPosterior(Posterior):
         log_stds = None
 
         if isinstance(state, ADVIState):
-            if state._which_params is not None:
+            if state._encoded_which_params is not None:
+                which_params = self._decode_encoded_which_params(state._encoded_which_params)
                 means, log_stds = nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=state._which_params,
+                        key_paths=which_params,
                         labels=("mean", "log_std")
                     )
                 means, log_stds = FrozenDict(means), FrozenDict(log_stds)
@@ -368,3 +368,10 @@ class ADVIPosterior(Posterior):
             indices = np.concatenate((np.array([0]), np.cumsum(indices)))
 
         return rav, unravel, indices, rav_log_stds
+
+    def _decode_encoded_which_params(self, encoded_which_params: Tuple[Array]) -> Tuple[List[str, ...], ...]:
+        encoded_which_params = tree_map(lambda v: "".join([chr(o) for o in v]), encoded_which_params)
+        if isinstance(encoded_which_params, dict):
+            return tuple([list(v.values()) for k, v in encoded_which_params.items()])
+        else:
+            return encoded_which_params
