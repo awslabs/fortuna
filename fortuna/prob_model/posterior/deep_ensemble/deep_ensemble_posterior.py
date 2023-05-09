@@ -210,8 +210,8 @@ class DeepEnsemblePosterior(Posterior):
             raise ValueError(
                 f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
             )
-        self.state = DeepEnsemblePosteriorStateRepository(
-            ensemble_size=self.posterior_approximator.ensemble_size,
+        self.state = PosteriorMultiStateRepository(
+            size=self.posterior_approximator.ensemble_size,
             checkpoint_dir=checkpoint_dir,
         )
 

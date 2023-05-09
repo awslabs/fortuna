@@ -2,19 +2,23 @@ import logging
 from typing import Optional
 import pathlib
 
+from flax.core import FrozenDict
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import nested_set, nested_get
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
+from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
     MAPTrainer,
     JittedMAPTrainer,
     MultiDeviceMAPTrainer,
 )
-from fortuna.prob_model.posterior.base import Posterior
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.posterior_multi_state_repository import \
     PosteriorMultiStateRepository
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_mixin import \
-    SGMCMCPosteriorMixin
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import \
+    SGMCMCPosterior
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import \
     CYCLICAL_SGLD_NAME
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import \
@@ -31,7 +35,7 @@ from fortuna.utils.device import select_trainer_given_devices
 logger = logging.getLogger(__name__)
 
 
-class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
+class CyclicalSGLDPosterior(SGMCMCPosterior):
     def __init__(
         self,
         joint: Joint,
@@ -59,9 +63,28 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
         train_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
+        map_fit_config: Optional[FitConfig] = None,
         **kwargs,
     ) -> Status:
-        super()._checks_on_fit_start(fit_config, map_fit_config=None)
+        super()._checks_on_fit_start(fit_config, map_fit_config)
+
+        status = {}
+
+        map_state = None
+        if map_fit_config is not None and fit_config.optimizer.freeze_fun is None:
+            logging.warning("It appears that you are trying to configure `map_fit_config`. "
+                            "However, a preliminary run with MAP is supported only if "
+                            "`fit_config.optimizer.freeze_fun` is given. "
+                            "Since the latter was not given, `map_fit_config` will be ignored.")
+        elif not super()._is_state_available_somewhere(fit_config) and super()._should_run_preliminary_map(fit_config, map_fit_config):
+            map_state, status["map"] = run_preliminary_map(
+                joint=self.joint,
+                train_data_loader=train_data_loader,
+                val_data_loader=val_data_loader,
+                map_fit_config=map_fit_config,
+                rng=self.rng,
+                **kwargs
+            )
 
         if fit_config.optimizer.method is not None:
             logging.info(f"`FitOptimizer` method in CyclicalSGLD is ignored.")
@@ -102,10 +125,9 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
         if super()._is_state_available_somewhere(fit_config):
             state = self._restore_state_from_somewhere(fit_config=fit_config)
         else:
-            state = self._init_state(
-                data_loader=train_data_loader,
-                fit_config=fit_config
-            )
+            state = self._init_map_state(map_state, train_data_loader, fit_config)
+
+        state = super()._freeze_optimizer_in_state(state, fit_config)
 
         self.state = PosteriorMultiStateRepository(
             size=self.posterior_approximator.n_samples,
@@ -116,6 +138,7 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
 
         cyclical_sampling_callback = CyclicalSGLDSamplingCallback(
             n_epochs=fit_config.optimizer.n_epochs,
+            n_training_steps=len(train_data_loader),
             n_samples=self.posterior_approximator.n_samples,
             n_thinning=self.posterior_approximator.n_thinning,
             cycle_length=self.posterior_approximator.cycle_length,
@@ -124,6 +147,11 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
             state_repository=self.state,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
             save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
+        )
+
+        state = CyclicalSGLDState.convert_from_map_state(
+            map_state=state,
+            optimizer=fit_config.optimizer.method,
         )
 
         state = super()._freeze_optimizer_in_state(state, fit_config)
@@ -144,24 +172,38 @@ class CyclicalSGLDPosterior(SGMCMCPosteriorMixin, Posterior):
         )
         logging.info("Fit completed.")
 
-        if cyclical_sampling_callback.samples_count < self.posterior_approximator.n_samples:
-            raise RuntimeError(f"The number of sampled states {cyclical_sampling_callback.samples_count} "
-                               "is less than the desired number of samples "
-                               f"{self.posterior_approximator.n_samples}. Consider adjusting the cycle "
-                               "length or the thinning parameter.")
         return status
 
-    def _init_state(
+    def _init_map_state(
             self,
+            state: Optional[MAPState],
             data_loader: DataLoader,
             fit_config: FitConfig
-    ) -> CyclicalSGLDState:
-        state = super()._init_joint_state(data_loader=data_loader)
+    ) -> MAPState:
+        if state is None or fit_config.optimizer.freeze_fun is None:
+            state = super()._init_joint_state(data_loader)
 
-        return CyclicalSGLDState.init(
-            params=state.params,
-            mutable=state.mutable,
-            optimizer=fit_config.optimizer.method,
-            calib_params=state.calib_params,
-            calib_mutable=state.calib_mutable
-        )
+            return MAPState.init(
+                params=state.params,
+                mutable=state.mutable,
+                optimizer=fit_config.optimizer.method,
+                calib_params=state.calib_params,
+                calib_mutable=state.calib_mutable,
+            )
+        else:
+            random_state = super()._init_joint_state(data_loader)
+            trainable_paths = get_trainable_paths(state.params, fit_config.optimizer.freeze_fun)
+            state = state.replace(
+                params=FrozenDict(
+                    nested_set(
+                        d=state.params.unfreeze(),
+                        key_paths=trainable_paths,
+                        objs=tuple([
+                            nested_get(d=random_state.params, keys=path)
+                            for path in trainable_paths
+                            ])
+                    )
+                )
+            )
+
+        return state

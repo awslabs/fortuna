@@ -2,7 +2,10 @@ import logging
 from typing import Optional
 from itertools import cycle
 import pathlib
+from flax.core import FrozenDict
 
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import nested_set, nested_get
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -14,11 +17,10 @@ from fortuna.prob_model.posterior.map.map_trainer import (
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.posterior_multi_state_repository import \
     PosteriorMultiStateRepository
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_mixin import \
-    SGMCMCPosteriorMixin
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import \
+    SGMCMCPosterior
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import \
     SGHMCPosteriorApproximator
@@ -33,7 +35,7 @@ from fortuna.utils.device import select_trainer_given_devices
 logger = logging.getLogger(__name__)
 
 
-class SGHMCPosterior(SGMCMCPosteriorMixin, Posterior):
+class SGHMCPosterior(SGMCMCPosterior):
     def __init__(
         self,
         joint: Joint,
@@ -125,6 +127,11 @@ class SGHMCPosterior(SGMCMCPosteriorMixin, Posterior):
         else:
             state = self._init_map_state(map_state, train_data_loader, fit_config)
 
+        state = SGHMCState.convert_from_map_state(
+            map_state=state,
+            optimizer=fit_config.optimizer.method,
+        )
+
         state = super()._freeze_optimizer_in_state(state, fit_config)
 
         self.state = PosteriorMultiStateRepository(
@@ -135,6 +142,8 @@ class SGHMCPosterior(SGMCMCPosteriorMixin, Posterior):
         )
 
         sghmc_sampling_callback = SGHMCSamplingCallback(
+            n_epochs=fit_config.optimizer.n_epochs,
+            n_training_steps=len(train_data_loader),
             n_samples=self.posterior_approximator.n_samples,
             n_thinning=self.posterior_approximator.n_thinning,
             burnin_length=self.posterior_approximator.burnin_length,
@@ -160,11 +169,6 @@ class SGHMCPosterior(SGMCMCPosteriorMixin, Posterior):
         )
         logging.info("Fit completed.")
 
-        if sghmc_sampling_callback.samples_count < self.posterior_approximator.n_samples:
-            raise RuntimeError(f"The number of sampled states {sghmc_sampling_callback.samples_count} "
-                               "is less than the desired number of samples "
-                               f"{self.posterior_approximator.n_samples}. Consider adjusting the burnin "
-                               "length or the thinning parameter.")
         return status
 
     def _init_map_state(
@@ -192,7 +196,7 @@ class SGHMCPosterior(SGMCMCPosteriorMixin, Posterior):
                         d=state.params.unfreeze(),
                         key_paths=trainable_paths,
                         objs=tuple([
-                            nested_get(d=random_state, keys=path)
+                            nested_get(d=random_state.params, keys=path)
                             for path in trainable_paths
                             ])
                     )

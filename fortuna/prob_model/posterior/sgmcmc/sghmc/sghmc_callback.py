@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 import pathlib
 
@@ -7,12 +6,14 @@ from fortuna.training.callback import Callback
 from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.training.trainer import TrainerABC
 from fortuna.typing import Path
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_sampling_callback import \
+    SGMCMCSamplingCallback
 
-logger = logging.getLogger(__name__)
 
-
-class SGHMCSamplingCallback(Callback):
+class SGHMCSamplingCallback(SGMCMCSamplingCallback):
     def __init__(self,
+                 n_epochs: int,
+                 n_training_steps: int,
                  n_samples: int,
                  n_thinning: int,
                  burnin_length: int,
@@ -27,6 +28,10 @@ class SGHMCSamplingCallback(Callback):
 
         Parameters
         ----------
+        n_epochs: int
+            The number of epochs.
+        n_training_steps: int
+            The number of steps per epoch.
         n_samples: int
             The desired number of the posterior samples.
         n_thinning: int
@@ -42,38 +47,19 @@ class SGHMCSamplingCallback(Callback):
         save_checkpoint_dir: Optional[Path]
             The optional path to save checkpoints.
         """
-        self.n_samples = n_samples
-        self.n_thinning = n_thinning
-        self.burnin_length = burnin_length
-        self.trainer = trainer
-        self.state_repository = state_repository
-        self.keep_top_n_checkpoints = keep_top_n_checkpoints
-        self.save_checkpoint_dir = save_checkpoint_dir
+        super().__init__(
+            trainer=trainer,
+            state_repository=state_repository,
+            keep_top_n_checkpoints=keep_top_n_checkpoints,
+            save_checkpoint_dir=save_checkpoint_dir,
+        )
 
-        self.current_step = 0
-        self.samples_count = 0
+        self._do_sample = lambda current_step, samples_count: samples_count < n_samples \
+            and current_step > burnin_length \
+            and (current_step - burnin_length) % n_thinning == 0
 
-    def do_sample(self) -> bool:
-        return self.current_step > self.burnin_length \
-            and (self.current_step - self.burnin_length) % self.n_thinning == 0 \
-            and self.samples_count < self.n_samples
-
-    def training_step_end(self, state: TrainState) -> TrainState:
-        self.current_step += 1
-
-        if self.do_sample():
-            if self.save_checkpoint_dir:
-                self.trainer.save_checkpoint(
-                    state,
-                    pathlib.Path(self.save_checkpoint_dir)
-                    / str(self.samples_count),
-                    force_save=True,
-                )
-            self.state_repository.put(
-                state=state,
-                i=self.samples_count,
-                keep=self.keep_top_n_checkpoints,
-            )
-            self.samples_count += 1
-
-        return state
+        total_samples = sum(self._do_sample(step, 0) for step in range(1, n_epochs * n_training_steps + 1))
+        if total_samples < n_samples:
+            raise ValueError(f"The number of desired samples `n_samples` is {n_samples}. However, only "
+                             f"{total_samples} samples will be collected. Consider adjusting the burnin "
+                             "length, number of epochs, or the thinning parameter.")

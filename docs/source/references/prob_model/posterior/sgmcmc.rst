@@ -1,5 +1,8 @@
 Stochastic Gradient Markov Chain Monte Carlo (SG-MCMC)
 ------------------------------------------------------
+SG-MCMC procedures approximate the posterior as a steady-state distribution of
+a Monte Carlo Markov chain, that utilizes noisy estimates of the gradient
+computed on minibatches of data.
 
 Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)
 ===================================================
@@ -54,7 +57,7 @@ Step schedules
 ==============
 
 Fortuna supports various step schedulers for SG-MCMC
-algorithms. :class:`~fortuna.rob_model.posterior.sgmcmc.sgmcmc_step_schedule.StepSchedule`
+algorithms. :class:`~fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule.StepSchedule`
 is a function that takes step count as an input and returns `float` step
 size as an output.
 

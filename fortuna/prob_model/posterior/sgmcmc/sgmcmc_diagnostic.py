@@ -33,6 +33,11 @@ def kernel_stein_discrepancy_imq(
         ksd_img: float
             The kernel Stein discrepancy value.
     """
+    if not c > 0:
+        raise ValueError("`c` should be > 0.")
+    if not beta < 0:
+        raise ValueError("`beta` should be < 0.")
+
     samples = ravel_pytree(samples)[0].reshape(len(samples), -1)
     grads = ravel_pytree(grads)[0].reshape(len(grads), -1)
 
@@ -112,7 +117,7 @@ def effective_sample_size(
         prod = jnp.fft.ifft(fft * jnp.conj(fft))
         prod = jnp.real(prod[..., :x_len]).astype(dtype)
 
-        # Divide to make obtain an unbiased estimate of the expectation
+        # Divide to obtain an unbiased estimate of the expectation
         denominator = x_len - jnp.arange(0.0, x_len)
         res = prod / denominator
         return jnp.transpose(res, jnp.roll(jnp.arange(len(res.shape)), -shift))

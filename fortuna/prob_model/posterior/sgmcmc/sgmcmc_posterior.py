@@ -1,11 +1,10 @@
-import logging
-from copy import deepcopy
 from typing import Optional, Tuple, Type
 import pathlib
 
 from jax._src.prng import PRNGKeyArray
 from jax import pure_callback, random
 
+from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.state import JointState
@@ -14,11 +13,9 @@ from fortuna.prob_model.posterior.posterior_multi_state_repository import \
     PosteriorMultiStateRepository
 from fortuna.typing import Path
 
-logger = logging.getLogger(__name__)
 
-
-class SGMCMCPosteriorMixin:
-    """Mixin class that handles sampling from SGMCMC posterior approximators."""
+class SGMCMCPosterior(Posterior):
+    """Base SGMCMC posterior approximators class."""
     def sample(
         self,
         rng: Optional[PRNGKeyArray] = None,
@@ -83,7 +80,9 @@ class SGMCMCPosteriorMixin:
                 optimizer=fit_config.optimizer.method,
             )
         elif fit_config.checkpointer.start_from_current_state is not None:
-            state = self.state.get(i=0, optimizer=fit_config.optimizer.method)
+            state = self.state.get(i=self.state.size - 1,
+                                   optimizer=fit_config.optimizer.method,
+            )
 
         if allowed_states is not None and not isinstance(state, allowed_states):
             raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "

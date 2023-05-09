@@ -45,7 +45,7 @@ def sghmc_integrator(
         preconditioner: Preconditioner
             See :class:`Preconditioner` for reference.
     """
-    # Implementation was partually adapted from https://github.com/google-research/google-research/blob/master/bnn_hmc/core/sgmcmc.py#L56
+    # Implementation was partially adapted from https://github.com/google-research/google-research/blob/master/bnn_hmc/core/sgmcmc.py#L56
 
     def init_fn(params):
         return OptaxSGHMCState(

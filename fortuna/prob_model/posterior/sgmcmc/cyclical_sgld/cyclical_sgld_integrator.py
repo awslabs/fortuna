@@ -36,8 +36,12 @@ def cyclical_sgld_integrator(
     ----------
         rng_key: PRNGKeyArray
             An initial random number generator.
-        step_schedule: StepSchedule
-            A function that takes training step as input and returns the step size.
+        init_step_size: float
+            The initial step size.
+        cycle_length: int
+            The length of each exploration/sampling cycle, in steps.
+        exploration_ratio: float
+            The fraction of steps to allocate to the mode exploration phase.
         preconditioner: Preconditioner
             See :class:`Preconditioner` for reference.
     """
@@ -78,6 +82,9 @@ def cyclical_sgld_integrator(
             )
             updates, new_sgd_state = sgd.update(
                 rescaled_gradient, state.sgd_state
+            )
+            updates = preconditioner.multiply_by_m_inv(
+                updates, preconditioner_state
             )
             new_state = OptaxCyclicalSGLDState(
                 sgd_state=new_sgd_state,

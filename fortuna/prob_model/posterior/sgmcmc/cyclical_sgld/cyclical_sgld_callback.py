@@ -1,4 +1,3 @@
-import logging
 from typing import Optional
 import pathlib
 
@@ -8,12 +7,14 @@ from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.training.trainer import TrainerABC
 from fortuna.typing import Path
 
-logger = logging.getLogger(__name__)
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_sampling_callback import \
+    SGMCMCSamplingCallback
 
 
-class CyclicalSGLDSamplingCallback(Callback):
+class CyclicalSGLDSamplingCallback(SGMCMCSamplingCallback):
     def __init__(self,
                  n_epochs: int,
+                 n_training_steps: int,
                  n_samples: int,
                  n_thinning: int,
                  cycle_length: int,
@@ -31,7 +32,9 @@ class CyclicalSGLDSamplingCallback(Callback):
         Parameters
         ----------
         n_epochs: int
-            The number of training epochs.
+            The number of epochs.
+        n_training_steps: int
+            The number of steps per epoch.
         n_samples: int
             The desired number of the posterior samples.
         n_thinning: int
@@ -51,53 +54,19 @@ class CyclicalSGLDSamplingCallback(Callback):
         save_checkpoint_dir: Optional[Path]
             The optional path to save checkpoints.
         """
-        if n_samples * cycle_length < cycle_length != 0:
-            raise ValueError("The number of desired samples per cycle `n_samples` * `n_thinning` "
-                             f"= {n_samples * cycle_length} is less than `cycle_length` = {cycle_length}.")
-        self.n_samples = n_samples
-        self.n_thinning = n_thinning
-        self.cycle_length = cycle_length
-        self.exploration_ratio = exploration_ratio
-        self.trainer = trainer
-        self.state_repository = state_repository
-        self.keep_top_n_checkpoints = keep_top_n_checkpoints
-        self.save_checkpoint_dir = save_checkpoint_dir
+        super().__init__(
+            trainer=trainer,
+            state_repository=state_repository,
+            keep_top_n_checkpoints=keep_top_n_checkpoints,
+            save_checkpoint_dir=save_checkpoint_dir,
+        )
 
-        self.samples_per_epoch = n_samples // n_epochs
-        self.current_step = 0
-        self.current_epoch = 0
-        self.samples_count = 0
+        self._do_sample = lambda current_step, samples_count: samples_count < n_samples \
+            and ((current_step % cycle_length) / cycle_length) < exploration_ratio \
+            and (current_step % cycle_length) % n_thinning == 0
 
-    def do_sample(self) -> bool:
-        return ((self.current_step % self.cycle_length) / self.cycle_length) < self.exploration_ratio \
-            and (self.current_step % self.cycle_length) % self.n_thinning == 0 \
-            and self.samples_count < self.n_samples
-
-    def training_step_end(self, state: TrainState) -> TrainState:
-        self.current_step += 1
-
-        if self.do_sample():
-            if self.save_checkpoint_dir:
-                self.trainer.save_checkpoint(
-                    state,
-                    pathlib.Path(self.save_checkpoint_dir)
-                    / str(self.samples_count),
-                    force_save=True,
-                )
-            self.state_repository.put(
-                state=state,
-                i=self.samples_count,
-                keep=self.keep_top_n_checkpoints,
-            )
-            self.samples_count += 1
-
-        return state
-
-    def training_epoch_end(self, state: TrainState) -> TrainState:
-        self.current_epoch += 1
-
-        if self.samples_count / self.current_epoch < self.samples_per_epoch:
-            logging.warning("The number of sampled states is less than the expected number of samples "
-                            f"per epoch {self.samples_per_epoch}. Consider adjusting the cycle "
-                            "length or the thinning parameter.")
-        return state
+        total_samples = sum(self._do_sample(step, 0) for step in range(1, n_epochs * n_training_steps + 1))
+        if total_samples < n_samples:
+            raise ValueError(f"The number of desired samples `n_samples` is {n_samples}. However, only "
+                             f"{total_samples} samples will be collected. Consider adjusting the cycle length, "
+                             "number of epochs, exploration ratio, or the thinning parameter.")

@@ -19,6 +19,8 @@ def constant_schedule(init_step_size: float) -> StepSchedule:
     -------
     schedule_fn: StepSchedule
     """
+    if not init_step_size >= 0:
+        raise ValueError("`init_step_size` should be >= 0.")
 
     def schedule(_step: Array):
         return init_step_size
@@ -40,6 +42,10 @@ def cosine_schedule(init_step_size: float, total_steps: int) -> StepSchedule:
     -------
     schedule_fn: StepSchedule
     """
+    if not init_step_size >= 0:
+        raise ValueError("`init_step_size` should be >= 0.")
+    if not total_steps > 0:
+        raise ValueError("`total_steps` should be > 0.")
 
     def schedule(step: Array):
         t = step / total_steps
@@ -67,6 +73,9 @@ def polynomial_schedule(
     schedule_fn: StepSchedule
     """
 
+    if not 0.5 < gamma <= 1.0:
+        raise ValueError("`gamma` should be in (0.5, 1.0] range.")
+
     def schedule(step: Array):
         return a * (b + step) ** (-gamma)
 
@@ -91,6 +100,12 @@ def constant_schedule_with_cosine_burnin(
     -------
     schedule_fn: StepSchedule
     """
+    if not init_step_size >= 0:
+        raise ValueError("`init_step_size` should be >= 0.")
+    if not final_step_size >= 0:
+        raise ValueError("`final_step_size` should be >= 0.")
+    if not burnin_steps >= 0:
+        raise ValueError("`burnin_steps` should be >= 0.")
 
     def schedule(step: Array):
         t = jnp.minimum(step / burnin_steps, 1.0)
@@ -118,6 +133,12 @@ def cyclical_cosine_schedule_with_const_burnin(
     -------
     schedule_fn: StepSchedule
     """
+    if not init_step_size >= 0:
+        raise ValueError("`init_step_size` should be >= 0.")
+    if not burnin_steps >= 0:
+        raise ValueError("`burnin_steps` should be >= 0.")
+    if not cycle_length >= 0:
+        raise ValueError("`cycle_length` should be >= 0.")
 
     def schedule(step: Array):
         t = jnp.maximum(step - burnin_steps - 1, 0.0)
