@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import jax.numpy as jnp
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import AnyKey
 from fortuna.utils.strings import convert_string_to_jnp_array
-from typing import Optional, Tuple, List
+from fortuna.typing import Array
+from typing import Optional, Dict, List
 
 
 class ADVIState(PosteriorState):
@@ -16,4 +16,4 @@ class ADVIState(PosteriorState):
     """
 
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("ADVIState")
-    _encoded_which_params: Optional[Tuple[List[AnyKey], ...]] = None
+    _encoded_which_params: Optional[Dict[str, List[Array]]] = None

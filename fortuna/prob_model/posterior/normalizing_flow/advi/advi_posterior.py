@@ -7,7 +7,6 @@ import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
-from jax.tree_util import tree_map
 
 from fortuna.data.loader import DataLoader, InputsLoader
 from fortuna.distribution.gaussian import DiagGaussian
@@ -33,6 +32,7 @@ from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.prob_model.posterior.base import Posterior
+from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
 class ADVIPosterior(Posterior):
@@ -208,8 +208,9 @@ class ADVIPosterior(Posterior):
         if not hasattr(self, "base") or not hasattr(self, "_unravel"):
             if state._encoded_which_params is None:
                 n_params = len(ravel_pytree(state.params)[0]) // 2
+                which_params = None
             else:
-                which_params = self._decode_encoded_which_params(state._encoded_which_params)
+                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
                 n_params = len(ravel_pytree(
                     nested_unpair(
                         d=state.params.unfreeze(),
@@ -224,7 +225,7 @@ class ADVIPosterior(Posterior):
             self.architecture = ADVIArchitecture(
                 n_params, std_init_params=self.posterior_approximator.std_init_params
             )
-            self._unravel, self._indices = self._get_unravel(state.params)[1:2]
+            self._unravel, self._indices = self._get_unravel(state.params, which_params=which_params)[1:3]
 
         if state._encoded_which_params is None:
             means = self._unravel(
@@ -234,7 +235,7 @@ class ADVIPosterior(Posterior):
                 )[0][0]
             )
         else:
-            which_params = self._decode_encoded_which_params(state._encoded_which_params)
+            which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
             means, log_stds = nested_unpair(
                         d=state.params.unfreeze(),
                         key_paths=which_params,
@@ -284,7 +285,7 @@ class ADVIPosterior(Posterior):
 
         if isinstance(state, ADVIState):
             if state._encoded_which_params is not None:
-                which_params = self._decode_encoded_which_params(state._encoded_which_params)
+                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
                 means, log_stds = nested_unpair(
                         d=state.params.unfreeze(),
                         key_paths=which_params,
@@ -368,10 +369,3 @@ class ADVIPosterior(Posterior):
             indices = np.concatenate((np.array([0]), np.cumsum(indices)))
 
         return rav, unravel, indices, rav_log_stds
-
-    def _decode_encoded_which_params(self, encoded_which_params: Tuple[Array]) -> Tuple[List[str, ...], ...]:
-        encoded_which_params = tree_map(lambda v: "".join([chr(o) for o in v]), encoded_which_params)
-        if isinstance(encoded_which_params, dict):
-            return tuple([list(v.values()) for k, v in encoded_which_params.items()])
-        else:
-            return encoded_which_params
