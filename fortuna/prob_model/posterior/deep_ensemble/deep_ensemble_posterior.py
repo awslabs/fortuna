@@ -215,7 +215,7 @@ class DeepEnsemblePosterior(Posterior):
                         d=state.params.unfreeze(),
                         key_paths=trainable_paths,
                         objs=tuple([
-                            nested_get(d=random_state, keys=path)
+                            nested_get(d=random_state.params, keys=path)
                             for path in trainable_paths
                             ])
                     )

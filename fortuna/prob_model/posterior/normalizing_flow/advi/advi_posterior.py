@@ -32,6 +32,7 @@ from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.prob_model.posterior.base import Posterior
+from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
 class ADVIPosterior(Posterior):
@@ -166,10 +167,6 @@ class ADVIPosterior(Posterior):
         )
         trainer._all_params = None
 
-        state = state.replace(
-            _which_params=which_params
-        )
-
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
             if fit_config.checkpointer.dump_state is True
@@ -209,13 +206,15 @@ class ADVIPosterior(Posterior):
         state = self.state.get()
 
         if not hasattr(self, "base") or not hasattr(self, "_unravel"):
-            if state._which_params is None:
+            if state._encoded_which_params is None:
                 n_params = len(ravel_pytree(state.params)[0]) // 2
+                which_params = None
             else:
+                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
                 n_params = len(ravel_pytree(
                     nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=state._which_params,
+                        key_paths=which_params,
                         labels=("mean", "log_std")
                     )[0]
                 )[0])
@@ -226,9 +225,9 @@ class ADVIPosterior(Posterior):
             self.architecture = ADVIArchitecture(
                 n_params, std_init_params=self.posterior_approximator.std_init_params
             )
-            self._unravel, self._indices = self._get_unravel(state.params)[1:2]
+            self._unravel, self._indices = self._get_unravel(state.params, which_params=which_params)[1:3]
 
-        if state._which_params is None:
+        if state._encoded_which_params is None:
             means = self._unravel(
                 self.architecture.forward(
                     {s: ravel_pytree({k: v["params"][s] for k, v in state.params.items()})[0] for s in ["mean", "log_std"]},
@@ -236,9 +235,10 @@ class ADVIPosterior(Posterior):
                 )[0][0]
             )
         else:
+            which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
             means, log_stds = nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=state._which_params,
+                        key_paths=which_params,
                         labels=("mean", "log_std")
                     )
             rav_params = {
@@ -246,7 +246,7 @@ class ADVIPosterior(Posterior):
                     [nested_get(
                         d=d,
                         keys=path
-                    ) for path in state._which_params]
+                    ) for path in which_params]
                 )[0] for k, d in zip(
                     ["mean", "log_std"],
                     [means, log_stds]
@@ -260,7 +260,7 @@ class ADVIPosterior(Posterior):
             means = FrozenDict(
                 nested_set(
                     d=means,
-                    key_paths=state._which_params,
+                    key_paths=which_params,
                     objs=tuple([_unravel(rav_params[self._indices[i]:self._indices[i + 1]]) for i, _unravel in enumerate(self._unravel)]),
                 )
             )
@@ -284,10 +284,11 @@ class ADVIPosterior(Posterior):
         log_stds = None
 
         if isinstance(state, ADVIState):
-            if state._which_params is not None:
+            if state._encoded_which_params is not None:
+                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
                 means, log_stds = nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=state._which_params,
+                        key_paths=which_params,
                         labels=("mean", "log_std")
                     )
                 means, log_stds = FrozenDict(means), FrozenDict(log_stds)
