@@ -9,8 +9,7 @@ FLAX_SNGP_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
         # Model for Sequence Classification with SNGP mapping
         ("bert", "FlaxSNGPBertExtractorForSequenceClassification"),
         ("distilbert", "FlaxSNGPDistilBertExtractorForSequenceClassification"),
-        # ("electra", "FlaxSNGPBertExtractorForSequenceClassification"),
-        # ("roberta", "FlaxSNGPBertExtractorForSequenceClassification"),
+        ("roberta", "FlaxSNGPRobertaExtractorForSequenceClassification"),
     ]
 )
 
@@ -21,3 +20,4 @@ FLAX_SNGP_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING = _SNGPLazyAutoMapping(
 
 class FlaxAutoSNGPModelForSequenceClassification(_BaseAutoSNGPModelClass):
     _model_mapping = FLAX_SNGP_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING
+

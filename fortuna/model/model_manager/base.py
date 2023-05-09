@@ -6,7 +6,6 @@ from flax.core import FrozenDict
 from flax import linen as nn
 from flax.training.checkpoints import PyTree
 from jax._src.prng import PRNGKeyArray
-from transformers import FlaxPreTrainedModel
 
 from fortuna.typing import Mutable, Params, InputData
 from fortuna.utils.random import WithRNG
@@ -18,7 +17,7 @@ class ModelManager(WithRNG, abc.ABC):
     It orchestrates the forward pass of the models in the probabilistic model.
     """
 
-    def __init__(self, model: Union[nn.Module, FlaxPreTrainedModel]):
+    def __init__(self, model: nn.Module):
         self.model = model
 
     @abc.abstractmethod

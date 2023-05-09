@@ -9,7 +9,6 @@ from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
 from jax import random
 from jax._src.prng import PRNGKeyArray
-from transformers import FlaxPreTrainedModel
 
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.model.utils.random_features import RandomFeatureGaussianProcess
@@ -22,13 +21,13 @@ logger = logging.getLogger(__name__)
 
 
 class ClassificationModelManager(ModelManager):
-    def __init__(self, model: Union[nn.Module, FlaxPreTrainedModel]):
+    def __init__(self, model: nn.Module):
         r"""
         Classification model manager class. It orchestrates the forward pass of the model in the probabilistic model.
 
         Parameters
         ----------
-        model : Union[nn.Module, FlaxPreTrainedModel]
+        model : nn.Module
             A model describing the deterministic relation between inputs and outputs. The outputs must correspond to
             the logits of a softmax probability vector. The output dimension must be the same as the number of classes.
             Let :math:`x` be input variables and :math:`w` the random model parameters. Then the model is described by
@@ -264,81 +263,3 @@ class SNGPClassificationModelManager(SNGPClassificationModelManagerMixin, Classi
         return dict(model=FrozenDict(params))
 
 
-class HuggingFaceClassificationModelManager(ClassificationModelManager):
-    def apply(
-        self,
-        params: Params,
-        inputs: Dict[str, Array],
-        mutable: Optional[Mutable] = None,
-        train: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
-        **kwargs,
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
-        if mutable is not None:
-            logger.warning("Usually when working with Transformers models `mutable` is None. Here it is not.")
-
-        # setup dropout key
-        if rng is not None:
-            rng, dropout_rng = random.split(rng, 2)
-        else:
-            dropout_rng = None
-
-        model_kwargs = {}
-        if mutable is not None:
-            model_kwargs = {'mutable': mutable}
-        outputs = self.model(
-            **inputs,
-            params=params['model']['params'],
-            dropout_rng=dropout_rng,
-            train=train,
-            output_attentions=kwargs.get("output_attentions"),
-            output_hidden_states=kwargs.get("output_hidden_states"),
-            return_dict=kwargs.get("return_dict"),
-            **model_kwargs,
-        )
-        if train and mutable:
-            outputs, mutable = outputs
-        if hasattr(outputs, "logits"):
-            outputs = outputs.logits
-        if train and mutable:
-            return outputs,  {"mutable": FrozenDict({"model": mutable})}
-        return outputs
-
-    def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
-    ) -> Dict[str, Mapping]:
-        assert self.model._is_initialized, "At the moment Fortuna supports models from Hugging Face that are loaded via " \
-                                           "`from_pretrained` method, which also takes care of model initialization."
-        return {'model': {'params': self.model.params}}
-
-
-class SNGPHuggingFaceClassificationModelManager(SNGPClassificationModelManagerMixin, HuggingFaceClassificationModelManager):
-    def __init__(
-        self,
-        model: nn.Module,
-        *args,
-        **kwargs
-    ):
-        super(SNGPHuggingFaceClassificationModelManager, self).__init__(model, *args, **kwargs)
-
-    def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
-    ) -> Dict[str, FrozenDict]:
-        if rng is None:
-            rng = self.rng.get()
-        assert self.model._is_initialized, "At the moment Fortuna supports models from Hugging Face that are loaded via " \
-                                           "`from_pretrained` method, which also takes care of model initialization."
-        output_shape = jax.eval_shape(
-            self.model,
-            **get_inputs_from_shape(input_shape)
-        ).shape
-        if len(output_shape[1:]) > 1:  # drop batch size
-            raise ValueError(f"The output shape for the given model is {output_shape}.\n"
-                             f"In order to use SNGP the output shape of the provide model has to be of shape"
-                             f"(batch_size, n_features).")
-        self._gp_output_model = self._get_output_model()
-        rng, params_key, dropout_key = random.split(rng, 3)
-        rngs = {"params": params_key, "dropout": dropout_key}
-        gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
-        params = nested_update(self.model.params, gp_params.unfreeze())
-        return dict(model=FrozenDict(params))

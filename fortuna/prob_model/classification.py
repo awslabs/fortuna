@@ -1,11 +1,12 @@
+import importlib
+import logging
 from typing import Dict, Optional, Union, Callable, Type
 
 import flax.linen as nn
-from transformers import FlaxPreTrainedModel
 
 from fortuna.data.loader import DataLoader
 from fortuna.model.model_manager.classification import ClassificationModelManager, \
-    HuggingFaceClassificationModelManager, SNGPClassificationModelManager, SNGPHuggingFaceClassificationModelManager
+    SNGPClassificationModelManager
 from fortuna.model.model_manager.name_to_model_manager import ClassificationModelManagers
 from fortuna.output_calibrator.classification import \
     ClassificationTemperatureScaler
@@ -105,14 +106,7 @@ class ProbClassifier(ProbModel):
         model_manager_cls = getattr(
             ClassificationModelManagers, posterior_approximator.__str__()
         ).value
-        if isinstance(model, FlaxPreTrainedModel) and model_manager_cls == SNGPClassificationModelManager:
-            self.model_manager = SNGPHuggingFaceClassificationModelManager(
-                model=model, **posterior_approximator.posterior_method_kwargs
-            )
-        elif isinstance(model, FlaxPreTrainedModel):
-            self.model_manager = HuggingFaceClassificationModelManager(model)
-        else:
-            self.model_manager = model_manager_cls(model=model, **posterior_approximator.posterior_method_kwargs)
+        self.model_manager = self._get_model_manager(model, model_manager_cls, posterior_approximator)
 
         self.likelihood = ClassificationLikelihood(
             self.model_manager, self.prob_output_layer, self.output_calib_manager
@@ -125,6 +119,37 @@ class ProbClassifier(ProbModel):
         self.predictive = ClassificationPredictive(self.posterior)
 
         super().__init__(seed=seed)
+
+    def _get_model_manager(self, model: nn.Module, model_manager_cls: Type, posterior_approximator: PosteriorApproximator) -> ClassificationModelManager:
+        try:
+            # import modules if available
+            transformers_module = importlib.import_module("transformers")
+            fortuna_transformers_classification_module = importlib.import_module(
+                "fortuna.model.model_manager.transformers.classification"
+            )
+            # import relevant classes
+            FlaxPreTrainedModel = getattr(transformers_module, "FlaxPreTrainedModel")
+            SNGPHuggingFaceClassificationModelManager = getattr(fortuna_transformers_classification_module,
+                                                                "SNGPHuggingFaceClassificationModelManager")
+            HuggingFaceClassificationModelManager = getattr(fortuna_transformers_classification_module,
+                                                            "HuggingFaceClassificationModelManager")
+            # load model manager
+            if isinstance(model, FlaxPreTrainedModel) and model_manager_cls == SNGPClassificationModelManager:
+                model_manager = SNGPHuggingFaceClassificationModelManager(
+                    model=model, **posterior_approximator.posterior_method_kwargs
+                )
+            elif isinstance(model, FlaxPreTrainedModel):
+                model_manager = HuggingFaceClassificationModelManager(model)
+            else:
+                model_manager = model_manager_cls(model=model, **posterior_approximator.posterior_method_kwargs)
+        except ModuleNotFoundError as e:
+            logging.warning(
+                "No module named 'transformer' is installed. "
+                "If you are not working with models from the `transformers` library ignore this warning, otherwise "
+                "please install the optional 'transformers' dependency of fortuna."
+                "Using poetry, you can achieve this by entering: `poetry install --extras \"transformers\"`")
+            model_manager = model_manager_cls(model=model, **posterior_approximator.posterior_method_kwargs)
+        return model_manager
 
     def _check_output_dim(self, data_loader: DataLoader):
         if data_loader.size == 0:

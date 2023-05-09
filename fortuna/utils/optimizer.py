@@ -26,13 +26,18 @@ def stepped_schedule(
         80: 0.001
       }
 
-    Args:
-      init_value: An initial value `init_v`.
-      boundaries_and_scales: the schedule as a dict like `{epoch_x: lr_factor_x, epoch_y: lr_factor_y}`;
-      the step occurs at epoch `epoch` and sets the learning rate to `init_value * lr_factor`
+    Parameters
+    ----------
+    init_value: float
+        An initial value `init_v`.
+    boundaries_and_scales: Optional[Dict[int, float]]
+        The schedule as a dict like `{epoch_x: lr_factor_x, epoch_y: lr_factor_y}`;
+    the step occurs at epoch `epoch` and sets the learning rate to `init_value * lr_factor`
 
-    Returns:
-      schedule: A function that maps step counts to values.
+    Returns
+    -------
+    base.Schedule
+        A function that maps step counts to values.
     """
     if boundaries_and_scales is not None:
         all_positive = all(scale >= 0.0 for scale in boundaries_and_scales.values())

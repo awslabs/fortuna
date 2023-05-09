@@ -55,7 +55,7 @@ axes[2].legend()
 # Fortuna helps you converting tuple of arrays into a compatible data loader.
 
 # %%
-from fortuna.data.loader import DataLoader
+from fortuna.data import DataLoader
 
 train_data_loader = DataLoader.from_array_data(
     train_data, batch_size=128, shuffle=True, prefetch=True
