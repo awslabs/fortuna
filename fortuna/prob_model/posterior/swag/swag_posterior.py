@@ -25,6 +25,7 @@ from fortuna.prob_model.posterior.swag.swag_trainer import (
 from fortuna.typing import Array, Status
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
+from fortuna.utils.freeze import get_trainable_paths
 
 
 class SWAGPosterior(Posterior):
@@ -104,6 +105,11 @@ class SWAGPosterior(Posterior):
 
         state = super()._freeze_optimizer_in_state(state, fit_config)
 
+        if fit_config.optimizer.freeze_fun is not None:
+            which_params = get_trainable_paths(state.params, fit_config.optimizer.freeze_fun)
+        else:
+            which_params = None
+
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
             BaseTrainer=SWAGTrainer,
@@ -119,6 +125,7 @@ class SWAGPosterior(Posterior):
             disable_training_metrics_computation=fit_config.monitor.disable_training_metrics_computation,
             eval_every_n_epochs=fit_config.monitor.eval_every_n_epochs,
             early_stopping_verbose=False,
+            which_params=which_params
         )
 
         kwargs = dict(rank=self.posterior_approximator.rank)
@@ -220,3 +227,15 @@ class SWAGPosterior(Posterior):
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
         )
+
+    def _get_mean_std_dev(self, state: SWAGState) -> SWAGState:
+        var = state._mean_squared_rav_params - state._mean_rav_params**2
+        var = jnp.maximum(var, 0.0)
+        return state.update(
+            dict(
+                mean=state._mean_rav_params if not self.multi_device else state._mean_rav_params[None],
+                std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
+                dev=state._deviation_rav_params if not self.multi_device else state._deviation_rav_params[None],
+            )
+        )
+
