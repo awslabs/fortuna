@@ -24,7 +24,7 @@ jobs:
           pip install black isort
 
       - name: Run Black
-        run: black .
+        run: black --check --verbose fortuna
 
       - name: Run isort
-        run: isort -rc .
+        run: isort --check --verbose fortuna
