@@ -25,6 +25,10 @@ from fortuna.prob_model.posterior.swag.swag_trainer import (
 from fortuna.typing import Array, Status
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
+from fortuna.utils.nested_dicts import nested_get, nested_set
+from flax.core import FrozenDict
 
 
 class SWAGPosterior(Posterior):
@@ -104,6 +108,11 @@ class SWAGPosterior(Posterior):
 
         state = super()._freeze_optimizer_in_state(state, fit_config)
 
+        if fit_config.optimizer.freeze_fun is not None:
+            which_params = get_trainable_paths(state.params, fit_config.optimizer.freeze_fun)
+        else:
+            which_params = None
+
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
             BaseTrainer=SWAGTrainer,
@@ -119,6 +128,7 @@ class SWAGPosterior(Posterior):
             disable_training_metrics_computation=fit_config.monitor.disable_training_metrics_computation,
             eval_every_n_epochs=fit_config.monitor.eval_every_n_epochs,
             early_stopping_verbose=False,
+            which_params=which_params
         )
 
         kwargs = dict(rank=self.posterior_approximator.rank)
@@ -180,20 +190,53 @@ class SWAGPosterior(Posterior):
             )
 
         n_params = len(state.mean)
-        unravel = ravel_pytree(state.params)[1]
+        rank = state.dev.shape[1]
+        which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
+
+        unravel = ravel_pytree(
+            state.params if which_params is None else [nested_get(state.params, path) for path in which_params]
+        )[1]
+
         coeff1 = 1 / jnp.sqrt(2)
-        coeff2 = coeff1 / jnp.sqrt(self.posterior_approximator.rank - 1)
+        coeff2 = coeff1 / jnp.sqrt(rank)
 
         rng, key1, key2 = random.split(rng, 3)
         z1 = random.normal(key1, shape=(n_params,))
-        z2 = random.normal(key2, shape=(self.posterior_approximator.rank,))
-        state = state.replace(
-            params=unravel(
-                state.mean
-                + coeff1 * state.std * z1
-                + coeff2 * jnp.matmul(state.dev, z2)
+        z2 = random.normal(key2, shape=(rank,))
+        if which_params is None:
+            state = state.replace(
+                params=self._get_sample(
+                            mean=state.mean,
+                            std=state.std,
+                            dev=state.dev,
+                            z1=z1,
+                            z2=z2,
+                            coeff1=coeff1,
+                            coeff2=coeff2,
+                            unravel=unravel
+                    )
             )
-        )
+        else:
+            state = state.replace(
+                params=FrozenDict(
+                    nested_set(
+                        d=state.params.unfreeze(),
+                        key_paths=which_params,
+                        objs=tuple(
+                            self._get_sample(
+                                mean=state.mean,
+                                std=state.std,
+                                dev=state.dev,
+                                z1=z1,
+                                z2=z2,
+                                coeff1=coeff1,
+                                coeff2=coeff2,
+                                unravel=unravel
+                            )
+                        )
+                    )
+                )
+            )
 
         if state.mutable:
             if inputs_loader is not None:
@@ -220,3 +263,22 @@ class SWAGPosterior(Posterior):
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
         )
+
+    def _get_sample(self, mean, std, dev, z1, z2, coeff1, coeff2, unravel):
+        return unravel(
+            mean
+            + coeff1 * std * z1
+            + coeff2 * jnp.matmul(dev, z2)
+        )
+
+    def _get_mean_std_dev(self, state: SWAGState) -> SWAGState:
+        var = state._mean_squared_rav_params - state._mean_rav_params**2
+        var = jnp.maximum(var, 0.0)
+        return state.update(
+            dict(
+                mean=state._mean_rav_params if not self.multi_device else state._mean_rav_params[None],
+                std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
+                dev=state._deviation_rav_params if not self.multi_device else state._deviation_rav_params[None],
+            )
+        )
+
