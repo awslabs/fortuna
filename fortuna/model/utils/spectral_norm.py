@@ -4,14 +4,14 @@ The code has been taken from https://github.com/google/edward2/blob/main/edward2
 import dataclasses
 from typing import Any, Callable, Mapping, Optional, Tuple, Type
 
-from jax.random import PRNGKeyArray
 import flax.core
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import numpy as np
+from jax.random import PRNGKeyArray
 
-from fortuna.typing import Shape, Array
+from fortuna.typing import Array, Shape
 
 
 def _l2_normalize(x: Array, eps: float = 1e-12) -> Array:
@@ -55,6 +55,7 @@ class SpectralNormalization(nn.Module):
     update_singular_value_estimate: Optional[bool]
         Whether to perform power interations to update the singular value estimate.
     """
+
     layer: nn.Module
     iteration: int = 1
     norm_multiplier: float = 0.95
@@ -70,11 +71,7 @@ class SpectralNormalization(nn.Module):
     update_singular_value_estimate: Optional[bool] = None
 
     def _get_singular_vectors(
-        self,
-        initializing: bool,
-        kernel_apply: Callable,
-        in_shape: Shape,
-        dtype: Type
+        self, initializing: bool, kernel_apply: Callable, in_shape: Shape, dtype: Type
     ) -> Tuple[nn.Variable, nn.Variable]:
         if initializing:
             rng_u = self.make_rng("params")
@@ -90,7 +87,9 @@ class SpectralNormalization(nn.Module):
         return u, v
 
     @nn.compact
-    def __call__(self, inputs: Array, update_singular_value_estimate: Optional[bool] = None) -> Array:
+    def __call__(
+        self, inputs: Array, update_singular_value_estimate: Optional[bool] = None
+    ) -> Array:
         """
         Applies a linear transformation with spectral normalization to the inputs.
 
@@ -107,7 +106,9 @@ class SpectralNormalization(nn.Module):
             The transformed input.
         """
         update_singular_value_estimate = nn.merge_param(
-            'update_singular_value_estimate', self.update_singular_value_estimate, update_singular_value_estimate
+            "update_singular_value_estimate",
+            self.update_singular_value_estimate,
+            update_singular_value_estimate,
         )
         layer_name = (
             type(self.layer).__name__ if self.layer_name is None else self.layer_name
@@ -190,15 +191,16 @@ class WithSpectralConv2DNorm:
         Multiplicative constant to threshold the normalization.
         Usually under normalization, the singular value will converge to this value.
     """
-    spectral_norm_iteration: int = 1.
+
+    spectral_norm_iteration: int = 1.0
     spectral_norm_bound: float = 0.95
 
-    def spectral_norm(self, layer: nn.Module,  train: bool = False) -> Callable:
+    def spectral_norm(self, layer: nn.Module, train: bool = False) -> Callable:
         return lambda *args, **kwargs: SpectralNormalizationConv2D(
             layer=layer(*args, **kwargs),
             iteration=self.spectral_norm_iteration,
             norm_multiplier=self.spectral_norm_bound,
-            update_singular_value_estimate=train
+            update_singular_value_estimate=train,
         )
 
 
@@ -213,7 +215,8 @@ class WithSpectralNorm:
         Multiplicative constant to threshold the normalization.
         Usually under normalization, the singular value will converge to this value.
     """
-    spectral_norm_iteration: int = 1.
+
+    spectral_norm_iteration: int = 1.0
     spectral_norm_bound: float = 0.95
 
     def spectral_norm(self, layer: nn.Module, train: bool = False) -> Callable:
@@ -221,5 +224,5 @@ class WithSpectralNorm:
             layer=layer(*args, **kwargs),
             iteration=self.spectral_norm_iteration,
             norm_multiplier=self.spectral_norm_bound,
-            update_singular_value_estimate=train
+            update_singular_value_estimate=train,
         )

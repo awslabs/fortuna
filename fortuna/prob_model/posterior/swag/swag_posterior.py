@@ -4,6 +4,7 @@ import logging
 from typing import Optional
 
 import jax.numpy as jnp
+from flax.core import FrozenDict
 from jax import random
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
@@ -14,21 +15,25 @@ from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.posterior_state_repository import \
-    PosteriorStateRepository
+from fortuna.prob_model.posterior.posterior_state_repository import (
+    PosteriorStateRepository,
+)
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.swag import SWAG_NAME
-from fortuna.prob_model.posterior.swag.swag_approximator import \
-    SWAGPosteriorApproximator
+from fortuna.prob_model.posterior.swag.swag_approximator import (
+    SWAGPosteriorApproximator,
+)
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.prob_model.posterior.swag.swag_trainer import (
-    JittedSWAGTrainer, MultiDeviceSWAGTrainer, SWAGTrainer)
+    JittedSWAGTrainer,
+    MultiDeviceSWAGTrainer,
+    SWAGTrainer,
+)
 from fortuna.typing import Array, Status
 from fortuna.utils.device import select_trainer_given_devices
-from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.utils.freeze import get_trainable_paths
-from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 from fortuna.utils.nested_dicts import nested_get, nested_set
-from flax.core import FrozenDict
+from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
 class SWAGPosterior(Posterior):
@@ -82,8 +87,7 @@ class SWAGPosterior(Posterior):
 
         if super()._is_state_available_somewhere(fit_config):
             state = super()._restore_state_from_somewhere(
-                fit_config=fit_config,
-                allowed_states=(MAPState, SWAGState)
+                fit_config=fit_config, allowed_states=(MAPState, SWAGState)
             )
 
         elif super()._should_run_preliminary_map(fit_config, map_fit_config):
@@ -93,13 +97,15 @@ class SWAGPosterior(Posterior):
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
                 rng=self.rng,
-                **kwargs
+                **kwargs,
             )
         else:
-            raise ValueError("The SWAG approximation must start from a preliminary run of MAP or an existing "
-                             "checkpoint or state. Please configure `map_fit_config`, or "
-                             "`fit_config.checkpointer.restore_checkpoint_path`, "
-                             "or `fit_config.checkpointer.start_from_current_state`.")
+            raise ValueError(
+                "The SWAG approximation must start from a preliminary run of MAP or an existing "
+                "checkpoint or state. Please configure `map_fit_config`, or "
+                "`fit_config.checkpointer.restore_checkpoint_path`, "
+                "or `fit_config.checkpointer.start_from_current_state`."
+            )
 
         state = SWAGState.convert_from_map_state(
             map_state=state,
@@ -109,7 +115,9 @@ class SWAGPosterior(Posterior):
         state = super()._freeze_optimizer_in_state(state, fit_config)
 
         if fit_config.optimizer.freeze_fun is not None:
-            which_params = get_trainable_paths(state.params, fit_config.optimizer.freeze_fun)
+            which_params = get_trainable_paths(
+                state.params, fit_config.optimizer.freeze_fun
+            )
         else:
             which_params = None
 
@@ -128,7 +136,7 @@ class SWAGPosterior(Posterior):
             disable_training_metrics_computation=fit_config.monitor.disable_training_metrics_computation,
             eval_every_n_epochs=fit_config.monitor.eval_every_n_epochs,
             early_stopping_verbose=False,
-            which_params=which_params
+            which_params=which_params,
         )
 
         kwargs = dict(rank=self.posterior_approximator.rank)
@@ -142,7 +150,9 @@ class SWAGPosterior(Posterior):
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
+            validation_dataset_size=val_data_loader.size
+            if val_data_loader is not None
+            else None,
             verbose=fit_config.monitor.verbose,
             callbacks=fit_config.callbacks,
             **kwargs,
@@ -191,10 +201,14 @@ class SWAGPosterior(Posterior):
 
         n_params = len(state.mean)
         rank = state.dev.shape[1]
-        which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
+        which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
+            state._encoded_which_params
+        )
 
         unravel = ravel_pytree(
-            state.params if which_params is None else [nested_get(state.params, path) for path in which_params]
+            state.params
+            if which_params is None
+            else [nested_get(state.params, path) for path in which_params]
         )[1]
 
         coeff1 = 1 / jnp.sqrt(2)
@@ -206,15 +220,15 @@ class SWAGPosterior(Posterior):
         if which_params is None:
             state = state.replace(
                 params=self._get_sample(
-                            mean=state.mean,
-                            std=state.std,
-                            dev=state.dev,
-                            z1=z1,
-                            z2=z2,
-                            coeff1=coeff1,
-                            coeff2=coeff2,
-                            unravel=unravel
-                    )
+                    mean=state.mean,
+                    std=state.std,
+                    dev=state.dev,
+                    z1=z1,
+                    z2=z2,
+                    coeff1=coeff1,
+                    coeff2=coeff2,
+                    unravel=unravel,
+                )
             )
         else:
             state = state.replace(
@@ -231,9 +245,9 @@ class SWAGPosterior(Posterior):
                                 z2=z2,
                                 coeff1=coeff1,
                                 coeff2=coeff2,
-                                unravel=unravel
+                                unravel=unravel,
                             )
-                        )
+                        ),
                     )
                 )
             )
@@ -265,20 +279,19 @@ class SWAGPosterior(Posterior):
         )
 
     def _get_sample(self, mean, std, dev, z1, z2, coeff1, coeff2, unravel):
-        return unravel(
-            mean
-            + coeff1 * std * z1
-            + coeff2 * jnp.matmul(dev, z2)
-        )
+        return unravel(mean + coeff1 * std * z1 + coeff2 * jnp.matmul(dev, z2))
 
     def _get_mean_std_dev(self, state: SWAGState) -> SWAGState:
         var = state._mean_squared_rav_params - state._mean_rav_params**2
         var = jnp.maximum(var, 0.0)
         return state.update(
             dict(
-                mean=state._mean_rav_params if not self.multi_device else state._mean_rav_params[None],
+                mean=state._mean_rav_params
+                if not self.multi_device
+                else state._mean_rav_params[None],
                 std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
-                dev=state._deviation_rav_params if not self.multi_device else state._deviation_rav_params[None],
+                dev=state._deviation_rav_params
+                if not self.multi_device
+                else state._deviation_rav_params[None],
             )
         )
-

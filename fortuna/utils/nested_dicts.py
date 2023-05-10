@@ -1,12 +1,14 @@
 from copy import deepcopy
-from typing import Dict, List, Tuple, Union, Any
+from typing import Any, Dict, List, Tuple, Union
 
 from flax.core import FrozenDict
 
 from fortuna.typing import AnyKey
 
 
-def nested_get(d: Union[FrozenDict[AnyKey, Any], Dict[AnyKey, Any]], keys: List[AnyKey]) -> Dict[AnyKey, Any]:
+def nested_get(
+    d: Union[FrozenDict[AnyKey, Any], Dict[AnyKey, Any]], keys: List[AnyKey]
+) -> Dict[AnyKey, Any]:
     """
     Get a sub-nested dictionary from a dictionary `d`. `keys` is the sequence of keys leading to the nested
     sub-dictionary.
@@ -26,7 +28,9 @@ def nested_get(d: Union[FrozenDict[AnyKey, Any], Dict[AnyKey, Any]], keys: List[
     return nested_get(d[keys[0]], keys[1:])
 
 
-def nested_set(d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey], ...], objs: Tuple[Any]) -> Dict[AnyKey, Any]:
+def nested_set(
+    d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey], ...], objs: Tuple[Any]
+) -> Dict[AnyKey, Any]:
     """
     Set the values of a nested dictionary for the specified sequences of keys.
 
@@ -65,7 +69,10 @@ def nested_set(d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey], ...], objs: 
 
 
 def nested_pair(
-    d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey]], objs: Tuple[Any], labels: Tuple[str, str]
+    d: Dict[AnyKey, Any],
+    key_paths: Tuple[List[AnyKey]],
+    objs: Tuple[Any],
+    labels: Tuple[str, str],
 ) -> Dict[AnyKey, Any]:
     """
     Replace the values of a nested dictionary at the specified sequences of keys `keys` with dictionaries including both
@@ -158,8 +165,10 @@ def nested_unpair(
     return d01, d02
 
 
-def find_one_path_to_key(d: Dict[AnyKey, Any], key: AnyKey, keys: Tuple[AnyKey] = ()) -> Tuple[AnyKey]:
-    if hasattr(d, 'items'):
+def find_one_path_to_key(
+    d: Dict[AnyKey, Any], key: AnyKey, keys: Tuple[AnyKey] = ()
+) -> Tuple[AnyKey]:
+    if hasattr(d, "items"):
         for k, v in d.items():
             if k == key:
                 keys += (k,)
@@ -171,7 +180,9 @@ def find_one_path_to_key(d: Dict[AnyKey, Any], key: AnyKey, keys: Tuple[AnyKey] 
     return keys
 
 
-def nested_update(d: Dict[AnyKey, Any], *updating_d: Dict[AnyKey, Any]) -> Dict[AnyKey, Any]:
+def nested_update(
+    d: Dict[AnyKey, Any], *updating_d: Dict[AnyKey, Any]
+) -> Dict[AnyKey, Any]:
     """
     Update a nested dictionary `d` with the content of an other dictionary `updating_d`.
     """
@@ -179,7 +190,11 @@ def nested_update(d: Dict[AnyKey, Any], *updating_d: Dict[AnyKey, Any]) -> Dict[
     updated_mapping = d.copy()
     for updating_mapping in updating_d:
         for k, v in updating_mapping.items():
-            if k in updated_mapping and isinstance(updated_mapping[k], dict) and isinstance(v, dict):
+            if (
+                k in updated_mapping
+                and isinstance(updated_mapping[k], dict)
+                and isinstance(v, dict)
+            ):
                 updated_mapping[k] = nested_update(updated_mapping[k], v)
             else:
                 updated_mapping[k] = v

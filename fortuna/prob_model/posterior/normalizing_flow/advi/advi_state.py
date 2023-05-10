@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from typing import Dict, List, Optional
+
 import jax.numpy as jnp
+
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.utils.strings import convert_string_to_jnp_array
 from fortuna.typing import Array
-from typing import Optional, Dict, List
+from fortuna.utils.strings import convert_string_to_jnp_array
 
 
 class ADVIState(PosteriorState):

@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Union, Optional, Dict
+from typing import Dict, List, Optional, Tuple, Union
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
 
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import Params, AnyKey, Array
+from fortuna.typing import AnyKey, Array, Params
 from fortuna.utils.nested_dicts import nested_pair
-from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy, convert_string_to_jnp_array
+from fortuna.utils.strings import (
+    convert_string_to_jnp_array,
+    encode_tuple_of_lists_of_strings_to_numpy,
+)
 
 
 class LaplaceState(PosteriorState):
@@ -66,5 +69,7 @@ class LaplaceState(PosteriorState):
                 params=FrozenDict(params), encoded_name=LaplaceState.encoded_name
             )
         )
-        d["_encoded_which_params"] = encode_tuple_of_lists_of_strings_to_numpy(which_params)
+        d["_encoded_which_params"] = encode_tuple_of_lists_of_strings_to_numpy(
+            which_params
+        )
         return LaplaceState.init_from_dict(d)

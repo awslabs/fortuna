@@ -1,12 +1,15 @@
-from fortuna.typing import Array
 from typing import List
+
 import jax.numpy as jnp
+
+from fortuna.typing import Array
 
 
 class ConformalClassifier:
     """
     A base conformal classifier class.
     """
+
     def is_in(self, values: Array, conformal_sets: List) -> Array:
         """
         Check whether the values lie within their respective conformal sets.

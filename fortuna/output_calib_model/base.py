@@ -6,18 +6,23 @@ import jax.numpy as jnp
 from flax.core import FrozenDict
 
 from fortuna.output_calib_model.config.base import Config
+from fortuna.output_calib_model.loss import Loss
+from fortuna.output_calib_model.output_calib_mixin import (
+    WithOutputCalibCheckpointingMixin,
+)
 from fortuna.output_calib_model.output_calib_model_calibrator import (
-    OutputCalibModelCalibrator, JittedOutputCalibModelCalibrator,
-    MultiDeviceOutputCalibModelCalibrator)
+    JittedOutputCalibModelCalibrator,
+    MultiDeviceOutputCalibModelCalibrator,
+    OutputCalibModelCalibrator,
+)
+from fortuna.output_calib_model.output_calib_state_repository import (
+    OutputCalibStateRepository,
+)
 from fortuna.output_calib_model.state import OutputCalibState
-from fortuna.output_calibrator.output_calib_manager.state import \
-    OutputCalibManagerState
-from fortuna.output_calib_model.output_calib_mixin import WithOutputCalibCheckpointingMixin
-from fortuna.output_calib_model.output_calib_state_repository import OutputCalibStateRepository
-from fortuna.typing import Array, Path, Status, Outputs, Targets
+from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
+from fortuna.typing import Array, Outputs, Path, Status, Targets
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
-from fortuna.output_calib_model.loss import Loss
 
 
 class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
@@ -43,7 +48,7 @@ class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
-        config: Config = Config()
+        config: Config = Config(),
     ) -> Status:
         if (val_targets is not None and val_outputs is None) or (
             val_targets is None and val_outputs is not None
@@ -135,7 +140,9 @@ class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
             raise ValueError(
                 f"No checkpoint was found in `checkpoint_path={checkpoint_path}`."
             )
-        self.predictive.state = OutputCalibStateRepository(checkpoint_dir=checkpoint_path)
+        self.predictive.state = OutputCalibStateRepository(
+            checkpoint_dir=checkpoint_path
+        )
 
     def save_state(
         self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1

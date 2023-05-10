@@ -14,11 +14,13 @@ from jax.tree_util import tree_map
 from tqdm import trange
 from tqdm.std import tqdm as TqdmDecorator
 
-from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.data.loader import DataLoader, TargetsLoader
-from fortuna.training.mixin import (InputValidatorMixin,
-                                    WithCheckpointingMixin,
-                                    WithEarlyStoppingMixin)
+from fortuna.output_calib_model.state import OutputCalibState
+from fortuna.training.mixin import (
+    InputValidatorMixin,
+    WithCheckpointingMixin,
+    WithEarlyStoppingMixin,
+)
 from fortuna.typing import Array, CalibMutable, CalibParams, Path, Status
 from fortuna.utils.builtins import HashableMixin
 
@@ -644,5 +646,7 @@ class JittedOutputCalibModelCalibrator(JittedMixin, OutputCalibModelCalibrator):
     pass
 
 
-class MultiDeviceOutputCalibModelCalibrator(MultiDeviceMixin, OutputCalibModelCalibrator):
+class MultiDeviceOutputCalibModelCalibrator(
+    MultiDeviceMixin, OutputCalibModelCalibrator
+):
     pass

@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 from fortuna.prob_model.posterior.base import PosteriorApproximator
 from fortuna.prob_model.posterior.sngp import SNGP_NAME
@@ -6,15 +6,15 @@ from fortuna.prob_model.posterior.sngp import SNGP_NAME
 
 class SNGPPosteriorApproximator(PosteriorApproximator):
     def __init__(
-            self,
-            *args,
-            output_dim: int,
-            gp_hidden_features: int = 1024,
-            normalize_input: bool = False,
-            ridge_penalty: float = 1.0,
-            momentum: Optional[float] = None,
-            mean_field_factor: float = 1.0,
-            **kwargs
+        self,
+        *args,
+        output_dim: int,
+        gp_hidden_features: int = 1024,
+        normalize_input: bool = False,
+        ridge_penalty: float = 1.0,
+        momentum: Optional[float] = None,
+        mean_field_factor: float = 1.0,
+        **kwargs
     ):
         """
         SNGP posterior approximator. It is responsible to define how the posterior distribution is approximated.

@@ -9,13 +9,16 @@ from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.map import MAP_NAME
-from fortuna.prob_model.posterior.map.map_approximator import \
-    MAPPosteriorApproximator
+from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
-    JittedMAPTrainer, MAPTrainer, MultiDeviceMAPTrainer)
-from fortuna.prob_model.posterior.posterior_state_repository import \
-    PosteriorStateRepository
+    JittedMAPTrainer,
+    MAPTrainer,
+    MultiDeviceMAPTrainer,
+)
+from fortuna.prob_model.posterior.posterior_state_repository import (
+    PosteriorStateRepository,
+)
 from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
 
@@ -80,8 +83,7 @@ class MAPPosterior(Posterior):
             )
         else:
             state = self._init_state(
-                data_loader=train_data_loader,
-                fit_config=fit_config
+                data_loader=train_data_loader, fit_config=fit_config
             )
 
         state = super()._freeze_optimizer_in_state(state, fit_config)
@@ -97,7 +99,9 @@ class MAPPosterior(Posterior):
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
+            validation_dataset_size=val_data_loader.size
+            if val_data_loader is not None
+            else None,
             verbose=fit_config.monitor.verbose,
             callbacks=fit_config.callbacks,
         )
@@ -119,11 +123,7 @@ class MAPPosterior(Posterior):
             calib_mutable=state.calib_mutable,
         )
 
-    def _init_state(
-            self,
-            data_loader: DataLoader,
-            fit_config: FitConfig
-    ) -> MAPState:
+    def _init_state(self, data_loader: DataLoader, fit_config: FitConfig) -> MAPState:
         state = super()._init_joint_state(data_loader=data_loader)
 
         return MAPState.init(
@@ -131,5 +131,5 @@ class MAPPosterior(Posterior):
             mutable=state.mutable,
             optimizer=fit_config.optimizer.method,
             calib_params=state.calib_params,
-            calib_mutable=state.calib_mutable
+            calib_mutable=state.calib_mutable,
         )

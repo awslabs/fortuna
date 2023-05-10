@@ -18,11 +18,22 @@ from tqdm.std import tqdm as TqdmDecorator
 
 from fortuna.data.loader import DataLoader
 from fortuna.training.callback import Callback
-from fortuna.training.mixin import (InputValidatorMixin,
-                                    WithCheckpointingMixin,
-                                    WithEarlyStoppingMixin)
+from fortuna.training.mixin import (
+    InputValidatorMixin,
+    WithCheckpointingMixin,
+    WithEarlyStoppingMixin,
+)
 from fortuna.training.train_state import TrainState
-from fortuna.typing import Array, Batch, Path, Status, CalibParams, CalibMutable, Mutable, Params
+from fortuna.typing import (
+    Array,
+    Batch,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+    Path,
+    Status,
+)
 from fortuna.utils.builtins import HashableMixin
 
 
@@ -134,11 +145,20 @@ class TrainerABC(
         state: TrainState,
         aux: Dict[str, Any],
         batch: Batch,
-        metrics: Optional[Tuple[Union[Callable[[jnp.ndarray, Array], float], Callable[[jnp.ndarray, jnp.ndarray, Array], float]], ...]],
+        metrics: Optional[
+            Tuple[
+                Union[
+                    Callable[[jnp.ndarray, Array], float],
+                    Callable[[jnp.ndarray, jnp.ndarray, Array], float],
+                ],
+                ...,
+            ]
+        ],
         callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
-        if (self.save_checkpoint_dir is not None
+        if (
+            self.save_checkpoint_dir is not None
             and self.save_every_n_steps is not None
             and self.save_every_n_steps > 0
             and self._global_training_step >= self.save_every_n_steps
@@ -159,38 +179,55 @@ class TrainerABC(
                 uncertainties = self.uncertainty_fn(aux["outputs"])
                 if self.multi_device:
                     training_batch_metrics = self.compute_metrics(
-                        preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
+                        preds.reshape(
+                            (preds.shape[0] * preds.shape[1],) + preds.shape[2:]
+                        ),
                         batch[1].reshape(
-                            (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
+                            (batch[1].shape[0] * batch[1].shape[1],)
+                            + batch[1].shape[2:]
                         ),
                         metrics,
                         uncertainties.reshape(
-                            (uncertainties.shape[0] * uncertainties.shape[1],) + uncertainties.shape[2:]),
+                            (uncertainties.shape[0] * uncertainties.shape[1],)
+                            + uncertainties.shape[2:]
+                        ),
                     )
                 else:
-                    training_batch_metrics = self.compute_metrics(preds, batch[1], metrics, uncertainties)
+                    training_batch_metrics = self.compute_metrics(
+                        preds, batch[1], metrics, uncertainties
+                    )
             else:
                 if self.multi_device:
                     training_batch_metrics = self.compute_metrics(
-                        preds.reshape((preds.shape[0] * preds.shape[1],) + preds.shape[2:]),
+                        preds.reshape(
+                            (preds.shape[0] * preds.shape[1],) + preds.shape[2:]
+                        ),
                         batch[1].reshape(
-                            (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
+                            (batch[1].shape[0] * batch[1].shape[1],)
+                            + batch[1].shape[2:]
                         ),
                         metrics,
                     )
                 else:
-                    training_batch_metrics = self.compute_metrics(preds, batch[1], metrics)
+                    training_batch_metrics = self.compute_metrics(
+                        preds, batch[1], metrics
+                    )
             for k, v in training_batch_metrics.items():
                 training_losses_and_metrics[k] = v
 
         state = self._callback_loop(state, callbacks, "training_step_end")
         return state, training_losses_and_metrics
 
-    def training_epoch_start(self, state: TrainState, callbacks: Optional[List[Callback]] = None) -> TrainState:
+    def training_epoch_start(
+        self, state: TrainState, callbacks: Optional[List[Callback]] = None
+    ) -> TrainState:
         return self._callback_loop(state, callbacks, "training_epoch_start")
 
     def training_epoch_end(
-        self, training_losses_and_metrics_current_epoch: List[Dict[str, jnp.ndarray]], state: TrainState, callbacks: Optional[List[Callback]] = None
+        self,
+        training_losses_and_metrics_current_epoch: List[Dict[str, jnp.ndarray]],
+        state: TrainState,
+        callbacks: Optional[List[Callback]] = None,
     ) -> Tuple[TrainState, Dict[str, float]]:
         mean_losses_and_metrics = self._get_mean_losses_and_metrics(
             training_losses_and_metrics_current_epoch
@@ -425,7 +462,9 @@ class TrainerABC(
             )
         return validation_losses_and_metrics_current_epoch, validation_epoch_metrics_str
 
-    def _callback_loop(self, state: TrainState, callbacks: Optional[List[Callback]], method_name: str) -> TrainState:
+    def _callback_loop(
+        self, state: TrainState, callbacks: Optional[List[Callback]], method_name: str
+    ) -> TrainState:
         callbacks = callbacks or []
         for callback in callbacks:
             state = getattr(callback, method_name)(state)
@@ -478,11 +517,15 @@ class TrainerABC(
         preds: Array,
         targets: Array,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
-        uncertainties: Optional[Array] = None
+        uncertainties: Optional[Array] = None,
     ) -> Dict[str, float]:
         metrics_vals = {}
         for metric in metrics:
-            metrics_vals[metric.__name__] = metric(preds, targets) if uncertainties is None else metric(preds, uncertainties, targets)
+            metrics_vals[metric.__name__] = (
+                metric(preds, targets)
+                if uncertainties is None
+                else metric(preds, uncertainties, targets)
+            )
         return metrics_vals
 
 
@@ -498,7 +541,9 @@ class JittedMixin:
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(state, batch, loss_fun, rng, n_data, unravel, kwargs)
+        return super().training_step(
+            state, batch, loss_fun, rng, n_data, unravel, kwargs
+        )
 
     @partial(jax.jit, static_argnums=(0, 3, 5, 6, 7, 8))
     def validation_step(
@@ -608,7 +653,9 @@ class MultiDeviceMixin:
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(state, batch, loss_fun, rng, n_data, unravel, kwargs)
+        return super().training_step(
+            state, batch, loss_fun, rng, n_data, unravel, kwargs
+        )
 
     def training_step_end(
         self,
@@ -620,7 +667,9 @@ class MultiDeviceMixin:
         callbacks: Optional[List[Callback]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
-        state, training_losses_and_metrics = super(MultiDeviceMixin, self).training_step_end(
+        state, training_losses_and_metrics = super(
+            MultiDeviceMixin, self
+        ).training_step_end(
             current_epoch, state, aux, batch, metrics, callbacks, kwargs
         )
         return state, tree_map(lambda x: x.mean(), training_losses_and_metrics)

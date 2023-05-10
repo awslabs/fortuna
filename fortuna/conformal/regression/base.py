@@ -5,6 +5,7 @@ class ConformalRegressor:
     """
     A base conformal regressor class.
     """
+
     def is_in(self, values: Array, conformal_intervals: Array) -> Array:
         """
         Check whether the values lie within their respective conformal intervals.
@@ -21,4 +22,6 @@ class ConformalRegressor:
         Array
             An array of ones or zero, indicating whether the values lie within their respective conformal intervals.
         """
-        return (values <= conformal_intervals[:, 1]) * (values >= conformal_intervals[:, 0])
+        return (values <= conformal_intervals[:, 1]) * (
+            values >= conformal_intervals[:, 0]
+        )

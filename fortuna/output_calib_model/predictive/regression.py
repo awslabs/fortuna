@@ -4,8 +4,7 @@ import jax.numpy as jnp
 from jax._src.prng import PRNGKeyArray
 
 from fortuna.output_calib_model.predictive.base import Predictive
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.typing import Array
 

@@ -1,21 +1,19 @@
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import flax.linen as nn
 import jax.numpy as jnp
 import numpy as np
 
+from fortuna.loss.classification.focal_loss import focal_loss_fn
 from fortuna.output_calib_model.base import OutputCalibModel
 from fortuna.output_calib_model.config.base import Config
-from fortuna.output_calib_model.predictive.classification import \
-    ClassificationPredictive
-from fortuna.output_calibrator.classification import \
-    ClassificationTemperatureScaler
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
-from fortuna.prob_output_layer.classification import \
-    ClassificationProbOutputLayer
-from fortuna.loss.classification.focal_loss import focal_loss_fn
-from fortuna.typing import Array, Status, Outputs, Targets
+from fortuna.output_calib_model.predictive.classification import (
+    ClassificationPredictive,
+)
+from fortuna.output_calibrator.classification import ClassificationTemperatureScaler
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
+from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
+from fortuna.typing import Array, Outputs, Status, Targets
 
 
 class OutputCalibClassifier(OutputCalibModel):

@@ -1,23 +1,22 @@
-from fortuna.calib_model.base import CalibModel
-from fortuna.calib_model.predictive.classification import ClassificationPredictive
-from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
-from fortuna.model.model_manager.classification import ClassificationModelManager
-from fortuna.likelihood.classification import ClassificationLikelihood
-from fortuna.typing import Status, Outputs, Targets
-from flax import linen as nn
-from fortuna.data import DataLoader
-from fortuna.calib_model.config.base import Config
-from fortuna.loss.classification.focal_loss import focal_loss_fn
-from typing import Optional, Callable
-import numpy as np
+from typing import Callable, Optional
+
 import jax.numpy as jnp
+import numpy as np
+from flax import linen as nn
+
+from fortuna.calib_model.base import CalibModel
+from fortuna.calib_model.config.base import Config
+from fortuna.calib_model.predictive.classification import ClassificationPredictive
+from fortuna.data import DataLoader
+from fortuna.likelihood.classification import ClassificationLikelihood
+from fortuna.loss.classification.focal_loss import focal_loss_fn
+from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
+from fortuna.typing import Outputs, Status, Targets
 
 
 class CalibClassifier(CalibModel):
-    def __init__(
-            self,
-            model: nn.Module,
-            seed: int = 0):
+    def __init__(self, model: nn.Module, seed: int = 0):
         r"""
         A calibration classifier class.
 
@@ -50,13 +49,11 @@ class CalibClassifier(CalibModel):
         self.model_manager = ClassificationModelManager(model)
         self.prob_output_layer = ClassificationProbOutputLayer()
         self.likelihood = ClassificationLikelihood(
-                model_manager=self.model_manager,
-                prob_output_layer=self.prob_output_layer,
-                output_calib_manager=None
-            )
-        self.predictive = ClassificationPredictive(
-            likelihood=self.likelihood
+            model_manager=self.model_manager,
+            prob_output_layer=self.prob_output_layer,
+            output_calib_manager=None,
         )
+        self.predictive = ClassificationPredictive(likelihood=self.likelihood)
         super().__init__(seed=seed)
 
     def _check_output_dim(self, data_loader: DataLoader):
@@ -81,7 +78,7 @@ class CalibClassifier(CalibModel):
         calib_data_loader: DataLoader,
         val_data_loader: Optional[DataLoader] = None,
         loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = focal_loss_fn,
-        config: Config = Config()
+        config: Config = Config(),
     ) -> Status:
         """
         Calibrate the calibration classifier.
@@ -107,7 +104,8 @@ class CalibClassifier(CalibModel):
             self._check_output_dim(val_data_loader)
         return self._calibrate(
             calib_data_loader=calib_data_loader,
-            uncertainty_fn=config.monitor.uncertainty_fn if config.monitor.uncertainty_fn is not None
+            uncertainty_fn=config.monitor.uncertainty_fn
+            if config.monitor.uncertainty_fn is not None
             else self.prob_output_layer.mean,
             val_data_loader=val_data_loader,
             loss_fn=loss_fn,

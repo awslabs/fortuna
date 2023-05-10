@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Callable, Dict, Optional, Tuple, Union, List
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
@@ -14,7 +14,7 @@ from fortuna.distribution.base import Distribution
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.training.callback import Callback
-from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Params, Mutable
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Mutable, Params
 from fortuna.utils.nested_dicts import nested_set
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
@@ -47,15 +47,17 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         """
         return self.forward(params, self.sample_base(rng, n_samples))
 
-    def __init__(self, *,
-                 base: Distribution,
-                 architecture: object,
-                 which_params: Optional[Tuple[List[str]]],
-                 all_params: Optional[Params] = None,
-                 indices: Optional[List[int]] = None,
-                 unravel: Union[List[Callable], Callable],
-                 **kwargs
-                 ):
+    def __init__(
+        self,
+        *,
+        base: Distribution,
+        architecture: object,
+        which_params: Optional[Tuple[List[str]]],
+        all_params: Optional[Params] = None,
+        indices: Optional[List[int]] = None,
+        unravel: Union[List[Callable], Callable],
+        **kwargs,
+    ):
         super(NormalizingFlowTrainer, self).__init__(**kwargs)
         # base distribution
         self.sample_base = base.sample
@@ -68,7 +70,9 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
 
         # Normalizing flows on subsets of the model parameters
         self._which_params = which_params
-        self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(which_params)
+        self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(
+            which_params
+        )
         self._all_params = all_params
         self._indices = indices
         self._unravel = unravel
@@ -182,9 +186,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         rng, key = random.split(rng)
-        v, ldj = self.sample_forward(
-            key, state.params, kwargs["n_samples"]
-        )
+        v, ldj = self.sample_forward(key, state.params, kwargs["n_samples"])
         neg_logp, aux = vmap(
             lambda _rav_params: loss_fun(
                 self._get_params_from_rav(_rav_params, unravel),
@@ -218,6 +220,11 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
             nested_set(
                 d=self._all_params.unfreeze(),
                 key_paths=self._which_params,
-                objs=tuple([_unravel(_rav[self._indices[i]:self._indices[i+1]]) for i, _unravel in enumerate(unravel)]),
+                objs=tuple(
+                    [
+                        _unravel(_rav[self._indices[i] : self._indices[i + 1]])
+                        for i, _unravel in enumerate(unravel)
+                    ]
+                ),
             )
         )

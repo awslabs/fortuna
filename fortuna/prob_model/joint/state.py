@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fortuna.model.model_manager.state import ModelManagerState
-from fortuna.output_calibrator.output_calib_manager.state import \
-    OutputCalibManagerState
+from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
 from fortuna.typing import CalibMutable, CalibParams, Mutable, Params
 
 

@@ -1,12 +1,13 @@
-from fortuna.typing import Array
+import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
-import jax
+
+from fortuna.typing import Array
 
 
 def cross_entropy_loss_fn(
-        outputs: Array,
-        targets: Array,
+    outputs: Array,
+    targets: Array,
 ) -> jnp.ndarray:
     """
     A cross-entropy loss function. Check `here <https://en.wikipedia.org/wiki/Cross_entropy>`_ for reference.

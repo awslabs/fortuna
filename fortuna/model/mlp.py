@@ -1,10 +1,9 @@
-from typing import Callable, Optional, Tuple, Any, Union
+from typing import Any, Callable, Optional, Tuple, Union
 
 import flax.linen as nn
 import jax.numpy as jnp
 
 from fortuna.typing import Array
-
 
 ModuleDef = Any
 
@@ -28,11 +27,12 @@ class MLP(nn.Module):
     dense: ModuleDef
         Dense module.
     """
+
     output_dim: int
     widths: Optional[Tuple[int]] = (30, 30)
     activations: Optional[Tuple[Callable[[Array], Array]]] = (nn.relu, nn.relu)
     dropout: ModuleDef = nn.Dropout
-    dropout_rate: float = 0.
+    dropout_rate: float = 0.0
     dense: ModuleDef = nn.Dense
 
     def setup(self):
@@ -63,6 +63,7 @@ class DeepResidualNet(MLP):
     """
     A multi-layer perceptron with residual connections
     """
+
     def setup(self):
         if len(self.widths) != len(self.activations):
             raise Exception(
@@ -87,7 +88,7 @@ class MLPDeepFeatureExtractorSubNet(nn.Module):
     activations: Tuple[Callable[[Array], Array]]
     dense: ModuleDef = nn.Dense
     dropout: ModuleDef = nn.Dropout
-    dropout_rate: float = 0.
+    dropout_rate: float = 0.0
 
     """
     MLP Deep feature extractor sub-network.
@@ -123,7 +124,7 @@ class MLPDeepFeatureExtractorSubNet(nn.Module):
         jnp.ndarray
             Output of the hidden layers.
         """
-        if hasattr(self, 'spectral_norm'):
+        if hasattr(self, "spectral_norm"):
             dense = self.spectral_norm(self.dense, train=train)
         else:
             dense = self.dense
@@ -161,7 +162,7 @@ class DeepResidualFeatureExtractorSubNet(MLPDeepFeatureExtractorSubNet):
         jnp.ndarray
             Output of the hidden layers.
         """
-        if hasattr(self, 'spectral_norm'):
+        if hasattr(self, "spectral_norm"):
             dense = self.spectral_norm(self.dense, train=train)
         else:
             dense = self.dense
