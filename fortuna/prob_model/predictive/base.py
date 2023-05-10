@@ -267,7 +267,7 @@ class Predictive(WithRNG):
                         self.likelihood._unshard_array(fun(inputs))
                         for inputs in inputs_loader
                     ],
-                    0,
+                    1,
                 )
             else:
                 samples, aux_outputs = [], []
