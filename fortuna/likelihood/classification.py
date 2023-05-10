@@ -5,13 +5,10 @@ import jax.numpy as jnp
 from jax import vmap
 
 from fortuna.data.loader import InputsLoader
-from fortuna.model.model_manager.classification import \
-    ClassificationModelManager
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
 from fortuna.likelihood.base import Likelihood
-from fortuna.prob_output_layer.classification import \
-    ClassificationProbOutputLayer
+from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
+from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
 from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
 
 

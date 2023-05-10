@@ -1,8 +1,8 @@
 import jax.numpy as jnp
 
+from fortuna.calib_model.predictive.base import Predictive
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.classification import ClassificationLikelihood
-from fortuna.calib_model.predictive.base import Predictive
 
 
 class ClassificationPredictive(Predictive):
@@ -43,5 +43,5 @@ class ClassificationPredictive(Predictive):
             params=state.params,
             inputs_loader=inputs_loader,
             mutable=state.mutable,
-            distribute=distribute
+            distribute=distribute,
         )

@@ -4,28 +4,28 @@ import flax.linen as nn
 import numpy as np
 
 from fortuna.data.loader import DataLoader
+from fortuna.likelihood.classification import ClassificationLikelihood
 from fortuna.model.model_manager.classification import ClassificationModelManager
-from fortuna.model.model_manager.name_to_model_manager import ClassificationModelManagers
-from fortuna.output_calibrator.classification import \
-    ClassificationTemperatureScaler
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
+from fortuna.model.model_manager.name_to_model_manager import (
+    ClassificationModelManagers,
+)
+from fortuna.output_calibrator.classification import ClassificationTemperatureScaler
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_model.base import ProbModel
 from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.likelihood.classification import ClassificationLikelihood
 from fortuna.prob_model.posterior.base import PosteriorApproximator
-from fortuna.prob_model.posterior.posterior_approximations import \
-    PosteriorApproximations
-from fortuna.prob_model.posterior.swag.swag_approximator import \
-    SWAGPosteriorApproximator
-from fortuna.prob_model.predictive.classification import \
-    ClassificationPredictive
+from fortuna.prob_model.posterior.posterior_approximations import (
+    PosteriorApproximations,
+)
+from fortuna.prob_model.posterior.swag.swag_approximator import (
+    SWAGPosteriorApproximator,
+)
+from fortuna.prob_model.predictive.classification import ClassificationPredictive
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.prior.base import Prior
-from fortuna.prob_output_layer.classification import \
-    ClassificationProbOutputLayer
+from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
 from fortuna.typing import Status
 
 
@@ -129,7 +129,11 @@ class ProbClassifier(ProbModel):
         outputs = self.model_manager.apply(
             params=s.params, inputs=np.zeros((1,) + input_shape), mutable=s.mutable
         )
-        model_output_dim = outputs[0].shape[1] if isinstance(outputs, (list, tuple)) else outputs.shape[1]
+        model_output_dim = (
+            outputs[0].shape[1]
+            if isinstance(outputs, (list, tuple))
+            else outputs.shape[1]
+        )
         if model_output_dim != output_dim:
             raise ValueError(
                 f"""The outputs dimension of `model` must correspond to the number of different classes

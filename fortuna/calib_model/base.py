@@ -4,28 +4,28 @@ from typing import Callable, Optional, Tuple
 
 import jax.numpy as jnp
 import optax
+from flax.core.frozen_dict import freeze
 from flax.traverse_util import path_aware_map
 
-from fortuna.data.loader import DataLoader
-from fortuna.typing import Path, Status, Predictions, Targets, Uncertainties, Outputs
-from fortuna.utils.device import select_trainer_given_devices
-from fortuna.utils.random import RandomNumberGenerator
-from fortuna.calib_model.calib_state_repository import CalibStateRepository
 from fortuna.calib_model.calib_mixin import WithCalibCheckpointingMixin
-from fortuna.calib_model.calib_model_calibrator import CalibModelCalibrator, \
-    JittedCalibModelCalibrator, MultiDeviceCalibModelCalibrator
+from fortuna.calib_model.calib_model_calibrator import (
+    CalibModelCalibrator,
+    JittedCalibModelCalibrator,
+    MultiDeviceCalibModelCalibrator,
+)
+from fortuna.calib_model.calib_state_repository import CalibStateRepository
 from fortuna.calib_model.config.base import Config
 from fortuna.calib_model.loss import Loss
-from fortuna.model.model_manager.state import ModelManagerState
 from fortuna.calib_model.state import CalibState
-from flax.core.frozen_dict import freeze
+from fortuna.data.loader import DataLoader
+from fortuna.model.model_manager.state import ModelManagerState
+from fortuna.typing import Outputs, Path, Predictions, Status, Targets, Uncertainties
+from fortuna.utils.device import select_trainer_given_devices
+from fortuna.utils.random import RandomNumberGenerator
 
 
 class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
-    def __init__(
-            self,
-            seed: int = 0
-    ):
+    def __init__(self, seed: int = 0):
         """
         A calibration model.
 
@@ -50,7 +50,7 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
         uncertainty_fn: Callable[[Predictions, Uncertainties, Targets], jnp.ndarray],
         loss_fn: Callable[[Outputs, Targets], jnp.ndarray],
         val_data_loader: Optional[DataLoader] = None,
-        config: Config = Config()
+        config: Config = Config(),
     ) -> Status:
         if (
             config.checkpointer.dump_state is True
@@ -84,9 +84,16 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
         state = self._init_state(calib_data_loader, config)
 
         if config.optimizer.freeze_fun is not None:
-            partition_optimizers = {"trainable": config.optimizer.method, "frozen": optax.set_to_zero()}
-            partition_params = freeze(path_aware_map(config.optimizer.freeze_fun, state.params))
-            config.optimizer.method = optax.multi_transform(partition_optimizers, partition_params)
+            partition_optimizers = {
+                "trainable": config.optimizer.method,
+                "frozen": optax.set_to_zero(),
+            }
+            partition_params = freeze(
+                path_aware_map(config.optimizer.freeze_fun, state.params)
+            )
+            config.optimizer.method = optax.multi_transform(
+                partition_optimizers, partition_params
+            )
             state = self._init_state(calib_data_loader, config)
 
         loss = Loss(self.likelihood, loss_fn=loss_fn)
@@ -116,7 +123,9 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             if config.checkpointer.dump_state is True
             else None
         )
-        self.predictive.state.put(state, keep=config.checkpointer.keep_top_n_checkpoints)
+        self.predictive.state.put(
+            state, keep=config.checkpointer.keep_top_n_checkpoints
+        )
         if config.monitor.verbose:
             logging.info("Calibration completed.")
         return status
@@ -162,9 +171,7 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
         A state of the joint distribution.
         """
         oms = ModelManagerState.init_from_dict(
-            self.model_manager.init(
-                input_shape, rng=self.rng.get(), **kwargs
-            )
+            self.model_manager.init(input_shape, rng=self.rng.get(), **kwargs)
         )
         return self.model_manager.apply(
             oms.params, jnp.zeros((1,) + input_shape), mutable=oms.mutable
@@ -175,8 +182,14 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             input_shape = inputs.shape[1:]
             break
 
-        state = ModelManagerState.init_from_dict(self.likelihood.model_manager.init(input_shape, rng=self.rng.get()))
-        return CalibState.init(params=state.params, mutable=state.mutable, optimizer=config.optimizer.method)
+        state = ModelManagerState.init_from_dict(
+            self.likelihood.model_manager.init(input_shape, rng=self.rng.get())
+        )
+        return CalibState.init(
+            params=state.params,
+            mutable=state.mutable,
+            optimizer=config.optimizer.method,
+        )
 
     def _init_state(self, calib_data_loader: DataLoader, config: Config) -> CalibState:
         if config.checkpointer.restore_checkpoint_path is None:
@@ -186,8 +199,10 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
                 state = self._init(calib_data_loader, config)
         else:
             if config.checkpointer.start_from_current_state:
-                logging.warning("`config.checkpointer.start_from_current_state` will be ignored since "
-                                "`config.checkpointer.restore_checkpoint_path` is given.")
+                logging.warning(
+                    "`config.checkpointer.start_from_current_state` will be ignored since "
+                    "`config.checkpointer.restore_checkpoint_path` is given."
+                )
             state = self.restore_checkpoint(
                 restore_checkpoint_path=config.checkpointer.restore_checkpoint_path,
                 optimizer=config.optimizer.method,

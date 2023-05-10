@@ -6,10 +6,13 @@ from flax import jax_utils
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
-from fortuna.training.output_calibrator import (OutputCalibratorABC, JittedMixin,
-                                                MultiDeviceMixin)
-from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.data import TargetsLoader
+from fortuna.output_calib_model.state import OutputCalibState
+from fortuna.training.output_calibrator import (
+    JittedMixin,
+    MultiDeviceMixin,
+    OutputCalibratorABC,
+)
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams
 
 
@@ -112,5 +115,7 @@ class JittedProbModelOutputCalibrator(JittedMixin, ProbModelOutputCalibrator):
     pass
 
 
-class MultiDeviceProbModelOutputCalibrator(ProbModelMultiDeviceMixin, ProbModelOutputCalibrator):
+class MultiDeviceProbModelOutputCalibrator(
+    ProbModelMultiDeviceMixin, ProbModelOutputCalibrator
+):
     pass

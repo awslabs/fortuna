@@ -4,8 +4,8 @@ import jax.numpy as jnp
 import numpy as np
 from jax import vmap
 
-from fortuna.typing import Array
 from fortuna.conformal.classification.base import ConformalClassifier
+from fortuna.typing import Array
 
 
 class AdaptivePredictionConformalClassifier(ConformalClassifier):

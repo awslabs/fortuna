@@ -85,7 +85,7 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         ridge_penalty: float = 1.0,
         momentum: Optional[float] = None,
         mean_field_factor: float = 1.0,
-        **kwargs
+        **kwargs,
     ):
         """
         Classification model manager for SNGP models.
@@ -130,7 +130,10 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         self.momentum = momentum
         self.mean_field_factor = mean_field_factor
         self._gp_output_model = None
-        self._gp_output_model_mutable_keys = ['sngp_random_features', 'sngp_laplace_covariance']
+        self._gp_output_model_mutable_keys = [
+            "sngp_random_features",
+            "sngp_laplace_covariance",
+        ]
 
     def _get_output_model(self) -> RandomFeatureGaussianProcess:
         return RandomFeatureGaussianProcess(
@@ -145,7 +148,9 @@ class SNGPClassificationModelManager(ClassificationModelManager):
             },
         )
 
-    def _mean_field_logits(self, logits: Array, covariance: Optional[Array] = None) -> Array:
+    def _mean_field_logits(
+        self, logits: Array, covariance: Optional[Array] = None
+    ) -> Array:
         """
         Adjust the model logits s.t. its softmax approximates the posterior mean
         (`Zhiyun L. et al., 2020 <https://arxiv.org/abs/2006.07584>`_).
@@ -169,12 +174,12 @@ class SNGPClassificationModelManager(ClassificationModelManager):
 
         # Compute standard deviation.
         if covariance is None:
-            variances = 1.
+            variances = 1.0
         else:
             variances = jnp.diagonal(covariance) if covariance.ndim == 2 else covariance
 
         # Compute scaling coefficient for mean-field approximation.
-        logits_scale = jnp.sqrt(1. + variances * self.mean_field_factor)
+        logits_scale = jnp.sqrt(1.0 + variances * self.mean_field_factor)
 
         # Cast logits_scale to compatible dimension.
         if len(logits.shape) > 1:
@@ -191,13 +196,25 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         rng: Optional[PRNGKeyArray] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
         if mutable and mutable is not None:
-            deep_feature_extractor_mutable = {'model': FrozenDict(
-                {k:v for k,v in mutable['model'].items() if k not in self._gp_output_model_mutable_keys}
-            )}
-            gp_model_mutable = {k:v for k,v in mutable['model'].items() if k in self._gp_output_model_mutable_keys}
+            deep_feature_extractor_mutable = {
+                "model": FrozenDict(
+                    {
+                        k: v
+                        for k, v in mutable["model"].items()
+                        if k not in self._gp_output_model_mutable_keys
+                    }
+                )
+            }
+            gp_model_mutable = {
+                k: v
+                for k, v in mutable["model"].items()
+                if k in self._gp_output_model_mutable_keys
+            }
         else:
             deep_feature_extractor_mutable = mutable
-        deep_feature_extractor_outputs = super(SNGPClassificationModelManager, self).apply(params, inputs, deep_feature_extractor_mutable, train, rng)
+        deep_feature_extractor_outputs = super(
+            SNGPClassificationModelManager, self
+        ).apply(params, inputs, deep_feature_extractor_mutable, train, rng)
 
         variables = params["model"].unfreeze()
         if mutable:
@@ -205,19 +222,25 @@ class SNGPClassificationModelManager(ClassificationModelManager):
             variables.update(mutable_variables)
             mutable = list(mutable_variables.keys())
         if train and mutable:
-            deep_feature_extractor_outputs, deep_feature_extractor_mutable = deep_feature_extractor_outputs
+            (
+                deep_feature_extractor_outputs,
+                deep_feature_extractor_mutable,
+            ) = deep_feature_extractor_outputs
             outputs, gp_mutable = self._gp_output_model.apply(
                 variables, deep_feature_extractor_outputs, mutable=mutable
             )
             outputs = outputs[0]
             if gp_mutable is not None:
-                mutable = deep_feature_extractor_mutable['mutable']['model'].unfreeze()
+                mutable = deep_feature_extractor_mutable["mutable"]["model"].unfreeze()
                 mutable.update(gp_mutable.unfreeze())
                 mutable = {"mutable": FrozenDict({"model": mutable})}
             return outputs, mutable
         else:
             logits, covariance = self._gp_output_model.apply(
-                variables, deep_feature_extractor_outputs, mutable=False, return_full_covariance=False
+                variables,
+                deep_feature_extractor_outputs,
+                mutable=False,
+                return_full_covariance=False,
             )
             return self._mean_field_logits(logits, covariance)
 
@@ -229,11 +252,17 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         rng, params_key, dropout_key = random.split(rng, 3)
         rngs = {"params": params_key, "dropout": dropout_key}
         model_params = self.model.init(rngs, jnp.zeros((1,) + input_shape), **kwargs)
-        output_shape = jax.eval_shape(partial(self.model.apply, train=False), model_params, jnp.zeros((1,) + input_shape)).shape
+        output_shape = jax.eval_shape(
+            partial(self.model.apply, train=False),
+            model_params,
+            jnp.zeros((1,) + input_shape),
+        ).shape
         if len(output_shape[1:]) > 1:  # drop batch size
-            raise ValueError(f"The output shape for the given model is {output_shape}.\n"
-                             f"In order to use SNGP the output shape of the provide model has to be of shape"
-                             f"(batch_size, n_features).")
+            raise ValueError(
+                f"The output shape for the given model is {output_shape}.\n"
+                f"In order to use SNGP the output shape of the provide model has to be of shape"
+                f"(batch_size, n_features)."
+            )
         self._gp_output_model = self._get_output_model()
         gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
         params = nested_update(model_params.unfreeze(), gp_params.unfreeze())

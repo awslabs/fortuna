@@ -1,11 +1,13 @@
-from fortuna.training.trainer import TrainerABC, JittedMixin, MultiDeviceMixin
-from typing import Callable, Any, Union, Tuple, Optional, Dict
+from typing import Any, Callable, Dict, Optional, Tuple, Union
+
 import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
-from fortuna.typing import Params, Batch, Mutable, CalibMutable, CalibParams, Array
+
 from fortuna.calib_model.state import CalibState
+from fortuna.training.trainer import JittedMixin, MultiDeviceMixin, TrainerABC
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Mutable, Params
 
 
 class CalibModelCalibrator(TrainerABC):
@@ -70,7 +72,10 @@ class CalibModelCalibrator(TrainerABC):
 
         if metrics is not None:
             val_metrics = self.compute_metrics(
-                self.predict_fn(aux["outputs"]), batch[1], metrics, self.uncertainty_fn(aux["outputs"])
+                self.predict_fn(aux["outputs"]),
+                batch[1],
+                metrics,
+                self.uncertainty_fn(aux["outputs"]),
             )
             return {
                 "val_loss": loss,

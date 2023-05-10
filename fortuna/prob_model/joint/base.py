@@ -4,11 +4,10 @@ import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 
-from fortuna.model.model_manager.state import ModelManagerState
-from fortuna.output_calibrator.output_calib_manager.state import \
-    OutputCalibManagerState
-from fortuna.prob_model.joint.state import JointState
 from fortuna.likelihood.base import Likelihood
+from fortuna.model.model_manager.state import ModelManagerState
+from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
+from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.prior.base import Prior
 from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
 from fortuna.utils.random import WithRNG
@@ -163,7 +162,11 @@ class Joint(WithRNG):
         outputs = self.likelihood.model_manager.apply(
             oms.params, jnp.zeros((1,) + input_shape), mutable=oms.mutable
         )
-        output_dim = outputs[0].shape[-1] if isinstance(outputs, (list, tuple)) else outputs.shape[-1]
+        output_dim = (
+            outputs[0].shape[-1]
+            if isinstance(outputs, (list, tuple))
+            else outputs.shape[-1]
+        )
         ocms = OutputCalibManagerState.init_from_dict(
             FrozenDict(
                 output_calibrator=self.likelihood.output_calib_manager.init(

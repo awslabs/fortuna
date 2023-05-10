@@ -1,9 +1,10 @@
+from typing import List, Optional
+
+from fortuna.calib_model.config.callback import Callback
 from fortuna.calib_model.config.checkpointer import Checkpointer
 from fortuna.calib_model.config.monitor import Monitor
 from fortuna.calib_model.config.optimizer import Optimizer
 from fortuna.calib_model.config.processor import Processor
-from fortuna.calib_model.config.callback import Callback
-from typing import Optional, List
 
 
 class Config:
@@ -13,7 +14,7 @@ class Config:
         checkpointer: Checkpointer = Checkpointer(),
         monitor: Monitor = Monitor(),
         processor: Processor = Processor(),
-        callbacks: Optional[List[Callback]] = None
+        callbacks: Optional[List[Callback]] = None,
     ):
         """
         Configure the calibration of the calibration model.

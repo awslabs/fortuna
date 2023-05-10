@@ -3,8 +3,8 @@ from typing import Callable, Tuple, Union
 import jax.numpy as jnp
 import numpy as np
 
-from fortuna.typing import Array
 from fortuna.conformal.regression.base import ConformalRegressor
+from fortuna.typing import Array
 
 
 class EnbPI(ConformalRegressor):

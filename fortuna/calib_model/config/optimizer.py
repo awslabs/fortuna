@@ -1,8 +1,8 @@
-from typing import Optional, Callable, Tuple
+from typing import Callable, Optional, Tuple
 
 import optax
 
-from fortuna.typing import OptaxOptimizer, AnyKey, Array
+from fortuna.typing import AnyKey, Array, OptaxOptimizer
 
 
 class Optimizer:
@@ -10,7 +10,7 @@ class Optimizer:
         self,
         method: Optional[OptaxOptimizer] = optax.adam(1e-2),
         n_epochs: int = 100,
-        freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None
+        freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None,
     ):
         """
         An object to configure the optimization in the calibration process.

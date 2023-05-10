@@ -1,13 +1,17 @@
-from fortuna.typing import Array, CalibMutable, CalibParams, Outputs, Targets
-from typing import List, Optional, Tuple, Union, Any, Callable
-from jax._src.prng import PRNGKeyArray
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 import jax.numpy as jnp
-from fortuna.utils.random import WithRNG
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.output_calib_model.predictive.base import Predictive
+from fortuna.typing import Array, CalibMutable, CalibParams, Outputs, Targets
+from fortuna.utils.random import WithRNG
 
 
 class Loss(WithRNG):
-    def __init__(self, predictive: Predictive, loss_fn: Callable[[Outputs, Targets], jnp.ndarray]):
+    def __init__(
+        self, predictive: Predictive, loss_fn: Callable[[Outputs, Targets], jnp.ndarray]
+    ):
         self.predictive = predictive
         self.loss_fn = loss_fn
 

@@ -30,7 +30,9 @@ class TrainStateRepository(WithCheckpointingMixin):
                 **kwargs
             )
         if optimizer is not None:
-            self.__state = self.__state.replace(tx=optimizer, opt_state=optimizer.init(self.__state.params))
+            self.__state = self.__state.replace(
+                tx=optimizer, opt_state=optimizer.init(self.__state.params)
+            )
         return deepcopy(self.__state)
 
     def put(

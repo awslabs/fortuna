@@ -1,13 +1,25 @@
-from fortuna.typing import Batch, Params, Mutable, CalibMutable, CalibParams, Outputs, Targets
-from typing import List, Optional, Tuple, Union, Any, Callable
-from jax._src.prng import PRNGKeyArray
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 import jax.numpy as jnp
-from fortuna.utils.random import WithRNG
+from jax._src.prng import PRNGKeyArray
+
 from fortuna.likelihood.base import Likelihood
+from fortuna.typing import (
+    Batch,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Outputs,
+    Params,
+    Targets,
+)
+from fortuna.utils.random import WithRNG
 
 
 class Loss(WithRNG):
-    def __init__(self, likelihood: Likelihood, loss_fn: Callable[[Outputs, Targets], jnp.ndarray]):
+    def __init__(
+        self, likelihood: Likelihood, loss_fn: Callable[[Outputs, Targets], jnp.ndarray]
+    ):
         self.likelihood = likelihood
         self.loss_fn = loss_fn
 

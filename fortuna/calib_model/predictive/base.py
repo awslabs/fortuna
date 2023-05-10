@@ -22,11 +22,7 @@ class Predictive(WithRNG):
         self.likelihood = likelihood
         self.state = None
 
-    def log_prob(
-        self,
-        data_loader: DataLoader,
-        distribute: bool = True
-    ) -> jnp.ndarray:
+    def log_prob(self, data_loader: DataLoader, distribute: bool = True) -> jnp.ndarray:
         r"""
         Estimate the predictive log-probability density function (a.k.a. log-pdf), that is
 
@@ -55,7 +51,7 @@ class Predictive(WithRNG):
             params=state.params,
             data_loader=data_loader,
             mutable=state.mutable,
-            distribute=distribute
+            distribute=distribute,
         )
 
     def sample(
@@ -99,7 +95,7 @@ class Predictive(WithRNG):
             inputs_loader=inputs_loader,
             mutable=state.mutable,
             rng=rng,
-            distribute=distribute
+            distribute=distribute,
         )
 
     def mean(
@@ -136,7 +132,7 @@ class Predictive(WithRNG):
             params=state.params,
             inputs_loader=inputs_loader,
             mutable=state.mutable,
-            distribute=distribute
+            distribute=distribute,
         )
 
     def mode(
@@ -172,7 +168,7 @@ class Predictive(WithRNG):
             params=state.params,
             inputs_loader=inputs_loader,
             mutable=state.mutable,
-            distribute=distribute
+            distribute=distribute,
         )
 
     def variance(
@@ -210,7 +206,7 @@ class Predictive(WithRNG):
             params=state.params,
             inputs_loader=inputs_loader,
             mutable=state.mutable,
-            distribute=distribute
+            distribute=distribute,
         )
 
     def std(

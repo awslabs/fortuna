@@ -1,23 +1,23 @@
-from fortuna.calib_model.base import CalibModel
-from fortuna.calib_model.predictive.regression import RegressionPredictive
-from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.model.model_manager.regression import RegressionModelManager
-from fortuna.likelihood.regression import RegressionLikelihood
-from fortuna.typing import Status, Outputs, Targets
-from fortuna.loss.regression.scaled_mse import scaled_mse_fn
-from flax import linen as nn
-from fortuna.data import DataLoader
-from fortuna.calib_model.config.base import Config
-from typing import Optional, Callable
+from typing import Callable, Optional
+
 import jax.numpy as jnp
+from flax import linen as nn
+
+from fortuna.calib_model.base import CalibModel
+from fortuna.calib_model.config.base import Config
+from fortuna.calib_model.predictive.regression import RegressionPredictive
+from fortuna.data import DataLoader
+from fortuna.likelihood.regression import RegressionLikelihood
+from fortuna.loss.regression.scaled_mse import scaled_mse_fn
+from fortuna.model.model_manager.regression import RegressionModelManager
+from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
+from fortuna.typing import Outputs, Status, Targets
 
 
 class CalibRegressor(CalibModel):
     def __init__(
-            self,
-            model: nn.Module,
-            likelihood_log_variance_model: nn.Module,
-            seed: int = 0):
+        self, model: nn.Module, likelihood_log_variance_model: nn.Module, seed: int = 0
+    ):
         r"""
         A calibration regressor class.
 
@@ -53,16 +53,16 @@ class CalibRegressor(CalibModel):
         predictive : RegressionPredictive
             This denotes the predictive distribution, that is :math:`p(y|\phi, x, \mathcal{D})`.
         """
-        self.model_manager = RegressionModelManager(model, likelihood_log_variance_model)
+        self.model_manager = RegressionModelManager(
+            model, likelihood_log_variance_model
+        )
         self.prob_output_layer = RegressionProbOutputLayer()
         self.likelihood = RegressionLikelihood(
             model_manager=self.model_manager,
             prob_output_layer=self.prob_output_layer,
-            output_calib_manager=None
+            output_calib_manager=None,
         )
-        self.predictive = RegressionPredictive(
-            likelihood=self.likelihood
-        )
+        self.predictive = RegressionPredictive(likelihood=self.likelihood)
         super().__init__(seed=seed)
 
     def _check_output_dim(self, data_loader: DataLoader):
@@ -121,4 +121,3 @@ class CalibRegressor(CalibModel):
             loss_fn=loss_fn,
             config=config,
         )
-

@@ -1,10 +1,10 @@
-from typing import Any, Callable, Dict, Optional, Tuple, List
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax import device_get
 from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_map
-from jax import device_get
 
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
@@ -16,16 +16,15 @@ from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
 
 class SWAGTrainer(MAPTrainer):
-    def __init__(self, *,
-                 which_params: Optional[Tuple[List[str]]],
-                 **kwargs
-                 ):
+    def __init__(self, *, which_params: Optional[Tuple[List[str]]], **kwargs):
         super(SWAGTrainer, self).__init__(**kwargs)
         self._mean_rav_params = None
         self._mean_squared_rav_params = None
         self._deviation_rav_params = None
         self._which_params = which_params
-        self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(which_params)
+        self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(
+            which_params
+        )
 
     def _update_state_with_stats(self, state: SWAGState) -> SWAGState:
         var = self._mean_squared_rav_params - self._mean_rav_params**2
@@ -39,7 +38,7 @@ class SWAGTrainer(MAPTrainer):
                 dev=self._deviation_rav_params
                 if not self.multi_device
                 else self._deviation_rav_params[None],
-                _encoded_which_params=self._encoded_which_params
+                _encoded_which_params=self._encoded_which_params,
             )
         )
 
@@ -59,7 +58,8 @@ class SWAGTrainer(MAPTrainer):
             )
         rav_params = ravel_pytree(
             tree_map(lambda x: x[0], self._get_params_to_ravel(state.params))
-            if self.multi_device else self._get_params_to_ravel(state.params)
+            if self.multi_device
+            else self._get_params_to_ravel(state.params)
         )[0]
         if self._mean_rav_params is None:
             self._mean_rav_params = rav_params
@@ -85,21 +85,15 @@ class SWAGTrainer(MAPTrainer):
         )
 
     def save_checkpoint(
-            self,
-            state: SWAGState,
-            save_checkpoint_dir: Path,
-            keep: int = 1,
-            force_save: bool = False,
-            prefix: str = "checkpoint_",
+        self,
+        state: SWAGState,
+        save_checkpoint_dir: Path,
+        keep: int = 1,
+        force_save: bool = False,
+        prefix: str = "checkpoint_",
     ) -> None:
         state = self._update_state_with_stats(state)
-        super().save_checkpoint(
-            state,
-            save_checkpoint_dir,
-            keep,
-            force_save,
-            prefix
-        )
+        super().save_checkpoint(state, save_checkpoint_dir, keep, force_save, prefix)
 
     def on_train_end(self, state: SWAGState) -> SWAGState:
         self.save_checkpoint(

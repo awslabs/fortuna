@@ -1,6 +1,7 @@
+from typing import List, Optional, Tuple
+
 from fortuna.prob_model.posterior.base import PosteriorApproximator
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
-from typing import Optional, Tuple, List
 
 
 class ADVIPosteriorApproximator(PosteriorApproximator):
@@ -8,7 +9,7 @@ class ADVIPosteriorApproximator(PosteriorApproximator):
         self,
         std_init_params: float = 0.1,
         log_std_base: float = -2.3,
-        n_loss_samples: int = 3
+        n_loss_samples: int = 3,
     ):
         """
         Automatic Differentiation Variational Inference (ADVI) approximator. It is responsible to define how the

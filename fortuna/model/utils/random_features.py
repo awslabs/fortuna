@@ -33,8 +33,8 @@ SUPPORTED_LIKELIHOOD = ("binary_logistic", "poisson", "gaussian")
 class RandomFeatureGaussianProcess(nn.Module):
     """
     A Gaussian process layer using random Fourier Features.
-    
-    See `Simple and Principled Uncertainty Estimation with Deterministic 
+
+    See `Simple and Principled Uncertainty Estimation with Deterministic
     Deep Learning via Distance Awareness <https://arxiv.org/abs/2006.10108>`_
 
     Attributes
@@ -54,6 +54,7 @@ class RandomFeatureGaussianProcess(nn.Module):
     covariance_kwargs: Mapping[str, Any]
         Optional keyword arguments to the predictive covariance layer.
     """
+
     features: int
     hidden_features: int = 1024
     normalize_input: bool = False
@@ -74,7 +75,8 @@ class RandomFeatureGaussianProcess(nn.Module):
             self.sngp_norm_layer = LayerNorm(**self.norm_kwargs)
 
         self.sngp_random_features_layer = RandomFourierFeatures(
-            features=self.hidden_features, **self.hidden_kwargs,
+            features=self.hidden_features,
+            **self.hidden_kwargs,
         )
         self.sngp_dense_layer = nn.Dense(features=self.features, **self.output_kwargs)
         self.sngp_covariance_layer = LaplaceRandomFeatureCovariance(
@@ -148,11 +150,12 @@ class RandomFourierFeatures(nn.Module):
     dtype: Type
         The dtype of the computation.
     """
+
     features: int
     kernel_scale: Optional[float] = 1.0
     feature_scale: Optional[float] = 1.0
-    kernel_init:  Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_kernel_init
-    bias_init:  Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_bias_init
+    kernel_init: Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_kernel_init
+    bias_init: Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_bias_init
     seed: int = 0
     dtype: Type = jnp.float32
     collection_name: str = "random_features"
@@ -218,7 +221,9 @@ class RandomFourierFeatures(nn.Module):
         # Performs forward pass.
         inputs = jnp.asarray(inputs, self.dtype)
 
-        outputs = lax.dot_general(inputs, (1. / kernel_scale) * kernel.value, (contracting_dims, batch_dims))
+        outputs = lax.dot_general(
+            inputs, (1.0 / kernel_scale) * kernel.value, (contracting_dims, batch_dims)
+        )
         outputs = outputs + jnp.broadcast_to(bias.value, outputs.shape)
 
         return self._feature_scale * jnp.cos(outputs)

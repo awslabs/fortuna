@@ -178,7 +178,7 @@ class DeepFeatureExtractorSubNet(nn.Module):
         jnp.ndarray
             Deep feature extractor representation.
         """
-        if hasattr(self, 'spectral_norm'):
+        if hasattr(self, "spectral_norm"):
             conv = self.spectral_norm(self.conv, train=train)
         else:
             conv = self.conv
@@ -315,13 +315,40 @@ ResNet152 = partial(ResNet, stage_sizes=[3, 8, 36, 3], block_cls=BottleneckResNe
 ResNet200 = partial(ResNet, stage_sizes=[3, 24, 36, 3], block_cls=BottleneckResNetBlock)
 
 
-class ResNetDeepFeatureExtractorSubNetWithSN(WithSpectralConv2DNorm, DeepFeatureExtractorSubNet):
+class ResNetDeepFeatureExtractorSubNetWithSN(
+    WithSpectralConv2DNorm, DeepFeatureExtractorSubNet
+):
     pass
 
+
 # define the feature extractors with spectral norm
-ResNet18DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[2, 2, 2, 2], block_cls=ResNetBlock)
-ResNet34DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 4, 6, 3], block_cls=ResNetBlock)
-ResNet50DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 4, 6, 3], block_cls=BottleneckResNetBlock)
-ResNet101DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 4, 23, 3], block_cls=BottleneckResNetBlock)
-ResNet152DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 8, 36, 3], block_cls=BottleneckResNetBlock)
-ResNet200DeepFeatureExtractorSubNetWithSN = partial(ResNetDeepFeatureExtractorSubNetWithSN, stage_sizes=[3, 24, 36, 3], block_cls=BottleneckResNetBlock)
+ResNet18DeepFeatureExtractorSubNetWithSN = partial(
+    ResNetDeepFeatureExtractorSubNetWithSN,
+    stage_sizes=[2, 2, 2, 2],
+    block_cls=ResNetBlock,
+)
+ResNet34DeepFeatureExtractorSubNetWithSN = partial(
+    ResNetDeepFeatureExtractorSubNetWithSN,
+    stage_sizes=[3, 4, 6, 3],
+    block_cls=ResNetBlock,
+)
+ResNet50DeepFeatureExtractorSubNetWithSN = partial(
+    ResNetDeepFeatureExtractorSubNetWithSN,
+    stage_sizes=[3, 4, 6, 3],
+    block_cls=BottleneckResNetBlock,
+)
+ResNet101DeepFeatureExtractorSubNetWithSN = partial(
+    ResNetDeepFeatureExtractorSubNetWithSN,
+    stage_sizes=[3, 4, 23, 3],
+    block_cls=BottleneckResNetBlock,
+)
+ResNet152DeepFeatureExtractorSubNetWithSN = partial(
+    ResNetDeepFeatureExtractorSubNetWithSN,
+    stage_sizes=[3, 8, 36, 3],
+    block_cls=BottleneckResNetBlock,
+)
+ResNet200DeepFeatureExtractorSubNetWithSN = partial(
+    ResNetDeepFeatureExtractorSubNetWithSN,
+    stage_sizes=[3, 24, 36, 3],
+    block_cls=BottleneckResNetBlock,
+)

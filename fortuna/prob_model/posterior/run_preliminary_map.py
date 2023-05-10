@@ -1,22 +1,23 @@
 import logging
-from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
-from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
-from fortuna.typing import Status
-from typing import Tuple, Optional
-from fortuna.prob_model.joint.base import Joint
+from typing import Optional, Tuple
+
 from fortuna.data.loader import DataLoader
-from fortuna.utils.random import RandomNumberGenerator
 from fortuna.prob_model.fit_config.base import FitConfig
+from fortuna.prob_model.joint.base import Joint
+from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
+from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.typing import Status
+from fortuna.utils.random import RandomNumberGenerator
 
 
 def run_preliminary_map(
-        joint: Joint,
-        train_data_loader: DataLoader,
-        val_data_loader: DataLoader,
-        map_fit_config: Optional[FitConfig],
-        rng: RandomNumberGenerator,
-        **kwargs
+    joint: Joint,
+    train_data_loader: DataLoader,
+    val_data_loader: DataLoader,
+    map_fit_config: Optional[FitConfig],
+    rng: RandomNumberGenerator,
+    **kwargs
 ) -> Tuple[MAPState, Status]:
     logging.info("Do a preliminary run of MAP.")
     map_posterior = MAPPosterior(

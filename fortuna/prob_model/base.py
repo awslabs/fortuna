@@ -5,13 +5,15 @@ from typing import Callable, Dict, Optional
 import jax
 import jax.numpy as jnp
 
-from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.data.loader import DataLoader
+from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.prob_model_calibrator import (
-    JittedProbModelOutputCalibrator, MultiDeviceProbModelOutputCalibrator,
-    ProbModelOutputCalibrator)
+    JittedProbModelOutputCalibrator,
+    MultiDeviceProbModelOutputCalibrator,
+    ProbModelOutputCalibrator,
+)
 from fortuna.typing import Array, Path, Status
 from fortuna.utils.data import check_data_loader_is_not_random
 from fortuna.utils.device import select_trainer_given_devices
@@ -107,7 +109,10 @@ class ProbModel(abc.ABC):
         check_data_loader_is_not_random(calib_data_loader)
         if val_data_loader is not None:
             check_data_loader_is_not_random(val_data_loader)
-        if self.output_calib_manager is None or self.output_calib_manager.output_calibrator is None:
+        if (
+            self.output_calib_manager is None
+            or self.output_calib_manager.output_calibrator is None
+        ):
             logging.warning(
                 """Nothing to calibrate. No calibrator was passed to the probabilistic model."""
             )

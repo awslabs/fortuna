@@ -1,20 +1,21 @@
-import logging
 import abc
-from typing import Optional, Tuple, Dict, Any, Type
+import logging
+from typing import Any, Dict, Optional, Tuple, Type
+
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.prob_model.posterior.posterior_mixin import \
-    WithPosteriorCheckpointingMixin
-from fortuna.prob_model.posterior.posterior_state_repository import \
-    PosteriorStateRepository
-from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import Path, Status, OptaxOptimizer
-from fortuna.utils.random import WithRNG
-from jax._src.prng import PRNGKeyArray
 from fortuna.prob_model.joint.state import JointState
+from fortuna.prob_model.posterior.posterior_mixin import WithPosteriorCheckpointingMixin
+from fortuna.prob_model.posterior.posterior_state_repository import (
+    PosteriorStateRepository,
+)
+from fortuna.prob_model.posterior.state import PosteriorState
+from fortuna.typing import OptaxOptimizer, Path, Status
 from fortuna.utils.freeze import freeze_optimizer
+from fortuna.utils.random import WithRNG
 
 
 class PosteriorApproximator(abc.ABC):
@@ -64,30 +65,30 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
             state = self.state.get(optimizer=fit_config.optimizer.method)
 
         if allowed_states is not None and not isinstance(state, allowed_states):
-            raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
-                             f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
-                             f"with type {type(state)}.")
+            raise ValueError(
+                f"The type of the restored checkpoint must be within {allowed_states}. "
+                f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                f"with type {type(state)}."
+            )
 
         return state
 
-    def _init_joint_state(
-            self,
-            data_loader: DataLoader
-    ) -> JointState:
+    def _init_joint_state(self, data_loader: DataLoader) -> JointState:
         return self.joint.init(input_shape=data_loader.input_shape)
 
     @staticmethod
     def _freeze_optimizer_in_state(
-            state: PosteriorState,
-            fit_config: FitConfig
+        state: PosteriorState, fit_config: FitConfig
     ) -> PosteriorState:
         if fit_config.optimizer.freeze_fun is not None:
             frozen_optimizer = freeze_optimizer(
                 params=state.params,
                 optimizer=fit_config.optimizer.method,
-                freeze_fun=fit_config.optimizer.freeze_fun
+                freeze_fun=fit_config.optimizer.freeze_fun,
             )
-            state = state.replace(tx=frozen_optimizer, opt_state=frozen_optimizer.init(state.params))
+            state = state.replace(
+                tx=frozen_optimizer, opt_state=frozen_optimizer.init(state.params)
+            )
         return state
 
     @staticmethod
@@ -191,20 +192,38 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
 
     @staticmethod
     def _is_state_available_somewhere(fit_config: FitConfig) -> bool:
-        return fit_config.checkpointer.restore_checkpoint_path is not None or fit_config.checkpointer.start_from_current_state
+        return (
+            fit_config.checkpointer.restore_checkpoint_path is not None
+            or fit_config.checkpointer.start_from_current_state
+        )
 
-    def _warn_frozen_params_start_from_random(self, fit_config: FitConfig, map_fit_config: Optional[FitConfig]) -> None:
-        if not self._is_state_available_somewhere(fit_config) and map_fit_config is None and fit_config.optimizer.freeze_fun is not None:
-            logging.warning("Parameters frozen via `fit_config.optimizer.freeze_fun` will not be updated. To start "
-                            "from sensible frozen parameters, you should configure "
-                            "`fit_config.checkpointer.restore_checkpoint_path`, or "
-                            "`fit_config.checkpointer.start_from_current_state`, or `map_fit_config`. "
-                            "Otherwise, "
-                            "a randomly initialized configuration of frozen parameters will be returned.")
+    def _warn_frozen_params_start_from_random(
+        self, fit_config: FitConfig, map_fit_config: Optional[FitConfig]
+    ) -> None:
+        if (
+            not self._is_state_available_somewhere(fit_config)
+            and map_fit_config is None
+            and fit_config.optimizer.freeze_fun is not None
+        ):
+            logging.warning(
+                "Parameters frozen via `fit_config.optimizer.freeze_fun` will not be updated. To start "
+                "from sensible frozen parameters, you should configure "
+                "`fit_config.checkpointer.restore_checkpoint_path`, or "
+                "`fit_config.checkpointer.start_from_current_state`, or `map_fit_config`. "
+                "Otherwise, "
+                "a randomly initialized configuration of frozen parameters will be returned."
+            )
 
-    def _checks_on_fit_start(self, fit_config: FitConfig, map_fit_config: Optional[FitConfig]) -> None:
+    def _checks_on_fit_start(
+        self, fit_config: FitConfig, map_fit_config: Optional[FitConfig]
+    ) -> None:
         self._check_fit_config(fit_config)
         self._warn_frozen_params_start_from_random(fit_config, map_fit_config)
 
-    def _should_run_preliminary_map(self, fit_config: FitConfig, map_fit_config: Optional[FitConfig]) -> bool:
-        return not self._is_state_available_somewhere(fit_config) and map_fit_config is not None
+    def _should_run_preliminary_map(
+        self, fit_config: FitConfig, map_fit_config: Optional[FitConfig]
+    ) -> bool:
+        return (
+            not self._is_state_available_somewhere(fit_config)
+            and map_fit_config is not None
+        )

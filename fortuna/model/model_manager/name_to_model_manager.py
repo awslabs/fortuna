@@ -1,6 +1,9 @@
 import enum
 
-from fortuna.model.model_manager.classification import ClassificationModelManager, SNGPClassificationModelManager
+from fortuna.model.model_manager.classification import (
+    ClassificationModelManager,
+    SNGPClassificationModelManager,
+)
 from fortuna.prob_model.posterior.deep_ensemble import DEEP_ENSEMBLE_NAME
 from fortuna.prob_model.posterior.laplace import LAPLACE_NAME
 from fortuna.prob_model.posterior.map import MAP_NAME

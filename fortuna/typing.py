@@ -1,5 +1,5 @@
 import pathlib
-from typing import Dict, Tuple, Union, Iterable
+from typing import Dict, Iterable, Tuple, Union
 
 import jax.numpy as jnp
 import numpy as np

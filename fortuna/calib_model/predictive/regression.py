@@ -1,11 +1,12 @@
-import jax.numpy as jnp
+from typing import List, Optional, Union
 
+import jax.numpy as jnp
+from jax._src.prng import PRNGKeyArray
+
+from fortuna.calib_model.predictive.base import Predictive
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.regression import RegressionLikelihood
-from fortuna.calib_model.predictive.base import Predictive
-from typing import Union, List, Optional
 from fortuna.typing import Array
-from jax._src.prng import PRNGKeyArray
 
 
 class RegressionPredictive(Predictive):
@@ -54,7 +55,7 @@ class RegressionPredictive(Predictive):
             mutable=state.mutable,
             distribute=distribute,
             n_target_samples=n_samples,
-            rng=rng
+            rng=rng,
         )
 
     def quantile(
@@ -95,7 +96,7 @@ class RegressionPredictive(Predictive):
             mutable=state.mutable,
             n_target_samples=n_samples,
             rng=rng,
-            distribute=distribute
+            distribute=distribute,
         )
 
     def credible_interval(

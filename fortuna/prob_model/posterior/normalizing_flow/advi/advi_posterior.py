@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Tuple, Dict, List, Union, Callable
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import jax.numpy as jnp
+import numpy as np
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
@@ -13,25 +14,29 @@ from fortuna.distribution.gaussian import DiagGaussian
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
-from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import \
-    ADVIPosteriorApproximator
-from fortuna.prob_model.posterior.normalizing_flow.advi.advi_architecture import \
-    ADVIArchitecture
-from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import \
-    ADVIState
-from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import \
-    ADVITrainer, JittedADVITrainer, MultiDeviceADVITrainer
-from fortuna.prob_model.posterior.posterior_state_repository import \
-    PosteriorStateRepository
-from fortuna.typing import Status, Array, AnyKey, Params, OptaxOptimizer
-from fortuna.utils.device import select_trainer_given_devices
-from fortuna.utils.nested_dicts import nested_get, nested_unpair, nested_set
-import numpy as np
-from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
-from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.utils.freeze import get_trainable_paths
 from fortuna.prob_model.posterior.base import Posterior
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
+from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import (
+    ADVIPosteriorApproximator,
+)
+from fortuna.prob_model.posterior.normalizing_flow.advi.advi_architecture import (
+    ADVIArchitecture,
+)
+from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import ADVIState
+from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import (
+    ADVITrainer,
+    JittedADVITrainer,
+    MultiDeviceADVITrainer,
+)
+from fortuna.prob_model.posterior.posterior_state_repository import (
+    PosteriorStateRepository,
+)
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
+from fortuna.typing import AnyKey, Array, OptaxOptimizer, Params, Status
+from fortuna.utils.device import select_trainer_given_devices
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import nested_get, nested_set, nested_unpair
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
@@ -70,8 +75,7 @@ class ADVIPosterior(Posterior):
 
         if super()._is_state_available_somewhere(fit_config):
             state = super()._restore_state_from_somewhere(
-                fit_config=fit_config,
-                allowed_states=(MAPState, ADVIState)
+                fit_config=fit_config, allowed_states=(MAPState, ADVIState)
             )
 
         elif super()._should_run_preliminary_map(fit_config, map_fit_config):
@@ -81,29 +85,24 @@ class ADVIPosterior(Posterior):
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
                 rng=self.rng,
-                **kwargs
+                **kwargs,
             )
         else:
             state = None
 
         state, log_stds = self._init_map_state(
-            state=state,
-            data_loader=train_data_loader,
-            fit_config=fit_config
+            state=state, data_loader=train_data_loader, fit_config=fit_config
         )
 
         if fit_config.optimizer.freeze_fun is not None:
             which_params = get_trainable_paths(
-                params=state.params,
-                freeze_fun=fit_config.optimizer.freeze_fun
+                params=state.params, freeze_fun=fit_config.optimizer.freeze_fun
             )
         else:
             which_params = None
 
         rav, self._unravel, self._indices, rav_log_stds = self._get_unravel(
-            params=state.params,
-            log_stds=log_stds,
-            which_params=which_params
+            params=state.params, log_stds=log_stds, which_params=which_params
         )
 
         size_rav = len(rav)
@@ -138,7 +137,7 @@ class ADVIPosterior(Posterior):
             which_params=which_params,
             all_params=state.params if which_params else None,
             indices=self._indices,
-            unravel=self._unravel
+            unravel=self._unravel,
         )
 
         state = self._init_advi_from_map_state(
@@ -159,7 +158,9 @@ class ADVIPosterior(Posterior):
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
+            validation_dataset_size=val_data_loader.size
+            if val_data_loader is not None
+            else None,
             verbose=fit_config.monitor.verbose,
             unravel=self._unravel,
             n_samples=self.posterior_approximator.n_loss_samples,
@@ -210,58 +211,73 @@ class ADVIPosterior(Posterior):
                 n_params = len(ravel_pytree(state.params)[0]) // 2
                 which_params = None
             else:
-                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
-                n_params = len(ravel_pytree(
-                    nested_unpair(
-                        d=state.params.unfreeze(),
-                        key_paths=which_params,
-                        labels=("mean", "log_std")
+                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
+                    state._encoded_which_params
+                )
+                n_params = len(
+                    ravel_pytree(
+                        nested_unpair(
+                            d=state.params.unfreeze(),
+                            key_paths=which_params,
+                            labels=("mean", "log_std"),
+                        )[0]
                     )[0]
-                )[0])
+                )
             self.base = DiagGaussian(
                 mean=jnp.zeros(n_params),
-                std=jnp.exp(self.posterior_approximator.log_std_base) * jnp.ones(n_params),
+                std=jnp.exp(self.posterior_approximator.log_std_base)
+                * jnp.ones(n_params),
             )
             self.architecture = ADVIArchitecture(
                 n_params, std_init_params=self.posterior_approximator.std_init_params
             )
-            self._unravel, self._indices = self._get_unravel(state.params, which_params=which_params)[1:3]
+            self._unravel, self._indices = self._get_unravel(
+                state.params, which_params=which_params
+            )[1:3]
 
         if state._encoded_which_params is None:
             means = self._unravel(
                 self.architecture.forward(
-                    {s: ravel_pytree({k: v["params"][s] for k, v in state.params.items()})[0] for s in ["mean", "log_std"]},
-                    self.base.sample(rng)
+                    {
+                        s: ravel_pytree(
+                            {k: v["params"][s] for k, v in state.params.items()}
+                        )[0]
+                        for s in ["mean", "log_std"]
+                    },
+                    self.base.sample(rng),
                 )[0][0]
             )
         else:
-            which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
+            which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
+                state._encoded_which_params
+            )
             means, log_stds = nested_unpair(
-                        d=state.params.unfreeze(),
-                        key_paths=which_params,
-                        labels=("mean", "log_std")
-                    )
+                d=state.params.unfreeze(),
+                key_paths=which_params,
+                labels=("mean", "log_std"),
+            )
             rav_params = {
-                k: ravel_pytree(
-                    [nested_get(
-                        d=d,
-                        keys=path
-                    ) for path in which_params]
-                )[0] for k, d in zip(
-                    ["mean", "log_std"],
-                    [means, log_stds]
-                )
+                k: ravel_pytree([nested_get(d=d, keys=path) for path in which_params])[
+                    0
+                ]
+                for k, d in zip(["mean", "log_std"], [means, log_stds])
             }
             rav_params = self.architecture.forward(
-                params=rav_params,
-                u=self.base.sample(rng)
+                params=rav_params, u=self.base.sample(rng)
             )[0][0]
 
             means = FrozenDict(
                 nested_set(
                     d=means,
                     key_paths=which_params,
-                    objs=tuple([_unravel(rav_params[self._indices[i]:self._indices[i + 1]]) for i, _unravel in enumerate(self._unravel)]),
+                    objs=tuple(
+                        [
+                            _unravel(
+                                rav_params[self._indices[i] : self._indices[i + 1]]
+                            )
+                            for i, _unravel in enumerate(self._unravel)
+                        ]
+                    ),
                 )
             )
 
@@ -273,10 +289,10 @@ class ADVIPosterior(Posterior):
         )
 
     def _init_map_state(
-            self,
-            state: Optional[Union[MAPState, ADVIState]],
-            data_loader: DataLoader,
-            fit_config: FitConfig
+        self,
+        state: Optional[Union[MAPState, ADVIState]],
+        data_loader: DataLoader,
+        fit_config: FitConfig,
     ) -> Tuple[MAPState, Params]:
         if state is None:
             state = super()._init_joint_state(data_loader)
@@ -285,16 +301,23 @@ class ADVIPosterior(Posterior):
 
         if isinstance(state, ADVIState):
             if state._encoded_which_params is not None:
-                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
+                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
+                    state._encoded_which_params
+                )
                 means, log_stds = nested_unpair(
-                        d=state.params.unfreeze(),
-                        key_paths=which_params,
-                        labels=("mean", "log_std")
-                    )
+                    d=state.params.unfreeze(),
+                    key_paths=which_params,
+                    labels=("mean", "log_std"),
+                )
                 means, log_stds = FrozenDict(means), FrozenDict(log_stds)
             else:
                 means, log_stds = [
-                    FrozenDict({k: dict(params=v["params"][s]) for k, v in state.params.items()})
+                    FrozenDict(
+                        {
+                            k: dict(params=v["params"][s])
+                            for k, v in state.params.items()
+                        }
+                    )
                     for s in ["mean", "log_std"]
                 ]
             state = state.replace(params=means)
@@ -311,21 +334,17 @@ class ADVIPosterior(Posterior):
         return state, log_stds
 
     def _init_advi_from_map_state(
-            self,
-            rav: Array,
-            rav_log_stds: Optional[Array],
-            state: MAPState,
-            init_params: Callable,
-            optimizer: OptaxOptimizer
+        self,
+        rav: Array,
+        rav_log_stds: Optional[Array],
+        state: MAPState,
+        init_params: Callable,
+        optimizer: OptaxOptimizer,
     ) -> ADVIState:
         return ADVIState.init(
             params=FrozenDict(
-                    init_params(
-                        self.rng.get(),
-                        mean=rav,
-                        log_std=rav_log_stds
-                    ),
-                ),
+                init_params(self.rng.get(), mean=rav, log_std=rav_log_stds),
+            ),
             mutable=state.mutable,
             optimizer=optimizer,
             calib_params=state.calib_params,
@@ -333,16 +352,17 @@ class ADVIPosterior(Posterior):
         )
 
     def _get_unravel(
-            self,
-            params,
-            log_stds: Optional[Params] = None,
-            which_params: Optional[Tuple[List[AnyKey], ...]] = None
+        self,
+        params,
+        log_stds: Optional[Params] = None,
+        which_params: Optional[Tuple[List[AnyKey], ...]] = None,
     ):
         if which_params is None:
             rav, unravel = ravel_pytree(params)
             rav_log_stds = ravel_pytree(log_stds)[0] if log_stds is not None else None
             indices = None
         else:
+
             def unravel_fn(_params, _path):
                 return ravel_pytree(nested_get(_params, _path))
 

@@ -1,21 +1,22 @@
+from typing import Callable, List, Optional, Tuple, Union
+
+import jax.numpy as jnp
+import numpy as np
+from jax import vmap
+
 from fortuna.conformal.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.classification.base import ConformalClassifier
-
-from typing import Callable, Union, List, Tuple, Optional
-from fortuna.typing import Array
 from fortuna.data.loader import DataLoader, InputsLoader
-import jax.numpy as jnp
-from jax import vmap
-import numpy as np
+from fortuna.typing import Array
 
 
 class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
     def __init__(
-            self,
-            score_fn: Callable[[Array, Array], Array],
-            group_fns: List[Callable[[Array], Array]],
-            n_classes: int,
-            n_buckets: int = 100
+        self,
+        score_fn: Callable[[Array, Array], Array],
+        group_fns: List[Callable[[Array], Array]],
+        n_classes: int,
+        n_buckets: int = 100,
     ):
         """
         This class implements a classification version of BatchMVP
@@ -47,14 +48,14 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
         self.n_classes = n_classes
 
     def conformal_set(
-            self,
-            val_data_loader: DataLoader,
-            test_inputs_loader: InputsLoader,
-            error: float = 0.05,
-            tol: float = 1e-4,
-            n_rounds: int = 1000,
-            return_max_calib_error: bool = False,
-            test_thresholds: Optional[Array] = None
+        self,
+        val_data_loader: DataLoader,
+        test_inputs_loader: InputsLoader,
+        error: float = 0.05,
+        tol: float = 1e-4,
+        n_rounds: int = 1000,
+        return_max_calib_error: bool = False,
+        test_thresholds: Optional[Array] = None,
     ) -> Union[List[List[int]], Tuple[List[List[int]], List[Array]]]:
         """
         Compute a conformal set for each test input.
@@ -85,7 +86,9 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
             computed during the algorithm.
         """
         if test_thresholds is not None and return_max_calib_error:
-            raise ValueError("If `test_thresholds` is given, `return_max_calib_error` cannot be returned.")
+            raise ValueError(
+                "If `test_thresholds` is given, `return_max_calib_error` cannot be returned."
+            )
         if test_thresholds is None:
             outs = self.threshold_score(
                 val_data_loader=val_data_loader,
@@ -93,7 +96,7 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
                 error=error,
                 tol=tol,
                 n_rounds=n_rounds,
-                return_max_calib_error=return_max_calib_error
+                return_max_calib_error=return_max_calib_error,
             )
             if return_max_calib_error:
                 test_thresholds, max_calib_errors = outs
@@ -104,8 +107,12 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
         all_ys = jnp.arange(self.n_classes)
         all_bools = []
         for inputs in test_inputs_loader:
-            batch_thresholds = test_thresholds[c:c+inputs.shape[0]]
-            all_bools.append(vmap(lambda y: self.score_fn(inputs, y) <= batch_thresholds, out_axes=1)(all_ys))
+            batch_thresholds = test_thresholds[c : c + inputs.shape[0]]
+            all_bools.append(
+                vmap(
+                    lambda y: self.score_fn(inputs, y) <= batch_thresholds, out_axes=1
+                )(all_ys)
+            )
             c += inputs.shape[0]
         all_bools = jnp.concatenate(all_bools, axis=0)
 
