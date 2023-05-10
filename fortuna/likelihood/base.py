@@ -450,8 +450,6 @@ class Likelihood(WithRNG):
         jnp.ndarray
             The calibrated outputs.
         """
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
 
         if distribute:
             inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
@@ -774,9 +772,6 @@ class Likelihood(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> Array:
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun2(_inputs):
             return fun(params, _inputs, mutable, calib_params, calib_mutable, **kwargs)
 
@@ -800,9 +795,6 @@ class Likelihood(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> Array:
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun2(_batch):
             return fun(params, _batch, mutable, calib_params, calib_mutable, **kwargs)
 
