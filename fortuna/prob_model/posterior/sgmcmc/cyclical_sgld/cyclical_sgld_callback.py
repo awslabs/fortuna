@@ -62,7 +62,7 @@ class CyclicalSGLDSamplingCallback(SGMCMCSamplingCallback):
         )
 
         self._do_sample = lambda current_step, samples_count: samples_count < n_samples \
-            and ((current_step % cycle_length) / cycle_length) < exploration_ratio \
+            and ((current_step % cycle_length) / cycle_length) >= exploration_ratio \
             and (current_step % cycle_length) % n_thinning == 0
 
         total_samples = sum(self._do_sample(step, 0) for step in range(1, n_epochs * n_training_steps + 1))
