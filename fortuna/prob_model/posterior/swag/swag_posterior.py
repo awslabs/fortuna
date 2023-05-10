@@ -26,6 +26,9 @@ from fortuna.typing import Array, Status
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
+from fortuna.utils.nested_dicts import nested_get, nested_set
+from flax.core import FrozenDict
 
 
 class SWAGPosterior(Posterior):
@@ -187,20 +190,53 @@ class SWAGPosterior(Posterior):
             )
 
         n_params = len(state.mean)
-        unravel = ravel_pytree(state.params)[1]
+        rank = state.dev.shape[1]
+        which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
+
+        unravel = ravel_pytree(
+            state.params if which_params is None else [nested_get(state.params, path) for path in which_params]
+        )[1]
+
         coeff1 = 1 / jnp.sqrt(2)
-        coeff2 = coeff1 / jnp.sqrt(self.posterior_approximator.rank - 1)
+        coeff2 = coeff1 / jnp.sqrt(rank)
 
         rng, key1, key2 = random.split(rng, 3)
         z1 = random.normal(key1, shape=(n_params,))
-        z2 = random.normal(key2, shape=(self.posterior_approximator.rank,))
-        state = state.replace(
-            params=unravel(
-                state.mean
-                + coeff1 * state.std * z1
-                + coeff2 * jnp.matmul(state.dev, z2)
+        z2 = random.normal(key2, shape=(rank,))
+        if which_params is None:
+            state = state.replace(
+                params=self._get_sample(
+                            mean=state.mean,
+                            std=state.std,
+                            dev=state.dev,
+                            z1=z1,
+                            z2=z2,
+                            coeff1=coeff1,
+                            coeff2=coeff2,
+                            unravel=unravel
+                    )
             )
-        )
+        else:
+            state = state.replace(
+                params=FrozenDict(
+                    nested_set(
+                        d=state.params.unfreeze(),
+                        key_paths=which_params,
+                        objs=tuple(
+                            self._get_sample(
+                                mean=state.mean,
+                                std=state.std,
+                                dev=state.dev,
+                                z1=z1,
+                                z2=z2,
+                                coeff1=coeff1,
+                                coeff2=coeff2,
+                                unravel=unravel
+                            )
+                        )
+                    )
+                )
+            )
 
         if state.mutable:
             if inputs_loader is not None:
@@ -226,6 +262,13 @@ class SWAGPosterior(Posterior):
             mutable=state.mutable,
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
+        )
+
+    def _get_sample(self, mean, std, dev, z1, z2, coeff1, coeff2, unravel):
+        return unravel(
+            mean
+            + coeff1 * std * z1
+            + coeff2 * jnp.matmul(dev, z2)
         )
 
     def _get_mean_std_dev(self, state: SWAGState) -> SWAGState:
