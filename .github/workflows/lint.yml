@@ -24,7 +24,7 @@ jobs:
           pip install black isort
 
       - name: Run Black
-        run: git ls-files | grep "\.py$" |  xargs black --check
+        run: black --check --verbose fortuna
 
       - name: Run isort
-        run: git ls-files | grep "\.py$" |  xargs isort --check
+        run: isort --check --verbose fortuna
