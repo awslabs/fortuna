@@ -24,7 +24,7 @@ jobs:
           pip install black isort
 
       - name: Run Black
-        run: black .
+        run: git ls-files | grep "\.py$" |  xargs black --check
 
       - name: Run isort
-        run: isort -rc .
+        run: git ls-files | grep "\.py$" |  xargs isort --check
