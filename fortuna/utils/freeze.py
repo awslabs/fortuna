@@ -115,4 +115,3 @@ def _get_paths_with_label(
         return tuple([list(p) for c, p in zip(conds, flatten_dict(paths)) if c == label])
     else:
         return tuple([list(p) for p in paths])
-

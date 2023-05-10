@@ -29,6 +29,7 @@ from fortuna.utils.nested_dicts import nested_get, nested_set, nested_unpair
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.random import generate_random_normal_like_tree
 from fortuna.prob_model.posterior.base import Posterior
+from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
 class LaplacePosterior(Posterior):
@@ -230,22 +231,21 @@ class LaplacePosterior(Posterior):
         else:
             which_params = None
 
-        if type(state) == MAPState:
-            logging.info("Run the Laplace approximation.")
-            std_params = self._gnn_approx(
-                state.params,
-                train_data_loader,
-                mutable=state.mutable,
-                calib_params=state.calib_params,
-                calib_mutable=state.calib_mutable,
-                which_params=which_params,
-                verbose=fit_config.monitor.verbose,
-            )
-            state = LaplaceState.convert_from_map_state(
-                map_state=state,
-                std=std_params,
-                which_params=which_params,
-            )
+        logging.info("Run the Laplace approximation.")
+        std_params = self._gnn_approx(
+            state.params,
+            train_data_loader,
+            mutable=state.mutable,
+            calib_params=state.calib_params,
+            calib_mutable=state.calib_mutable,
+            which_params=which_params,
+            verbose=fit_config.monitor.verbose,
+        )
+        state = LaplaceState.convert_from_map_state(
+            map_state=state,
+            std=std_params,
+            which_params=which_params,
+        )
 
         if fit_config.checkpointer.save_checkpoint_dir:
             self.save_checkpoint(
@@ -273,17 +273,18 @@ class LaplacePosterior(Posterior):
             rng = self.rng.get()
         state = self.state.get()
 
-        if state._which_params is not None:
+        if state._encoded_which_params is not None:
+            which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
             mean, std = nested_unpair(
                 state.params.unfreeze(),
-                state._which_params,
+                which_params,
                 ("mean", "std"),
             )
 
             noise = generate_random_normal_like_tree(rng, std)
             params = nested_set(
                 d=mean,
-                key_paths=state._which_params,
+                key_paths=which_params,
                 objs=tuple(
                     [
                         tree_map(
@@ -292,7 +293,7 @@ class LaplacePosterior(Posterior):
                             nested_get(std, keys),
                             nested_get(noise, keys),
                         )
-                        for keys in state._which_params
+                        for keys in which_params
                     ]
                 ),
             )
@@ -329,12 +330,13 @@ class LaplacePosterior(Posterior):
             fit_config: FitConfig
     ) -> MAPState:
         if isinstance(state, LaplaceState):
-            if state._which_params is not None:
+            if state._encoded_which_params is not None:
+                which_params = decode_encoded_tuple_of_lists_of_strings_to_array(state._encoded_which_params)
                 state = state.replace(
                     params=FrozenDict(
                         nested_unpair(
                             d=state.params.unfreeze(),
-                            key_paths=state._which_params,
+                            key_paths=which_params,
                             labels=("mean", "std")
                         )[0]
                     )
