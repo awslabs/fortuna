@@ -36,7 +36,7 @@ jobs:
       # Install the dependencies
       - name: Install Package
         run: |
-          poetry install --with tests --extras "transformers"
+          poetry install --with tests
 
       # Run the unit tests and build the coverage report
       - name: Run Tests
