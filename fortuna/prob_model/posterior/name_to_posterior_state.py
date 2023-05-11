@@ -7,8 +7,9 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import ADVISt
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_state import SGHMCState
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_state \
-    import CyclicalSGLDState
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_state import (
+    CyclicalSGLDState,
+)
 
 
 class NameToPosteriorState(enum.Enum):

@@ -9,13 +9,15 @@ from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.posterior_multi_state_repository import \
-    PosteriorMultiStateRepository
+from fortuna.prob_model.posterior.posterior_multi_state_repository import (
+    PosteriorMultiStateRepository,
+)
 from fortuna.typing import Path
 
 
 class SGMCMCPosterior(Posterior):
     """Base SGMCMC posterior approximators class."""
+
     def sample(
         self,
         rng: Optional[PRNGKeyArray] = None,
@@ -60,13 +62,9 @@ class SGMCMCPosterior(Posterior):
             checkpoint_dir=checkpoint_dir,
         )
 
-    def save_state(
-        self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1
-    ) -> None:
+    def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         for i in range(self.posterior_approximator.n_samples):
-            self.state.put(
-                state=self.state.get(i), i=i, keep=keep_top_n_checkpoints
-            )
+            self.state.put(state=self.state.get(i), i=i, keep=keep_top_n_checkpoints)
 
     def _restore_state_from_somewhere(
         self,
@@ -74,20 +72,25 @@ class SGMCMCPosterior(Posterior):
         allowed_states: Optional[Tuple[Type[MAPState], ...]] = None,
     ) -> MAPState:
         if fit_config.checkpointer.restore_checkpoint_path is not None:
-            restore_checkpoint_path = pathlib.Path(fit_config.checkpointer.restore_checkpoint_path) / "c"
+            restore_checkpoint_path = (
+                pathlib.Path(fit_config.checkpointer.restore_checkpoint_path) / "c"
+            )
             state = self.restore_checkpoint(
                 restore_checkpoint_path=restore_checkpoint_path,
                 optimizer=fit_config.optimizer.method,
             )
         elif fit_config.checkpointer.start_from_current_state is not None:
-            state = self.state.get(i=self.state.size - 1,
-                                   optimizer=fit_config.optimizer.method,
+            state = self.state.get(
+                i=self.state.size - 1,
+                optimizer=fit_config.optimizer.method,
             )
 
         if allowed_states is not None and not isinstance(state, allowed_states):
-            raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
-                             f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
-                             f"with type {type(state)}.")
+            raise ValueError(
+                f"The type of the restored checkpoint must be within {allowed_states}. "
+                f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                f"with type {type(state)}."
+            )
 
         self._check_state(state)
         return state

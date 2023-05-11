@@ -165,7 +165,8 @@ class DeepEnsemblePosterior(Posterior):
                 self.state.state[i].checkpoint_dir = (
                     pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / str(i)
                     if fit_config.checkpointer.save_checkpoint_dir is not None
-                    and fit_config.checkpointer.dump_state else None
+                    and fit_config.checkpointer.dump_state
+                    else None
                 )
         else:
             self.state = PosteriorMultiStateRepository(
@@ -266,17 +267,11 @@ class DeepEnsemblePosterior(Posterior):
         allowed_states: Optional[Tuple[Type[MAPState], ...]] = None,
     ) -> MAPState:
         if fit_config.checkpointer.restore_checkpoint_path is not None:
-            restore_checkpoint_path = pathlib.Path(fit_config.checkpointer.restore_checkpoint_path) / str(i)
+            restore_checkpoint_path = pathlib.Path(
+                fit_config.checkpointer.restore_checkpoint_path
+            ) / str(i)
             state = self.restore_checkpoint(
-<<<<<<< HEAD
-                restore_checkpoint_path=str(
-                    fit_config.checkpointer.restore_checkpoint_path
-                )
-                + "/"
-                + str(i),
-=======
                 restore_checkpoint_path=restore_checkpoint_path,
->>>>>>> a92b1cd (add SGHMC method)
                 optimizer=fit_config.optimizer.method,
             )
         elif fit_config.checkpointer.start_from_current_state is not None:

@@ -9,12 +9,13 @@ from fortuna.typing import Path
 
 
 class SGMCMCSamplingCallback(Callback):
-    def __init__(self,
-                 trainer: TrainerABC,
-                 state_repository: TrainStateRepository,
-                 keep_top_n_checkpoints: int,
-                 save_checkpoint_dir: Optional[Path] = None,
-                 ):
+    def __init__(
+        self,
+        trainer: TrainerABC,
+        state_repository: TrainStateRepository,
+        keep_top_n_checkpoints: int,
+        save_checkpoint_dir: Optional[Path] = None,
+    ):
         """
         Sampling callback that collects samples from the MCMC chain.
 
@@ -47,8 +48,7 @@ class SGMCMCSamplingCallback(Callback):
             if self._save_checkpoint_dir:
                 self._trainer.save_checkpoint(
                     state,
-                    pathlib.Path(self._save_checkpoint_dir)
-                    / str(self._samples_count),
+                    pathlib.Path(self._save_checkpoint_dir) / str(self._samples_count),
                     force_save=True,
                 )
             self._state_repository.put(

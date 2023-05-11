@@ -1,4 +1,6 @@
-from fortuna.prob_model.posterior.sgmcmc.base import SGMCMCPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.base import (
+    SGMCMCPosteriorApproximator,
+)
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     Preconditioner,
     identity_preconditioner,
@@ -36,7 +38,11 @@ class CyclicalSGLDPosteriorApproximator(SGMCMCPosteriorApproximator):
         preconditioner: Preconditioner
             A `Preconditioner` instance that preconditions the approximator with information about the posterior distribution, if available.
         """
-        super().__init__(n_samples=n_samples, n_thinning=n_thinning, preconditioner=preconditioner)
+        super().__init__(
+            n_samples=n_samples,
+            n_thinning=n_thinning,
+            preconditioner=preconditioner,
+        )
         self.cycle_length = cycle_length
         self.init_step_size = init_step_size
         self.exploration_ratio = exploration_ratio

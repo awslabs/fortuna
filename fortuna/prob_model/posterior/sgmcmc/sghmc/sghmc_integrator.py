@@ -69,9 +69,7 @@ def sghmc_integrator(
         momentum = jax.lax.cond(
             momentum_resample_steps is not None
             and state.count % momentum_resample_steps == 0,
-            lambda: jax.tree_util.tree_map(
-                jnp.zeros_like, gradient
-            ),
+            lambda: jax.tree_util.tree_map(jnp.zeros_like, gradient),
             lambda: state.momentum,
         )
 
@@ -83,9 +81,7 @@ def sghmc_integrator(
             gradient,
             noise,
         )
-        updates = preconditioner.multiply_by_m_inv(
-            momentum, preconditioner_state
-        )
+        updates = preconditioner.multiply_by_m_inv(momentum, preconditioner_state)
         updates = jax.tree_map(lambda m: m * jnp.sqrt(step_size), updates)
         return updates, OptaxSGHMCState(
             count=state.count + 1,

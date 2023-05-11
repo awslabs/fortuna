@@ -28,9 +28,7 @@ class Preconditioner(NamedTuple):
     """
 
     init: Callable[[Params], PreconditionerState]
-    update_preconditioner: Callable[
-        [PyTree, PreconditionerState], PreconditionerState
-    ]
+    update_preconditioner: Callable[[PyTree, PreconditionerState], PreconditionerState]
     multiply_by_m_sqrt: Callable[[PyTree, PreconditionerState], PyTree]
     multiply_by_m_inv: Callable[[PyTree, PreconditionerState], PyTree]
     multiply_by_m_sqrt_inv: Callable[[PyTree, PreconditionerState], PyTree]
@@ -40,9 +38,7 @@ class RMSPropPreconditionerState(PreconditionerState):
     grad_moment_estimates: Params
 
 
-def rmsprop_preconditioner(
-    running_average_factor: float = 0.99, eps: float = 1.0e-7
-):
+def rmsprop_preconditioner(running_average_factor: float = 0.99, eps: float = 1.0e-7):
     """Create an instance of the adaptive RMSProp preconditioner.
 
     Parameters
@@ -60,9 +56,7 @@ def rmsprop_preconditioner(
 
     def init_fn(params):
         return RMSPropPreconditionerState(
-            grad_moment_estimates=jax.tree_util.tree_map(
-                jnp.zeros_like, params
-            )
+            grad_moment_estimates=jax.tree_util.tree_map(jnp.zeros_like, params)
         )
 
     def update_preconditioner_fn(gradient, preconditioner_state):
@@ -72,9 +66,7 @@ def rmsprop_preconditioner(
             preconditioner_state.grad_moment_estimates,
             gradient,
         )
-        return RMSPropPreconditionerState(
-            grad_moment_estimates=grad_moment_estimates
-        )
+        return RMSPropPreconditionerState(grad_moment_estimates=grad_moment_estimates)
 
     def multiply_by_m_inv_fn(vec, preconditioner_state):
         return jax.tree_util.tree_map(

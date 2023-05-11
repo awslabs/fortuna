@@ -1,6 +1,8 @@
 from typing import Union
 
-from fortuna.prob_model.posterior.sgmcmc.base import SGMCMCPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.base import (
+    SGMCMCPosteriorApproximator,
+)
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     Preconditioner,
     identity_preconditioner,
@@ -41,7 +43,11 @@ class SGHMCPosteriorApproximator(SGMCMCPosteriorApproximator):
             A `Preconditioner` instance that preconditions the approximator with information about the posterior distribution, if available.
 
         """
-        super().__init__(n_samples=n_samples, n_thinning=n_thinning, preconditioner=preconditioner)
+        super().__init__(
+            n_samples=n_samples,
+            n_thinning=n_thinning,
+            preconditioner=preconditioner,
+        )
         if isinstance(step_schedule, float):
             step_schedule = constant_schedule(step_schedule)
         elif not callable(step_schedule):

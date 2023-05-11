@@ -14,21 +14,30 @@ from fortuna.prob_model.posterior.map.map_trainer import (
     JittedMAPTrainer,
     MultiDeviceMAPTrainer,
 )
-from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
-from fortuna.prob_model.posterior.posterior_multi_state_repository import \
-    PosteriorMultiStateRepository
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import \
-    SGMCMCPosterior
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import \
-    CYCLICAL_SGLD_NAME
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import \
-    CyclicalSGLDPosteriorApproximator
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_integrator import \
-    cyclical_sgld_integrator
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_callback import \
-    CyclicalSGLDSamplingCallback
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_state import \
-    CyclicalSGLDState
+from fortuna.prob_model.posterior.run_preliminary_map import (
+    run_preliminary_map,
+)
+from fortuna.prob_model.posterior.posterior_multi_state_repository import (
+    PosteriorMultiStateRepository,
+)
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
+    SGMCMCPosterior,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import (
+    CYCLICAL_SGLD_NAME,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import (
+    CyclicalSGLDPosteriorApproximator,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_integrator import (
+    cyclical_sgld_integrator,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_callback import (
+    CyclicalSGLDSamplingCallback,
+)
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_state import (
+    CyclicalSGLDState,
+)
 from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
 
@@ -51,9 +60,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         posterior_approximator: CyclicalSGLDPosteriorApproximator
             A cyclical SGLD posterior approximator.
         """
-        super().__init__(
-            joint=joint, posterior_approximator=posterior_approximator
-        )
+        super().__init__(joint=joint, posterior_approximator=posterior_approximator)
 
     def __str__(self):
         return CYCLICAL_SGLD_NAME
@@ -72,18 +79,22 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
 
         map_state = None
         if map_fit_config is not None and fit_config.optimizer.freeze_fun is None:
-            logging.warning("It appears that you are trying to configure `map_fit_config`. "
-                            "However, a preliminary run with MAP is supported only if "
-                            "`fit_config.optimizer.freeze_fun` is given. "
-                            "Since the latter was not given, `map_fit_config` will be ignored.")
-        elif not super()._is_state_available_somewhere(fit_config) and super()._should_run_preliminary_map(fit_config, map_fit_config):
+            logging.warning(
+                "It appears that you are trying to configure `map_fit_config`. "
+                "However, a preliminary run with MAP is supported only if "
+                "`fit_config.optimizer.freeze_fun` is given. "
+                "Since the latter was not given, `map_fit_config` will be ignored."
+            )
+        elif not super()._is_state_available_somewhere(
+            fit_config
+        ) and super()._should_run_preliminary_map(fit_config, map_fit_config):
             map_state, status["map"] = run_preliminary_map(
                 joint=self.joint,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
                 rng=self.rng,
-                **kwargs
+                **kwargs,
             )
 
         if fit_config.optimizer.method is not None:
@@ -166,7 +177,9 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=val_data_loader.size if val_data_loader is not None else None,
+            validation_dataset_size=val_data_loader.size
+            if val_data_loader is not None
+            else None,
             verbose=fit_config.monitor.verbose,
             callbacks=[cyclical_sampling_callback],
         )
@@ -175,10 +188,10 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         return status
 
     def _init_map_state(
-            self,
-            state: Optional[MAPState],
-            data_loader: DataLoader,
-            fit_config: FitConfig
+        self,
+        state: Optional[MAPState],
+        data_loader: DataLoader,
+        fit_config: FitConfig,
     ) -> MAPState:
         if state is None or fit_config.optimizer.freeze_fun is None:
             state = super()._init_joint_state(data_loader)
@@ -192,16 +205,20 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             )
         else:
             random_state = super()._init_joint_state(data_loader)
-            trainable_paths = get_trainable_paths(state.params, fit_config.optimizer.freeze_fun)
+            trainable_paths = get_trainable_paths(
+                state.params, fit_config.optimizer.freeze_fun
+            )
             state = state.replace(
                 params=FrozenDict(
                     nested_set(
                         d=state.params.unfreeze(),
                         key_paths=trainable_paths,
-                        objs=tuple([
-                            nested_get(d=random_state.params, keys=path)
-                            for path in trainable_paths
-                            ])
+                        objs=tuple(
+                            [
+                                nested_get(d=random_state.params, keys=path)
+                                for path in trainable_paths
+                            ]
+                        ),
                     )
                 )
             )

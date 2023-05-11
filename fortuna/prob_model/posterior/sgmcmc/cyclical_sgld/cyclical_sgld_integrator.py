@@ -80,12 +80,8 @@ def cyclical_sgld_integrator(
                 lambda g: -1.0 * step_size * g,
                 gradient,
             )
-            updates, new_sgd_state = sgd.update(
-                rescaled_gradient, state.sgd_state
-            )
-            updates = preconditioner.multiply_by_m_inv(
-                updates, preconditioner_state
-            )
+            updates, new_sgd_state = sgd.update(rescaled_gradient, state.sgd_state)
+            updates = preconditioner.multiply_by_m_inv(updates, preconditioner_state)
             new_state = OptaxCyclicalSGLDState(
                 sgd_state=new_sgd_state,
                 sgld_state=new_sgld_state,

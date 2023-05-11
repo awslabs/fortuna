@@ -7,23 +7,25 @@ from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.training.trainer import TrainerABC
 from fortuna.typing import Path
 
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_sampling_callback import \
-    SGMCMCSamplingCallback
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_sampling_callback import (
+    SGMCMCSamplingCallback,
+)
 
 
 class CyclicalSGLDSamplingCallback(SGMCMCSamplingCallback):
-    def __init__(self,
-                 n_epochs: int,
-                 n_training_steps: int,
-                 n_samples: int,
-                 n_thinning: int,
-                 cycle_length: int,
-                 exploration_ratio: float,
-                 trainer: TrainerABC,
-                 state_repository: TrainStateRepository,
-                 keep_top_n_checkpoints: int,
-                 save_checkpoint_dir: Optional[Path] = None,
-                 ):
+    def __init__(
+        self,
+        n_epochs: int,
+        n_training_steps: int,
+        n_samples: int,
+        n_thinning: int,
+        cycle_length: int,
+        exploration_ratio: float,
+        trainer: TrainerABC,
+        state_repository: TrainStateRepository,
+        keep_top_n_checkpoints: int,
+        save_checkpoint_dir: Optional[Path] = None,
+    ):
         """
         Cyclical Stochastic Gradient Langevin Dynamics (SGLD) callback that collects samples
         in different cycles. See `Zhang R. et al., 2020 <https://openreview.net/pdf?id=rkeS1RVtPS>`_
@@ -61,12 +63,19 @@ class CyclicalSGLDSamplingCallback(SGMCMCSamplingCallback):
             save_checkpoint_dir=save_checkpoint_dir,
         )
 
-        self._do_sample = lambda current_step, samples_count: samples_count < n_samples \
-            and ((current_step % cycle_length) / cycle_length) >= exploration_ratio \
+        self._do_sample = (
+            lambda current_step, samples_count: samples_count < n_samples
+            and ((current_step % cycle_length) / cycle_length) >= exploration_ratio
             and (current_step % cycle_length) % n_thinning == 0
+        )
 
-        total_samples = sum(self._do_sample(step, 0) for step in range(1, n_epochs * n_training_steps + 1))
+        total_samples = sum(
+            self._do_sample(step, 0)
+            for step in range(1, n_epochs * n_training_steps + 1)
+        )
         if total_samples < n_samples:
-            raise ValueError(f"The number of desired samples `n_samples` is {n_samples}. However, only "
-                             f"{total_samples} samples will be collected. Consider adjusting the cycle length, "
-                             "number of epochs, exploration ratio, or the thinning parameter.")
+            raise ValueError(
+                f"The number of desired samples `n_samples` is {n_samples}. However, only "
+                f"{total_samples} samples will be collected. Consider adjusting the cycle length, "
+                "number of epochs, exploration ratio, or the thinning parameter."
+            )

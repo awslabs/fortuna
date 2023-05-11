@@ -49,13 +49,7 @@ def kernel_stein_discrepancy_imq(
         kern += -2 * beta * jnp.dot(grad1, diff) * base ** (beta - 1)
         kern += 2 * beta * jnp.dot(grad2, diff) * base ** (beta - 1)
         kern += -2 * dim * beta * (base ** (beta - 1))
-        kern += (
-            -4
-            * beta
-            * (beta - 1)
-            * base ** (beta - 2)
-            * jnp.sum(jnp.square(diff))
-        )
+        kern += -4 * beta * (beta - 1) * base ** (beta - 2) * jnp.sum(jnp.square(diff))
         return kern
 
     _batched_k_0 = vmap(_k_0, in_axes=(None, 0, None, 0, None, None))
