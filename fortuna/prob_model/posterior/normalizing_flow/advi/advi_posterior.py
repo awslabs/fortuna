@@ -212,7 +212,7 @@ class ADVIPosterior(Posterior):
             rng = self.rng.get()
         state = self.state.get()
 
-        if not hasattr(self, "base") or not hasattr(self, "_unravel"):
+        if not hasattr(self, "_base") or not hasattr(self, "_unravel"):
             if state._encoded_which_params is None:
                 n_params = len(ravel_pytree(state.params)[0]) // 2
                 which_params = None
