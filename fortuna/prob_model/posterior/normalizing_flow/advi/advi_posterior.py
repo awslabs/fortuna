@@ -106,13 +106,7 @@ class ADVIPosterior(Posterior):
         )
 
         size_rav = len(rav)
-        self.base = DiagGaussian(
-            mean=jnp.zeros(size_rav),
-            std=jnp.exp(self.posterior_approximator.log_std_base) * jnp.ones(size_rav),
-        )
-        self.architecture = ADVIArchitecture(
-            size_rav, std_init_params=self.posterior_approximator.std_init_params
-        )
+        self._base, self._architecture = self._get_base_and_architecture(size_rav)
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
@@ -132,8 +126,8 @@ class ADVIPosterior(Posterior):
             early_stopping_monitor=fit_config.monitor.early_stopping_monitor,
             early_stopping_min_delta=fit_config.monitor.early_stopping_min_delta,
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
-            base=self.base,
-            architecture=self.architecture,
+            base=self._base,
+            architecture=self._architecture,
             which_params=which_params,
             all_params=state.params if which_params else None,
             indices=self._indices,
@@ -144,7 +138,7 @@ class ADVIPosterior(Posterior):
             rav=rav,
             rav_log_stds=rav_log_stds,
             state=state,
-            init_params=self.architecture.init_params,
+            init_params=self._architecture.init_params,
             optimizer=fit_config.optimizer.method,
         )
 
@@ -176,6 +170,18 @@ class ADVIPosterior(Posterior):
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
         return status
+
+    def _get_base_and_architecture(
+        self, size_rav: int
+    ) -> Tuple[DiagGaussian, ADVIArchitecture]:
+        base = DiagGaussian(
+            mean=jnp.zeros(size_rav),
+            std=jnp.exp(self.posterior_approximator.log_std_base) * jnp.ones(size_rav),
+        )
+        architecture = ADVIArchitecture(
+            size_rav, std_init_params=self.posterior_approximator.std_init_params
+        )
+        return base, architecture
 
     def sample(
         self,
@@ -223,14 +229,7 @@ class ADVIPosterior(Posterior):
                         )[1]
                     )[0]
                 )
-            self.base = DiagGaussian(
-                mean=jnp.zeros(n_params),
-                std=jnp.exp(self.posterior_approximator.log_std_base)
-                * jnp.ones(n_params),
-            )
-            self.architecture = ADVIArchitecture(
-                n_params, std_init_params=self.posterior_approximator.std_init_params
-            )
+            self._base, self._architecture = self._get_base_and_architecture(n_params)
             self._unravel, self._indices = self._get_unravel(
                 params=nested_unpair(
                     d=state.params.unfreeze(),
@@ -242,14 +241,14 @@ class ADVIPosterior(Posterior):
 
         if state._encoded_which_params is None:
             means = self._unravel(
-                self.architecture.forward(
+                self._architecture.forward(
                     {
                         s: ravel_pytree(
                             {k: v["params"][s] for k, v in state.params.items()}
                         )[0]
                         for s in ["mean", "log_std"]
                     },
-                    self.base.sample(rng),
+                    self._base.sample(rng),
                 )[0][0]
             )
         else:
@@ -267,8 +266,8 @@ class ADVIPosterior(Posterior):
                 ]
                 for k, d in zip(["mean", "log_std"], [means, log_stds])
             }
-            rav_params = self.architecture.forward(
-                params=rav_params, u=self.base.sample(rng)
+            rav_params = self._architecture.forward(
+                params=rav_params, u=self._base.sample(rng)
             )[0][0]
 
             means = FrozenDict(
