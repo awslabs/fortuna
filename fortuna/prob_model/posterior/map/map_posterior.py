@@ -52,7 +52,7 @@ class MAPPosterior(Posterior):
         val_data_loader: Optional[DataLoader] = None,
         fit_config: FitConfig = FitConfig(),
         map_fit_config=None,
-        **kwargs
+        **kwargs,
     ) -> Status:
         super()._checks_on_fit_start(fit_config, map_fit_config)
 

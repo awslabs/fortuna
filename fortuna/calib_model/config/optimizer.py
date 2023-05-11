@@ -1,8 +1,16 @@
-from typing import Callable, Optional, Tuple
+from typing import (
+    Callable,
+    Optional,
+    Tuple,
+)
 
 import optax
 
-from fortuna.typing import AnyKey, Array, OptaxOptimizer
+from fortuna.typing import (
+    AnyKey,
+    Array,
+    OptaxOptimizer,
+)
 
 
 class Optimizer:

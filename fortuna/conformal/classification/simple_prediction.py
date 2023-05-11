@@ -1,7 +1,10 @@
-from typing import List, Optional
+from typing import (
+    List,
+    Optional,
+)
 
-import jax.numpy as jnp
 from jax import vmap
+import jax.numpy as jnp
 
 from fortuna.conformal.classification.base import ConformalClassifier
 from fortuna.typing import Array

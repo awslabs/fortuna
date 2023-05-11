@@ -3,7 +3,11 @@ Wide ResNet model
 (adapted from https://github.com/google/flax/blob/v0.2/examples/cifar10/models/wideresnet.py)
 """
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import (
+    Any,
+    Callable,
+    Tuple,
+)
 
 import flax.linen as nn
 import jax.numpy as jnp

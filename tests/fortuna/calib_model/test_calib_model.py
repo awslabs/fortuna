@@ -1,15 +1,30 @@
 import tempfile
 import unittest
 
+import jax.numpy as jnp
+import numpy as np
+
+from fortuna.calib_model import (
+    CalibClassifier,
+    CalibRegressor,
+    Checkpointer,
+    Config,
+    Monitor,
+    Optimizer,
+)
 from fortuna.data.loader import DataLoader
 from fortuna.metric.classification import brier_score
 from fortuna.model.mlp import MLP
-from fortuna.calib_model import CalibClassifier, CalibRegressor, Config, Checkpointer, Optimizer, Monitor
+from fortuna.prob_model import (
+    FitCheckpointer,
+    FitConfig,
+    FitOptimizer,
+    ProbClassifier,
+    ProbRegressor,
+    SWAGPosteriorApproximator,
+)
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
-from fortuna.prob_model import ProbRegressor, ProbClassifier, FitConfig, FitCheckpointer, FitOptimizer, SWAGPosteriorApproximator
-import numpy as np
-import jax.numpy as jnp
 
 np.random.seed(42)
 
@@ -132,15 +147,17 @@ class TestCalibCalibrate(unittest.TestCase):
             prob_reg = ProbRegressor(
                 model=model,
                 likelihood_log_variance_model=lik_model,
-                posterior_approximator=SWAGPosteriorApproximator(rank=2)
+                posterior_approximator=SWAGPosteriorApproximator(rank=2),
             )
 
             status = prob_reg.train(
                 train_data_loader=self.reg_calib_data_loader,
                 map_fit_config=FitConfig(
                     optimizer=FitOptimizer(n_epochs=2),
-                    checkpointer=FitCheckpointer(save_checkpoint_dir=tmp_dir, dump_state=True)
-                )
+                    checkpointer=FitCheckpointer(
+                        save_checkpoint_dir=tmp_dir, dump_state=True
+                    ),
+                ),
             )
 
             calib_reg = CalibRegressor(
@@ -196,8 +213,7 @@ class TestCalibCalibrate(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             prob_class = ProbClassifier(
-                model=model,
-                posterior_approximator=SWAGPosteriorApproximator(rank=2)
+                model=model, posterior_approximator=SWAGPosteriorApproximator(rank=2)
             )
             status = prob_class.train(
                 train_data_loader=self.class_calib_data_loader,
@@ -206,9 +222,10 @@ class TestCalibCalibrate(unittest.TestCase):
                 ),
                 fit_config=FitConfig(
                     optimizer=FitOptimizer(n_epochs=3),
-                    checkpointer=FitCheckpointer(save_checkpoint_dir=tmp_dir, dump_state=True)
-                )
-
+                    checkpointer=FitCheckpointer(
+                        save_checkpoint_dir=tmp_dir, dump_state=True
+                    ),
+                ),
             )
 
             calib_class = CalibClassifier(
@@ -266,5 +283,5 @@ class TestCalibCalibrate(unittest.TestCase):
         self.assertRaises(
             ValueError,
             lambda dl: calib_class_map.calibrate(dl),
-            DataLoader.from_array_data((np.array([]), np.array([])))
+            DataLoader.from_array_data((np.array([]), np.array([]))),
         )

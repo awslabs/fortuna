@@ -4,16 +4,23 @@ import jax.numpy as jnp
 import numpy as np
 
 from fortuna.conformal import (
-    AdaptivePredictionConformalClassifier, SimplePredictionConformalClassifier, AdaptiveConformalClassifier,
-    BatchMVPConformalClassifier
-)
-from fortuna.conformal import (
-    CVPlusConformalRegressor, EnbPI, JackknifeMinmaxConformalRegressor,
+    AdaptiveConformalClassifier,
+    AdaptiveConformalRegressor,
+    AdaptivePredictionConformalClassifier,
+    BatchMVPConformalClassifier,
+    BatchMVPConformalRegressor,
+    CVPlusConformalRegressor,
+    EnbPI,
+    JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
-    OneDimensionalUncertaintyConformalRegressor, QuantileConformalRegressor, AdaptiveConformalRegressor,
-    BatchMVPConformalRegressor
+    OneDimensionalUncertaintyConformalRegressor,
+    QuantileConformalRegressor,
+    SimplePredictionConformalClassifier,
 )
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 
 
 class TestConformalMethods(unittest.TestCase):
@@ -273,12 +280,14 @@ class TestConformalMethods(unittest.TestCase):
             assert np.alltrue(residuals >= 0)
 
     def test_adaptive_conformal_regressor(self):
-        acr = AdaptiveConformalRegressor(conformal_regressor=QuantileConformalRegressor())
+        acr = AdaptiveConformalRegressor(
+            conformal_regressor=QuantileConformalRegressor()
+        )
         error = acr.update_error(
             conformal_interval=self._rng.normal(size=2),
             error=0.01,
             target=np.array([1.2]),
-            target_error=0.05
+            target_error=0.05,
         )
 
         error = acr.update_error(
@@ -287,16 +296,15 @@ class TestConformalMethods(unittest.TestCase):
             target=np.array([1.2]),
             target_error=0.05,
             weights=np.array([0.1, 0.2, 0.3, 0.4]),
-            were_in=np.array([1, 0, 1])
+            were_in=np.array([1, 0, 1]),
         )
 
     def test_adaptive_conformal_classification(self):
-        acr = AdaptiveConformalClassifier(conformal_classifier=AdaptivePredictionConformalClassifier())
+        acr = AdaptiveConformalClassifier(
+            conformal_classifier=AdaptivePredictionConformalClassifier()
+        )
         error = acr.update_error(
-            conformal_set=[2, 0],
-            error=0.01,
-            target=np.array([1]),
-            target_error=0.05
+            conformal_set=[2, 0], error=0.01, target=np.array([1]), target_error=0.05
         )
 
         error = acr.update_error(
@@ -305,14 +313,14 @@ class TestConformalMethods(unittest.TestCase):
             target=np.array([1]),
             target_error=0.05,
             weights=np.array([0.1, 0.2, 0.3, 0.4]),
-            were_in=np.array([1, 0, 1])
+            were_in=np.array([1, 0, 1]),
         )
 
     def test_batchmvp_regressor(self):
         batchmvp = BatchMVPConformalRegressor(
             score_fn=lambda x, y: jnp.abs(y - x) / 15,
             group_fns=[lambda x: x > 0.1, lambda x: x < 0.2, lambda x: x > 0.3],
-            bounds_fn=lambda x, t: (x - t, x + t)
+            bounds_fn=lambda x, t: (x - t, x + t),
         )
         val_data_loader = DataLoader.from_array_data(
             (self._rng.normal(size=(50,)), self._rng.normal(size=(50,))),
@@ -329,8 +337,12 @@ class TestConformalMethods(unittest.TestCase):
     def test_batchmvp_classifier(self):
         batchmvp = BatchMVPConformalClassifier(
             score_fn=lambda x, y: 1 - jnp.mean(x, 0)[y],
-            group_fns=[lambda x: x[:, 0] > 0.1, lambda x: x[:, 0] < 0.2, lambda x: x[:, 0] > 0.3],
-            n_classes=2
+            group_fns=[
+                lambda x: x[:, 0] > 0.1,
+                lambda x: x[:, 0] < 0.2,
+                lambda x: x[:, 0] > 0.3,
+            ],
+            n_classes=2,
         )
         val_data_loader = DataLoader.from_array_data(
             (self._rng.normal(size=(50, 1)), self._rng.choice(2, 50)),

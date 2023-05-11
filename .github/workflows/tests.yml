@@ -41,5 +41,3 @@ jobs:
       # Run the unit tests and build the coverage report
       - name: Run Tests
         run: poetry run pytest --cov=fortuna --cov-report=term-missing --cov-report=xml
-
-

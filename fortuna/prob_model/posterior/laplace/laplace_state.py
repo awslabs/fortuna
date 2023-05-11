@@ -1,13 +1,23 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import jax.numpy as jnp
 
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import AnyKey, Array, Params
+from fortuna.typing import (
+    AnyKey,
+    Array,
+    Params,
+)
 from fortuna.utils.nested_dicts import nested_pair
 from fortuna.utils.strings import (
     convert_string_to_jnp_array,

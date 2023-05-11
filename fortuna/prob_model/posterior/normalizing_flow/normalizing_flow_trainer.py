@@ -1,12 +1,23 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
-from jax import random, vmap
+from jax import (
+    random,
+    vmap,
+)
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 from jax.tree_util import tree_map
 from optax._src.base import PyTree
 
@@ -14,7 +25,14 @@ from fortuna.distribution.base import Distribution
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.training.callback import Callback
-from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import (
+    Array,
+    Batch,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 from fortuna.utils.nested_dicts import nested_set
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 

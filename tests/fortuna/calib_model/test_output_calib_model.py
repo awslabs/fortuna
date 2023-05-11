@@ -3,28 +3,33 @@ import tempfile
 import unittest
 
 import jax.numpy as jnp
+import numpy as np
 
+from fortuna.data.loader import DataLoader
+from fortuna.metric.classification import (
+    accuracy,
+    brier_score,
+)
+from fortuna.metric.regression import rmse
+from fortuna.model.mlp import MLP
+from fortuna.output_calib_model.classification import OutputCalibClassifier
 from fortuna.output_calib_model.config.base import Config
 from fortuna.output_calib_model.config.checkpointer import Checkpointer
 from fortuna.output_calib_model.config.monitor import Monitor
 from fortuna.output_calib_model.config.optimizer import Optimizer
-from fortuna.output_calib_model.classification import OutputCalibClassifier
 from fortuna.output_calib_model.regression import OutputCalibRegressor
-from fortuna.data.loader import DataLoader
-from fortuna.metric.classification import accuracy, brier_score
-from fortuna.metric.regression import rmse
-from fortuna.model.mlp import MLP
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
+from fortuna.prob_model import (
+    FitConfig,
+    FitMonitor,
+)
 from fortuna.prob_model.classification import ProbClassifier
-from fortuna.prob_model import FitConfig, FitMonitor
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
-from fortuna.prob_model.posterior.map.map_approximator import \
-    MAPPosteriorApproximator
+from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel
-import numpy as np
 
 logging.basicConfig(level=logging.INFO)
 np.random.rand(42)
@@ -113,9 +118,7 @@ class TestApproximations(unittest.TestCase):
         self.calib_config_dir_dump = lambda directory, metric: Config(
             optimizer=Optimizer(n_epochs=3),
             monitor=Monitor(metrics=(metric,)),
-            checkpointer=Checkpointer(
-                save_checkpoint_dir=directory, dump_state=True
-            ),
+            checkpointer=Checkpointer(save_checkpoint_dir=directory, dump_state=True),
         )
         self.calib_config_restore = lambda directory, metric: Config(
             optimizer=Optimizer(n_epochs=3),

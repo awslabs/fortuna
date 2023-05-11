@@ -1,13 +1,21 @@
-from typing import Optional, Tuple, Union
+from typing import (
+    Optional,
+    Tuple,
+    Union,
+)
 
-import flax.linen as nn
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import flax.linen as nn
 from flax.training.checkpoints import PyTree
 from jax import random
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
-from fortuna.typing import Array, CalibMutable, CalibParams
+from fortuna.typing import (
+    Array,
+    CalibMutable,
+    CalibParams,
+)
 from fortuna.utils.random import WithRNG
 
 

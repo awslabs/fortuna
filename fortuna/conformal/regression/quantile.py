@@ -32,7 +32,7 @@ class QuantileConformalRegressor(ConformalRegressor):
         """
         if val_lower_bounds.shape != val_upper_bounds.shape:
             raise ValueError(
-                """The shapes of `val_lower_bounds` and `val_upper_bounds` must be the same, but shapes {} and {} 
+                """The shapes of `val_lower_bounds` and `val_upper_bounds` must be the same, but shapes {} and {}
                 were given, respectively.""".format(
                     val_lower_bounds.shape, val_upper_bounds.shape
                 )
@@ -131,13 +131,13 @@ class QuantileConformalRegressor(ConformalRegressor):
         """
         if val_lower_bounds.shape != val_upper_bounds.shape:
             raise ValueError(
-                f"""The shapes of `val_lower_bounds` and `val_upper_bounds` must be the same, but shapes 
+                f"""The shapes of `val_lower_bounds` and `val_upper_bounds` must be the same, but shapes
                 {val_lower_bounds.shape} and {val_upper_bounds.shape} were found, respectively."""
             )
 
         if test_lower_bounds.shape != test_upper_bounds.shape:
             raise ValueError(
-                f"""The shapes of `test_lower_bounds` and `test_upper_bounds` must be the same, but shapes 
+                f"""The shapes of `test_lower_bounds` and `test_upper_bounds` must be the same, but shapes
                 {test_lower_bounds.shape} and {test_upper_bounds.shape} were found, respectively."""
             )
 

@@ -13,5 +13,3 @@ statistics. We support a :ref:`classification predictive <output_calib_predictiv
 .. _output_calib_predictive_regression:
 
 .. automodule:: fortuna.output_calib_model.predictive.regression
-
-

@@ -379,4 +379,3 @@ but a new one could be used.
         test_upper_bounds=test_cred_intervals[:, 1],
         val_targets=calib_targets
     )
-

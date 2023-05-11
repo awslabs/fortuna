@@ -21,4 +21,3 @@ Alternatively, you can bring in your own output calibrator by overwriting :mod:`
 .. autoclass:: fortuna.output_calib_model.state.OutputCalibState
     :no-inherited-members:
     :exclude-members: params, mutable, encoded_name, replace
-

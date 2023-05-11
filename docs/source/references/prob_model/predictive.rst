@@ -13,5 +13,3 @@ statistics. We support a :ref:`classification predictive <predictive_classificat
 .. _predictive_regression:
 
 .. automodule:: fortuna.prob_model.predictive.regression
-
-

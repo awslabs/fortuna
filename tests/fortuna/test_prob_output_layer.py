@@ -1,11 +1,10 @@
 import unittest
 
+from jax import random
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import random
 
-from fortuna.prob_output_layer.classification import \
-    ClassificationProbOutputLayer
+from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.utils.random import RandomNumberGenerator
 

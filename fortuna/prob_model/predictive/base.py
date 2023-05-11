@@ -1,11 +1,23 @@
 import abc
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import jax
+from jax import (
+    jit,
+    lax,
+    pmap,
+    random,
+)
+from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import jit, lax, pmap, random
-from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
 from fortuna.data.loader import (
@@ -15,7 +27,12 @@ from fortuna.data.loader import (
     TargetsLoader,
 )
 from fortuna.prob_model.posterior.base import Posterior
-from fortuna.typing import Array, Batch, CalibMutable, CalibParams
+from fortuna.typing import (
+    Array,
+    Batch,
+    CalibMutable,
+    CalibParams,
+)
 from fortuna.utils.random import WithRNG
 
 
@@ -38,7 +55,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive log-probability density function (a.k.a. log-pdf), that is
@@ -77,7 +94,7 @@ class Predictive(WithRNG):
             n_posterior_samples,
             rng,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
     def _batched_log_prob(
@@ -85,7 +102,7 @@ class Predictive(WithRNG):
         batch: Batch,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         if rng is None:
             rng = self.rng.get()
@@ -99,7 +116,7 @@ class Predictive(WithRNG):
                 mutable=sample.mutable,
                 calib_params=sample.calib_params,
                 calib_mutable=sample.calib_mutable,
-                **kwargs
+                **kwargs,
             )
 
         return jsp.special.logsumexp(
@@ -116,7 +133,7 @@ class Predictive(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
         if return_aux is None:
             return_aux = []
@@ -124,7 +141,7 @@ class Predictive(WithRNG):
         unsupported_aux = [s for s in return_aux if s not in supported_aux]
         if sum(unsupported_aux) > 0:
             raise Exception(
-                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux` 
+                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux`
                             belong to the following list: {}""".format(
                     unsupported_aux, supported_aux
                 )
@@ -149,7 +166,7 @@ class Predictive(WithRNG):
                     calib_mutable=calib_mutable
                     if calib_mutable is not None
                     else sample.calib_mutable,
-                    **kwargs
+                    **kwargs,
                 )
 
             outs = lax.map(_lik_log_joint_prob, keys)
@@ -169,7 +186,7 @@ class Predictive(WithRNG):
                     return_aux=return_aux,
                     calib_params=calib_params,
                     calib_mutable=calib_mutable,
-                    **kwargs
+                    **kwargs,
                 )
 
             outs = lax.map(_lik_log_joint_prob, ensemble_outputs)
@@ -196,7 +213,7 @@ class Predictive(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
         outs = self._batched_log_joint_prob(
             batch,
@@ -207,7 +224,7 @@ class Predictive(WithRNG):
             calib_params,
             calib_mutable,
             rng,
-            **kwargs
+            **kwargs,
         )
         if len(return_aux) > 0:
             loss, aux = outs
@@ -222,7 +239,7 @@ class Predictive(WithRNG):
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]]:
         r"""
         Sample from an approximation of the predictive distribution for each input data point, that is
@@ -309,7 +326,7 @@ class Predictive(WithRNG):
         n_target_samples: int = 1,
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         if return_aux is None:
             return_aux = []
@@ -330,7 +347,7 @@ class Predictive(WithRNG):
                 calib_mutable=_post_sample.calib_mutable,
                 return_aux=return_aux,
                 rng=key2,
-                **kwargs
+                **kwargs,
             )
             if len(return_aux) > 0:
                 _samples, aux = outs
@@ -850,7 +867,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int,
         rng: PRNGKeyArray,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Array:
         def fun2(_inputs):
             return fun(_inputs, n_posterior_samples, rng, **kwargs)
@@ -875,7 +892,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int,
         rng: PRNGKeyArray,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Array:
         def fun2(_batch):
             return fun(_batch, n_posterior_samples, rng, **kwargs)
@@ -897,7 +914,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int,
         rng: PRNGKeyArray,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Array:
         def fun2(_inputs):
             return fun(_inputs, n_posterior_samples, rng, **kwargs)

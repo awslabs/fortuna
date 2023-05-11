@@ -1,13 +1,13 @@
 import json
 import os
 import tempfile
-import unittest
 from types import SimpleNamespace
+import unittest
 
 import flax.linen as nn
+from jax import random
 import jax.numpy as jnp
 import requests
-from jax import random
 from tqdm import tqdm
 
 from fortuna.model.cnn import CNN
@@ -44,7 +44,7 @@ def download(ckpt_dir, url):
         progress_bar.close()
 
         if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
-            print("An error occured while downloading, please try again.")
+            print("An error occurred while downloading, please try again.")
             if os.path.exists(ckpt_file_temp):
                 os.remove(ckpt_file_temp)
         else:

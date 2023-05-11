@@ -1,4 +1,7 @@
-from typing import List, Optional
+from typing import (
+    List,
+    Optional,
+)
 
 from fortuna.prob_model.fit_config.callback import FitCallback
 from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer

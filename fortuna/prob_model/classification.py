@@ -1,4 +1,7 @@
-from typing import Dict, Optional
+from typing import (
+    Dict,
+    Optional,
+)
 
 import flax.linen as nn
 import numpy as np

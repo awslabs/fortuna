@@ -1,14 +1,23 @@
-from typing import Dict, Optional, Tuple, Union
+from typing import (
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import flax.linen as nn
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import flax.linen as nn
 from flax.training.checkpoints import PyTree
 from jax import random
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.model.model_manager.base import ModelManager
-from fortuna.typing import Array, Mutable, Params
+from fortuna.typing import (
+    Array,
+    Mutable,
+    Params,
+)
 
 
 class RegressionModelManager(ModelManager):
@@ -107,7 +116,7 @@ class RegressionModelManager(ModelManager):
         outputs = jnp.concatenate((model_outputs, lik_log_var_outputs), axis=-1)
         if model_outputs.shape[-1] != lik_log_var_outputs.shape[-1]:
             raise ValueError(
-                f"""The output dimensions of `model` and `likelihood_log_variance_model must be the same. 
+                f"""The output dimensions of `model` and `likelihood_log_variance_model must be the same.
             However, {model_outputs.shape[-1]} and {lik_log_var_outputs.shape[-1]} were found, respectively."""
             )
         if len(aux) > 0:
