@@ -236,7 +236,11 @@ class ADVIPosterior(Posterior):
                     d=state.params.unfreeze(),
                     key_paths=which_params,
                     labels=("mean", "log_std"),
-                )[0],
+                )[0]
+                if which_params
+                else {
+                    k: dict(params=v["params"]["mean"]) for k, v in state.params.items()
+                },
                 which_params=which_params,
             )[1:3]
 
