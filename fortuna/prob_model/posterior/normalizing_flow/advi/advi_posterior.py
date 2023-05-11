@@ -223,15 +223,15 @@ class ADVIPosterior(Posterior):
                         )[1]
                     )[0]
                 )
-            self.base = DiagGaussian(
+            base = DiagGaussian(
                 mean=jnp.zeros(n_params),
                 std=jnp.exp(self.posterior_approximator.log_std_base)
                 * jnp.ones(n_params),
             )
-            self.architecture = ADVIArchitecture(
+            architecture = ADVIArchitecture(
                 n_params, std_init_params=self.posterior_approximator.std_init_params
             )
-            self._unravel, self._indices = self._get_unravel(
+            _unravel, _indices = self._get_unravel(
                 params=nested_unpair(
                     d=state.params.unfreeze(),
                     key_paths=which_params,
@@ -241,15 +241,15 @@ class ADVIPosterior(Posterior):
             )[1:3]
 
         if state._encoded_which_params is None:
-            means = self._unravel(
-                self.architecture.forward(
+            means = _unravel(
+                architecture.forward(
                     {
                         s: ravel_pytree(
                             {k: v["params"][s] for k, v in state.params.items()}
                         )[0]
                         for s in ["mean", "log_std"]
                     },
-                    self.base.sample(rng),
+                    base.sample(rng),
                 )[0][0]
             )
         else:
@@ -267,8 +267,8 @@ class ADVIPosterior(Posterior):
                 ]
                 for k, d in zip(["mean", "log_std"], [means, log_stds])
             }
-            rav_params = self.architecture.forward(
-                params=rav_params, u=self.base.sample(rng)
+            rav_params = architecture.forward(
+                params=rav_params, u=base.sample(rng)
             )[0][0]
 
             means = FrozenDict(
@@ -278,9 +278,9 @@ class ADVIPosterior(Posterior):
                     objs=tuple(
                         [
                             _unravel(
-                                rav_params[self._indices[i] : self._indices[i + 1]]
+                                rav_params[_indices[i] : _indices[i + 1]]
                             )
-                            for i, _unravel in enumerate(self._unravel)
+                            for i, _unravel in enumerate(_unravel)
                         ]
                     ),
                 )
