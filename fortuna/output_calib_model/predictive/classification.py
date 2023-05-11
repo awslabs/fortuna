@@ -3,10 +3,8 @@ from typing import Optional
 import jax.numpy as jnp
 
 from fortuna.output_calib_model.predictive.base import Predictive
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
-from fortuna.prob_output_layer.classification import \
-    ClassificationProbOutputLayer
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
+from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
 from fortuna.typing import Array
 
 

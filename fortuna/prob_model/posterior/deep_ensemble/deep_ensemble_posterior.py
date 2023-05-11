@@ -5,8 +5,9 @@ import os
 import pathlib
 from typing import List, Optional, Tuple, Type
 
-from jax._src.prng import PRNGKeyArray
+from flax.core import FrozenDict
 from jax import pure_callback, random
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
@@ -14,19 +15,23 @@ from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.deep_ensemble import DEEP_ENSEMBLE_NAME
-from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_approximator import \
-    DeepEnsemblePosteriorApproximator
-from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_repositories import \
-    DeepEnsemblePosteriorStateRepository
+from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_approximator import (
+    DeepEnsemblePosteriorApproximator,
+)
+from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_repositories import (
+    DeepEnsemblePosteriorStateRepository,
+)
 from fortuna.prob_model.posterior.map.map_posterior import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
-    JittedMAPTrainer, MAPTrainer, MultiDeviceMAPTrainer)
+    JittedMAPTrainer,
+    MAPTrainer,
+    MultiDeviceMAPTrainer,
+)
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.typing import Path, Status
 from fortuna.utils.device import select_trainer_given_devices
-from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
-from fortuna.utils.nested_dicts import nested_set, nested_get
 from fortuna.utils.freeze import get_trainable_paths
-from flax.core import FrozenDict
+from fortuna.utils.nested_dicts import nested_get, nested_set
 
 logger = logging.getLogger(__name__)
 
@@ -66,18 +71,22 @@ class DeepEnsemblePosterior(Posterior):
 
         map_state = None
         if map_fit_config is not None and fit_config.optimizer.freeze_fun is None:
-            logging.warning("It appears that you are trying to configure `map_fit_config`. "
-                            "However, a preliminary run with MAP is supported only if "
-                            "`fit_config.optimizer.freeze_fun` is given. "
-                            "Since the latter was not given, `map_fit_config` will be ignored.")
-        elif not super()._is_state_available_somewhere(fit_config) and super()._should_run_preliminary_map(fit_config, map_fit_config):
+            logging.warning(
+                "It appears that you are trying to configure `map_fit_config`. "
+                "However, a preliminary run with MAP is supported only if "
+                "`fit_config.optimizer.freeze_fun` is given. "
+                "Since the latter was not given, `map_fit_config` will be ignored."
+            )
+        elif not super()._is_state_available_somewhere(
+            fit_config
+        ) and super()._should_run_preliminary_map(fit_config, map_fit_config):
             map_state, status["map"] = run_preliminary_map(
                 joint=self.joint,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
                 rng=self.rng,
-                **kwargs
+                **kwargs,
             )
 
         trainer_cls = select_trainer_given_devices(
@@ -136,8 +145,12 @@ class DeepEnsemblePosterior(Posterior):
 
         if isinstance(self.state, DeepEnsemblePosteriorStateRepository):
             for i in range(self.posterior_approximator.ensemble_size):
-                self.state.state[i].checkpoint_dir = os.path.join(fit_config.checkpointer.save_checkpoint_dir, str(i)) \
-                    if fit_config.checkpointer.save_checkpoint_dir is not None and fit_config.checkpointer.dump_state else None
+                self.state.state[i].checkpoint_dir = (
+                    os.path.join(fit_config.checkpointer.save_checkpoint_dir, str(i))
+                    if fit_config.checkpointer.save_checkpoint_dir is not None
+                    and fit_config.checkpointer.dump_state
+                    else None
+                )
         else:
             self.state = DeepEnsemblePosteriorStateRepository(
                 ensemble_size=self.posterior_approximator.ensemble_size,
@@ -191,10 +204,7 @@ class DeepEnsemblePosterior(Posterior):
             self.state.put(state=self.state.get(i), i=i, keep=keep_top_n_checkpoints)
 
     def _init_map_state(
-            self,
-            state: Optional[MAPState],
-            data_loader: DataLoader,
-            fit_config: FitConfig
+        self, state: Optional[MAPState], data_loader: DataLoader, fit_config: FitConfig
     ) -> MAPState:
         if state is None or fit_config.optimizer.freeze_fun is None:
             state = super()._init_joint_state(data_loader)
@@ -208,16 +218,20 @@ class DeepEnsemblePosterior(Posterior):
             )
         else:
             random_state = super()._init_joint_state(data_loader)
-            trainable_paths = get_trainable_paths(state.params, fit_config.optimizer.freeze_fun)
+            trainable_paths = get_trainable_paths(
+                state.params, fit_config.optimizer.freeze_fun
+            )
             state = state.replace(
                 params=FrozenDict(
                     nested_set(
                         d=state.params.unfreeze(),
                         key_paths=trainable_paths,
-                        objs=tuple([
-                            nested_get(d=random_state, keys=path)
-                            for path in trainable_paths
-                            ])
+                        objs=tuple(
+                            [
+                                nested_get(d=random_state.params, keys=path)
+                                for path in trainable_paths
+                            ]
+                        ),
                     )
                 )
             )
@@ -232,16 +246,22 @@ class DeepEnsemblePosterior(Posterior):
     ) -> MAPState:
         if fit_config.checkpointer.restore_checkpoint_path is not None:
             state = self.restore_checkpoint(
-                restore_checkpoint_path=str(fit_config.checkpointer.restore_checkpoint_path) + "/" + str(i),
+                restore_checkpoint_path=str(
+                    fit_config.checkpointer.restore_checkpoint_path
+                )
+                + "/"
+                + str(i),
                 optimizer=fit_config.optimizer.method,
             )
         elif fit_config.checkpointer.start_from_current_state is not None:
             state = self.state.get(i=i, optimizer=fit_config.optimizer.method)
 
         if allowed_states is not None and not isinstance(state, allowed_states):
-            raise ValueError(f"The type of the restored checkpoint must be within {allowed_states}. "
-                             f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
-                             f"with type {type(state)}.")
+            raise ValueError(
+                f"The type of the restored checkpoint must be within {allowed_states}. "
+                f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                f"with type {type(state)}."
+            )
 
         self._check_state(state)
         return state

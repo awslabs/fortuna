@@ -4,9 +4,13 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-from fortuna.data.loader.base import BaseDataLoaderABC, BaseInputsLoader, BaseTargetsLoader
+from fortuna.data.loader.base import (
+    BaseDataLoaderABC,
+    BaseInputsLoader,
+    BaseTargetsLoader,
+)
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Batch, Array
+from fortuna.typing import Array, Batch
 
 
 class DataLoader(BaseDataLoaderABC):
@@ -130,6 +134,7 @@ class DataLoader(BaseDataLoaderABC):
         DataLoader
             A data loader with chopped batches.
         """
+
         def fun():
             for inputs, targets in self:
                 reminder = targets.shape[0] % divisor
@@ -155,6 +160,7 @@ class DataLoader(BaseDataLoaderABC):
         Tuple[DataLoader, DataLoader]
             The two data loaders made out of the original one.
         """
+
         def data_loader1():
             count = 0
             for inputs, targets in self:
@@ -164,7 +170,10 @@ class DataLoader(BaseDataLoaderABC):
                     count += inputs.shape[0]
                     yield inputs, targets
                 else:
-                    inputs, targets = inputs[:n_data - count], targets[:n_data - count]
+                    inputs, targets = (
+                        inputs[: n_data - count],
+                        targets[: n_data - count],
+                    )
                     count = n_data
                     yield inputs, targets
 
@@ -176,12 +185,17 @@ class DataLoader(BaseDataLoaderABC):
                 elif (count <= n_data) and (count + inputs.shape[0] > n_data):
                     count2 = count
                     count += inputs.shape[0]
-                    inputs, targets = inputs[n_data - count2:], targets[n_data - count2:]
+                    inputs, targets = (
+                        inputs[n_data - count2 :],
+                        targets[n_data - count2 :],
+                    )
                     yield inputs, targets
                 else:
                     count += inputs.shape[0]
 
-        return self.from_callable_iterable(data_loader1), self.from_callable_iterable(data_loader2)
+        return self.from_callable_iterable(data_loader1), self.from_callable_iterable(
+            data_loader2
+        )
 
     def sample(self, seed: int, n_samples: int) -> DataLoader:
         """
@@ -199,6 +213,7 @@ class DataLoader(BaseDataLoaderABC):
         DataLoader
             A data loader made of the sampled data points.
         """
+
         def fun():
             rng = np.random.default_rng(seed)
             count = 0
@@ -207,10 +222,13 @@ class DataLoader(BaseDataLoaderABC):
                 for inputs, targets in self:
                     if count == n_samples:
                         break
-                    idx = rng.choice(2, inputs.shape[0]).astype('bool')
+                    idx = rng.choice(2, inputs.shape[0]).astype("bool")
                     inputs, targets = inputs[idx], targets[idx]
                     if count + inputs.shape[0] > n_samples:
-                        inputs, targets = inputs[:n_samples - count], targets[:n_samples - count]
+                        inputs, targets = (
+                            inputs[: n_samples - count],
+                            targets[: n_samples - count],
+                        )
                     count += inputs.shape[0]
                     if inputs.shape[0] > 0:
                         yield inputs, targets
@@ -222,12 +240,14 @@ class DataLoader(BaseDataLoaderABC):
 
     @property
     def input_shape(self) -> Tuple[int, ...]:
-        """ Get the shape of the inputs in the data loader. """
+        """Get the shape of the inputs in the data loader."""
+
         def fun():
             for inputs, targets in self:
                 input_shape = inputs.shape[1:]
                 break
             return input_shape
+
         return fun()
 
 
@@ -321,6 +341,7 @@ class InputsLoader(BaseInputsLoader):
         InputsLoader
             An inputs loader made of the sampled inputs.
         """
+
         def fun():
             rng = np.random.default_rng(seed)
             count = 0
@@ -329,10 +350,10 @@ class InputsLoader(BaseInputsLoader):
                 for inputs in self:
                     if count == n_samples:
                         break
-                    idx = rng.choice(2, inputs.shape[0]).astype('bool')
+                    idx = rng.choice(2, inputs.shape[0]).astype("bool")
                     inputs = inputs[idx]
                     if count + inputs.shape[0] > n_samples:
-                        inputs = inputs[:n_samples - count]
+                        inputs = inputs[: n_samples - count]
                     count += inputs.shape[0]
                     if inputs.shape[0] > 0:
                         yield inputs
@@ -344,12 +365,14 @@ class InputsLoader(BaseInputsLoader):
 
     @property
     def input_shape(self) -> Tuple[int, ...]:
-        """ Get the shape of the inputs in the inputs loader. """
+        """Get the shape of the inputs in the inputs loader."""
+
         def fun():
             for inputs in self:
                 input_shape = inputs.shape[1:]
                 break
             return input_shape
+
         return fun()
 
     def split(self, n_data: int) -> Tuple[InputsLoader, InputsLoader]:
@@ -367,6 +390,7 @@ class InputsLoader(BaseInputsLoader):
         Tuple[InputsLoader, InputsLoader]
             The two inputs loaders made out of the original one.
         """
+
         def inputs_loader1():
             count = 0
             for inputs in self:
@@ -376,7 +400,7 @@ class InputsLoader(BaseInputsLoader):
                     count += inputs.shape[0]
                     yield inputs
                 else:
-                    inputs = inputs[:n_data - count]
+                    inputs = inputs[: n_data - count]
                     count = n_data
                     yield inputs
 
@@ -388,12 +412,14 @@ class InputsLoader(BaseInputsLoader):
                 elif (count <= n_data) and (count + inputs.shape[0] > n_data):
                     count2 = count
                     count += inputs.shape[0]
-                    inputs = inputs[n_data - count2:]
+                    inputs = inputs[n_data - count2 :]
                     yield inputs
                 else:
                     count += inputs.shape[0]
 
-        return self.from_callable_iterable(inputs_loader1), self.from_callable_iterable(inputs_loader2)
+        return self.from_callable_iterable(inputs_loader1), self.from_callable_iterable(
+            inputs_loader2
+        )
 
 
 class TargetsLoader(BaseTargetsLoader):
@@ -486,6 +512,7 @@ class TargetsLoader(BaseTargetsLoader):
         TargetsLoader
             A targets loader made of the sampled targets.
         """
+
         def fun():
             rng = np.random.default_rng(seed)
             count = 0
@@ -494,10 +521,10 @@ class TargetsLoader(BaseTargetsLoader):
                 for targets in self:
                     if count == n_samples:
                         break
-                    idx = rng.choice(2, targets.shape[0]).astype('bool')
+                    idx = rng.choice(2, targets.shape[0]).astype("bool")
                     targets = targets[idx]
                     if count + targets.shape[0] > n_samples:
-                        targets = targets[:n_samples - count]
+                        targets = targets[: n_samples - count]
                     count += targets.shape[0]
                     if targets.shape[0] > 0:
                         yield targets
@@ -522,6 +549,7 @@ class TargetsLoader(BaseTargetsLoader):
         Tuple[TargetsLoader, TargetsLoader]
             The two targets loaders made out of the original one.
         """
+
         def targets_loader1():
             count = 0
             for targets in self:
@@ -531,7 +559,7 @@ class TargetsLoader(BaseTargetsLoader):
                     count += targets.shape[0]
                     yield targets
                 else:
-                    targets = targets[:n_data - count]
+                    targets = targets[: n_data - count]
                     count = n_data
                     yield targets
 
@@ -543,9 +571,11 @@ class TargetsLoader(BaseTargetsLoader):
                 elif (count <= n_data) and (count + targets.shape[0] > n_data):
                     count2 = count
                     count += targets.shape[0]
-                    targets = targets[n_data - count2:]
+                    targets = targets[n_data - count2 :]
                     yield targets
                 else:
                     count += targets.shape[0]
 
-        return self.from_callable_iterable(targets_loader1), self.from_callable_iterable(targets_loader2)
+        return self.from_callable_iterable(
+            targets_loader1
+        ), self.from_callable_iterable(targets_loader2)

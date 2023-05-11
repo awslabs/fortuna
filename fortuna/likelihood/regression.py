@@ -6,10 +6,9 @@ from jax import vmap
 from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import InputsLoader
-from fortuna.model.model_manager.regression import RegressionModelManager
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
 from fortuna.likelihood.base import Likelihood
+from fortuna.model.model_manager.regression import RegressionModelManager
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
 

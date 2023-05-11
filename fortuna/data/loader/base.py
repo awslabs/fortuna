@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from typing import Iterable, Callable, Optional, Tuple, List, TypeVar, Type
 import abc
+from typing import Callable, Iterable, List, Optional, Tuple, Type, TypeVar
 
 import jax
 from flax import jax_utils
 from jax.tree_util import tree_map
 
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Batch, InputData, Array, Status, Targets
+from fortuna.typing import Array, Batch, InputData, Status, Targets
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class BaseDataLoaderABC(abc.ABC):
@@ -60,7 +60,7 @@ class BaseDataLoaderABC(abc.ABC):
         Returns
         -------
         BaseInputsLoader
-            The inputs loader derived from the data loader. This will be a concrete instance of a subclass 
+            The inputs loader derived from the data loader. This will be a concrete instance of a subclass
             of :class:`~fortuna.data.loader.BaseInputsLoader`.
         """
         pass
@@ -73,7 +73,7 @@ class BaseDataLoaderABC(abc.ABC):
         Returns
         -------
         BaseTargetsLoader
-            The targets loader derived from the data loader. This will be a concrete instance of a subclass 
+            The targets loader derived from the data loader. This will be a concrete instance of a subclass
             of :class:`~fortuna.data.loader.BaseTargetsLoader`.
         """
         pass
@@ -87,7 +87,7 @@ class BaseDataLoaderABC(abc.ABC):
         ],
     ) -> T:
         """
-        Transform a callable iterable into a concrete instance of a subclass of 
+        Transform a callable iterable into a concrete instance of a subclass of
         :class:`~fortuna.data.loader.BaseDataLoader`.
 
         Parameters
@@ -123,11 +123,10 @@ class BaseDataLoaderABC(abc.ABC):
         """
         return cls(iterable=IterableData.from_iterable(iterable))
 
-
     @classmethod
     def from_tensorflow_data_loader(cls: Type[T], tf_data_loader) -> T:
         """
-        Transform a TensorFlow data loader into a concrete instance of a subclass of 
+        Transform a TensorFlow data loader into a concrete instance of a subclass of
         :class:`~fortuna.data.loader.BaseDataLoader`.
 
         Parameters
@@ -145,7 +144,7 @@ class BaseDataLoaderABC(abc.ABC):
     @classmethod
     def from_torch_data_loader(cls: Type[T], torch_data_loader) -> T:
         """
-        Transform a PyTorch data loader into a concrete instance of a subclass of 
+        Transform a PyTorch data loader into a concrete instance of a subclass of
         :class:`~fortuna.data.loader.BaseDataLoader`.
 
         Parameters
@@ -161,9 +160,11 @@ class BaseDataLoaderABC(abc.ABC):
         return cls(iterable=IterableData.from_torch_dataloader(torch_data_loader))
 
     @classmethod
-    def from_inputs_loaders(cls: Type[T], inputs_loaders: List[BaseInputsLoader], targets: List[int]) -> T:
+    def from_inputs_loaders(
+        cls: Type[T], inputs_loaders: List[BaseInputsLoader], targets: List[int]
+    ) -> T:
         """
-        Transform a list of inputs loader into a concrete instance of a subclass of 
+        Transform a list of inputs loader into a concrete instance of a subclass of
         :class:`~fortuna.data.loader.BaseDataLoader`. The newly created data loader is formed out
         of concatenated batches of inputs and the respective assigned target variable.
 
@@ -182,15 +183,16 @@ class BaseDataLoaderABC(abc.ABC):
         """
         return cls(
             iterable=IterableData.inputs_loaders_to_batch_iterable(
-                inputs_loaders=inputs_loaders,
-                targets=targets
+                inputs_loaders=inputs_loaders, targets=targets
             )
         )
 
     def to_transformed_data_loader(
-            self: T,
-            transform: Callable[[InputData, Array, Status], Tuple[InputData, Array, Status]],
-            status: Optional[Status] = None,
+        self: T,
+        transform: Callable[
+            [InputData, Array, Status], Tuple[InputData, Array, Status]
+        ],
+        status: Optional[Status] = None,
     ) -> T:
         """
         Transform the batches of an existing data loader.
@@ -209,9 +211,11 @@ class BaseDataLoaderABC(abc.ABC):
             A concrete instance of a subclass of :class:`~fortuna.data.loader.BaseDataLoader`.
         """
         cls = self.__class__
-        return cls(IterableData.transform_data_loader(
-            loader=self, transform_fn=transform, status=status
-        ))
+        return cls(
+            IterableData.transform_data_loader(
+                loader=self, transform_fn=transform, status=status
+            )
+        )
 
 
 class BaseInputsLoader:
@@ -261,7 +265,7 @@ class BaseInputsLoader:
         fun: Callable[[], Iterable[InputData]],
     ) -> T:
         """
-        Transform a callable iterable into a concrete instance of a subclass of 
+        Transform a callable iterable into a concrete instance of a subclass of
         :class:`~fortuna.data.loader.BaseInputsLoader`
 
         Parameters
@@ -298,9 +302,9 @@ class BaseInputsLoader:
         return cls(iterable=IterableData.from_iterable(iterable))
 
     def to_transformed_inputs_loader(
-            self: T,
-            transform: Callable[[InputData, Status], Tuple[InputData, Status]],
-            status: Optional[Status] = None,
+        self: T,
+        transform: Callable[[InputData, Status], Tuple[InputData, Status]],
+        status: Optional[Status] = None,
     ) -> T:
         """
         From an existing loader of inputs, create a loader with transformed inputs.
@@ -318,15 +322,18 @@ class BaseInputsLoader:
             A concrete instance of a subclass of :class:`~fortuna.data.loader.BaseInputsLoader`.
         """
         cls = self.__class__
-        return cls(IterableData.transform_inputs_or_targets_loader(
-            loader=self, transform_fn=transform, status=status
-        ))
+        return cls(
+            IterableData.transform_inputs_or_targets_loader(
+                loader=self, transform_fn=transform, status=status
+            )
+        )
 
 
 class BaseTargetsLoader:
     """
     A targets loader class.
     """
+
     def __init__(self, iterable):
         self._iterable = iterable
 
@@ -371,7 +378,7 @@ class BaseTargetsLoader:
         fun: Callable[[], Iterable[Array]],
     ) -> T:
         """
-        Transform a callable iterable into a concrete instance of a subclass of 
+        Transform a callable iterable into a concrete instance of a subclass of
         :class:`~fortuna.data.loader.BaseTargetsLoader`.
 
         Parameters
@@ -408,9 +415,9 @@ class BaseTargetsLoader:
         return cls(iterable=IterableData.from_iterable(iterable))
 
     def to_transformed_targets_loader(
-            self: T,
-            transform: Callable[[Array, Status], Tuple[Array, Status]],
-            status: Optional[Status] = None,
+        self: T,
+        transform: Callable[[Array, Status], Tuple[Array, Status]],
+        status: Optional[Status] = None,
     ) -> T:
         """
         From an existing loader of targets, create a loader with transformed targets.
@@ -429,9 +436,11 @@ class BaseTargetsLoader:
             A concrete instance of a subclass of :class:`~fortuna.data.loader.BaseTargetsLoader`.
         """
         cls = self.__class__
-        return cls(IterableData.transform_inputs_or_targets_loader(
-            loader=self, transform_fn=transform, status=status
-        ))
+        return cls(
+            IterableData.transform_inputs_or_targets_loader(
+                loader=self, transform_fn=transform, status=status
+            )
+        )
 
 
 class DeviceDimensionAugmentedLoader:
@@ -450,8 +459,6 @@ class DeviceDimensionAugmentedLoader:
         return inputs.reshape((n_devices, -1) + inputs.shape[1:])
 
     def __iter__(self, *args, **kwargs):
-        loader = map(
-            lambda batch: tree_map(self._reshape_inputs, batch), self._loader
-        )
+        loader = map(lambda batch: tree_map(self._reshape_inputs, batch), self._loader)
         loader = jax_utils.prefetch_to_device(loader, 2)
         yield from loader

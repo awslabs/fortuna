@@ -18,6 +18,7 @@ class Callback:
                 logger.info(f"num params: {len(params)}")
                 return state
     """
+
     def training_epoch_start(self, state: TrainState) -> TrainState:
         """
         Called at the beginning of every training epoch

@@ -11,8 +11,7 @@ from fortuna.prob_model.posterior.map import *
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
 from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
-from fortuna.typing import (Array, Batch, CalibMutable, CalibParams, Mutable,
-                            Params)
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Mutable, Params
 
 
 class MAPTrainer(PosteriorTrainerABC):

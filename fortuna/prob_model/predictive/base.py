@@ -8,9 +8,12 @@ from jax import jit, lax, pmap, random
 from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
-from fortuna.data.loader import (DataLoader,
-                                 DeviceDimensionAugmentedLoader,
-                                 InputsLoader, TargetsLoader)
+from fortuna.data.loader import (
+    DataLoader,
+    DeviceDimensionAugmentedLoader,
+    InputsLoader,
+    TargetsLoader,
+)
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.typing import Array, Batch, CalibMutable, CalibParams
 from fortuna.utils.random import WithRNG
@@ -253,9 +256,6 @@ class Predictive(WithRNG):
         if not rng:
             rng = self.rng.get()
 
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun(_inputs):
             return self._batched_sample(
                 _inputs, n_target_samples, return_aux, rng, **kwargs
@@ -270,7 +270,7 @@ class Predictive(WithRNG):
                         self.likelihood._unshard_array(fun(inputs))
                         for inputs in inputs_loader
                     ],
-                    0,
+                    1,
                 )
             else:
                 samples, aux_outputs = [], []
@@ -445,9 +445,6 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_output_samples)
-
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
 
         if distribute:
             inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
@@ -855,9 +852,6 @@ class Predictive(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> Array:
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun2(_inputs):
             return fun(_inputs, n_posterior_samples, rng, **kwargs)
 
@@ -883,9 +877,6 @@ class Predictive(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> Array:
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun2(_batch):
             return fun(_batch, n_posterior_samples, rng, **kwargs)
 
@@ -908,9 +899,6 @@ class Predictive(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> Array:
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun2(_inputs):
             return fun(_inputs, n_posterior_samples, rng, **kwargs)
 

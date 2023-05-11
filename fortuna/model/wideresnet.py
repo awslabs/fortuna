@@ -61,7 +61,7 @@ class WideResnetBlock(nn.Module):
         jnp.ndarray
             Block outputs.
         """
-        dropout = self.dropout(rate=self.dropout_rate, broadcast_dims=(1,2))
+        dropout = self.dropout(rate=self.dropout_rate, broadcast_dims=(1, 2))
 
         y = self.norm(name="bn1")(x)
         y = nn.relu(y)
@@ -188,14 +188,14 @@ class DeepFeatureExtractorSubNet(nn.Module):
         jnp.ndarray
             Deep feature extractor representation.
         """
-        if hasattr(self, 'spectral_norm'):
+        if hasattr(self, "spectral_norm"):
             conv = self.spectral_norm(self.conv, train=train)
         else:
             conv = self.conv
 
         blocks_per_group = (self.depth - 4) // 6
 
-        dropout = self.dropout(rate=self.dropout_rate, broadcast_dims=(1,2))
+        dropout = self.dropout(rate=self.dropout_rate, broadcast_dims=(1, 2))
         conv = partial(conv, use_bias=False, dtype=self.dtype)
         norm = partial(
             nn.BatchNorm,
@@ -350,8 +350,13 @@ class WideResNet(nn.Module):
 WideResNet28_10 = partial(WideResNet, depth=28, widen_factor=10)
 
 
-class WideResNetDeepFeatureExtractorSubNetWithSN(WithSpectralConv2DNorm, DeepFeatureExtractorSubNet):
+class WideResNetDeepFeatureExtractorSubNetWithSN(
+    WithSpectralConv2DNorm, DeepFeatureExtractorSubNet
+):
     pass
 
+
 # define the feature extractors with spectral norm
-WideResNetD28W10DeepFeatureExtractorSubNetWithSN = partial(WideResNetDeepFeatureExtractorSubNetWithSN, depth=28, widen_factor=10)
+WideResNetD28W10DeepFeatureExtractorSubNetWithSN = partial(
+    WideResNetDeepFeatureExtractorSubNetWithSN, depth=28, widen_factor=10
+)

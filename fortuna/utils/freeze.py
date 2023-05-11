@@ -1,9 +1,11 @@
-from fortuna.typing import OptaxOptimizer, Array, Params, AnyKey
-from flax.traverse_util import path_aware_map, flatten_dict
+from typing import Any, Callable, Iterable, List, Optional, Tuple
+
 from flax.core.frozen_dict import freeze
+from flax.traverse_util import flatten_dict, path_aware_map
 from jax.tree_util import tree_leaves
-from typing import Callable, Tuple, Any, Iterable, List, Optional
-from optax import set_to_zero, multi_transform
+from optax import multi_transform, set_to_zero
+
+from fortuna.typing import AnyKey, Array, OptaxOptimizer, Params
 
 
 def all_values_in_labels(values: Iterable, labels: Any) -> None:
@@ -19,14 +21,16 @@ def all_values_in_labels(values: Iterable, labels: Any) -> None:
     """
     for v in values:
         if v not in labels:
-            raise ValueError(f"All values must belong to one of the following labels: {labels}. However, "
-                             f"value {v} was found.")
+            raise ValueError(
+                f"All values must belong to one of the following labels: {labels}. However, "
+                f"value {v} was found."
+            )
 
 
 def freeze_optimizer(
-        params: Params,
-        optimizer: OptaxOptimizer,
-        freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
+    params: Params,
+    optimizer: OptaxOptimizer,
+    freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
 ) -> OptaxOptimizer:
     """
     Given an optimizer, set its gradient update to zero in correspondence to the frozen parameters specified by the
@@ -58,8 +62,8 @@ def freeze_optimizer(
 
 
 def get_trainable_paths(
-        params: Params,
-        freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
+    params: Params,
+    freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
 ) -> Tuple[List[AnyKey], ...]:
     """
     Return a tuple of sequences of keys pointing to the trainable parameters only.
@@ -81,8 +85,8 @@ def get_trainable_paths(
 
 
 def get_frozen_paths(
-        params: Params,
-        freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
+    params: Params,
+    freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
 ) -> Tuple[List[AnyKey], ...]:
     """
     Return a tuple of sequences of keys pointing to the frozen parameters only.
@@ -104,15 +108,16 @@ def get_frozen_paths(
 
 
 def _get_paths_with_label(
-        params: Params,
-        freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
-        label: str
+    params: Params,
+    freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
+    label: str,
 ) -> Tuple[List[AnyKey], ...]:
     paths = path_aware_map(lambda p, v: p, params)
     if freeze_fun is not None:
         conds = list(flatten_dict(path_aware_map(freeze_fun, params)).values())
         all_values_in_labels(conds, ["trainable", "frozen"])
-        return tuple([list(p) for c, p in zip(conds, flatten_dict(paths)) if c == label])
+        return tuple(
+            [list(p) for c, p in zip(conds, flatten_dict(paths)) if c == label]
+        )
     else:
         return tuple([list(p) for p in paths])
-

@@ -1,16 +1,16 @@
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import flax.linen as nn
 import jax.numpy as jnp
 
+from fortuna.loss.regression.scaled_mse import scaled_mse_fn
 from fortuna.output_calib_model.base import OutputCalibModel
 from fortuna.output_calib_model.config.base import Config
 from fortuna.output_calib_model.predictive.regression import RegressionPredictive
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.typing import Array, Status, Outputs, Targets
-from fortuna.loss.regression.scaled_mse import scaled_mse_fn
+from fortuna.typing import Array, Outputs, Status, Targets
 
 
 class OutputCalibRegressor(OutputCalibModel):

@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
-from fortuna.typing import Array
 from fortuna.conformal.regression.base import ConformalRegressor
+from fortuna.typing import Array
 
 
 class JackknifeMinmaxConformalRegressor(ConformalRegressor):

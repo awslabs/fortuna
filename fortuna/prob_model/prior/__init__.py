@@ -1,2 +1,5 @@
-from fortuna.prob_model.prior.gaussian import (DiagonalGaussianPrior,
-                                               IsotropicGaussianPrior, Prior)
+from fortuna.prob_model.prior.gaussian import (
+    DiagonalGaussianPrior,
+    IsotropicGaussianPrior,
+    Prior,
+)

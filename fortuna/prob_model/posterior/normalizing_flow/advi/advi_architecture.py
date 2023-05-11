@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, Dict
+from typing import Dict, Optional, Tuple
 
 import jax.numpy as jnp
 from jax import random
@@ -27,7 +27,9 @@ class ADVIArchitecture(HashableMixin):
         self.dim = dim
         self.std_init_params = std_init_params
 
-    def forward(self, params: Dict[str, jnp.ndarray], u: jnp.ndarray) -> Tuple[jnp.ndarray, jnp.ndarray]:
+    def forward(
+        self, params: Dict[str, jnp.ndarray], u: jnp.ndarray
+    ) -> Tuple[jnp.ndarray, jnp.ndarray]:
         """
         Component-wise forward linear transformation.
 
@@ -51,7 +53,9 @@ class ADVIArchitecture(HashableMixin):
             jnp.repeat(jnp.sum(params["log_std"], -1), u.shape[0]),
         )
 
-    def backward(self, params: Dict[str, jnp.ndarray], v: jnp.ndarray) -> Tuple[jnp.array, jnp.array]:
+    def backward(
+        self, params: Dict[str, jnp.ndarray], v: jnp.ndarray
+    ) -> Tuple[jnp.array, jnp.array]:
         """
         Component-wise backward linear transformation.
 
@@ -79,7 +83,7 @@ class ADVIArchitecture(HashableMixin):
         self,
         rng: PRNGKeyArray,
         mean: Optional[jnp.ndarray] = None,
-        log_std: Optional[jnp.ndarray] = None
+        log_std: Optional[jnp.ndarray] = None,
     ) -> Dict[str, jnp.ndarray]:
         """
         Initialize architecture parameters.

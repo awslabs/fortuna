@@ -1,10 +1,11 @@
+from typing import Callable, List, Optional, Tuple, Union
+
+import jax.numpy as jnp
+
 from fortuna.conformal.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.regression.base import ConformalRegressor
-
-from typing import Callable, Union, List, Tuple, Optional
-from fortuna.typing import Array
 from fortuna.data.loader import DataLoader, InputsLoader
-import jax.numpy as jnp
+from fortuna.typing import Array
 
 
 class Bounds:
@@ -14,25 +15,31 @@ class Bounds:
     def __call__(self, x: Array, t: Array) -> Tuple[Array, Array]:
         bl, br = self.bounds_fn(x, t)
         if bl.ndim > 1:
-            raise ValueError("Evaluations of the bounds function must e a tuple of two one-dimensional arrays. "
-                             f"However, the first array has shape {bl.shape}.")
+            raise ValueError(
+                "Evaluations of the bounds function must e a tuple of two one-dimensional arrays. "
+                f"However, the first array has shape {bl.shape}."
+            )
         if br.ndim > 1:
-            raise ValueError("Evaluations of the bounds function must be a tuple of two one-dimensional arrays. "
-                             f"However, the second array has shape {bl.shape}.")
+            raise ValueError(
+                "Evaluations of the bounds function must be a tuple of two one-dimensional arrays. "
+                f"However, the second array has shape {bl.shape}."
+            )
         if len(bl) != len(br):
-            raise ValueError("Evaluations of the bounds function must be a tuple of two one-dimensional arrays "
-                             f"with same length. However, lengths {len(bl)} and {len(br)} were found, "
-                             f"respectively.")
+            raise ValueError(
+                "Evaluations of the bounds function must be a tuple of two one-dimensional arrays "
+                f"with same length. However, lengths {len(bl)} and {len(br)} were found, "
+                f"respectively."
+            )
         return bl, br
 
 
 class BatchMVPConformalRegressor(BatchMVPConformalMethod, ConformalRegressor):
     def __init__(
-            self,
-            score_fn: Callable[[Array, Array], Array],
-            group_fns: List[Callable[[Array], Array]],
-            bounds_fn: Callable[[Array, Array], Tuple[Array, Array]],
-            n_buckets: int = 100
+        self,
+        score_fn: Callable[[Array, Array], Array],
+        group_fns: List[Callable[[Array], Array]],
+        bounds_fn: Callable[[Array, Array], Tuple[Array, Array]],
+        n_buckets: int = 100,
     ):
         """
         This class implements a regression version of BatchMVP
@@ -64,14 +71,14 @@ class BatchMVPConformalRegressor(BatchMVPConformalMethod, ConformalRegressor):
         self.bounds_fn = Bounds(bounds_fn=bounds_fn)
 
     def conformal_interval(
-            self,
-            val_data_loader: DataLoader,
-            test_inputs_loader: InputsLoader,
-            error: float = 0.05,
-            tol: float = 1e-4,
-            n_rounds: int = 1000,
-            return_max_calib_error: bool = False,
-            test_thresholds: Optional[Array] = None
+        self,
+        val_data_loader: DataLoader,
+        test_inputs_loader: InputsLoader,
+        error: float = 0.05,
+        tol: float = 1e-4,
+        n_rounds: int = 1000,
+        return_max_calib_error: bool = False,
+        test_thresholds: Optional[Array] = None,
     ) -> Union[Array, Tuple[Array, List[Array]]]:
         """
         Compute a conformal interval for each test input.
@@ -102,7 +109,9 @@ class BatchMVPConformalRegressor(BatchMVPConformalMethod, ConformalRegressor):
             Optionally, it returns the maximum calibration errors computed during the algorithm.
         """
         if test_thresholds is not None and return_max_calib_error:
-            raise ValueError("If `test_thresholds` is given, `return_max_calib_error` cannot be returned.")
+            raise ValueError(
+                "If `test_thresholds` is given, `return_max_calib_error` cannot be returned."
+            )
         if test_thresholds is None:
             outs = self.threshold_score(
                 val_data_loader=val_data_loader,
@@ -110,7 +119,7 @@ class BatchMVPConformalRegressor(BatchMVPConformalMethod, ConformalRegressor):
                 error=error,
                 tol=tol,
                 n_rounds=n_rounds,
-                return_max_calib_error=return_max_calib_error
+                return_max_calib_error=return_max_calib_error,
             )
             if return_max_calib_error:
                 test_thresholds, max_calib_errors = outs
@@ -120,7 +129,9 @@ class BatchMVPConformalRegressor(BatchMVPConformalMethod, ConformalRegressor):
         c = 0
         intervals = []
         for inputs in test_inputs_loader:
-            left, right = self.bounds_fn(inputs, test_thresholds[c:c+inputs.shape[0]])
+            left, right = self.bounds_fn(
+                inputs, test_thresholds[c : c + inputs.shape[0]]
+            )
             intervals.append(jnp.stack((left, right), axis=1))
             c += inputs.shape[0]
         intervals = jnp.concatenate(intervals, axis=0)

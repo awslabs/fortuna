@@ -4,20 +4,21 @@ import flax.linen as nn
 import numpy as np
 
 from fortuna.data.loader import DataLoader
+from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.model.model_manager.regression import RegressionModelManager
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_model.base import ProbModel
 from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.prob_model.posterior.base import PosteriorApproximator
-from fortuna.prob_model.posterior.posterior_approximations import \
-    PosteriorApproximations
-from fortuna.prob_model.posterior.swag.swag_approximator import \
-    SWAGPosteriorApproximator
+from fortuna.prob_model.posterior.posterior_approximations import (
+    PosteriorApproximations,
+)
+from fortuna.prob_model.posterior.swag.swag_approximator import (
+    SWAGPosteriorApproximator,
+)
 from fortuna.prob_model.predictive.regression import RegressionPredictive
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.prior.base import Prior

@@ -1,7 +1,6 @@
 from typing import Dict, Optional
 
-from fortuna.prob_model.posterior.posterior_mixin import \
-    WithPosteriorCheckpointingMixin
+from fortuna.prob_model.posterior.posterior_mixin import WithPosteriorCheckpointingMixin
 from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.typing import Path
 

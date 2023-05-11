@@ -6,15 +6,11 @@ import jax.numpy as jnp
 from jax import jit, pmap
 from jax._src.prng import PRNGKeyArray
 
-from fortuna.data.loader import (DataLoader,
-                                 DeviceDimensionAugmentedLoader,
-                                 InputsLoader)
+from fortuna.data.loader import DataLoader, DeviceDimensionAugmentedLoader, InputsLoader
 from fortuna.model.model_manager.base import ModelManager
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import (Array, Batch, CalibMutable, CalibParams, Mutable,
-                            Params)
+from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Mutable, Params
 from fortuna.utils.random import WithRNG
 
 
@@ -386,7 +382,10 @@ class Likelihood(WithRNG):
         """
         outputs = self.get_outputs(params, inputs_loader, mutable, distribute, **kwargs)
 
-        if self.output_calib_manager is not None and self.output_calib_manager.output_calibrator is not None:
+        if (
+            self.output_calib_manager is not None
+            and self.output_calib_manager.output_calibrator is not None
+        ):
             outputs = self.output_calib_manager.apply(
                 params=calib_params["output_calibrator"]
                 if calib_params is not None
@@ -410,7 +409,10 @@ class Likelihood(WithRNG):
     ) -> jnp.ndarray:
         outputs = self.model_manager.apply(params, inputs, mutable, **kwargs)
 
-        if self.output_calib_manager is not None and self.output_calib_manager.output_calibrator is not None:
+        if (
+            self.output_calib_manager is not None
+            and self.output_calib_manager.output_calibrator is not None
+        ):
             outputs = self.output_calib_manager.apply(
                 params=calib_params["output_calibrator"]
                 if calib_params is not None
@@ -450,8 +452,6 @@ class Likelihood(WithRNG):
         jnp.ndarray
             The calibrated outputs.
         """
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
 
         if distribute:
             inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
@@ -774,9 +774,6 @@ class Likelihood(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> Array:
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun2(_inputs):
             return fun(params, _inputs, mutable, calib_params, calib_mutable, **kwargs)
 
@@ -800,9 +797,6 @@ class Likelihood(WithRNG):
         distribute: bool = True,
         **kwargs
     ) -> Array:
-        if distribute and jax.local_device_count() <= 1:
-            distribute = False
-
         def fun2(_batch):
             return fun(params, _batch, mutable, calib_params, calib_mutable, **kwargs)
 

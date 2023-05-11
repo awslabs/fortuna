@@ -1,10 +1,12 @@
 import os
 from typing import Dict, List, Optional, Union
 
-from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_state import \
-    DeepEnsembleState
-from fortuna.prob_model.posterior.posterior_state_repository import \
-    PosteriorStateRepository
+from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_state import (
+    DeepEnsembleState,
+)
+from fortuna.prob_model.posterior.posterior_state_repository import (
+    PosteriorStateRepository,
+)
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import OptaxOptimizer, Path
 

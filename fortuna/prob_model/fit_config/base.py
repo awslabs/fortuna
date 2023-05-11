@@ -1,10 +1,10 @@
 from typing import List, Optional
 
+from fortuna.prob_model.fit_config.callback import FitCallback
 from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer
 from fortuna.prob_model.fit_config.monitor import FitMonitor
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
 from fortuna.prob_model.fit_config.processor import FitProcessor
-from fortuna.prob_model.fit_config.callback import FitCallback
 
 
 class FitConfig:
@@ -14,7 +14,7 @@ class FitConfig:
         checkpointer: FitCheckpointer = FitCheckpointer(),
         monitor: FitMonitor = FitMonitor(),
         processor: FitProcessor = FitProcessor(),
-        callbacks: Optional[List[FitCallback]] = None
+        callbacks: Optional[List[FitCallback]] = None,
     ):
         """
         Configure the posterior distribution fitting.

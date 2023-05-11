@@ -1,7 +1,8 @@
-from typing import Any, Callable, Dict, Optional, Tuple, List
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import jax.numpy as jnp
 from flax.core import FrozenDict
+from jax import device_get
 from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_map
 
@@ -9,26 +10,31 @@ from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.training.callback import Callback
 from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
-from fortuna.typing import Array, Batch
+from fortuna.typing import Array, Batch, Params, Path
+from fortuna.utils.nested_dicts import nested_get
+from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
 
 class SWAGTrainer(MAPTrainer):
-    _mean_rav_params = None
-    _mean_squared_rav_params = None
-    _deviation_rav_params = None
+    def __init__(self, *, which_params: Optional[Tuple[List[str]]], **kwargs):
+        super(SWAGTrainer, self).__init__(**kwargs)
+        self._mean_rav_params = None
+        self._mean_squared_rav_params = None
+        self._deviation_rav_params = None
+        self._which_params = which_params
+        self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(
+            which_params
+        )
 
     def _update_state_with_stats(self, state: SWAGState) -> SWAGState:
         var = self._mean_squared_rav_params - self._mean_rav_params**2
         var = jnp.maximum(var, 0.0)
         return state.update(
             dict(
-                mean=self._mean_rav_params
-                if not self.multi_device
-                else self._mean_rav_params[None],
-                std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
-                dev=self._deviation_rav_params
-                if not self.multi_device
-                else self._deviation_rav_params[None],
+                mean=self._mean_rav_params,
+                std=jnp.sqrt(var),
+                dev=self._deviation_rav_params,
+                _encoded_which_params=self._encoded_which_params,
             )
         )
 
@@ -47,9 +53,9 @@ class SWAGTrainer(MAPTrainer):
                 """`rank` must be available in `kwargs` during training."""
             )
         rav_params = ravel_pytree(
-            tree_map(lambda x: x[0], state.params)
+            tree_map(lambda x: x[0], self._get_params_to_ravel(state.params))
             if self.multi_device
-            else state.params
+            else self._get_params_to_ravel(state.params)
         )[0]
         if self._mean_rav_params is None:
             self._mean_rav_params = rav_params
@@ -70,15 +76,34 @@ class SWAGTrainer(MAPTrainer):
                 ),
                 axis=1,
             )
-        if (
-            self.save_checkpoint_dir
-            and self.save_every_n_steps is not None
-            and current_epoch % self.save_every_n_steps
-        ):
-            state = self._update_state_with_stats(state)
         return super().training_step_end(
             current_epoch, state, aux, batch, metrics, callbacks, kwargs
         )
+
+    def save_checkpoint(
+        self,
+        state: SWAGState,
+        save_checkpoint_dir: Path,
+        keep: int = 1,
+        force_save: bool = False,
+        prefix: str = "checkpoint_",
+    ) -> None:
+        state = self._update_state_with_stats(state)
+        super().save_checkpoint(state, save_checkpoint_dir, keep, force_save, prefix)
+
+    def on_train_end(self, state: SWAGState) -> SWAGState:
+        self.save_checkpoint(
+            state,
+            save_checkpoint_dir=self.save_checkpoint_dir,
+            keep=self.keep_top_n_checkpoints,
+            force_save=True,
+        )
+        return self._update_state_with_stats(state)
+
+    def _get_params_to_ravel(self, params: Params):
+        if self._which_params is not None:
+            return [nested_get(params, path) for path in self._which_params]
+        return params
 
 
 class SWAGJittedMixin(JittedMixin):
@@ -98,4 +123,12 @@ class JittedSWAGTrainer(SWAGJittedMixin, SWAGTrainer):
 
 
 class MultiDeviceSWAGTrainer(SWAGMultiDeviceMixin, SWAGTrainer):
-    pass
+    def on_train_end(self, state: SWAGState) -> SWAGState:
+        self.save_checkpoint(
+            state,
+            save_checkpoint_dir=self.save_checkpoint_dir,
+            keep=self.keep_top_n_checkpoints,
+            force_save=True,
+        )
+        state = device_get(tree_map(lambda x: x[0], state))
+        return self._update_state_with_stats(state)

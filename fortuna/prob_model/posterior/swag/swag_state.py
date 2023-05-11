@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import jax.numpy as jnp
 
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import OptaxOptimizer
+from fortuna.typing import Array, OptaxOptimizer
 from fortuna.utils.strings import convert_string_to_jnp_array
 
 
@@ -28,6 +28,7 @@ class SWAGState(PosteriorState):
     std: Optional[jnp.ndarray] = None
     dev: Optional[jnp.ndarray] = None
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("SWAGState")
+    _encoded_which_params: Optional[Dict[str, List[Array]]] = None
 
     @classmethod
     def convert_from_map_state(
