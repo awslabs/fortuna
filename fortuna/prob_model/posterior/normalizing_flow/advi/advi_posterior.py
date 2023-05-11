@@ -220,7 +220,7 @@ class ADVIPosterior(Posterior):
                             d=state.params.unfreeze(),
                             key_paths=which_params,
                             labels=("mean", "log_std"),
-                        )[0]
+                        )[1]
                     )[0]
                 )
             self.base = DiagGaussian(
@@ -232,7 +232,12 @@ class ADVIPosterior(Posterior):
                 n_params, std_init_params=self.posterior_approximator.std_init_params
             )
             self._unravel, self._indices = self._get_unravel(
-                state.params, which_params=which_params
+                params=nested_unpair(
+                    d=state.params.unfreeze(),
+                    key_paths=which_params,
+                    labels=("mean", "log_std"),
+                )[0],
+                which_params=which_params,
             )[1:3]
 
         if state._encoded_which_params is None:
