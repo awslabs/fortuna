@@ -107,18 +107,20 @@ def test_dryrun(task, method):
         train(restore_path, start_current, save_dir, dump_state, save_n_steps, freeze, map_fit_config)
         sample()
 
-    if task == "regression":
-        prob_model = ProbRegressor(
-            model=MyModel(OUTPUT_DIM),
-            likelihood_log_variance_model=MyModel(OUTPUT_DIM),
-            posterior_approximator=METHODS[method]
-        )
-    else:
-        prob_model = ProbClassifier(
-            model=MyModel(OUTPUT_DIM) if method != "sngp" else MyModelWithSpectralNorm(OUTPUT_DIM),
-            posterior_approximator=METHODS[method]
-        )
+    def define_prob_model():
+        if task == "regression":
+            return ProbRegressor(
+                model=MyModel(OUTPUT_DIM),
+                likelihood_log_variance_model=MyModel(OUTPUT_DIM),
+                posterior_approximator=METHODS[method]
+            )
+        else:
+            return ProbClassifier(
+                model=MyModel(OUTPUT_DIM) if method != "sngp" else MyModelWithSpectralNorm(OUTPUT_DIM),
+                posterior_approximator=METHODS[method]
+            )
 
+    prob_model = define_prob_model()
     train_and_sample(map_fit_config=fit_config(restore_path=None, start_current=None, save_dir=None, dump_state=False, save_n_steps=None, freeze=None))
     train_and_sample(start_current=True)
     if method not in ["laplace", "swag"]:
@@ -135,10 +137,7 @@ def test_dryrun(task, method):
         train_and_sample(map_fit_config=fit_config(restore_path=None, start_current=None, save_dir=None, dump_state=False, save_n_steps=None, freeze=None), save_dir=tmp_dir, dump_state=True, freeze=freeze_fun)
 
         train_and_sample(start_current=True, save_dir=tmp_dir + "/tmp", save_n_steps=1, freeze=freeze_fun)
-        prob_model = ProbRegressor(
-            model=MyModel(OUTPUT_DIM),
-            likelihood_log_variance_model=MyModel(OUTPUT_DIM),
-            posterior_approximator=METHODS[method]
-        )
+        prob_model = define_prob_model()
         prob_model.load_state(tmp_dir + "/tmp")
         sample()
+        prob_model.predictive.log_prob(train_data_loader)

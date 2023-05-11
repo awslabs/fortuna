@@ -200,7 +200,7 @@ class SWAGPosterior(Posterior):
             )
 
         n_params = len(state.mean)
-        rank = state.dev.shape[1]
+        rank = state.dev.shape[-1]
         which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
             state._encoded_which_params
         )
@@ -286,12 +286,8 @@ class SWAGPosterior(Posterior):
         var = jnp.maximum(var, 0.0)
         return state.update(
             dict(
-                mean=state._mean_rav_params
-                if not self.multi_device
-                else state._mean_rav_params[None],
-                std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
-                dev=state._deviation_rav_params
-                if not self.multi_device
-                else state._deviation_rav_params[None],
+                mean=state._mean_rav_params,
+                std=jnp.sqrt(var),
+                dev=state._deviation_rav_params,
             )
         )
