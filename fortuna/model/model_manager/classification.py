@@ -129,7 +129,7 @@ class SNGPClassificationModelManager(ClassificationModelManager):
         self.ridge_penalty = ridge_penalty
         self.momentum = momentum
         self.mean_field_factor = mean_field_factor
-        self._gp_output_model = None
+        self._gp_output_model = self._get_output_model()
         self._gp_output_model_mutable_keys = [
             "sngp_random_features",
             "sngp_laplace_covariance",
@@ -263,7 +263,6 @@ class SNGPClassificationModelManager(ClassificationModelManager):
                 f"In order to use SNGP the output shape of the provide model has to be of shape"
                 f"(batch_size, n_features)."
             )
-        self._gp_output_model = self._get_output_model()
         gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
         params = nested_update(model_params.unfreeze(), gp_params.unfreeze())
         return dict(model=FrozenDict(params))
