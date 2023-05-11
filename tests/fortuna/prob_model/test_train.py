@@ -129,6 +129,12 @@ def test_dryrun(task, method):
     with tempfile.TemporaryDirectory() as tmp_dir:
         train_and_sample(map_fit_config=fit_config(restore_path=None, start_current=None, save_dir=None, dump_state=False, save_n_steps=None, freeze=None), save_dir=tmp_dir, dump_state=True)
         train_and_sample(restore_path=tmp_dir)
+
+        prob_model = define_prob_model()
+        prob_model.load_state(tmp_dir)
+        sample()
+        prob_model.predictive.log_prob(train_data_loader)
+
         if method not in ["laplace", "swag"]:
             train_and_sample(freeze=freeze_fun)
         train_and_sample(start_current=True, freeze=freeze_fun)
