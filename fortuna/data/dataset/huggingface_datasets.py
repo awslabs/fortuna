@@ -366,12 +366,14 @@ class HuggingFaceMaskedLMDataset(HuggingFaceClassificationDatasetABC):
             The probability with which to (randomly) mask tokens in the input,
             when the task is masked language modeling.
         """
+        _ = kwargs.pop("num_unique_labels", None)
         super(HuggingFaceMaskedLMDataset, self).__init__(*args, **kwargs)
         if not self.tokenizer.is_fast:
             logger.warning(
                 f"You are not using a Fast Tokenizer, so whole words cannot be masked, only tokens."
             )
         self.mlm_probability = mlm_probability
+        self.num_unique_labels = self.tokenizer.vocab_size
 
     def get_tokenized_datasets(
         self,
