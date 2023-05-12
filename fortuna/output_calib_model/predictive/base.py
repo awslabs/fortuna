@@ -1,12 +1,22 @@
 import abc
-from typing import Any, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import Array, CalibMutable, CalibParams
+from fortuna.typing import (
+    Array,
+    CalibMutable,
+    CalibParams,
+)
 from fortuna.utils.random import WithRNG
 
 
@@ -62,7 +72,7 @@ class Predictive(WithRNG, abc.ABC):
         outputs: Array,
         rng: Optional[PRNGKeyArray] = None,
         calibrated: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         """
         Sample target variables for each outputs.
@@ -265,7 +275,7 @@ class Predictive(WithRNG, abc.ABC):
         unsupported_aux = [s for s in return_aux if s not in supported_aux]
         if sum(unsupported_aux) > 0:
             raise AttributeError(
-                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux` 
+                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux`
                             belong to the following list: {}""".format(
                     unsupported_aux, supported_aux
                 )

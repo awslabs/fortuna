@@ -1,19 +1,32 @@
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 import unittest
 import unittest.mock as mock
-from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-import jax.random
-import numpy as np
 from flax.core import FrozenDict
 from jax import numpy as jnp
 from jax._src.prng import PRNGKeyArray
+import jax.random
+import numpy as np
 from optax._src.base import PyTree
 
+from fortuna.metric.classification import accuracy
 from fortuna.training.callback import Callback
 from fortuna.training.train_state import TrainState
 from fortuna.training.trainer import TrainerABC
-from fortuna.typing import Params, Batch, Mutable, CalibParams, CalibMutable
-from fortuna.metric.classification import accuracy
+from fortuna.typing import (
+    Batch,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 
 
 class FakeTrainState:
@@ -90,9 +103,7 @@ class TestTrainer(unittest.TestCase):
         batch = [[1, 2, 3], [0, 0, 1]]
         with unittest.mock.patch.object(
             trainer, "save_checkpoint"
-        ) as msc, unittest.mock.patch.object(
-            trainer, "_callback_loop"
-        ) as cl:
+        ) as msc, unittest.mock.patch.object(trainer, "_callback_loop") as cl:
             with self.assertRaises(KeyError):
                 trainer.training_step_end(1, state, {}, batch, ())
         msc.assert_called_once_with(state, "tmp_dir", keep=3)
@@ -100,9 +111,7 @@ class TestTrainer(unittest.TestCase):
 
         with unittest.mock.patch.object(
             trainer, "save_checkpoint"
-        ) as msc, unittest.mock.patch.object(
-            trainer, "_callback_loop"
-        ) as cl:
+        ) as msc, unittest.mock.patch.object(trainer, "_callback_loop") as cl:
             with self.assertRaises(KeyError):
                 trainer.training_step_end(1, state, {"loss": 1}, batch, ())
         msc.assert_called_once_with(state, "tmp_dir", keep=3)
@@ -110,9 +119,7 @@ class TestTrainer(unittest.TestCase):
 
         with unittest.mock.patch.object(
             trainer, "save_checkpoint"
-        ) as msc, unittest.mock.patch.object(
-            trainer, "_callback_loop"
-        ) as cl:
+        ) as msc, unittest.mock.patch.object(trainer, "_callback_loop") as cl:
             with self.assertRaises(KeyError):
                 trainer.training_step_end(
                     1, state, {"loss": 1, "logging_kwargs": None}, batch, ()
@@ -138,7 +145,11 @@ class TestTrainer(unittest.TestCase):
             trainer, "_callback_loop", side_effect=trainer._callback_loop
         ) as cl:
             observed_state, training_losses_and_metrics = trainer.training_step_end(
-                1, state, {"loss": 1, "logging_kwargs": None}, batch, (),
+                1,
+                state,
+                {"loss": 1, "logging_kwargs": None},
+                batch,
+                (),
             )
         msc.assert_called_once_with(state, "tmp_dir", keep=3)
         cl.assert_called_once_with(state, None, "training_step_end")
@@ -197,7 +208,7 @@ class TestTrainer(unittest.TestCase):
                 {"loss": 1, "logging_kwargs": {"metric1:": 0.1, "metrics2": 0.2}},
                 batch,
                 None,
-                []
+                [],
             )
         msc.assert_called_once_with(state, "tmp_dir", keep=3)
         cl.assert_called_once_with(state, [], "training_step_end")
@@ -239,25 +250,20 @@ class TestTrainer(unittest.TestCase):
         self.assertEqual(state, observed_state)
 
         # with callbacks
-        callbacks = [
-            Callback(),
-            Callback()
-        ]
+        callbacks = [Callback(), Callback()]
         for c in callbacks:
             c.training_epoch_start = mock.MagicMock(side_effect=c.training_epoch_start)
             c.training_epoch_end = mock.MagicMock(side_effect=c.training_epoch_end)
             c.training_step_end = mock.MagicMock(side_effect=c.training_step_end)
 
-        with unittest.mock.patch.object(
-            trainer, "save_checkpoint"
-        ) as msc:
+        with unittest.mock.patch.object(trainer, "save_checkpoint") as msc:
             observed_state, training_losses_and_metrics = trainer.training_step_end(
                 1,
                 state,
                 {"loss": 1, "logging_kwargs": None, "outputs": [10, 20, 30]},
                 batch,
                 (train_m1,),
-                callbacks
+                callbacks,
             )
         msc.assert_called_once_with(state, "tmp_dir", keep=3)
         for c in callbacks:
@@ -283,7 +289,7 @@ class TestTrainer(unittest.TestCase):
             ("tmp_dir", 100, 99),
             ("tmp_dir", 200, 100),
         ]
-        for (save_checkpoint_dir, save_every_n_steps, global_step) in pairs:
+        for save_checkpoint_dir, save_every_n_steps, global_step in pairs:
             trainer = FakeTrainer(
                 predict_fn=lambda *args, **kwargs: args[0],
                 disable_training_metrics_computation=False,
@@ -298,9 +304,7 @@ class TestTrainer(unittest.TestCase):
             def train_m1(a, b):
                 return 12.0
 
-            with unittest.mock.patch.object(
-                trainer, "save_checkpoint"
-            ) as msc:
+            with unittest.mock.patch.object(trainer, "save_checkpoint") as msc:
                 observed_state, training_losses_and_metrics = trainer.training_step_end(
                     current_epoch=1,
                     state=state,
@@ -318,7 +322,7 @@ class TestTrainer(unittest.TestCase):
             ("tmp_dir", 99, 99),
             ("tmp_dir", 100, 500),
         ]
-        for (save_checkpoint_dir, save_every_n_steps, global_step) in pairs:
+        for save_checkpoint_dir, save_every_n_steps, global_step in pairs:
             trainer = FakeTrainer(
                 predict_fn=lambda *args, **kwargs: args[0],
                 disable_training_metrics_computation=False,
@@ -333,9 +337,7 @@ class TestTrainer(unittest.TestCase):
             def train_m1(a, b):
                 return 12.0
 
-            with unittest.mock.patch.object(
-                trainer, "save_checkpoint"
-            ) as msc:
+            with unittest.mock.patch.object(trainer, "save_checkpoint") as msc:
                 observed_state, training_losses_and_metrics = trainer.training_step_end(
                     current_epoch=1,
                     state=state,
@@ -413,10 +415,7 @@ class TestTrainer(unittest.TestCase):
         self.assertEqual(state, observed_state)
 
         # with callbacks
-        callbacks = [
-            Callback(),
-            Callback()
-        ]
+        callbacks = [Callback(), Callback()]
         for c in callbacks:
             c.training_epoch_start = mock.MagicMock(side_effect=c.training_epoch_start)
             c.training_epoch_end = mock.MagicMock(side_effect=c.training_epoch_end)
@@ -459,17 +458,16 @@ class TestTrainer(unittest.TestCase):
         ) as m, unittest.mock.patch.object(
             trainer, "_callback_loop", side_effect=lambda *args, **kwargs: args[0]
         ) as c:
-            observed_state, observed_lm = trainer.training_epoch_end(losses_and_metrics, state)
+            observed_state, observed_lm = trainer.training_epoch_end(
+                losses_and_metrics, state
+            )
         m.assert_called_once_with(losses_and_metrics)
         c.assert_called_once_with(state, None, "training_epoch_end")
         self.assertEqual(state, observed_state)
         self.assertDictEqual(fake_out, observed_lm)
 
         # with callbacks
-        callbacks = [
-            Callback(),
-            Callback()
-        ]
+        callbacks = [Callback(), Callback()]
         for c in callbacks:
             c.training_epoch_start = mock.MagicMock(side_effect=c.training_epoch_start)
             c.training_epoch_end = mock.MagicMock(side_effect=c.training_epoch_end)
@@ -478,7 +476,9 @@ class TestTrainer(unittest.TestCase):
         with unittest.mock.patch.object(
             trainer, "_get_mean_losses_and_metrics", return_value=fake_out
         ) as m:
-            observed_state, observed_lm = trainer.training_epoch_end(losses_and_metrics, state, callbacks)
+            observed_state, observed_lm = trainer.training_epoch_end(
+                losses_and_metrics, state, callbacks
+            )
         m.assert_called_once_with(losses_and_metrics)
         for c in callbacks:
             c.training_epoch_end.assert_called_with(state)

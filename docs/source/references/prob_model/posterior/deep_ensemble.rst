@@ -8,4 +8,3 @@ Deep Ensemble
     :no-inherited-members:
     :exclude-members: state
     :members: fit, sample, load_state, save_state
-

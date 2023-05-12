@@ -1,4 +1,8 @@
-from typing import Any, Dict, Optional
+from typing import (
+    Any,
+    Dict,
+    Optional,
+)
 
 from fortuna.prob_model.posterior.base import PosteriorApproximator
 from fortuna.prob_model.posterior.sngp import SNGP_NAME
@@ -14,7 +18,7 @@ class SNGPPosteriorApproximator(PosteriorApproximator):
         ridge_penalty: float = 1.0,
         momentum: Optional[float] = None,
         mean_field_factor: float = 1.0,
-        **kwargs
+        **kwargs,
     ):
         """
         SNGP posterior approximator. It is responsible to define how the posterior distribution is approximated.
@@ -29,7 +33,7 @@ class SNGPPosteriorApproximator(PosteriorApproximator):
             The number of random fourier features.
         ridge_penalty: float
             Initial Ridge penalty to weight covariance matrix.
-            This value is used to stablize the eigenvalues of weight covariance estimate :math:`\Sigma` so that
+            This value is used to stabilize the eigenvalues of weight covariance estimate :math:`\Sigma` so that
             the matrix inverse can be computed for :math:`\Sigma = (\mathbf{I}*s+\mathbf{X}^T\mathbf{X})^{-1}`.
             The ridge factor :math:`s` cannot be too large since otherwise it will dominate
             making the covariance estimate not meaningful.

@@ -2,16 +2,26 @@
 The code has been taken from https://github.com/google/edward2/blob/main/edward2/jax/nn/normalization.py
 """
 import dataclasses
-from typing import Any, Callable, Mapping, Optional, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+)
 
 import flax.core
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax.random import PRNGKeyArray
+import numpy as np
 
-from fortuna.typing import Array, Shape
+from fortuna.typing import (
+    Array,
+    Shape,
+)
 
 
 def _l2_normalize(x: Array, eps: float = 1e-12) -> Array:
@@ -53,7 +63,7 @@ class SpectralNormalization(nn.Module):
     layer_name: Optional[str]
         Name of the input layer
     update_singular_value_estimate: Optional[bool]
-        Whether to perform power interations to update the singular value estimate.
+        Whether to perform power iterations to update the singular value estimate.
     """
 
     layer: nn.Module
@@ -98,7 +108,7 @@ class SpectralNormalization(nn.Module):
         inputs: Array
             The nd-array to be transformed.
         update_singular_value_estimate: Optional[bool]
-            Whether to perform power interations to update the singular value estimate.
+            Whether to perform power iterations to update the singular value estimate.
 
         Returns
         -------

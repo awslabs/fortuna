@@ -1,6 +1,10 @@
 import abc
 import logging
-from typing import Callable, Dict, Optional
+from typing import (
+    Callable,
+    Dict,
+    Optional,
+)
 
 import jax
 import jax.numpy as jnp
@@ -14,7 +18,11 @@ from fortuna.prob_model.prob_model_calibrator import (
     MultiDeviceProbModelOutputCalibrator,
     ProbModelOutputCalibrator,
 )
-from fortuna.typing import Array, Path, Status
+from fortuna.typing import (
+    Array,
+    Path,
+    Status,
+)
 from fortuna.utils.data import check_data_loader_is_not_random
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
@@ -119,9 +127,9 @@ class ProbModel(abc.ABC):
         else:
             if self.posterior.state is None:
                 raise ValueError(
-                    """Before calibration, you must either train the probabilistic model (see 
-                        :meth:`~fortuna.prob_model.base.ProbModel.train`), 
-                        or load a state from an existing checkpoint 
+                    """Before calibration, you must either train the probabilistic model (see
+                        :meth:`~fortuna.prob_model.base.ProbModel.train`),
+                        or load a state from an existing checkpoint
                         (see :meth:`~fortuna.prob_model.base.ProbModel.load_state`)."""
                 )
             if calib_config.monitor.verbose:

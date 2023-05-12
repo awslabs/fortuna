@@ -1,5 +1,8 @@
 import logging
-from typing import Optional, Tuple
+from typing import (
+    Optional,
+    Tuple,
+)
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
@@ -17,7 +20,7 @@ def run_preliminary_map(
     val_data_loader: DataLoader,
     map_fit_config: Optional[FitConfig],
     rng: RandomNumberGenerator,
-    **kwargs
+    **kwargs,
 ) -> Tuple[MAPState, Status]:
     logging.info("Do a preliminary run of MAP.")
     map_posterior = MAPPosterior(

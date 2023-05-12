@@ -1,17 +1,26 @@
 from functools import partial
-from typing import Dict, Optional, Tuple, Union
+from typing import (
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import flax.linen as nn
 from flax.training.checkpoints import PyTree
+import jax
 from jax import random
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.model.utils.random_features import RandomFeatureGaussianProcess
-from fortuna.typing import Array, Mutable, Params
+from fortuna.typing import (
+    Array,
+    Mutable,
+    Params,
+)
 from fortuna.utils.nested_dicts import nested_update
 
 
@@ -105,7 +114,7 @@ class SNGPClassificationModelManager(ClassificationModelManager):
             The number of random fourier features.
         ridge_penalty: float
             Initial Ridge penalty to weight covariance matrix.
-            This value is used to stablize the eigenvalues of weight covariance estimate :math:`\Sigma` so that
+            This value is used to stabilize the eigenvalues of weight covariance estimate :math:`\Sigma` so that
             the matrix inverse can be computed for :math:`\Sigma = (\mathbf{I}*s+\mathbf{X}^T\mathbf{X})^{-1}`.
             The ridge factor :math:`s` cannot be too large since otherwise it will dominate
             making the covariance estimate not meaningful.

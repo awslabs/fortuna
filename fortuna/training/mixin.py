@@ -1,13 +1,19 @@
 import logging
 import os
-from typing import Dict, Optional
+from typing import (
+    Dict,
+    Optional,
+)
 
 from flax.training import checkpoints
 from flax.training.early_stopping import EarlyStopping
 
 from fortuna.training.name_to_train_state import NameToTrainState
 from fortuna.training.train_state import TrainState
-from fortuna.typing import OptaxOptimizer, Path
+from fortuna.typing import (
+    OptaxOptimizer,
+    Path,
+)
 
 logger = logging.getLogger(__name__)
 

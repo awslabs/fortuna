@@ -1,10 +1,18 @@
 import pathlib
-from typing import Dict, Iterable, Tuple, Union
+from typing import (
+    Dict,
+    Iterable,
+    Tuple,
+    Union,
+)
 
+from flax.core import FrozenDict
 import jax.numpy as jnp
 import numpy as np
-from flax.core import FrozenDict
-from optax._src.base import GradientTransformation, PyTree
+from optax._src.base import (
+    GradientTransformation,
+    PyTree,
+)
 
 Params = FrozenDict[str, FrozenDict[str, PyTree]]
 Mutable = FrozenDict[str, FrozenDict[str, PyTree]]

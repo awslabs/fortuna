@@ -11,6 +11,6 @@ def check_data_loader_is_not_random(data_loader: DataLoader) -> None:
             break
     if flag:
         raise ValueError(
-            """The data loader randomizes at every iteration. To perform this method, please provide a data loader that 
+            """The data loader randomizes at every iteration. To perform this method, please provide a data loader that
             generates the same sequence of data when called multiple times."""
         )

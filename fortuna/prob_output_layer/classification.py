@@ -1,10 +1,13 @@
 from typing import Optional
 
 import jax
+from jax import (
+    random,
+    vmap,
+)
+from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import random, vmap
-from jax._src.prng import PRNGKeyArray
 
 from fortuna.prob_output_layer.base import ProbOutputLayer
 from fortuna.typing import Array
@@ -33,7 +36,7 @@ class ClassificationProbOutputLayer(ProbOutputLayer):
         n_target_samples: int,
         outputs: Array,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         probs = (
             jax.nn.softmax(outputs, -1)

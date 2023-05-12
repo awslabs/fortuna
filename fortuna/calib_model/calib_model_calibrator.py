@@ -1,13 +1,31 @@
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 from optax._src.base import PyTree
 
 from fortuna.calib_model.state import CalibState
-from fortuna.training.trainer import JittedMixin, MultiDeviceMixin, TrainerABC
-from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Mutable, Params
+from fortuna.training.trainer import (
+    JittedMixin,
+    MultiDeviceMixin,
+    TrainerABC,
+)
+from fortuna.typing import (
+    Array,
+    Batch,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 
 
 class CalibModelCalibrator(TrainerABC):

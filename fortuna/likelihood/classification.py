@@ -1,15 +1,21 @@
 from typing import Optional
 
 import jax
-import jax.numpy as jnp
 from jax import vmap
+import jax.numpy as jnp
 
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.base import Likelihood
 from fortuna.model.model_manager.classification import ClassificationModelManager
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
-from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import (
+    Array,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 
 
 class ClassificationLikelihood(Likelihood):
@@ -50,7 +56,7 @@ class ClassificationLikelihood(Likelihood):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the likelihood mean of the one-hot encoded target variable, that is
@@ -90,7 +96,7 @@ class ClassificationLikelihood(Likelihood):
             calib_params,
             calib_mutable,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
     def _batched_mean(
@@ -100,7 +106,7 @@ class ClassificationLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         outputs = self._get_batched_calibrated_outputs(
             params, inputs, mutable, calib_params, calib_mutable, **kwargs
@@ -114,7 +120,7 @@ class ClassificationLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         outputs = self._get_batched_calibrated_outputs(
             params, inputs, mutable, calib_params, calib_mutable, **kwargs
@@ -129,7 +135,7 @@ class ClassificationLikelihood(Likelihood):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the likelihood variance of the one-hot encoded target variable, that is
@@ -169,7 +175,7 @@ class ClassificationLikelihood(Likelihood):
             calib_params,
             calib_mutable,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
     def _batched_variance(
@@ -180,7 +186,7 @@ class ClassificationLikelihood(Likelihood):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         means = self._batched_mean(
             params=params,
@@ -188,7 +194,7 @@ class ClassificationLikelihood(Likelihood):
             mutable=mutable,
             calib_params=calib_params,
             calib_mutable=calib_mutable,
-            **kwargs
+            **kwargs,
         )
         return means * (1 - means)
 
@@ -200,7 +206,7 @@ class ClassificationLikelihood(Likelihood):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         outputs = super().get_calibrated_outputs(
             params, inputs_loader, mutable, calib_params, calib_mutable, distribute

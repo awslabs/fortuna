@@ -1,10 +1,19 @@
-from typing import Callable, List, Optional, Tuple, Union
+from typing import (
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import jax.numpy as jnp
 
 from fortuna.conformal.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.regression.base import ConformalRegressor
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.typing import Array
 
 

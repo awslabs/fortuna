@@ -1,8 +1,13 @@
-from typing import Dict, List, Optional, Tuple
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
 import jax.numpy as jnp
-import numpy as np
 from jax.tree_util import tree_map
+import numpy as np
 
 from fortuna.typing import Array
 

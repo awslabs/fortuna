@@ -1,9 +1,12 @@
 from typing import Optional
 
+from jax import (
+    jit,
+    vmap,
+)
+from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import jit, vmap
-from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import InputsLoader
 from fortuna.prob_model.posterior.base import Posterior
@@ -121,7 +124,7 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic variance of the one-hot encoded target variable, that is

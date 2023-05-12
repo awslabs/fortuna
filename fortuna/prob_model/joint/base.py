@@ -1,15 +1,26 @@
-from typing import List, Optional, Tuple, Union
+from typing import (
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.likelihood.base import Likelihood
 from fortuna.model.model_manager.state import ModelManagerState
 from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.prior.base import Prior
-from fortuna.typing import Batch, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import (
+    Batch,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 from fortuna.utils.random import WithRNG
 
 
@@ -50,7 +61,7 @@ class Joint(WithRNG):
         train: Optional[bool] = False,
         outputs: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[float, Tuple[float, dict]]:
         """
         Evaluate the joint batched log-probability density function (a.k.a. log-pdf).
@@ -100,7 +111,7 @@ class Joint(WithRNG):
             train=train,
             outputs=outputs,
             rng=rng,
-            **kwargs
+            **kwargs,
         )
         if len(return_aux) > 0:
             batched_log_lik, aux = outs
@@ -120,7 +131,7 @@ class Joint(WithRNG):
         train: Optional[bool] = False,
         outputs: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[float, Tuple[float, dict]]:
         outs = self._batched_log_joint_prob(
             params,
@@ -133,7 +144,7 @@ class Joint(WithRNG):
             train,
             outputs,
             rng,
-            **kwargs
+            **kwargs,
         )
         if len(return_aux) > 0:
             loss, aux = outs

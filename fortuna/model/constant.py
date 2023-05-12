@@ -1,8 +1,8 @@
 from typing import Optional
 
 import flax.linen as nn
-import jax.numpy as jnp
 from flax.linen.initializers import Initializer
+import jax.numpy as jnp
 
 from fortuna.typing import Array
 

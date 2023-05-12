@@ -1,11 +1,15 @@
 import abc
 import logging
-from typing import Callable, Optional, Tuple
+from typing import (
+    Callable,
+    Optional,
+    Tuple,
+)
 
-import jax.numpy as jnp
-import optax
 from flax.core.frozen_dict import freeze
 from flax.traverse_util import path_aware_map
+import jax.numpy as jnp
+import optax
 
 from fortuna.calib_model.calib_mixin import WithCalibCheckpointingMixin
 from fortuna.calib_model.calib_model_calibrator import (
@@ -19,7 +23,14 @@ from fortuna.calib_model.loss import Loss
 from fortuna.calib_model.state import CalibState
 from fortuna.data.loader import DataLoader
 from fortuna.model.model_manager.state import ModelManagerState
-from fortuna.typing import Outputs, Path, Predictions, Status, Targets, Uncertainties
+from fortuna.typing import (
+    Outputs,
+    Path,
+    Predictions,
+    Status,
+    Targets,
+    Uncertainties,
+)
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
 

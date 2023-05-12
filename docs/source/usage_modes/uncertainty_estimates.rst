@@ -115,4 +115,3 @@ Please see :class:`~fortuna.conformal.regression.onedim_uncertainty.OneDimension
         test_uncertainties=test_uncertainties,
         val_targets=val_targets
     )
-

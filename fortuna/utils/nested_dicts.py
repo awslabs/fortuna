@@ -1,5 +1,11 @@
 from copy import deepcopy
-from typing import Any, Dict, List, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Tuple,
+    Union,
+)
 
 from flax.core import FrozenDict
 

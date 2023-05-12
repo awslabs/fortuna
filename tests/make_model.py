@@ -10,7 +10,7 @@ class MyModel(nn.Module):
 
     @nn.compact
     def __call__(self, x, train: bool = False, **kwargs) -> jnp.ndarray:
-        if hasattr(self, 'spectral_norm'):
+        if hasattr(self, "spectral_norm"):
             dense = self.spectral_norm(self.dense, train=train)
         else:
             dense = self.dense
