@@ -273,7 +273,7 @@ class LaplacePosterior(Posterior):
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
-        if self.posterior_approximator.tune_prior_log_variance:
+        if val_data_loader is not None and self.posterior_approximator.tune_prior_log_variance:
             logging.info("Tuning the prior log-variance now")
             opt_prior_log_var = self.prior_log_variance_tuning(
                 val_data_loader=val_data_loader,
@@ -469,7 +469,6 @@ class LaplacePosterior(Posterior):
         else:
             fn = jit(self._batched_log_prob, static_argnums=(2,))
 
-        ll = []
         for lpv in tqdm.tqdm(candidates, desc="Tuning prior log-var"):
             neg_log_prob = -jnp.sum(
                 jnp.concatenate(
@@ -482,17 +481,8 @@ class LaplacePosterior(Posterior):
                     0,
                 )
             )
-            ll.append(neg_log_prob)
             if best is None or neg_log_prob < best[-1]:
                 best = (lpv, neg_log_prob)
-
-        import matplotlib.pyplot as plt
-
-        data_dir = pathlib.Path("/opt/ml/output/data")
-        plt.plot([c.reshape() for c in candidates], ll)
-        plt.xlabel("prior log-var")
-        plt.ylabel("NLL")
-        plt.savefig(data_dir / "prior_log_var_finetuning")
 
         opt_prior_log_var = best[0].reshape()
         return opt_prior_log_var

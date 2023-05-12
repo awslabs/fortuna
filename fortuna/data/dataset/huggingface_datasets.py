@@ -261,6 +261,7 @@ class HuggingFaceMultiChoiceDataset(HuggingFaceClassificationDatasetABC):
         datasets: DatasetDict,
         contexts: Sequence[str] = (),
         choices: Sequence[str] = (),
+        target_column: str = "label",
         **kwargs,
     ) -> DatasetDict:
         """
@@ -276,7 +277,8 @@ class HuggingFaceMultiChoiceDataset(HuggingFaceClassificationDatasetABC):
             The second column name contains the beginning of the second sentence.
         choices:
             A list of str containing the column names for the possible continuations of the context.
-
+        target_column: str
+            The target column name
         Returns
         -------
         DatasetDict
@@ -312,7 +314,7 @@ class HuggingFaceMultiChoiceDataset(HuggingFaceClassificationDatasetABC):
                 ]
                 for k, v in tokenized_inputs.items()
             }
-            tokenized_inputs["label"] = batch["label"]
+            tokenized_inputs["label"] = batch[target_column]
             return tokenized_inputs
 
         tokenized_datasets = datasets.map(
