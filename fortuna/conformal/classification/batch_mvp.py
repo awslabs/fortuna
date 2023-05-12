@@ -1,12 +1,21 @@
-from typing import Callable, List, Optional, Tuple, Union
+from typing import (
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
+from jax import vmap
 import jax.numpy as jnp
 import numpy as np
-from jax import vmap
 
 from fortuna.conformal.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.classification.base import ConformalClassifier
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.typing import Array
 
 

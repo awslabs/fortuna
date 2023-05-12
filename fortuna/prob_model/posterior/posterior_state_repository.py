@@ -1,4 +1,7 @@
-from typing import Dict, Optional
+from typing import (
+    Dict,
+    Optional,
+)
 
 from fortuna.prob_model.posterior.posterior_mixin import WithPosteriorCheckpointingMixin
 from fortuna.training.train_state_repository import TrainStateRepository
@@ -10,7 +13,7 @@ class PosteriorStateRepository(WithPosteriorCheckpointingMixin, TrainStateReposi
         self,
         checkpoint_path: Optional[Path] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> Dict:
         return super().extract(
             ["calib_params", "calib_mutable"], checkpoint_path, prefix, **kwargs

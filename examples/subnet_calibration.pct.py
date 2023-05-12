@@ -56,28 +56,32 @@ test_data_loader = DataLoader.from_tensorflow_data_loader(test_data_loader)
 
 # ## Define and calibrate the calibration model
 
-# We now introduce `CalibClassifier`, i.e. Fortuna's calibration classifier purposed to obtain calibrated predictions. 
+# We now introduce `CalibClassifier`, i.e. Fortuna's calibration classifier purposed to obtain calibrated predictions.
 
 from fortuna.model import LeNet5
 from fortuna.calib_model import CalibClassifier
+
 calib_model = CalibClassifier(model=LeNet5(output_dim=10))
 
-# Let's calibrate this model! At first, we will run the calibration from scratch, thus this can just be seen as training the model. By default, the calibration exploits a focal loss [Mukhoti et al., 2020](https://proceedings.neurips.cc/paper/2020/file/aeb7b30ef1d024a76f21a1d40e30c302-Paper.pdf) with `gamma=2.`, but other custom losses may be used. During the calibration, we will enable early stopping and monitor accuracy and Brier score - we will just have to adust the signature to make sure it is compatible with one that the `CalibClassifier` expects. 
+# Let's calibrate this model! At first, we will run the calibration from scratch, thus this can just be seen as training the model. By default, the calibration exploits a focal loss [Mukhoti et al., 2020](https://proceedings.neurips.cc/paper/2020/file/aeb7b30ef1d024a76f21a1d40e30c302-Paper.pdf) with `gamma=2.`, but other custom losses may be used. During the calibration, we will enable early stopping and monitor accuracy and Brier score - we will just have to adust the signature to make sure it is compatible with one that the `CalibClassifier` expects.
 
 # +
 from fortuna.calib_model import Config, Monitor
 from fortuna.metric.classification import brier_score, accuracy
 
-def brier(preds, uncertainties, targets): 
+
+def brier(preds, uncertainties, targets):
     return brier_score(uncertainties, targets)
 
-def acc(preds, uncertainties, targets): 
+
+def acc(preds, uncertainties, targets):
     return accuracy(preds, targets)
 
+
 status = calib_model.calibrate(
-    train_data_loader, 
+    train_data_loader,
     val_data_loader=val_data_loader,
-    config=Config(monitor=Monitor(early_stopping_patience=2, metrics=(brier, acc)))
+    config=Config(monitor=Monitor(early_stopping_patience=2, metrics=(brier, acc))),
 )
 # -
 
@@ -90,27 +94,33 @@ preds = calib_model.predictive.mode(test_inputs_loader)
 probs = calib_model.predictive.mean(test_inputs_loader)
 
 from fortuna.metric.classification import expected_calibration_error
+
 test_targets = test_data_loader.to_array_targets()
-ece = expected_calibration_error(preds, probs, test_targets, plot=True, plot_options=dict(figsize=(6, 2)))
+ece = expected_calibration_error(
+    preds, probs, test_targets, plot=True, plot_options=dict(figsize=(6, 2))
+)
 print(f"ECE: {ece}.")
 
 # Expect for very low confidence, where usually we do not have enough information to obtain a reliable ECE, the model seems well calibrated, since the difference between confidence and accuracy is close to 0 for most confidence bins.
 
 # ## Calibrate only a subset of model parameters
 
-# With the only purpose of demonstrating the functionality, let us now show how you can start from a pre-trained model and fine-tune only a subset of model parameters, perhaps with the purpose of achieving better calibration. 
+# With the only purpose of demonstrating the functionality, let us now show how you can start from a pre-trained model and fine-tune only a subset of model parameters, perhaps with the purpose of achieving better calibration.
 #
 # All you need to do is pass `freeze_fun` to the `Optimizer` in the `Config` object, and declare which parameters you want to be `trainable` and which `frozen`. In this example, the parameters of the LeNet-5 model in use are internally organized in a deep feature extractor sub-network (`dfe_subnet`) and an output sub-network. Then we simply freeze `dfe_subnet` and let the model fine-tune only the output layer.
 #
 # In order to start from the pre-trained state, we simply enable the flag `start_from_current_state` in the `Checkpointer`.
 
 from fortuna.calib_model import Optimizer, Checkpointer
+
 status = calib_model.calibrate(
-    train_data_loader, 
+    train_data_loader,
     val_data_loader=val_data_loader,
     config=Config(
         monitor=Monitor(early_stopping_patience=2, metrics=(brier, acc)),
         checkpointer=Checkpointer(start_from_current_state=True),
-        optimizer=Optimizer(freeze_fun=lambda path, v: 'frozen' if "dfe_subnet" in path else 'trainable')
-    )
+        optimizer=Optimizer(
+            freeze_fun=lambda path, v: "frozen" if "dfe_subnet" in path else "trainable"
+        ),
+    ),
 )

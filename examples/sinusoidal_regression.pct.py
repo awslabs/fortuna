@@ -93,8 +93,10 @@ status = prob_model.train(
     train_data_loader=train_data_loader,
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
-    fit_config=FitConfig(monitor=FitMonitor(early_stopping_patience=2, metrics=(rmse,))),
-    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2))
+    fit_config=FitConfig(
+        monitor=FitMonitor(early_stopping_patience=2, metrics=(rmse,))
+    ),
+    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2)),
 )
 
 # %%
@@ -249,7 +251,7 @@ calib_model = OutputCalibRegressor()
 calib_status = calib_model.calibrate(
     calib_outputs=calib_outputs,
     calib_targets=calib_targets,
-    config=Config(monitor=Monitor(early_stopping_patience=2))
+    config=Config(monitor=Monitor(early_stopping_patience=2)),
 )
 
 

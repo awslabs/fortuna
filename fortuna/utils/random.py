@@ -1,6 +1,10 @@
 from jax import random
 from jax._src.prng import PRNGKeyArray
-from jax.tree_util import tree_map, tree_structure, tree_unflatten
+from jax.tree_util import (
+    tree_map,
+    tree_structure,
+    tree_unflatten,
+)
 from optax._src.base import PyTree
 
 

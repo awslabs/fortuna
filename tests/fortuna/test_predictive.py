@@ -1,14 +1,16 @@
 import tempfile
 import unittest
 
+from jax import random
 import jax.numpy as jnp
 import optax
-from jax import random
 
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.prob_model.classification import ProbClassifier
-from fortuna.prob_model.posterior.map.map_approximator import \
-    MAPPosteriorApproximator
+from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
 from fortuna.prob_model.regression import ProbRegressor
 from tests.make_data import make_array_random_data
 from tests.make_model import MyModel

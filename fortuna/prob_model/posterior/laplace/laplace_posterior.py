@@ -1,16 +1,32 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Tuple, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
-from jax import devices, hessian, jit, lax, pmap, vjp
+from jax import (
+    devices,
+    hessian,
+    jit,
+    lax,
+    pmap,
+    vjp,
+)
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
 from jax.tree_util import tree_map
 
-from fortuna.data.loader import DataLoader, DeviceDimensionAugmentedLoader
+from fortuna.data.loader import (
+    DataLoader,
+    DeviceDimensionAugmentedLoader,
+)
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
@@ -29,9 +45,20 @@ from fortuna.prob_model.prior.gaussian import (
     DiagonalGaussianPrior,
     IsotropicGaussianPrior,
 )
-from fortuna.typing import AnyKey, CalibMutable, CalibParams, Mutable, Params, Status
+from fortuna.typing import (
+    AnyKey,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+    Status,
+)
 from fortuna.utils.freeze import get_trainable_paths
-from fortuna.utils.nested_dicts import nested_get, nested_set, nested_unpair
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+    nested_unpair,
+)
 from fortuna.utils.random import generate_random_normal_like_tree
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
@@ -55,7 +82,7 @@ class LaplacePosterior(Posterior):
         super().__init__(joint=joint, posterior_approximator=posterior_approximator)
         if type(joint.prior) not in [DiagonalGaussianPrior, IsotropicGaussianPrior]:
             raise ValueError(
-                """The Laplace posterior_approximation is not supported for this model. The prior distribution must be one of the 
+                """The Laplace posterior_approximation is not supported for this model. The prior distribution must be one of the
                 following choices: {}.""".format(
                     [DiagonalGaussianPrior, IsotropicGaussianPrior]
                 )

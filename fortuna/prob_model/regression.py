@@ -1,4 +1,7 @@
-from typing import Dict, Optional
+from typing import (
+    Dict,
+    Optional,
+)
 
 import flax.linen as nn
 import numpy as np
@@ -137,7 +140,7 @@ class ProbRegressor(ProbModel):
         if outputs.shape[1] != 2 * output_dim:
             raise ValueError(
                 f"""The outputs dimension of both `model` and `likelihood_log_variance_model` must be the same as
-                the dimension of the target variables in `_data_loader`. However, {outputs.shape[1] // 2} and 
+                the dimension of the target variables in `_data_loader`. However, {outputs.shape[1] // 2} and
                 {output_dim} were found, respectively."""
             )
 

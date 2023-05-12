@@ -1,12 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Union
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    Union,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import jax.numpy as jnp
 
 from fortuna.training.train_state import TrainState
-from fortuna.typing import CalibMutable, CalibParams, OptaxOptimizer
+from fortuna.typing import (
+    CalibMutable,
+    CalibParams,
+    OptaxOptimizer,
+)
 from fortuna.utils.strings import convert_string_to_jnp_array
 
 

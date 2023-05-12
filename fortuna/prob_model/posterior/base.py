@@ -1,6 +1,12 @@
 import abc
 import logging
-from typing import Any, Dict, Optional, Tuple, Type
+from typing import (
+    Any,
+    Dict,
+    Optional,
+    Tuple,
+    Type,
+)
 
 from jax._src.prng import PRNGKeyArray
 
@@ -13,7 +19,11 @@ from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import OptaxOptimizer, Path, Status
+from fortuna.typing import (
+    OptaxOptimizer,
+    Path,
+    Status,
+)
 from fortuna.utils.freeze import freeze_optimizer
 from fortuna.utils.random import WithRNG
 
@@ -172,7 +182,7 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         """
         if self.state is None:
             raise ValueError(
-                """No state available. You must first either fit the posterior distribution, or load a 
+                """No state available. You must first either fit the posterior distribution, or load a
             saved checkpoint."""
             )
         return self.state.put(

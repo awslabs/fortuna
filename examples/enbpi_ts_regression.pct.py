@@ -19,7 +19,7 @@
 # In this example we showcase [EnbPI](http://proceedings.mlr.press/v139/xu21h/xu21h.pdf), a conformal prediction method for time series regression. For data and model definition, we follow the scikit-learn example [Time-related feature engineering](https://scikit-learn.org/stable/auto_examples/applications/plot_cyclical_feature_engineering.html).
 
 # %% [markdown]
-# ## Dowloading and preparing the data
+# ## Downloading and preparing the data
 
 # %% [markdown]
 # We download a bike-sharing demand dataset. Given various features, we are interested in predicting the number of bike demand over time.
@@ -61,6 +61,7 @@ y_train, y_test = train_test_split(y, test_size=0.2, shuffle=False)
 
 # %% [markdown]
 # EnbPI requires bootstrapping the data, i.e. sampling with replacement random subsets of the time series and training a model for each of these samples.
+
 
 # %%
 class DataFrameBootstrapper:
@@ -224,7 +225,7 @@ for i in range(0, len(y_test), batch_size):
         )
 
 # %% [markdown]
-# Similarly as done above, we compute the percentage of predictions and true test targets falling withing the conformal intervals.
+# Similarly as done above, we compute the percentage of predictions and true test targets falling within the conformal intervals.
 
 # %%
 print(

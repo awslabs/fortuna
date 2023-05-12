@@ -128,7 +128,7 @@ def prediction_interval_coverage_probability(
         targets = targets[:, None]
     elif targets.shape[1] > 1:
         raise ValueError(
-            """This metric is supported only for target data such that `target.shape[1] == 1`, but 
+            """This metric is supported only for target data such that `target.shape[1] == 1`, but
         `target.shape[1] == {}` was found.""".format(
                 targets.shape[1]
             )

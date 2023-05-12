@@ -12,7 +12,7 @@ assignees: ""
 
 **Suggested improvement**
 
-<!-- A clear and concise description of what you want to happen. 
+<!-- A clear and concise description of what you want to happen.
 Examples:
 - Add a new section to highlight feature [...]
 - I found [...] to be confusing. Can it be clarified by [...]

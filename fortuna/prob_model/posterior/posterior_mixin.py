@@ -3,7 +3,10 @@ from typing import Optional
 from fortuna.prob_model.posterior.name_to_posterior_state import NameToPosteriorState
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.training.mixin import WithCheckpointingMixin
-from fortuna.typing import OptaxOptimizer, Path
+from fortuna.typing import (
+    OptaxOptimizer,
+    Path,
+)
 
 
 class WithPosteriorCheckpointingMixin(WithCheckpointingMixin):

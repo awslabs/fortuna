@@ -3,10 +3,18 @@ from __future__ import annotations
 import logging
 import os
 import pathlib
-from typing import List, Optional, Tuple, Type
+from typing import (
+    List,
+    Optional,
+    Tuple,
+    Type,
+)
 
 from flax.core import FrozenDict
-from jax import pure_callback, random
+from jax import (
+    pure_callback,
+    random,
+)
 from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import DataLoader
@@ -28,10 +36,16 @@ from fortuna.prob_model.posterior.map.map_trainer import (
     MultiDeviceMAPTrainer,
 )
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
-from fortuna.typing import Path, Status
+from fortuna.typing import (
+    Path,
+    Status,
+)
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.freeze import get_trainable_paths
-from fortuna.utils.nested_dicts import nested_get, nested_set
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+)
 
 logger = logging.getLogger(__name__)
 

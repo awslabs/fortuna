@@ -1,7 +1,11 @@
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
-import jax.numpy as jnp
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.output_calib_model.predictive.base import Predictive
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager

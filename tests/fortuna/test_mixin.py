@@ -2,13 +2,15 @@ import tempfile
 import unittest
 import unittest.mock as mock
 
-import optax
 from flax.core import FrozenDict
+import optax
 
-from fortuna.prob_model.posterior.posterior_mixin import \
-    WithPosteriorCheckpointingMixin
+from fortuna.prob_model.posterior.posterior_mixin import WithPosteriorCheckpointingMixin
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.training.mixin import InputValidatorMixin, WithEarlyStoppingMixin
+from fortuna.training.mixin import (
+    InputValidatorMixin,
+    WithEarlyStoppingMixin,
+)
 
 
 class FakeTrainerWithCheckpointing(

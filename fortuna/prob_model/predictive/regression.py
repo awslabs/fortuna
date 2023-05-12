@@ -1,9 +1,17 @@
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
+from jax import (
+    lax,
+    random,
+    vmap,
+)
+from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
-from jax import lax, random, vmap
-from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import InputsLoader
 from fortuna.prob_model.posterior.base import Posterior

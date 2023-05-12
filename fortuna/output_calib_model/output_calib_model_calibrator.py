@@ -1,27 +1,48 @@
 import abc
 import collections
-import logging
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import logging
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax
-import jax.numpy as jnp
 from flax import jax_utils
 from flax.training.common_utils import stack_forest
-from jax import lax, random, value_and_grad
+import jax
+from jax import (
+    lax,
+    random,
+    value_and_grad,
+)
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 from jax.tree_util import tree_map
 from tqdm import trange
 from tqdm.std import tqdm as TqdmDecorator
 
-from fortuna.data.loader import DataLoader, TargetsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    TargetsLoader,
+)
 from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.training.mixin import (
     InputValidatorMixin,
     WithCheckpointingMixin,
     WithEarlyStoppingMixin,
 )
-from fortuna.typing import Array, CalibMutable, CalibParams, Path, Status
+from fortuna.typing import (
+    Array,
+    CalibMutable,
+    CalibParams,
+    Path,
+    Status,
+)
 from fortuna.utils.builtins import HashableMixin
 
 

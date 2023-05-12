@@ -1,7 +1,14 @@
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.likelihood.base import Likelihood
 from fortuna.typing import (
@@ -34,7 +41,7 @@ class Loss(WithRNG):
         train: bool = False,
         outputs: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
         if return_aux is None:
             return_aux = []
@@ -42,7 +49,7 @@ class Loss(WithRNG):
         unsupported_aux = [s for s in return_aux if s not in supported_aux]
         if sum(unsupported_aux) > 0:
             raise AttributeError(
-                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux` 
+                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux`
                             belong to the following list: {}""".format(
                     unsupported_aux, supported_aux
                 )
@@ -67,7 +74,7 @@ class Loss(WithRNG):
             )
         if "mutable" not in return_aux and mutable is not None and train is True:
             raise ValueError(
-                """You need to add `mutable` to `return_aux`. When you provide a (not null) `mutable` variable during 
+                """You need to add `mutable` to `return_aux`. When you provide a (not null) `mutable` variable during
                 training, that variable will be updated during the forward pass."""
             )
 

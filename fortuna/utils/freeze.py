@@ -1,11 +1,29 @@
-from typing import Any, Callable, Iterable, List, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+)
 
 from flax.core.frozen_dict import freeze
-from flax.traverse_util import flatten_dict, path_aware_map
+from flax.traverse_util import (
+    flatten_dict,
+    path_aware_map,
+)
 from jax.tree_util import tree_leaves
-from optax import multi_transform, set_to_zero
+from optax import (
+    multi_transform,
+    set_to_zero,
+)
 
-from fortuna.typing import AnyKey, Array, OptaxOptimizer, Params
+from fortuna.typing import (
+    AnyKey,
+    Array,
+    OptaxOptimizer,
+    Params,
+)
 
 
 def all_values_in_labels(values: Iterable, labels: Any) -> None:

@@ -1,0 +1,40 @@
+minimum_pre_commit_version: 2.15.0
+ci:
+  autofix_prs: false
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+    - id: black
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+        exclude_types: [json, binary]
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.4
+    hooks:
+    -   id: codespell
+        types_or: [python, markdown, rst]
+        additional_dependencies: [tomli]
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+    -   id: isort
+        exclude: examples/
+  - repo: local
+    hooks:
+      - id: commitizen
+        name: commitizen
+        entry: cz check
+        args: [--commit-msg-file]
+        require_serial: true
+        language: system
+        stages: [commit-msg]
+      - id: absolufy-imports
+        name: absolufy-imports
+        entry: absolufy-imports
+        require_serial: true
+        language: system
+        types: [python]

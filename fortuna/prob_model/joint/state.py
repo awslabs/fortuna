@@ -4,7 +4,12 @@ from typing import Optional
 
 from fortuna.model.model_manager.state import ModelManagerState
 from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
-from fortuna.typing import CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import (
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 
 
 class JointState(ModelManagerState):

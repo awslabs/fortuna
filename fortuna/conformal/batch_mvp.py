@@ -2,12 +2,20 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Callable, List, Tuple, Union
+from typing import (
+    Callable,
+    List,
+    Tuple,
+    Union,
+)
 
-import jax.numpy as jnp
 from jax import vmap
+import jax.numpy as jnp
 
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.typing import Array
 
 

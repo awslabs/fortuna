@@ -1,4 +1,9 @@
-from typing import Callable, Optional, Tuple, Union
+from typing import (
+    Callable,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import jax.numpy as jnp
 

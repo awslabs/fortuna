@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import (
+    Optional,
+    Tuple,
+)
 
 import numpy as np
 
@@ -10,7 +13,10 @@ from fortuna.data.loader.base import (
     BaseTargetsLoader,
 )
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Array, Batch
+from fortuna.typing import (
+    Array,
+    Batch,
+)
 
 
 class DataLoader(BaseDataLoaderABC):

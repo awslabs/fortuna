@@ -1,8 +1,15 @@
-from typing import List, Optional, Union
+from typing import (
+    List,
+    Optional,
+    Union,
+)
 
-import jax.numpy as jnp
-from jax import random, vmap
+from jax import (
+    random,
+    vmap,
+)
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.prob_output_layer.base import ProbOutputLayer
 from fortuna.typing import Array
@@ -34,7 +41,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
         n_target_samples: int,
         outputs: Array,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
@@ -71,7 +78,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
         outputs: Array,
         n_target_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         samples = self.sample(n_target_samples, outputs, rng=rng, **kwargs)
 

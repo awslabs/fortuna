@@ -1,16 +1,31 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax import device_get
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.training.callback import Callback
-from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
-from fortuna.typing import Array, Batch, Params, Path
+from fortuna.training.trainer import (
+    JittedMixin,
+    MultiDeviceMixin,
+)
+from fortuna.typing import (
+    Array,
+    Batch,
+    Params,
+    Path,
+)
 from fortuna.utils.nested_dicts import nested_get
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 

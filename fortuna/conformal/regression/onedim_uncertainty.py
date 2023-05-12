@@ -136,7 +136,7 @@ class OneDimensionalUncertaintyConformalRegressor(ConformalRegressor):
             )
         if test_uncertainties.ndim != 2 or val_uncertainties.shape[1] != 1:
             raise ValueError(
-                """`test_uncertainties` must be a two-dimensional array. The second dimension must have 
+                """`test_uncertainties` must be a two-dimensional array. The second dimension must have
             only one component."""
             )
         if (test_uncertainties <= 0).any():

@@ -1,4 +1,7 @@
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -10,7 +13,12 @@ from fortuna.output_calib_model.predictive.regression import RegressionPredictiv
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.typing import Array, Outputs, Status, Targets
+from fortuna.typing import (
+    Array,
+    Outputs,
+    Status,
+    Targets,
+)
 
 
 class OutputCalibRegressor(OutputCalibModel):
@@ -106,7 +114,7 @@ class OutputCalibRegressor(OutputCalibModel):
     def _check_output_dim(outputs: jnp.ndarray, targets: jnp.array):
         if outputs.shape[1] != 2 * targets.shape[1]:
             raise ValueError(
-                f"""`outputs.shape[1]` must be twice the dimension of the target variables in `targets`, with 
-                first and second halves corresponding to the mean and log-variance of the likelihood, respectively. 
+                f"""`outputs.shape[1]` must be twice the dimension of the target variables in `targets`, with
+                first and second halves corresponding to the mean and log-variance of the likelihood, respectively.
                 However, `outputs.shape[1]={outputs.shape[1]}` and `targets.shape[1]={targets.shape[1]}`."""
             )

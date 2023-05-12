@@ -1,4 +1,7 @@
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -13,7 +16,12 @@ from fortuna.output_calib_model.predictive.classification import (
 from fortuna.output_calibrator.classification import ClassificationTemperatureScaler
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
-from fortuna.typing import Array, Outputs, Status, Targets
+from fortuna.typing import (
+    Array,
+    Outputs,
+    Status,
+    Targets,
+)
 
 
 class OutputCalibClassifier(OutputCalibModel):
@@ -110,6 +118,6 @@ class OutputCalibClassifier(OutputCalibModel):
         n_classes = len(np.unique(targets))
         if outputs.shape[1] != n_classes:
             raise ValueError(
-                f"""`outputs.shape[1]` must be the same as the dimension of the number of classes in `targets`. 
+                f"""`outputs.shape[1]` must be the same as the dimension of the number of classes in `targets`.
                 However, `outputs.shape[1]={outputs.shape[1]}` and `len(np.unique(targets))={n_classes}`."""
             )

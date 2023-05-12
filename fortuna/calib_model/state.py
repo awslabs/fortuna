@@ -1,11 +1,21 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import (
+    Any,
+    Dict,
+    Optional,
+)
 
 from flax.core import FrozenDict
 
 from fortuna.training.train_state import TrainState
-from fortuna.typing import CalibMutable, CalibParams, Mutable, OptaxOptimizer, Params
+from fortuna.typing import (
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    OptaxOptimizer,
+    Params,
+)
 
 
 class CalibState(TrainState):

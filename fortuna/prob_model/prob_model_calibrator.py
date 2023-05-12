@@ -1,9 +1,15 @@
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Tuple,
+    Union,
+)
 
-import jax
-import jax.numpy as jnp
 from flax import jax_utils
+import jax
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from fortuna.data import TargetsLoader
@@ -13,7 +19,12 @@ from fortuna.training.output_calibrator import (
     MultiDeviceMixin,
     OutputCalibratorABC,
 )
-from fortuna.typing import Array, Batch, CalibMutable, CalibParams
+from fortuna.typing import (
+    Array,
+    Batch,
+    CalibMutable,
+    CalibParams,
+)
 
 
 class ProbModelOutputCalibrator(OutputCalibratorABC):

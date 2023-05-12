@@ -1,9 +1,15 @@
 from typing import Union
 
-import jax.numpy as jnp
-from jax import random, vmap
+from jax import (
+    random,
+    vmap,
+)
 from jax._src.prng import PRNGKeyArray
-from jax.scipy.stats import multivariate_normal, norm
+import jax.numpy as jnp
+from jax.scipy.stats import (
+    multivariate_normal,
+    norm,
+)
 
 from fortuna.distribution.base import Distribution
 from fortuna.typing import Array
