@@ -1,14 +1,19 @@
+import importlib
+import logging
 from typing import (
     Dict,
     Optional,
+    Type,
 )
 
 import flax.linen as nn
-import numpy as np
 
 from fortuna.data.loader import DataLoader
 from fortuna.likelihood.classification import ClassificationLikelihood
-from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.model.model_manager.classification import (
+    ClassificationModelManager,
+    SNGPClassificationModelManager,
+)
 from fortuna.model.model_manager.name_to_model_manager import (
     ClassificationModelManagers,
 )
@@ -28,8 +33,15 @@ from fortuna.prob_model.posterior.swag.swag_approximator import (
 from fortuna.prob_model.predictive.classification import ClassificationPredictive
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.prior.base import Prior
-from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
+from fortuna.prob_output_layer.classification import (
+    ClassificationMaskedProbOutputLayer,
+    ClassificationProbOutputLayer,
+)
 from fortuna.typing import Status
+from fortuna.utils.data import (
+    get_input_shape,
+    get_inputs_from_shape,
+)
 
 
 class ProbClassifier(ProbModel):
@@ -101,11 +113,14 @@ class ProbClassifier(ProbModel):
         self.output_calib_manager = OutputCalibManager(
             output_calibrator=output_calibrator
         )
-        self.prob_output_layer = ClassificationProbOutputLayer()
+        self.prob_output_layer = self._get_prob_output_layer(model)
 
-        self.model_manager = getattr(
+        model_manager_cls = getattr(
             ClassificationModelManagers, posterior_approximator.__str__()
-        ).value(model=model, **posterior_approximator.posterior_method_kwargs)
+        ).value
+        self.model_manager = self._get_model_manager(
+            model, model_manager_cls, posterior_approximator
+        )
 
         self.likelihood = ClassificationLikelihood(
             self.model_manager, self.prob_output_layer, self.output_calib_manager
@@ -119,6 +134,74 @@ class ProbClassifier(ProbModel):
 
         super().__init__(seed=seed)
 
+    def _get_prob_output_layer(self, model: nn.Module) -> ClassificationProbOutputLayer:
+        try:
+            # import modules if available
+            transformers_flax_auto_module = importlib.import_module(
+                "transformers.models.auto.modeling_flax_auto"
+            )
+            FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES = list(
+                getattr(
+                    transformers_flax_auto_module,
+                    "FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES",
+                ).values()
+            )
+            if str(model.__class__.__name__) in FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES:
+                prob_output_layer = ClassificationMaskedProbOutputLayer()
+            else:
+                prob_output_layer = ClassificationProbOutputLayer()
+        except ModuleNotFoundError:
+            prob_output_layer = ClassificationProbOutputLayer()
+        return prob_output_layer
+
+    def _get_model_manager(
+        self,
+        model: nn.Module,
+        model_manager_cls: Type,
+        posterior_approximator: PosteriorApproximator,
+    ) -> ClassificationModelManager:
+        try:
+            # import modules if available
+            transformers_module = importlib.import_module("transformers")
+            fortuna_transformers_classification_module = importlib.import_module(
+                "fortuna.model.model_manager.transformers.classification"
+            )
+            # import relevant classes
+            FlaxPreTrainedModel = getattr(transformers_module, "FlaxPreTrainedModel")
+            SNGPHuggingFaceClassificationModelManager = getattr(
+                fortuna_transformers_classification_module,
+                "SNGPHuggingFaceClassificationModelManager",
+            )
+            HuggingFaceClassificationModelManager = getattr(
+                fortuna_transformers_classification_module,
+                "HuggingFaceClassificationModelManager",
+            )
+            # load model manager
+            if (
+                isinstance(model, FlaxPreTrainedModel)
+                and model_manager_cls == SNGPClassificationModelManager
+            ):
+                model_manager = SNGPHuggingFaceClassificationModelManager(
+                    model=model, **posterior_approximator.posterior_method_kwargs
+                )
+            elif isinstance(model, FlaxPreTrainedModel):
+                model_manager = HuggingFaceClassificationModelManager(model)
+            else:
+                model_manager = model_manager_cls(
+                    model=model, **posterior_approximator.posterior_method_kwargs
+                )
+        except ModuleNotFoundError as e:
+            logging.warning(
+                "No module named 'transformer' is installed. "
+                "If you are not working with models from the `transformers` library ignore this warning, otherwise "
+                "please install the optional 'transformers' dependency of fortuna."
+                'Using poetry, you can achieve this by entering: `poetry install --extras "transformers"`'
+            )
+            model_manager = model_manager_cls(
+                model=model, **posterior_approximator.posterior_method_kwargs
+            )
+        return model_manager
+
     def _check_output_dim(self, data_loader: DataLoader):
         if data_loader.size == 0:
             raise ValueError(
@@ -126,21 +209,22 @@ class ProbClassifier(ProbModel):
             )
         output_dim = data_loader.num_unique_labels
         for x, y in data_loader:
-            input_shape = x.shape[1:]
+            input_shape = get_input_shape(x)
             break
         s = self.joint.init(input_shape)
+        inputs = get_inputs_from_shape(input_shape)
         outputs = self.model_manager.apply(
-            params=s.params, inputs=np.zeros((1,) + input_shape), mutable=s.mutable
+            params=s.params, inputs=inputs, mutable=s.mutable
         )
         model_output_dim = (
-            outputs[0].shape[1]
+            outputs[0].shape[-1]
             if isinstance(outputs, (list, tuple))
-            else outputs.shape[1]
+            else outputs.shape[-1]
         )
         if model_output_dim != output_dim:
             raise ValueError(
                 f"""The outputs dimension of `model` must correspond to the number of different classes
-            in the target variables of `_data_loader`. However, {outputs.shape[1]} and {output_dim} were found,
+            in the target variables of `_data_loader`. However, {model_output_dim} and {output_dim} were found,
             respectively."""
             )
 

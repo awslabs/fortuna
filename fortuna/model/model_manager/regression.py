@@ -37,7 +37,7 @@ class RegressionModelManager(ModelManager):
             same space as the target variables. Let :math:`x` be input variables and :math:`w` the random model
             parameters. Then the model is described by a function :math:`\log\sigma^2(w, x)`.
         """
-        self.model = model
+        super(RegressionModelManager, self).__init__(model)
         self.likelihood_log_variance_model = likelihood_log_variance_model
 
     def apply(

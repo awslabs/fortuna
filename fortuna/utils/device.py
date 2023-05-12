@@ -6,9 +6,9 @@ import jax
 
 def select_trainer_given_devices(
     devices: int,
-    BaseTrainer: Type,
-    JittedTrainer: Type,
-    MultiDeviceTrainer: Type,
+    base_trainer_cls: Type,
+    jitted_trainer_cls: Type,
+    multi_device_trainer_cls: Type,
     disable_jit: bool,
 ) -> Type:
     if devices not in [0, -1]:
@@ -21,15 +21,15 @@ def select_trainer_given_devices(
     if devices == -1:
         logging.info("Training on all available devices.")
         trainer_cls = (
-            MultiDeviceTrainer
+            multi_device_trainer_cls
             if len([d for d in jax.devices() if d.platform == "gpu"]) > 0
-            else JittedTrainer
+            else jitted_trainer_cls
         )
 
     elif devices == 0 and disable_jit:
         logging.info("Training on CPU without jit.")
-        trainer_cls = BaseTrainer
+        trainer_cls = base_trainer_cls
     else:
         logging.info("Training on CPU.")
-        trainer_cls = JittedTrainer
+        trainer_cls = jitted_trainer_cls
     return trainer_cls

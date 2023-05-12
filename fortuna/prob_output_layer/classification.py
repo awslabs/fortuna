@@ -147,3 +147,12 @@ class ClassificationProbOutputLayer(ProbOutputLayer):
             return jnp.exp(log_liks) * log_liks
 
         return -jnp.sum(_entropy_term(jnp.arange(n_classes)), 0)
+
+
+class ClassificationMaskedProbOutputLayer(ClassificationProbOutputLayer):
+    def log_prob(self, outputs: Array, targets: Array, **kwargs) -> Array:
+        n_cats = outputs.shape[-1]
+        targets = jax.nn.one_hot(targets, n_cats)
+        return (
+            jnp.sum(targets * outputs, -1) - jsp.special.logsumexp(outputs, -1)
+        ) * jnp.where(targets > 0, 1.0, 0.0)

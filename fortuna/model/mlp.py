@@ -3,7 +3,6 @@ from typing import (
     Callable,
     Optional,
     Tuple,
-    Union,
 )
 
 import flax.linen as nn

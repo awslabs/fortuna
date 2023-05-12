@@ -50,6 +50,7 @@ from fortuna.typing import (
     Params,
     Status,
 )
+from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.nested_dicts import (
@@ -130,9 +131,9 @@ class ADVIPosterior(Posterior):
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
-            BaseTrainer=ADVITrainer,
-            JittedTrainer=JittedADVITrainer,
-            MultiDeviceTrainer=MultiDeviceADVITrainer,
+            base_trainer_cls=ADVITrainer,
+            jitted_trainer_cls=JittedADVITrainer,
+            multi_device_trainer_cls=MultiDeviceADVITrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
 
@@ -179,6 +180,8 @@ class ADVIPosterior(Posterior):
             unravel=self._unravel,
             n_samples=self.posterior_approximator.n_loss_samples,
             callbacks=fit_config.callbacks,
+            max_grad_norm=fit_config.hyperparameters.max_grad_norm,
+            gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
         )
         trainer._all_params = None
 
@@ -357,6 +360,11 @@ class ADVIPosterior(Posterior):
             optimizer=fit_config.optimizer.method,
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
+            dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                getattr(self.joint.likelihood.model_manager.model, "dtype")
+                if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                else None
+            ),
         )
 
         return state, log_stds
@@ -377,6 +385,11 @@ class ADVIPosterior(Posterior):
             optimizer=optimizer,
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
+            dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                getattr(self.joint.likelihood.model_manager.model, "dtype")
+                if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                else None
+            ),
         )
 
     def _get_unravel(
