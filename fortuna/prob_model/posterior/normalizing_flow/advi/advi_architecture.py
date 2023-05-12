@@ -6,9 +6,9 @@ from typing import (
     Tuple,
 )
 
-import jax.numpy as jnp
 from jax import random
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.utils.builtins import HashableMixin
 

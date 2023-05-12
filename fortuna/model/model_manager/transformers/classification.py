@@ -1,17 +1,30 @@
-from typing import Dict, Optional, Union, Tuple, Mapping
+from typing import (
+    Dict,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax
 from flax import linen as nn
 from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
-from jax import numpy as jnp, random
+import jax
+from jax import (
+    numpy as jnp,
+    random,
+)
 from jax._src.prng import PRNGKeyArray
 
 from fortuna.model.model_manager.classification import (
     ClassificationModelManager,
     SNGPClassificationModelManagerMixin,
 )
-from fortuna.typing import Params, Array, Mutable
+from fortuna.typing import (
+    Array,
+    Mutable,
+    Params,
+)
 from fortuna.utils.data import get_inputs_from_shape
 from fortuna.utils.nested_dicts import nested_update
 

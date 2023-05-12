@@ -6,8 +6,8 @@ from typing import (
 )
 
 import jax.numpy as jnp
-import numpy as np
 from jax.tree_util import tree_map
+import numpy as np
 
 from fortuna.typing import Array
 

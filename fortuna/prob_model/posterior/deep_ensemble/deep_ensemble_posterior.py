@@ -36,7 +36,10 @@ from fortuna.prob_model.posterior.map.map_trainer import (
     MultiDeviceMAPTrainer,
 )
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
-from fortuna.typing import Path, Status
+from fortuna.typing import (
+    Path,
+    Status,
+)
 from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.freeze import get_trainable_paths

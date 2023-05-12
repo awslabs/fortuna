@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax import random
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
 
 from fortuna.data.loader import (
     DataLoader,

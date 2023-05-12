@@ -1,14 +1,20 @@
-import logging
 from functools import partial
-from typing import Dict, Optional, Tuple, Union, Mapping
+import logging
+from typing import (
+    Dict,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import flax.linen as nn
-import jax
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import flax.linen as nn
 from flax.training.checkpoints import PyTree
+import jax
 from jax import random
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.model.utils.random_features import RandomFeatureGaussianProcess

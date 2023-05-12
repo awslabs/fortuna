@@ -9,9 +9,9 @@ from typing import (
     Union,
 )
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 from optax._src.base import PyTree
 
 from fortuna.prob_model.posterior.map import *

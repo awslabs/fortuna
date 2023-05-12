@@ -9,15 +9,24 @@ import logging
 import pathlib
 import tarfile
 
+from datasets import (
+    DatasetDict,
+    load_dataset,
+)
 import jax.random
 import optax
-from datasets import DatasetDict, load_dataset
-from transformers import AutoTokenizer, FlaxAutoModelForSequenceClassification
+from transformers import (
+    AutoTokenizer,
+    FlaxAutoModelForSequenceClassification,
+)
 
 from fortuna.data.dataset.huggingface_datasets import (
     HuggingFaceSequenceClassificationDataset,
 )
-from fortuna.metric.classification import accuracy, expected_calibration_error
+from fortuna.metric.classification import (
+    accuracy,
+    expected_calibration_error,
+)
 from fortuna.prob_model import (
     ADVIPosteriorApproximator,
     DeepEnsemblePosteriorApproximator,

@@ -2,17 +2,33 @@ from __future__ import annotations
 
 import logging
 import pathlib
-from typing import Dict, List, Optional, Tuple, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
-import jax
-import jax.numpy as jnp
-import tqdm
 from flax.core import FrozenDict
-from flax.training.common_utils import shard, shard_prng_key
-from jax import hessian, lax, vjp, devices, jit, pmap
+from flax.training.common_utils import (
+    shard,
+    shard_prng_key,
+)
+import jax
+from jax import (
+    devices,
+    hessian,
+    jit,
+    lax,
+    pmap,
+    vjp,
+)
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
 from jax.tree_util import tree_map
+import tqdm
 
 from fortuna.data.loader import (
     DataLoader,
@@ -36,7 +52,14 @@ from fortuna.prob_model.prior.gaussian import (
     DiagonalGaussianPrior,
     IsotropicGaussianPrior,
 )
-from fortuna.typing import CalibMutable, CalibParams, Mutable, Params, Status, AnyKey
+from fortuna.typing import (
+    AnyKey,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+    Status,
+)
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.nested_dicts import (
     nested_get,
@@ -273,7 +296,10 @@ class LaplacePosterior(Posterior):
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
-        if val_data_loader is not None and self.posterior_approximator.tune_prior_log_variance:
+        if (
+            val_data_loader is not None
+            and self.posterior_approximator.tune_prior_log_variance
+        ):
             logging.info("Tuning the prior log-variance now")
             opt_prior_log_var = self.prior_log_variance_tuning(
                 val_data_loader=val_data_loader,

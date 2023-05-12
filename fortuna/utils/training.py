@@ -1,5 +1,8 @@
 import jax.numpy as jnp
-from jax.tree_util import tree_map, tree_reduce
+from jax.tree_util import (
+    tree_map,
+    tree_reduce,
+)
 
 
 def clip_grandients_by_value(grad: jnp.ndarray, max_grad_val: float) -> jnp.ndarray:

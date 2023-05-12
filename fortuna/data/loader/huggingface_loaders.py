@@ -1,4 +1,10 @@
-from typing import Union, Dict, Iterable, Optional, Tuple
+from typing import (
+    Dict,
+    Iterable,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from jax import numpy as jnp
 
@@ -8,7 +14,10 @@ from fortuna.data.loader.base import (
     BaseTargetsLoader,
 )
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Array, Shape
+from fortuna.typing import (
+    Array,
+    Shape,
+)
 
 
 class HuggingFaceDataLoader(BaseDataLoaderABC):

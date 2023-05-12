@@ -8,11 +8,16 @@ from typing import (
     Union,
 )
 
+from flax.training.common_utils import shard_prng_key
+from jax import (
+    jit,
+    lax,
+    pmap,
+    random,
+)
+from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
-from flax.training.common_utils import shard_prng_key
-from jax import jit, lax, pmap, random
-from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
 from fortuna.data.loader import (

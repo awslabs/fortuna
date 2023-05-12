@@ -1,4 +1,7 @@
-from typing import Type, Optional
+from typing import (
+    Optional,
+    Type,
+)
 
 from flax.training.dynamic_scale import DynamicScale
 from jax import numpy as jnp

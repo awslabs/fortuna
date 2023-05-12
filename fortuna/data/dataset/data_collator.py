@@ -1,10 +1,18 @@
-from typing import List, Dict, Tuple, Optional
-from typing import Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import flax
-import numpy as np
 from jax import numpy as jnp
-from transformers import PreTrainedTokenizerBase, TensorType
+import numpy as np
+from transformers import (
+    PreTrainedTokenizerBase,
+    TensorType,
+)
 from transformers.utils import PaddingStrategy
 
 

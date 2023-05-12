@@ -1,9 +1,7 @@
-from typing import (
-    Optional,
-)
+from typing import Optional
 
-import jax.numpy as jnp
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.data.loader import (
     DataLoader,

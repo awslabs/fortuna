@@ -1,10 +1,20 @@
-from typing import Tuple, Optional
+from typing import (
+    Optional,
+    Tuple,
+)
 
+from flax.core import (
+    FrozenDict,
+    freeze,
+    unfreeze,
+)
 import flax.linen as nn
+from flax.traverse_util import (
+    flatten_dict,
+    unflatten_dict,
+)
 import jax
 import jax.numpy as jnp
-from flax.core import FrozenDict, unfreeze, freeze
-from flax.traverse_util import flatten_dict, unflatten_dict
 from transformers import DistilBertConfig
 from transformers.modeling_flax_utils import ACT2FN
 from transformers.models.distilbert.modeling_flax_distilbert import (

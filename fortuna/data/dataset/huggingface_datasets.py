@@ -1,22 +1,34 @@
 import abc
 import logging
-from typing import Union, Dict, List, Iterable, Optional, Tuple, Sequence, Any
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
-import jax.random
-from datasets import DatasetDict, Dataset
+from datasets import (
+    Dataset,
+    DatasetDict,
+)
 from jax import numpy as jnp
+import jax.random
 from jax.random import PRNGKeyArray
 from tqdm import tqdm
 from transformers import (
-    PreTrainedTokenizer,
     BatchEncoding,
     DataCollatorWithPadding,
+    PreTrainedTokenizer,
 )
 from transformers.utils import PaddingStrategy
 
 from fortuna.data.dataset.data_collator import (
-    FlaxDataCollatorForMultipleChoice,
     FlaxDataCollatorForLanguageModeling,
+    FlaxDataCollatorForMultipleChoice,
 )
 from fortuna.data.loader.huggingface_loaders import HuggingFaceDataLoader
 from fortuna.data.loader.utils import IterableData

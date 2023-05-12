@@ -5,8 +5,8 @@ from typing import (
     Optional,
 )
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import jax.numpy as jnp
 
 from fortuna.output_calib_model.config.base import Config
 from fortuna.output_calib_model.loss import Loss

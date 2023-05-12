@@ -7,10 +7,10 @@ from typing import (
     Tuple,
 )
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax import device_get
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer

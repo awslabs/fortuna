@@ -1,9 +1,12 @@
 import jax.numpy as jnp
-import numpy as np
 from jax.tree_util import tree_map
+import numpy as np
 
 from fortuna.data.loader import DataLoader
-from fortuna.typing import InputData, Shape
+from fortuna.typing import (
+    InputData,
+    Shape,
+)
 
 
 def check_data_loader_is_not_random(data_loader: DataLoader, max_iter: int = 3) -> None:

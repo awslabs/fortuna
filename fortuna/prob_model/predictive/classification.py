@@ -1,12 +1,12 @@
 from typing import Optional
 
-import jax.numpy as jnp
-import jax.scipy as jsp
 from jax import (
     jit,
     vmap,
 )
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
+import jax.scipy as jsp
 
 from fortuna.data.loader import InputsLoader
 from fortuna.prob_model.posterior.base import Posterior

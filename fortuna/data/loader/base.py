@@ -11,8 +11,8 @@ from typing import (
     TypeVar,
 )
 
-import jax
 from flax import jax_utils
+import jax
 from jax.tree_util import tree_map
 
 from fortuna.data.loader.utils import IterableData
@@ -20,9 +20,9 @@ from fortuna.typing import (
     Array,
     Batch,
     InputData,
+    Shape,
     Status,
     Targets,
-    Shape,
 )
 
 T = TypeVar("T")

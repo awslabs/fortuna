@@ -2,10 +2,13 @@ import copy
 import importlib
 import logging
 
-import jax
 from flax.core import unfreeze
 from flax.traverse_util import flatten_dict
-from transformers import PretrainedConfig, AutoConfig
+import jax
+from transformers import (
+    AutoConfig,
+    PretrainedConfig,
+)
 from transformers.models.auto.auto_factory import _LazyAutoMapping
 from transformers.models.auto.configuration_auto import model_type_to_module_name
 

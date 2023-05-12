@@ -7,8 +7,8 @@ from typing import (
     Union,
 )
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import jax.numpy as jnp
 
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (

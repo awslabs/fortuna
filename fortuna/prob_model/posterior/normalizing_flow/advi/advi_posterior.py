@@ -10,11 +10,11 @@ from typing import (
     Union,
 )
 
-import jax.numpy as jnp
-import numpy as np
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
+import numpy as np
 
 from fortuna.data.loader import (
     DataLoader,

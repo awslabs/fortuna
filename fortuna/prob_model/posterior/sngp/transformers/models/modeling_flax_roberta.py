@@ -1,11 +1,24 @@
-from typing import Tuple, Optional
+from typing import (
+    Optional,
+    Tuple,
+)
 
+from flax.core import (
+    FrozenDict,
+    freeze,
+    unfreeze,
+)
 import flax.linen as nn
+from flax.traverse_util import (
+    flatten_dict,
+    unflatten_dict,
+)
 import jax
 import jax.numpy as jnp
-from flax.core import FrozenDict, unfreeze, freeze
-from flax.traverse_util import flatten_dict, unflatten_dict
-from transformers import RobertaConfig, FlaxRobertaPreTrainedModel
+from transformers import (
+    FlaxRobertaPreTrainedModel,
+    RobertaConfig,
+)
 from transformers.models.roberta.modeling_flax_roberta import (
     FlaxRobertaModule,
     create_position_ids_from_input_ids,

@@ -1,8 +1,8 @@
-import jax.numpy as jnp
 from jax.nn import (
     one_hot,
     softmax,
 )
+import jax.numpy as jnp
 
 from fortuna.typing import Array
 

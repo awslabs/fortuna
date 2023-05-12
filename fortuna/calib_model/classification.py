@@ -6,9 +6,9 @@ from typing import (
     Type,
 )
 
+from flax import linen as nn
 import jax.numpy as jnp
 import numpy as np
-from flax import linen as nn
 
 from fortuna.calib_model.base import CalibModel
 from fortuna.calib_model.config.base import Config
@@ -18,8 +18,8 @@ from fortuna.likelihood.classification import ClassificationLikelihood
 from fortuna.loss.classification.focal_loss import focal_loss_fn
 from fortuna.model.model_manager.classification import ClassificationModelManager
 from fortuna.prob_output_layer.classification import (
-    ClassificationProbOutputLayer,
     ClassificationMaskedProbOutputLayer,
+    ClassificationProbOutputLayer,
 )
 from fortuna.typing import (
     Outputs,

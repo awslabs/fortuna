@@ -5,10 +5,10 @@ from typing import (
     Optional,
 )
 
-import jax.numpy as jnp
-import optax
 from flax.core.frozen_dict import freeze
 from flax.traverse_util import path_aware_map
+import jax.numpy as jnp
+import optax
 
 from fortuna.calib_model.calib_mixin import WithCalibCheckpointingMixin
 from fortuna.calib_model.calib_model_calibrator import (
@@ -26,10 +26,10 @@ from fortuna.typing import (
     Outputs,
     Path,
     Predictions,
+    Shape,
     Status,
     Targets,
     Uncertainties,
-    Shape,
 )
 from fortuna.utils.data import get_input_shape
 from fortuna.utils.device import select_trainer_given_devices

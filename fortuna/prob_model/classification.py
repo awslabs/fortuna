@@ -1,6 +1,10 @@
 import importlib
 import logging
-from typing import Dict, Optional, Type
+from typing import (
+    Dict,
+    Optional,
+    Type,
+)
 
 import flax.linen as nn
 
@@ -30,11 +34,14 @@ from fortuna.prob_model.predictive.classification import ClassificationPredictiv
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_model.prior.base import Prior
 from fortuna.prob_output_layer.classification import (
-    ClassificationProbOutputLayer,
     ClassificationMaskedProbOutputLayer,
+    ClassificationProbOutputLayer,
 )
 from fortuna.typing import Status
-from fortuna.utils.data import get_input_shape, get_inputs_from_shape
+from fortuna.utils.data import (
+    get_input_shape,
+    get_inputs_from_shape,
+)
 
 
 class ProbClassifier(ProbModel):

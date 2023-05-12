@@ -1,9 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import (
+    Any,
+    Optional,
+)
 
+from flax.training import (
+    dynamic_scale,
+    train_state,
+)
 import jax.numpy as jnp
-from flax.training import train_state, dynamic_scale
 
 from fortuna.utils.strings import convert_string_to_jnp_array
 

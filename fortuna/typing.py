@@ -6,9 +6,9 @@ from typing import (
     Union,
 )
 
+from flax.core import FrozenDict
 import jax.numpy as jnp
 import numpy as np
-from flax.core import FrozenDict
 from optax._src.base import (
     GradientTransformation,
     PyTree,

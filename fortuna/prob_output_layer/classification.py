@@ -1,13 +1,13 @@
 from typing import Optional
 
 import jax
-import jax.numpy as jnp
-import jax.scipy as jsp
 from jax import (
     random,
     vmap,
 )
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
+import jax.scipy as jsp
 
 from fortuna.prob_output_layer.base import ProbOutputLayer
 from fortuna.typing import Array

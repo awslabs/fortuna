@@ -3,8 +3,8 @@ from typing import (
     Optional,
 )
 
-import jax.numpy as jnp
 from flax import linen as nn
+import jax.numpy as jnp
 
 from fortuna.calib_model.base import CalibModel
 from fortuna.calib_model.config.base import Config
