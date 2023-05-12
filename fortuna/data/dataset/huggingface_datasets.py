@@ -31,6 +31,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         tokenizer: PreTrainedTokenizer,
         max_length: int,
         padding: Union[bool, str, PaddingStrategy] = True,
+        pad_to_multiple_of: int = 64,
         num_unique_labels: Optional[int] = None,
     ):
         """
@@ -46,12 +47,16 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         padding: Union[bool, str, PaddingStrategy]
             See `Padding and Truncation <https://huggingface.co/docs/transformers/pad_truncation>`_
             for more information (`truncation` is always True).
+        pad_to_multiple_of: int
+            Pad the sequence to a multiple of the provided value.
+            This argument will be used whenever padding is not done to a fixed constant (e.g., max_length).
         num_unique_labels: Optional[int]
             Number of unique target labels in the task (classification only)
         """
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.padding = padding
+        self.pad_to_multiple_of = pad_to_multiple_of
         self.num_unique_labels = num_unique_labels
         self._data_collator = None
 
@@ -177,9 +182,11 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
                 yield batch_inputs, None
 
 
-class HuggingFaceClassificationDatasetForSequenceClassification(
-    HuggingFaceClassificationDatasetABC
-):
+class HuggingFaceSequenceClassificationDataset(HuggingFaceClassificationDatasetABC):
+    """
+    Dataset for Sequence Classification tasks.
+    """
+
     def get_tokenized_datasets(
         self,
         datasets: DatasetDict,
@@ -244,72 +251,37 @@ class HuggingFaceClassificationDatasetForSequenceClassification(
         return batch
 
 
-class HuggingFaceSWAGMultiChoice(HuggingFaceClassificationDatasetABC):
+class HuggingFaceMultiChoiceDataset(HuggingFaceClassificationDatasetABC):
+    """
+    Dataset for Multi Choice classification tasks.
+    """
+
     def get_tokenized_datasets(
-        self, datasets: DatasetDict, *args, **kwargs
+        self,
+        datasets: DatasetDict,
+        contexts: Sequence[str] = (),
+        choices: Sequence[str] = (),
+        **kwargs,
     ) -> DatasetDict:
-        if kwargs.get("dataset_name") != "hellaswag":
-            sent1 = "sent1"
-            sent2 = "sent2"
-            ending_names = ["ending0", "ending1", "ending2", "ending3"]
-        else:
-            sent1 = "ctx_a"
-            sent2 = "ctx_b"
-            ending_names = "endings"
+        """
+        Converts one or more dataset into sequences of tokens, using the tokenizer.
 
-        def _tokenize_fn(batch: Dict[str, List[Union[str, int]]]) -> Dict:
-            first_sentences = [[context] * 4 for context in batch[sent1]]
-            question_headers = batch[sent2]
-            if kwargs.get("dataset_name") != "hellaswag":
-                second_sentences = [
-                    [f"{header} {batch[end][i]}" for end in ending_names]
-                    for i, header in enumerate(question_headers)
-                ]
-            else:
-                second_sentences = [
-                    [f"{header} {end}" for end in batch[ending_names][i]]
-                    for i, header in enumerate(question_headers)
-                ]
-            first_sentences = sum(first_sentences, [])
-            second_sentences = sum(second_sentences, [])
-            tokenized_inputs = self.tokenizer(
-                first_sentences, second_sentences, truncation=True
-            )
-            tokenized_inputs = {
-                k: [v[i : i + 4] for i in range(0, len(v), 4)]
-                for k, v in tokenized_inputs.items()
-            }
-            tokenized_inputs["label"] = batch["label"]
-            return tokenized_inputs
+        Parameters
+        ----------
+        datasets: DatasetDict
+            A dictionary of `datasets.Dataset` that have to be encoded.
+        contexts: Sequence[str]
+            A list of str containing the column names for the contexts.
+            The first column contain the initial context (the first sentence).
+            The second column name contains the beginning of the second sentence.
+        choices:
+            A list of str containing the column names for the possible continuations of the context.
 
-        tokenized_datasets = datasets.map(
-            _tokenize_fn,
-            batched=True,
-            remove_columns=datasets[list(datasets.keys())[0]].column_names,
-        )
-        return tokenized_datasets
-
-    @property
-    def data_collator(self) -> Any:
-        if self._data_collator is None:
-            self._data_collator = FlaxDataCollatorForMultipleChoice(
-                tokenizer=self.tokenizer,
-                # padding='max_length',
-                max_length=self.max_length,
-                pad_to_multiple_of=16,
-            )
-        return self._data_collator
-
-    def _collate(self, batch: Dict[str, Array], batch_size: int) -> Dict[str, Array]:
-        batch = [{k: batch[k][i] for k in batch.keys()} for i in range(batch_size)]
-        batch = self.data_collator(batch)
-        return batch
-
-
-class HuggingFaceMultiChoice(HuggingFaceClassificationDatasetABC):
-    def get_tokenized_datasets(
-        self, datasets: DatasetDict, contexts: List[str], choices: List[str], **kwargs
-    ) -> DatasetDict:
+        Returns
+        -------
+        DatasetDict
+            A dictionary of tokenized datasets.
+        """
         sent1 = contexts[0]
         sent2 = contexts[1]
 
@@ -318,14 +290,14 @@ class HuggingFaceMultiChoice(HuggingFaceClassificationDatasetABC):
                 [context] * self.num_unique_labels for context in batch[sent1]
             ]
             question_headers = batch[sent2]
-            if len(choices) == 1:
+            if len(choices) > 1:
                 second_sentences = [
                     [f"{header} {batch[end][i]}" for end in choices]
                     for i, header in enumerate(question_headers)
                 ]
             else:
                 second_sentences = [
-                    [f"{header} {end}" for end in batch[choices][i]]
+                    [f"{header} {end}" for end in batch[choices[0]][i]]
                     for i, header in enumerate(question_headers)
                 ]
             first_sentences = sum(first_sentences, [])
@@ -355,9 +327,8 @@ class HuggingFaceMultiChoice(HuggingFaceClassificationDatasetABC):
         if self._data_collator is None:
             self._data_collator = FlaxDataCollatorForMultipleChoice(
                 tokenizer=self.tokenizer,
-                # padding='max_length',
                 max_length=self.max_length,
-                pad_to_multiple_of=16,
+                pad_to_multiple_of=self.pad_to_multiple_of,
             )
         return self._data_collator
 
@@ -367,7 +338,7 @@ class HuggingFaceMultiChoice(HuggingFaceClassificationDatasetABC):
         return batch
 
 
-class HuggingFaceClassificationDatasetForMaskedLM(HuggingFaceClassificationDatasetABC):
+class HuggingFaceMaskedLMDataset(HuggingFaceClassificationDatasetABC):
     def __init__(
         self,
         *args,
@@ -381,9 +352,7 @@ class HuggingFaceClassificationDatasetForMaskedLM(HuggingFaceClassificationDatas
             The probability with which to (randomly) mask tokens in the input,
             when the task is masked language modeling.
         """
-        super(HuggingFaceClassificationDatasetForMaskedLM, self).__init__(
-            *args, **kwargs
-        )
+        super(HuggingFaceMaskedLMDataset, self).__init__(*args, **kwargs)
         if not self.tokenizer.is_fast:
             logger.warning(
                 f"You are not using a Fast Tokenizer, so whole words cannot be masked, only tokens."
@@ -394,9 +363,23 @@ class HuggingFaceClassificationDatasetForMaskedLM(HuggingFaceClassificationDatas
         self,
         datasets: DatasetDict,
         text_columns: Sequence[str] = ("sentence",),
-        target_column: str = "label",
         **kwargs,
     ) -> DatasetDict:
+        """
+        Converts one or more dataset into sequences of tokens, using the tokenizer.
+
+        Parameters
+        ----------
+        datasets: DatasetDict
+            A dictionary of `datasets.Dataset` that have to be encoded.
+        text_columns: str
+            A list containing the text column names, whose text sequences has to be encoded.
+
+        Returns
+        -------
+        DatasetDict
+            A dictionary of tokenized datasets.
+        """
         assert (
             len(text_columns) == 1
         ), "Only one text column should be passed when the task is MaskedLM."
@@ -444,4 +427,4 @@ class HuggingFaceClassificationDatasetForMaskedLM(HuggingFaceClassificationDatas
 
     def _collate(self, batch: Dict[str, Array], batch_size: int) -> Dict[str, Array]:
         batch = [{k: batch[k][i] for k in batch.keys()} for i in range(batch_size)]
-        return self.data_collator(batch, pad_to_multiple_of=16)
+        return self.data_collator(batch, pad_to_multiple_of=self.pad_to_multiple_of)
