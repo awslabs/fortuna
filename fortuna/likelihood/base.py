@@ -1,16 +1,37 @@
 import abc
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import jax
-import jax.numpy as jnp
-from jax import jit, pmap
+from jax import (
+    jit,
+    pmap,
+)
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
-from fortuna.data.loader import DataLoader, DeviceDimensionAugmentedLoader, InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    DeviceDimensionAugmentedLoader,
+    InputsLoader,
+)
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.base import ProbOutputLayer
-from fortuna.typing import Array, Batch, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import (
+    Array,
+    Batch,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 from fortuna.utils.random import WithRNG
 
 
@@ -52,7 +73,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         """
         Evaluate the log-likelihood function.
@@ -85,7 +106,7 @@ class Likelihood(WithRNG):
             calib_params,
             calib_mutable,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
     def _batched_log_prob(
@@ -95,7 +116,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         outputs = self._get_batched_calibrated_outputs(
             params, batch[0], mutable, calib_params, calib_mutable, **kwargs
@@ -114,7 +135,7 @@ class Likelihood(WithRNG):
         train: bool = False,
         outputs: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
         """
         Evaluate the batched log-likelihood function.
@@ -156,7 +177,7 @@ class Likelihood(WithRNG):
         unsupported_aux = [s for s in return_aux if s not in supported_aux]
         if sum(unsupported_aux) > 0:
             raise AttributeError(
-                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux` 
+                """The auxiliary objects {} is unknown. Please make sure that all elements of `return_aux`
                             belong to the following list: {}""".format(
                     unsupported_aux, supported_aux
                 )
@@ -181,7 +202,7 @@ class Likelihood(WithRNG):
             )
         if "mutable" not in return_aux and mutable is not None and train is True:
             raise ValueError(
-                """You need to add `mutable` to `return_aux`. When you provide a (not null) `mutable` variable during 
+                """You need to add `mutable` to `return_aux`. When you provide a (not null) `mutable` variable during
                 training, that variable will be updated during the forward pass."""
             )
 
@@ -250,7 +271,7 @@ class Likelihood(WithRNG):
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         """
         Sample target variables from the likelihood function for each input variable.
@@ -289,7 +310,7 @@ class Likelihood(WithRNG):
         unsupported_aux = [s for s in return_aux if s not in supported_aux]
         if sum(unsupported_aux) > 0:
             raise Exception(
-                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux` 
+                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux`
                             belong to the following list: {}""".format(
                     unsupported_aux, supported_aux
                 )
@@ -302,7 +323,7 @@ class Likelihood(WithRNG):
             calib_params,
             calib_mutable,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
         samples = self.prob_output_layer.sample(
@@ -322,7 +343,7 @@ class Likelihood(WithRNG):
         calib_mutable: Optional[CalibMutable] = None,
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         if return_aux is None:
             return_aux = []
@@ -330,7 +351,7 @@ class Likelihood(WithRNG):
         unsupported_aux = [s for s in return_aux if s not in supported_aux]
         if sum(unsupported_aux) > 0:
             raise Exception(
-                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux` 
+                """The auxiliary objects {} are unknown. Please make sure that all elements of `return_aux`
                             belong to the following list: {}""".format(
                     unsupported_aux, supported_aux
                 )
@@ -355,7 +376,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         """
         Compute the outputs and their calibrated version.
@@ -394,7 +415,7 @@ class Likelihood(WithRNG):
                 if calib_mutable is not None
                 else None,
                 outputs=outputs,
-                **kwargs
+                **kwargs,
             )
         return outputs
 
@@ -405,7 +426,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         outputs = self.model_manager.apply(params, inputs, mutable, **kwargs)
 
@@ -421,7 +442,7 @@ class Likelihood(WithRNG):
                 if calib_mutable is not None
                 else None,
                 outputs=outputs,
-                **kwargs
+                **kwargs,
             )
         return outputs
 
@@ -431,7 +452,7 @@ class Likelihood(WithRNG):
         inputs_loader: InputsLoader,
         mutable: Optional[Mutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         """
         Compute the outputs and their calibrated version.
@@ -475,7 +496,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the likelihood mean of the target variable, that is
@@ -516,7 +537,7 @@ class Likelihood(WithRNG):
             calib_params,
             calib_mutable,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
     @abc.abstractmethod
@@ -527,7 +548,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         pass
 
@@ -539,7 +560,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the likelihood mode of the target variable, that is
@@ -580,7 +601,7 @@ class Likelihood(WithRNG):
             calib_params,
             calib_mutable,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
     @abc.abstractmethod
@@ -591,7 +612,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         pass
 
@@ -603,7 +624,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the likelihood variance of the target variable, that is
@@ -644,7 +665,7 @@ class Likelihood(WithRNG):
             calib_params,
             calib_mutable,
             distribute,
-            **kwargs
+            **kwargs,
         )
 
     @abc.abstractmethod
@@ -655,7 +676,7 @@ class Likelihood(WithRNG):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         pass
 
@@ -668,7 +689,7 @@ class Likelihood(WithRNG):
         calib_mutable: Optional[CalibMutable] = None,
         variance: Optional[jnp.ndarray] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the likelihood standard deviation of the target variable, that is
@@ -711,7 +732,7 @@ class Likelihood(WithRNG):
                 calib_params=calib_params,
                 calib_mutable=calib_mutable,
                 distribute=distribute,
-                **kwargs
+                **kwargs,
             )
         return jnp.sqrt(variance)
 
@@ -724,7 +745,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         r"""
         Estimate the likelihood entropy, that is
@@ -772,7 +793,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Array:
         def fun2(_inputs):
             return fun(params, _inputs, mutable, calib_params, calib_mutable, **kwargs)
@@ -795,7 +816,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Array:
         def fun2(_batch):
             return fun(params, _batch, mutable, calib_params, calib_mutable, **kwargs)

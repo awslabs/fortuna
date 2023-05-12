@@ -10,7 +10,7 @@ class CNN(nn.Module):
     dtype: Any = jnp.float32
     """
     A CNN model.
-    
+
     :param output_dim: int
         Output dimension.
     :param dropout_rate: Optional[float]
@@ -36,7 +36,7 @@ class CNNHiddenLayers(nn.Module):
     dtype: Any = jnp.float32
     """
     Hidden layers of a CNN model.
-        
+
     :param dropout_rate: float
         Dropout rate.
     :param dtype: Any

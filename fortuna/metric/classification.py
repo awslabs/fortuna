@@ -1,4 +1,9 @@
-from typing import Dict, Optional, Tuple, Union
+from typing import (
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import jax.nn
 import jax.numpy as jnp

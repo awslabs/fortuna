@@ -25,6 +25,3 @@ calibration parameters. We support several posterior approximations:
 .. autoclass:: fortuna.prob_model.posterior.state.PosteriorState
     :no-inherited-members:
     :exclude-members: params, mutable, calib_params, calib_mutable, replace, encoded_name
-
-
-

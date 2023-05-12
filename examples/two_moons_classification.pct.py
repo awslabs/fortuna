@@ -62,7 +62,13 @@ prob_model = ProbClassifier(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model.
 
 # %%
-from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer, CalibConfig, CalibMonitor
+from fortuna.prob_model import (
+    FitConfig,
+    FitMonitor,
+    FitOptimizer,
+    CalibConfig,
+    CalibMonitor,
+)
 from fortuna.metric.classification import accuracy
 import optax
 
@@ -74,7 +80,7 @@ status = prob_model.train(
         monitor=FitMonitor(metrics=(accuracy,), early_stopping_patience=10),
         optimizer=FitOptimizer(method=optax.adam(1e-1)),
     ),
-    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2))
+    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2)),
 )
 
 # %% [markdown]
@@ -163,8 +169,9 @@ from fortuna.output_calib_model import OutputCalibClassifier, Config, Monitor
 
 calib_model = OutputCalibClassifier()
 calib_status = calib_model.calibrate(
-    calib_outputs=calib_outputs, calib_targets=calib_targets,
-    config=Config(monitor=Monitor(early_stopping_patience=2))
+    calib_outputs=calib_outputs,
+    calib_targets=calib_targets,
+    config=Config(monitor=Monitor(early_stopping_patience=2)),
 )
 
 # %% [markdown]

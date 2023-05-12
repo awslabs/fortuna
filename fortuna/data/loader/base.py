@@ -1,14 +1,28 @@
 from __future__ import annotations
 
 import abc
-from typing import Callable, Iterable, List, Optional, Tuple, Type, TypeVar
+from typing import (
+    Callable,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+)
 
-import jax
 from flax import jax_utils
+import jax
 from jax.tree_util import tree_map
 
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Array, Batch, InputData, Status, Targets
+from fortuna.typing import (
+    Array,
+    Batch,
+    InputData,
+    Status,
+    Targets,
+)
 
 T = TypeVar("T")
 

@@ -2,10 +2,15 @@ import unittest
 
 import numpy as np
 
-from fortuna.data.loader import DataLoader, InputsLoader, TargetsLoader
-from tests.make_data import (make_array_random_data,
-                             make_generator_fun_random_data,
-                             )
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+    TargetsLoader,
+)
+from tests.make_data import (
+    make_array_random_data,
+    make_generator_fun_random_data,
+)
 
 
 class Test(unittest.TestCase):
@@ -39,7 +44,6 @@ class Test(unittest.TestCase):
 
 
 class TestGetTargets(unittest.TestCase):
-
     def test_get_targets_from_generator_function(self):
         data = make_generator_fun_random_data(
             n_batches=2,
@@ -61,12 +65,20 @@ class TestDataLoaders(unittest.TestCase):
         inputs2 = 1 + np.arange(7)
         inputs_loaders = [
             InputsLoader.from_array_inputs(inputs1, batch_size=3),
-            InputsLoader.from_array_inputs(inputs2, batch_size=4)
+            InputsLoader.from_array_inputs(inputs2, batch_size=4),
         ]
         targets = [0, 1]
         data_loader = DataLoader.from_inputs_loaders(inputs_loaders, targets)
         for i, (x, y) in enumerate(data_loader):
-            assert x.shape == (7,) if i == 0 else (6,) if i == 1 else (3,) if i == 2 else (1,)
+            assert (
+                x.shape == (7,)
+                if i == 0
+                else (6,)
+                if i == 1
+                else (3,)
+                if i == 2
+                else (1,)
+            )
             assert all(y[:3] == 0)
             assert all(y[3:] == 1)
             assert len(x) == len(y)
@@ -74,7 +86,9 @@ class TestDataLoaders(unittest.TestCase):
     def test_inputs_loader_to_transformed_inputs_loader(self):
         inputs = np.arange(10)
         inputs_loader = InputsLoader.from_array_inputs(inputs, batch_size=3)
-        transformed_inputs_loader = inputs_loader.to_transformed_inputs_loader(lambda x, s: (x[x < 7], s))
+        transformed_inputs_loader = inputs_loader.to_transformed_inputs_loader(
+            lambda x, s: (x[x < 7], s)
+        )
 
         for i, x in enumerate(transformed_inputs_loader):
             assert x.shape == (3,) if i < 2 else (1,)
@@ -89,7 +103,9 @@ class TestDataLoaders(unittest.TestCase):
             status["k"] = "v"
             return x[idx], y[idx], status
 
-        transformed_data_loader = data_loader.to_transformed_data_loader(transform, status={})
+        transformed_data_loader = data_loader.to_transformed_data_loader(
+            transform, status={}
+        )
 
         for i, (x, y) in enumerate(transformed_data_loader):
             assert x.shape == (3,) if i < 2 else (1,)
@@ -99,7 +115,9 @@ class TestDataLoaders(unittest.TestCase):
     def test_targets_loader_to_transformed_targets_loader(self):
         targets = np.arange(10)
         targets_loader = TargetsLoader.from_array_targets(targets, batch_size=3)
-        transformed_targets_loader = targets_loader.to_transformed_targets_loader(lambda y, s: (y[y < 7], s))
+        transformed_targets_loader = targets_loader.to_transformed_targets_loader(
+            lambda y, s: (y[y < 7], s)
+        )
 
         for i, y in enumerate(transformed_targets_loader):
             assert y.shape == (3,) if i < 2 else (1,)

@@ -1,16 +1,15 @@
 import unittest
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax import random
+import jax.numpy as jnp
 
 from fortuna.data.loader import DataLoader
+from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.model.mlp import MLP
 from fortuna.model.model_manager.regression import RegressionModelManager
-from fortuna.output_calibrator.output_calib_manager.base import \
-    OutputCalibManager
+from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_model.joint.base import Joint
-from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.prob_model.prior import IsotropicGaussianPrior
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from tests.make_data import make_array_random_data

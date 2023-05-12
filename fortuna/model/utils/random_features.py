@@ -2,14 +2,27 @@
 
 import dataclasses
 import functools
-from typing import Any, Callable, Mapping, Optional, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+)
 
 import flax.linen as nn
+from jax import (
+    lax,
+    random,
+)
 import jax.numpy as jnp
-from jax import lax, random
 from jax.random import PRNGKeyArray
 
-from fortuna.typing import Array, Shape
+from fortuna.typing import (
+    Array,
+    Shape,
+)
 
 linalg = lax.linalg
 
@@ -239,7 +252,7 @@ class LaplaceRandomFeatureCovariance(nn.Module):
         The number of random fourier features.
     ridge_penalty: float
         Initial Ridge penalty to weight covariance matrix.
-        This value is used to stablize the eigenvalues of weight covariance estimate :math:`\Sigma` so that
+        This value is used to stabilize the eigenvalues of weight covariance estimate :math:`\Sigma` so that
         the matrix inverse can be computed for :math:`\Sigma = (\mathbf{I}*s+\mathbf{X}^T\mathbf{X})^{-1}`.
         The ridge factor :math:`s` cannot be too large since otherwise it will dominate
         making the covariance estimate not meaningful.

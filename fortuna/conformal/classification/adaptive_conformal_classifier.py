@@ -1,5 +1,8 @@
 import inspect
-from typing import List, Optional
+from typing import (
+    List,
+    Optional,
+)
 
 import jax.numpy as jnp
 

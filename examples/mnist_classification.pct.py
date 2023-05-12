@@ -76,7 +76,13 @@ prob_model = ProbClassifier(
 # We can now train the probabilistic model. This includes fitting the posterior distribution and calibrating the probabilistic model. As we are using a Laplace approximation, which start from a Maximum-A-Posteriori (MAP) approximation, we configure MAP via the argument `map_fit_config`.
 
 # %%
-from fortuna.prob_model import FitConfig, FitMonitor, FitOptimizer, CalibConfig, CalibMonitor
+from fortuna.prob_model import (
+    FitConfig,
+    FitMonitor,
+    FitOptimizer,
+    CalibConfig,
+    CalibMonitor,
+)
 from fortuna.metric.classification import accuracy
 
 status = prob_model.train(
@@ -84,13 +90,17 @@ status = prob_model.train(
     val_data_loader=val_data_loader,
     calib_data_loader=val_data_loader,
     fit_config=FitConfig(
-        optimizer=FitOptimizer(freeze_fun=lambda path, val: "trainable" if "output_subnet" in path else "frozen")
+        optimizer=FitOptimizer(
+            freeze_fun=lambda path, val: "trainable"
+            if "output_subnet" in path
+            else "frozen"
+        )
     ),
     map_fit_config=FitConfig(
         monitor=FitMonitor(early_stopping_patience=2, metrics=(accuracy,)),
-        optimizer=FitOptimizer()
+        optimizer=FitOptimizer(),
     ),
-    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2))
+    calib_config=CalibConfig(monitor=CalibMonitor(early_stopping_patience=2)),
 )
 
 
@@ -192,7 +202,9 @@ test_targets = test_data_loader.to_array_targets()
 from fortuna.output_calib_model import OutputCalibClassifier
 
 calib_model = OutputCalibClassifier()
-calib_status = calib_model.calibrate(calib_outputs=calib_outputs, calib_targets=calib_targets)
+calib_status = calib_model.calibrate(
+    calib_outputs=calib_outputs, calib_targets=calib_targets
+)
 
 # %% [markdown] pycharm={"name": "#%% md\n"}
 # Similarly as above, we can now compute predictive statistics.

@@ -30,6 +30,7 @@
 TRAIN_DATA_SIZE = 500
 
 from sklearn.datasets import make_moons
+
 train_data = make_moons(n_samples=TRAIN_DATA_SIZE, noise=0.1, random_state=0)
 val_data = make_moons(n_samples=500, noise=0.1, random_state=1)
 test_data = make_moons(n_samples=500, noise=0.1, random_state=2)
@@ -40,7 +41,10 @@ test_data = make_moons(n_samples=500, noise=0.1, random_state=2)
 
 # %%
 from fortuna.data import DataLoader
-train_data_loader = DataLoader.from_array_data(train_data, batch_size=256, shuffle=True, prefetch=True)
+
+train_data_loader = DataLoader.from_array_data(
+    train_data, batch_size=256, shuffle=True, prefetch=True
+)
 val_data_loader = DataLoader.from_array_data(val_data, batch_size=256, prefetch=True)
 test_data_loader = DataLoader.from_array_data(test_data, batch_size=256, prefetch=True)
 
@@ -53,22 +57,35 @@ import numpy as np
 from fortuna.data import InputsLoader
 from fortuna.prob_model import ProbClassifier
 
-def plot_uncertainty(prob_model: ProbClassifier, test_data_loader: DataLoader, grid_size: int = 100):
+
+def plot_uncertainty(
+    prob_model: ProbClassifier, test_data_loader: DataLoader, grid_size: int = 100
+):
     test_inputs_loader = test_data_loader.to_inputs_loader()
     test_means = prob_model.predictive.mean(inputs_loader=test_inputs_loader)
-    test_modes = prob_model.predictive.mode(inputs_loader=test_inputs_loader, means=test_means)
+    test_modes = prob_model.predictive.mode(
+        inputs_loader=test_inputs_loader, means=test_means
+    )
 
     fig = plt.figure(figsize=(6, 3))
     xx = np.linspace(-5, 5, grid_size)
     yy = np.linspace(-5, 5, grid_size)
     grid = np.array([[_xx, _yy] for _xx in xx for _yy in yy])
     grid_loader = InputsLoader.from_array_inputs(grid)
-    grid_entropies = prob_model.predictive.entropy(grid_loader).reshape(grid_size, grid_size)
+    grid_entropies = prob_model.predictive.entropy(grid_loader).reshape(
+        grid_size, grid_size
+    )
     grid = grid.reshape(grid_size, grid_size, 2)
     plt.title("Predictive uncertainty", fontsize=12)
     im = plt.pcolor(grid[:, :, 0], grid[:, :, 1], grid_entropies)
-    plt.scatter(test_data[0][:, 0], test_data[0][:, 1], s=1, c=["C0" if i == 1 else "C1" for i in test_modes])
+    plt.scatter(
+        test_data[0][:, 0],
+        test_data[0][:, 1],
+        s=1,
+        c=["C0" if i == 1 else "C1" for i in test_modes],
+    )
     plt.colorbar()
+
 
 # %% [markdown]
 # ### Define the deterministic model
@@ -105,7 +122,7 @@ status = prob_model.train(
     fit_config=FitConfig(
         monitor=FitMonitor(metrics=(accuracy,)),
         optimizer=FitOptimizer(n_epochs=100),
-    )
+    ),
 )
 
 # %%
@@ -131,8 +148,12 @@ plt.show()
 from fortuna.model.mlp import DeepResidualFeatureExtractorSubNet
 from fortuna.model.utils.spectral_norm import WithSpectralNorm
 
-class SNGPDeepFeatureExtractorSubNet(WithSpectralNorm, DeepResidualFeatureExtractorSubNet):
+
+class SNGPDeepFeatureExtractorSubNet(
+    WithSpectralNorm, DeepResidualFeatureExtractorSubNet
+):
     pass
+
 
 # %% [markdown]
 # Then, we can define our SNGP model by:
@@ -150,15 +171,17 @@ from fortuna.prob_model import SNGPPosteriorApproximator
 
 output_dim = 2
 model = SNGPDeepFeatureExtractorSubNet(
-        activations=tuple([nn.relu]*6),
-        widths=tuple([128]*6),
-        dropout_rate=0.1,
-        spectral_norm_bound=0.9,
-    )
+    activations=tuple([nn.relu] * 6),
+    widths=tuple([128] * 6),
+    dropout_rate=0.1,
+    spectral_norm_bound=0.9,
+)
 
 prob_model = ProbClassifier(
     model=model,
-    prior=IsotropicGaussianPrior(log_var=jnp.log(1./1e-4) - jnp.log(TRAIN_DATA_SIZE)),
+    prior=IsotropicGaussianPrior(
+        log_var=jnp.log(1.0 / 1e-4) - jnp.log(TRAIN_DATA_SIZE)
+    ),
     posterior_approximator=SNGPPosteriorApproximator(output_dim=output_dim),
     output_calibrator=None,
 )
@@ -180,7 +203,7 @@ status = prob_model.train(
     fit_config=FitConfig(
         monitor=FitMonitor(metrics=(accuracy,)),
         optimizer=FitOptimizer(n_epochs=100),
-    )
+    ),
 )
 
 # %%
@@ -190,5 +213,3 @@ plt.show()
 # %% [markdown]
 
 # We can clearly see that the SNGP model provides much better uncertainty estimates compared to the deterministic one.
-
-

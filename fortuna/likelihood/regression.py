@@ -1,16 +1,25 @@
-from typing import Optional, Union
+from typing import (
+    Optional,
+    Union,
+)
 
-import jax.numpy as jnp
-import numpy as np
 from jax import vmap
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
+import numpy as np
 
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.base import Likelihood
 from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.typing import Array, CalibMutable, CalibParams, Mutable, Params
+from fortuna.typing import (
+    Array,
+    CalibMutable,
+    CalibParams,
+    Mutable,
+    Params,
+)
 
 
 class RegressionLikelihood(Likelihood):
@@ -50,7 +59,7 @@ class RegressionLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         outputs = super()._get_batched_calibrated_outputs(
             params, inputs, mutable, calib_params, calib_mutable, **kwargs
@@ -64,7 +73,7 @@ class RegressionLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         return self._batched_mean(
             params,
@@ -72,7 +81,7 @@ class RegressionLikelihood(Likelihood):
             mutable,
             calib_params=calib_params,
             calib_mutable=calib_mutable,
-            **kwargs
+            **kwargs,
         )
 
     def _batched_variance(
@@ -82,7 +91,7 @@ class RegressionLikelihood(Likelihood):
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         outputs = super()._get_batched_calibrated_outputs(
             params, inputs, mutable, calib_params, calib_mutable, **kwargs
@@ -99,7 +108,7 @@ class RegressionLikelihood(Likelihood):
         n_target_samples: Optional[int] = 30,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         samples, aux = self.sample(
             n_target_samples,
@@ -132,7 +141,7 @@ class RegressionLikelihood(Likelihood):
         target_samples: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Union[float, jnp.ndarray]:
         """
         Estimate the `q`-th quantiles of the likelihood function.
@@ -180,6 +189,6 @@ class RegressionLikelihood(Likelihood):
                 calib_mutable=calib_mutable,
                 rng=rng,
                 distribute=distribute,
-                **kwargs
+                **kwargs,
             )
         return jnp.quantile(target_samples, q, axis=0)

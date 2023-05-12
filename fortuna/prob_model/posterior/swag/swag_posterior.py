@@ -3,13 +3,16 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax import random
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
 
-from fortuna.data.loader import DataLoader, InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
@@ -29,10 +32,16 @@ from fortuna.prob_model.posterior.swag.swag_trainer import (
     MultiDeviceSWAGTrainer,
     SWAGTrainer,
 )
-from fortuna.typing import Array, Status
+from fortuna.typing import (
+    Array,
+    Status,
+)
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.freeze import get_trainable_paths
-from fortuna.utils.nested_dicts import nested_get, nested_set
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+)
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
@@ -67,7 +76,7 @@ class SWAGPosterior(Posterior):
             raise ValueError("`rank` must be at least 2.")
         if fit_config.optimizer.n_epochs <= self.posterior_approximator.rank:
             raise ValueError(
-                """Not enough SWAG epochs to obtain `rank={}`. Please either increase `n_swag_epochs` or 
+                """Not enough SWAG epochs to obtain `rank={}`. Please either increase `n_swag_epochs` or
             decrease `rank`.""".format(
                     self.posterior_approximator.rank
                 )
@@ -77,8 +86,8 @@ class SWAGPosterior(Posterior):
             and fit_config.monitor.early_stopping_patience > 0
         ):
             logging.warning(
-                f"""It seems you are trying to enable early stopping, since 
-            `fit_config.monitor.early_stopping_patience={fit_config.monitor.early_stopping_patience}`. We do not 
+                f"""It seems you are trying to enable early stopping, since
+            `fit_config.monitor.early_stopping_patience={fit_config.monitor.early_stopping_patience}`. We do not
             support early stopping in SWAG, since we implement it as a post-processing step of MAP. If your intention
             was rather to enable early stopping in MAP, please configure `map_fit_config` accordingly."""
             )

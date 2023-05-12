@@ -1,8 +1,8 @@
 import abc
 from typing import Optional
 
-import jax.numpy as jnp
 from jax._src.prng import PRNGKeyArray
+import jax.numpy as jnp
 
 from fortuna.typing import Array
 from fortuna.utils.random import WithRNG
@@ -57,7 +57,7 @@ class ProbOutputLayer(WithRNG, abc.ABC):
         n_target_samples: int,
         outputs: Array,
         rng: Optional[PRNGKeyArray] = None,
-        **kwargs
+        **kwargs,
     ) -> jnp.ndarray:
         """
         Sample target variables for each outputs.

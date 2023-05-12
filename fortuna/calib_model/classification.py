@@ -1,8 +1,11 @@
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 
+from flax import linen as nn
 import jax.numpy as jnp
 import numpy as np
-from flax import linen as nn
 
 from fortuna.calib_model.base import CalibModel
 from fortuna.calib_model.config.base import Config
@@ -12,7 +15,11 @@ from fortuna.likelihood.classification import ClassificationLikelihood
 from fortuna.loss.classification.focal_loss import focal_loss_fn
 from fortuna.model.model_manager.classification import ClassificationModelManager
 from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
-from fortuna.typing import Outputs, Status, Targets
+from fortuna.typing import (
+    Outputs,
+    Status,
+    Targets,
+)
 
 
 class CalibClassifier(CalibModel):
@@ -69,7 +76,7 @@ class CalibClassifier(CalibModel):
         if model_manager_output_dim != data_output_dim:
             raise ValueError(
                 f"""The outputs dimension of `model` must correspond to the number of different classes
-            in the target variables of `_data_loader`. However, {model_manager_output_dim} and {data_output_dim} were 
+            in the target variables of `_data_loader`. However, {model_manager_output_dim} and {data_output_dim} were
             found, respectively."""
             )
 

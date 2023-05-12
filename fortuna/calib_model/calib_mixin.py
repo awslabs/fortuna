@@ -5,7 +5,10 @@ from flax.training import checkpoints
 
 from fortuna.calib_model.state import CalibState
 from fortuna.training.mixin import WithCheckpointingMixin
-from fortuna.typing import OptaxOptimizer, Path
+from fortuna.typing import (
+    OptaxOptimizer,
+    Path,
+)
 
 
 class WithCalibCheckpointingMixin(WithCheckpointingMixin):

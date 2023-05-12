@@ -1,5 +1,10 @@
 import os
-from typing import Dict, List, Optional, Union
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_state import (
     DeepEnsembleState,
@@ -8,7 +13,10 @@ from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import OptaxOptimizer, Path
+from fortuna.typing import (
+    OptaxOptimizer,
+    Path,
+)
 
 
 class DeepEnsemblePosteriorStateRepository:
@@ -29,14 +37,14 @@ class DeepEnsemblePosteriorStateRepository:
         checkpoint_path: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> Union[List[PosteriorState], PosteriorState]:
         def _get(_i):
             return self.state[_i].get(
                 checkpoint_path=checkpoint_path,
                 optimizer=optimizer,
                 prefix=prefix,
-                **kwargs
+                **kwargs,
             )
 
         if i is not None:
@@ -71,14 +79,14 @@ class DeepEnsemblePosteriorStateRepository:
         checkpoint_path: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> Union[DeepEnsembleState, PosteriorState]:
         def _pull(_i):
             return self.state[_i].pull(
                 checkpoint_path=checkpoint_path,
                 optimizer=optimizer,
                 prefix=prefix,
-                **kwargs
+                **kwargs,
             )
 
         if i is not None:
@@ -96,7 +104,7 @@ class DeepEnsemblePosteriorStateRepository:
         optimizer: Optional[OptaxOptimizer] = None,
         keep: int = 1,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ):
         def _update(_i):
             self.state[_i].update(
@@ -105,7 +113,7 @@ class DeepEnsemblePosteriorStateRepository:
                 optimizer=optimizer,
                 keep=keep,
                 prefix=prefix,
-                **kwargs
+                **kwargs,
             )
 
         if i is not None:
@@ -120,7 +128,7 @@ class DeepEnsemblePosteriorStateRepository:
         i: int = None,
         checkpoint_path: Optional[Path] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> Union[Dict, List[Dict]]:
         def _extract(_i):
             return self.state[_i].extract(
@@ -138,7 +146,7 @@ class DeepEnsemblePosteriorStateRepository:
         self,
         checkpoint_path: Optional[Path] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> Dict:
         return self.extract(
             ["calib_params", "calib_mutable"], 0, checkpoint_path, prefix, **kwargs

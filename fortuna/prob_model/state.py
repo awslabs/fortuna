@@ -1,10 +1,17 @@
 from __future__ import annotations
 
-from typing import Dict, Optional, Union
+from typing import (
+    Dict,
+    Optional,
+    Union,
+)
 
 from flax.core import FrozenDict
 
-from fortuna.typing import Mutable, Params
+from fortuna.typing import (
+    Mutable,
+    Params,
+)
 
 
 class ModelManagerState:

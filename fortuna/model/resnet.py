@@ -7,7 +7,12 @@ Taken as is from https://github.com/google/flax/blob/main/examples/imagenet/mode
 # pytype: disable=wrong-arg-count
 
 from functools import partial
-from typing import Any, Callable, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Sequence,
+    Tuple,
+)
 
 import flax.linen as nn
 import jax.numpy as jnp

@@ -1,9 +1,12 @@
 import abc
 import logging
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 
-import jax.numpy as jnp
 from flax.core import FrozenDict
+import jax.numpy as jnp
 
 from fortuna.output_calib_model.config.base import Config
 from fortuna.output_calib_model.loss import Loss
@@ -20,7 +23,13 @@ from fortuna.output_calib_model.output_calib_state_repository import (
 )
 from fortuna.output_calib_model.state import OutputCalibState
 from fortuna.output_calibrator.output_calib_manager.state import OutputCalibManagerState
-from fortuna.typing import Array, Outputs, Path, Status, Targets
+from fortuna.typing import (
+    Array,
+    Outputs,
+    Path,
+    Status,
+    Targets,
+)
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
 

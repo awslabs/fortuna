@@ -2,11 +2,23 @@ from __future__ import annotations
 
 from copy import deepcopy
 from itertools import zip_longest
-from typing import Any, Callable, Iterable, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 
-from fortuna.typing import Array, Batch, InputData, Targets
+from fortuna.typing import (
+    Array,
+    Batch,
+    InputData,
+    Targets,
+)
 
 
 class IterableData:

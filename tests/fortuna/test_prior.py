@@ -3,8 +3,10 @@ import unittest
 from jax import numpy as jnp
 from jax.flatten_util import ravel_pytree
 
-from fortuna.prob_model.prior import (DiagonalGaussianPrior,
-                                      IsotropicGaussianPrior)
+from fortuna.prob_model.prior import (
+    DiagonalGaussianPrior,
+    IsotropicGaussianPrior,
+)
 from fortuna.utils.random import RandomNumberGenerator
 
 

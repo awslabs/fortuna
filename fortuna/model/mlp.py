@@ -1,4 +1,10 @@
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import flax.linen as nn
 import jax.numpy as jnp
@@ -98,7 +104,7 @@ class MLPDeepFeatureExtractorSubNet(nn.Module):
     widths: Tuple[int]
         The number of units of each hidden layer.
     activations: Tuple[Callable[[Array], Array]]
-        The activation functions after each hidden layer. 
+        The activation functions after each hidden layer.
     dense: ModuleDef
         Dense module.
     dropout: ModuleDef
@@ -197,7 +203,7 @@ class MLPOutputSubNet(nn.Module):
     output_dim: int
         The output model dimension.
     activations: Tuple[Callable[[Array], Array]]
-        The activation functions after each hidden layer. 
+        The activation functions after each hidden layer.
     dense: ModuleDef
         Dense module.
     """

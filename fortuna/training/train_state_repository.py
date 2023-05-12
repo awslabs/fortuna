@@ -1,10 +1,18 @@
-import os
 from copy import deepcopy
-from typing import Dict, List, Optional, Union
+import os
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
 from fortuna.training.mixin import WithCheckpointingMixin
 from fortuna.training.train_state import TrainState
-from fortuna.typing import OptaxOptimizer, Path
+from fortuna.typing import (
+    OptaxOptimizer,
+    Path,
+)
 
 
 class TrainStateRepository(WithCheckpointingMixin):
@@ -18,7 +26,7 @@ class TrainStateRepository(WithCheckpointingMixin):
         checkpoint_path: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> Union[Dict, TrainState]:
         if not checkpoint_path and not self.checkpoint_dir and not self.__state:
             raise ValueError("No state available.")
@@ -27,7 +35,7 @@ class TrainStateRepository(WithCheckpointingMixin):
                 restore_checkpoint_path=checkpoint_path or self.checkpoint_dir,
                 optimizer=optimizer,
                 prefix=prefix,
-                **kwargs
+                **kwargs,
             )
         if optimizer is not None:
             self.__state = self.__state.replace(
@@ -58,13 +66,13 @@ class TrainStateRepository(WithCheckpointingMixin):
         checkpoint_path: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> TrainState:
         state = self.get(
             checkpoint_path=checkpoint_path,
             optimizer=optimizer,
             prefix=prefix,
-            **kwargs
+            **kwargs,
         )
         if checkpoint_path or self.checkpoint_dir:
             os.remove(
@@ -80,13 +88,13 @@ class TrainStateRepository(WithCheckpointingMixin):
         optimizer: Optional[OptaxOptimizer] = None,
         keep: int = 1,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ):
         state = self.pull(
             checkpoint_path=checkpoint_path,
             optimizer=optimizer,
             prefix=prefix,
-            **kwargs
+            **kwargs,
         )
         state = state.replace(**variables)
         self.put(state, checkpoint_path=checkpoint_path, keep=keep, prefix=prefix)
@@ -96,7 +104,7 @@ class TrainStateRepository(WithCheckpointingMixin):
         keys: List[str],
         checkpoint_path: Optional[Path] = None,
         prefix: str = "checkpoint_",
-        **kwargs
+        **kwargs,
     ) -> Dict:
         state = self.get(checkpoint_path=checkpoint_path, prefix=prefix, **kwargs)
         return {k: getattr(state, k) for k in keys}

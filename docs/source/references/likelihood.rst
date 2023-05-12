@@ -15,5 +15,3 @@ We support a :ref:`classification likelihood <likelihood_classification>` for cl
 .. _likelihood:
 
 .. automodule:: fortuna.likelihood.base
-
-

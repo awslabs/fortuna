@@ -1,7 +1,7 @@
 from typing import Optional
 
-import jax
 from flax.core import FrozenDict
+import jax
 from jax.tree_util import tree_map
 
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
@@ -9,9 +9,18 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import ADVISt
 from fortuna.prob_model.posterior.normalizing_flow.normalizing_flow_trainer import (
     NormalizingFlowTrainer,
 )
-from fortuna.training.trainer import JittedMixin, MultiDeviceMixin
-from fortuna.typing import Params, Path
-from fortuna.utils.nested_dicts import nested_pair, nested_set
+from fortuna.training.trainer import (
+    JittedMixin,
+    MultiDeviceMixin,
+)
+from fortuna.typing import (
+    Params,
+    Path,
+)
+from fortuna.utils.nested_dicts import (
+    nested_pair,
+    nested_set,
+)
 
 
 class ADVITrainer(NormalizingFlowTrainer):

@@ -1,7 +1,10 @@
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Optional,
+)
 
-import jax.numpy as jnp
 from flax import linen as nn
+import jax.numpy as jnp
 
 from fortuna.calib_model.base import CalibModel
 from fortuna.calib_model.config.base import Config
@@ -11,7 +14,11 @@ from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.loss.regression.scaled_mse import scaled_mse_fn
 from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
-from fortuna.typing import Outputs, Status, Targets
+from fortuna.typing import (
+    Outputs,
+    Status,
+    Targets,
+)
 
 
 class CalibRegressor(CalibModel):
@@ -79,7 +86,7 @@ class CalibRegressor(CalibModel):
         if model_manager_output_dim != 2 * data_output_dim:
             raise ValueError(
                 f"""The outputs dimension of both `model` and `likelihood_log_variance_model` must be the same as
-                the dimension of the target variables in `_data_loader`. However, {model_manager_output_dim // 2} and 
+                the dimension of the target variables in `_data_loader`. However, {model_manager_output_dim // 2} and
                 {data_output_dim} were found, respectively."""
             )
 

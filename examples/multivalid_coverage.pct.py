@@ -89,7 +89,7 @@ plt.ylabel("y")
 plt.grid()
 
 # %% [markdown]
-# We then use Fortuna to transfom these arrays of data into a data loader, in order to be able to feed data to algorithms in batches.
+# We then use Fortuna to transform these arrays of data into a data loader, in order to be able to feed data to algorithms in batches.
 
 # %%
 from fortuna.data import DataLoader
@@ -130,7 +130,7 @@ from fortuna.model import MLP
 prob_model = ProbRegressor(model=MLP(1), likelihood_log_variance_model=MLP(1))
 status = prob_model.train(
     train_data_loader,
-    map_fit_config=FitConfig(monitor=FitMonitor(early_stopping_patience=2))
+    map_fit_config=FitConfig(monitor=FitMonitor(early_stopping_patience=2)),
 )
 
 # %% [markdown]

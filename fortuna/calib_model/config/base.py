@@ -1,4 +1,7 @@
-from typing import List, Optional
+from typing import (
+    List,
+    Optional,
+)
 
 from fortuna.calib_model.config.callback import Callback
 from fortuna.calib_model.config.checkpointer import Checkpointer
