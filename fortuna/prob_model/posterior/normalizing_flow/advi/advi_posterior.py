@@ -25,7 +25,6 @@ from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
-from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import (
     ADVIPosteriorApproximator,
@@ -42,6 +41,9 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import (
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
+from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
+import numpy as np
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.typing import (
     AnyKey,
@@ -130,9 +132,9 @@ class ADVIPosterior(Posterior):
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
-            BaseTrainer=ADVITrainer,
-            JittedTrainer=JittedADVITrainer,
-            MultiDeviceTrainer=MultiDeviceADVITrainer,
+            base_trainer_cls=ADVITrainer,
+            jitted_trainer_cls=JittedADVITrainer,
+            multi_device_trainer_cls=MultiDeviceADVITrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
 
@@ -179,6 +181,8 @@ class ADVIPosterior(Posterior):
             unravel=self._unravel,
             n_samples=self.posterior_approximator.n_loss_samples,
             callbacks=fit_config.callbacks,
+            max_grad_norm=fit_config.hyperparameters.max_grad_norm,
+            gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
         )
         trainer._all_params = None
 
@@ -357,6 +361,11 @@ class ADVIPosterior(Posterior):
             optimizer=fit_config.optimizer.method,
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
+            dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                getattr(self.joint.likelihood.model_manager.model, "dtype")
+                if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                else None
+            ),
         )
 
         return state, log_stds
@@ -377,6 +386,11 @@ class ADVIPosterior(Posterior):
             optimizer=optimizer,
             calib_params=state.calib_params,
             calib_mutable=state.calib_mutable,
+            dynamic_scale=get_dynamic_scale_instance_from_model_dtype(
+                getattr(self.joint.likelihood.model_manager.model, "dtype")
+                if hasattr(self.joint.likelihood.model_manager.model, "dtype")
+                else None
+            ),
         )
 
     def _get_unravel(

@@ -29,10 +29,13 @@ class LaplaceState(PosteriorState):
     """
     Attributes
     ----------
+    prior_log_var: float
+        Prior log-variance value.
     encoded_name: jnp.ndarray
         Laplace state name encoded as an array.
     """
 
+    prior_log_var: float = 0.0
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("LaplaceState")
     _encoded_which_params: Optional[Dict[str, Array]] = None
 
@@ -40,7 +43,8 @@ class LaplaceState(PosteriorState):
     def convert_from_map_state(
         cls,
         map_state: MAPState,
-        std: Union[Params, Tuple[Params, ...]],
+        hess_lik_diag: Union[Params, Tuple[Params, ...]],
+        prior_log_var: Optional[float],
         which_params: Tuple[List[AnyKey], ...],
     ) -> LaplaceState:
         """
@@ -50,8 +54,10 @@ class LaplaceState(PosteriorState):
         ----------
         map_state: MAPState
             A MAP state.
-        std: Union[Params, Tuple[Params, ...]]
-            Standard deviation parameters.
+        hess_lik_diag: Union[Params, Tuple[Params, ...]]
+            Diagonal of the approximated Hessian of the likelihood.
+        prior_log_var: float
+            Prior log-variance value. If None, initialize it to 100.
         which_params: Tuple[List[AnyKey], ...]
             Sequences of keys pointing to the parameters over which `std` is defined. If `which_params` is None,
             `std` must be defined for all parameters.
@@ -66,13 +72,17 @@ class LaplaceState(PosteriorState):
             params = nested_pair(
                 d=params,
                 key_paths=which_params,
-                objs=std,
-                labels=("mean", "std"),
+                objs=hess_lik_diag,
+                labels=("mean", "hess_lik_diag"),
             )
         else:
             for k, v in params.items():
                 params[k] = FrozenDict(
-                    {"params": dict(mean=v["params"], std=std[k]["params"])}
+                    {
+                        "params": dict(
+                            mean=v["params"], hess_lik_diag=hess_lik_diag[k]["params"]
+                        )
+                    }
                 )
         d = vars(
             map_state.replace(
@@ -82,4 +92,5 @@ class LaplaceState(PosteriorState):
         d["_encoded_which_params"] = encode_tuple_of_lists_of_strings_to_numpy(
             which_params
         )
+        d["prior_log_var"] = prior_log_var if prior_log_var is not None else 0.0
         return LaplaceState.init_from_dict(d)

@@ -1,6 +1,8 @@
+import importlib
+import logging
 from typing import (
     Callable,
-    Optional,
+    Optional, Type,
 )
 
 from flax import linen as nn
@@ -14,12 +16,13 @@ from fortuna.data import DataLoader
 from fortuna.likelihood.classification import ClassificationLikelihood
 from fortuna.loss.classification.focal_loss import focal_loss_fn
 from fortuna.model.model_manager.classification import ClassificationModelManager
-from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer
+from fortuna.prob_output_layer.classification import ClassificationProbOutputLayer, ClassificationMaskedProbOutputLayer
 from fortuna.typing import (
     Outputs,
     Status,
     Targets,
 )
+from fortuna.utils.data import get_input_shape
 
 
 class CalibClassifier(CalibModel):
@@ -53,8 +56,10 @@ class CalibClassifier(CalibModel):
         predictive : ClassificationPredictive
             This denotes the predictive distribution, that is :math:`p(y|x, \mathcal{D})`.
         """
-        self.model_manager = ClassificationModelManager(model)
-        self.prob_output_layer = ClassificationProbOutputLayer()
+        self.model_manager = self._get_model_manager(
+            model, ClassificationModelManager
+        )
+        self.prob_output_layer = self._get_prob_output_layer(model)
         self.likelihood = ClassificationLikelihood(
             model_manager=self.model_manager,
             prob_output_layer=self.prob_output_layer,
@@ -63,6 +68,58 @@ class CalibClassifier(CalibModel):
         self.predictive = ClassificationPredictive(likelihood=self.likelihood)
         super().__init__(seed=seed)
 
+    def _get_prob_output_layer(self, model: nn.Module) -> ClassificationProbOutputLayer:
+        try:
+            # import modules if available
+            transformers_flax_auto_module = importlib.import_module(
+                "transformers.models.auto.modeling_flax_auto"
+            )
+            FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES = list(
+                getattr(
+                    transformers_flax_auto_module,
+                    "FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES",
+                ).values()
+            )
+            if str(model.__class__.__name__) in FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES:
+                prob_output_layer = ClassificationMaskedProbOutputLayer()
+            else:
+                prob_output_layer = ClassificationProbOutputLayer()
+        except ModuleNotFoundError:
+            prob_output_layer = ClassificationProbOutputLayer()
+        return prob_output_layer
+
+    def _get_model_manager(
+        self,
+        model: nn.Module,
+        model_manager_cls: Type,
+    ) -> ClassificationModelManager:
+        try:
+            # import modules if available
+            transformers_module = importlib.import_module("transformers")
+            fortuna_transformers_classification_module = importlib.import_module(
+                "fortuna.model.model_manager.transformers.classification"
+            )
+            # import relevant classes
+            FlaxPreTrainedModel = getattr(transformers_module, "FlaxPreTrainedModel")
+            HuggingFaceClassificationModelManager = getattr(
+                fortuna_transformers_classification_module,
+                "HuggingFaceClassificationModelManager",
+            )
+            # load model manager
+            if isinstance(model, FlaxPreTrainedModel):
+                model_manager = HuggingFaceClassificationModelManager(model)
+            else:
+                model_manager = model_manager_cls(model)
+        except ModuleNotFoundError as e:
+            logging.warning(
+                "No module named 'transformer' is installed. "
+                "If you are not working with models from the `transformers` library ignore this warning, otherwise "
+                "please install the optional 'transformers' dependency of fortuna."
+                'Using poetry, you can achieve this by entering: `poetry install --extras "transformers"`'
+            )
+            model_manager = model_manager_cls(model)
+        return model_manager
+
     def _check_output_dim(self, data_loader: DataLoader):
         if data_loader.size == 0:
             raise ValueError(
@@ -70,7 +127,7 @@ class CalibClassifier(CalibModel):
             )
         data_output_dim = len(np.unique(data_loader.to_array_targets()))
         for x, y in data_loader:
-            input_shape = x.shape[1:]
+            input_shape = get_input_shape(x)
             break
         model_manager_output_dim = self._get_output_dim(input_shape)
         if model_manager_output_dim != data_output_dim:

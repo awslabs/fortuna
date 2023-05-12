@@ -22,6 +22,7 @@ from fortuna.typing import (
     InputData,
     Status,
     Targets,
+    Shape,
 )
 
 T = TypeVar("T")
@@ -66,6 +67,14 @@ class BaseDataLoaderABC(abc.ABC):
         """
         return self._num_unique_labels
 
+    @property
+    @abc.abstractmethod
+    def input_shape(self) -> Shape:
+        """
+        Get the shape of the inputs in the data loader.
+        """
+        pass
+
     @abc.abstractmethod
     def to_inputs_loader(self) -> BaseInputsLoader:
         """
@@ -89,6 +98,18 @@ class BaseDataLoaderABC(abc.ABC):
         BaseTargetsLoader
             The targets loader derived from the data loader. This will be a concrete instance of a subclass
             of :class:`~fortuna.data.loader.BaseTargetsLoader`.
+        """
+        pass
+
+    @abc.abstractmethod
+    def to_array_targets(self) -> Array:
+        """
+        Reduce a data loader to an array of target data.
+
+        Returns
+        -------
+        Array
+            Array of input data.
         """
         pass
 
@@ -255,6 +276,21 @@ class BaseInputsLoader:
                 inputs = inputs[list(inputs.keys())[0]]
             c += inputs.shape[0]
         return c
+
+    @property
+    def input_shape(self) -> Shape:
+        """Get the shape of the inputs in the inputs loader."""
+
+        def fun():
+            for inputs in self:
+                if isinstance(inputs, dict):
+                    input_shape = {k: v.shape[1:] for k, v in inputs.items()}
+                else:
+                    input_shape = inputs.shape[1:]
+                break
+            return input_shape
+
+        return fun()
 
     @classmethod
     def from_data_loader(cls: Type[T], data_loader: BaseDataLoaderABC) -> T:

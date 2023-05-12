@@ -47,6 +47,7 @@ from fortuna.typing import (
     Status,
 )
 from fortuna.utils.builtins import HashableMixin
+from fortuna.utils.training import clip_grandients_by_norm
 
 
 class TrainerABC(
@@ -106,16 +107,18 @@ class TrainerABC(
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
-        # ensure to use a different key at each step
-        model_key = random.fold_in(rng, state.step)
+        if state.dynamic_scale is None:
+            value_and_grad_fn = value_and_grad
+        else:
+            value_and_grad_fn = state.dynamic_scale.value_and_grad
 
-        grad_fn = value_and_grad(
+        grad_fn = value_and_grad_fn(
             lambda params: self.training_loss_step(
                 loss_fun,
                 params,
                 batch,
                 state.mutable,
-                model_key,
+                rng,
                 n_data,
                 unravel,
                 state.calib_params,
@@ -124,18 +127,84 @@ class TrainerABC(
             ),
             has_aux=True,
         )
-        (loss, aux), grad = grad_fn(state.params)
-        grad, loss = self.sync_gradients_and_loss(grad, loss)
+        outputs = grad_fn(state.params)
+        if state.dynamic_scale is None:
+            (loss, aux), grad = outputs
+            loss = self._sync_array(loss)
+        else:
+            # dynamic_scale.value_and_grad takes care of averaging gradients and loss across replicas (no need to call sync)
+            dynamic_scale, is_fin, aux, grad = outputs
+            loss, aux = aux
 
-        state = state.apply_gradients(grads=grad, mutable=aux["mutable"])
+        max_grad_norm = kwargs.get("max_grad_norm", 0.0) or 0.0
+        gradient_accumulation_steps = (
+            kwargs.get("gradient_accumulation_steps", 0.0) or 0.0
+        )
+        if gradient_accumulation_steps > 1:
+            new_state = self.params_update_with_grad_accumulation(
+                state, grad, aux, gradient_accumulation_steps, max_grad_norm
+            )
+        else:
+            grad = self._sync_array(grad) if state.dynamic_scale is None else grad
+            if max_grad_norm > 0:
+                grad = clip_grandients_by_norm(grad, max_grad_norm)
+            new_state = state.apply_gradients(grads=grad, mutable=aux["mutable"])
+
+        if new_state.dynamic_scale is not None:
+            # if is_fin is False the gradients contain Inf/NaNs and optimizer state and
+            # params should be restored (= skip this step).
+            new_state = new_state.replace(
+                opt_state=jax.tree_util.tree_map(
+                    partial(jnp.where, is_fin), new_state.opt_state, state.opt_state
+                ),
+                params=jax.tree_util.tree_map(
+                    partial(jnp.where, is_fin), new_state.params, state.params
+                ),
+                dynamic_scale=dynamic_scale,
+            )
         return (
-            state,
+            new_state,
             {
                 "loss": loss,
                 "outputs": aux["outputs"],
                 "logging_kwargs": aux["logging_kwargs"],
             },
         )
+
+    def params_update_with_grad_accumulation(
+        self,
+        state: TrainState,
+        grad: jnp.ndarray,
+        aux: Dict[str, Any],
+        gradient_accumulation_steps: int,
+        max_grad_norm: float,
+    ) -> TrainState:
+        if state.grad_accumulated is not None:
+            grad_acc = tree_map(lambda x, y: x + y, grad, state.grad_accumulated)
+        else:
+            # grad_accumulated is not initialized yet, will do no now
+            grad_acc = grad
+
+        def update_fn(state):
+            grad = tree_map(lambda x: x / gradient_accumulation_steps, grad_acc)
+            grad = self._sync_array(grad) if state.dynamic_scale is None else grad
+            if max_grad_norm > 0:
+                grad = clip_grandients_by_norm(grad, max_grad_norm)
+            return state.apply_gradients(
+                grads=grad,
+                grad_accumulated=jax.tree_map(jnp.zeros_like, grad),
+                mutable=aux["mutable"],
+            )
+
+        new_state = jax.lax.cond(
+            (state.step + 1) % gradient_accumulation_steps == 0,
+            lambda state: update_fn(state),
+            lambda state: state.replace(
+                grad_accumulated=grad_acc, step=state.step + 1, mutable=aux["mutable"]
+            ),
+            state,
+        )
+        return new_state
 
     @abc.abstractmethod
     def validation_step(
@@ -211,14 +280,14 @@ class TrainerABC(
             else:
                 if self.multi_device:
                     training_batch_metrics = self.compute_metrics(
-                        preds.reshape(
+                        preds=preds.reshape(
                             (preds.shape[0] * preds.shape[1],) + preds.shape[2:]
                         ),
-                        batch[1].reshape(
+                        targets=batch[1].reshape(
                             (batch[1].shape[0] * batch[1].shape[1],)
                             + batch[1].shape[2:]
                         ),
-                        metrics,
+                        metrics=metrics,
                     )
                 else:
                     training_batch_metrics = self.compute_metrics(
@@ -379,21 +448,32 @@ class TrainerABC(
         unravel: Optional[Callable[[any], PyTree]] = None,
         callbacks: Optional[List[Callback]] = None,
     ) -> Tuple[TrainState, Dict[str, float], str]:
+        gradient_accumulation_steps = (
+            training_kwargs.get("gradient_accumulation_steps", 0) or 0
+        )
         training_losses_and_metrics_epoch_all_steps = []
         training_batch_metrics_str = ""
         state = self.training_epoch_start(state, callbacks)
+        # ensure to use a different key at each step
+        model_key = self.training_step_start(rng, state.step)
         for step, batch in enumerate(training_dataloader):
             # forward and backward pass
             state, aux = self.training_step(
                 state,
                 batch,
                 loss_fun,
-                rng,
+                model_key,
                 training_dataset_size,
                 unravel,
                 training_kwargs,
             )
             self._global_training_step += 1
+            if (gradient_accumulation_steps > 0) and (
+                (step + 1) % gradient_accumulation_steps != 0
+            ):
+                continue
+            # update model key
+            model_key = self.training_step_start(rng, state.step)
             # compute training losses and metrics for the current batch
             state, training_losses_and_metrics_current_batch = self.training_step_end(
                 current_epoch=current_epoch,
@@ -499,10 +579,8 @@ class TrainerABC(
         )
 
     @staticmethod
-    def sync_gradients_and_loss(
-        grad: jnp.ndarray, loss: jnp.ndarray
-    ) -> Tuple[jnp.ndarray, jnp.ndarray]:
-        return grad, loss
+    def _sync_array(arr: jnp.ndarray) -> jnp.ndarray:
+        return arr
 
     def on_train_start(
         self,
@@ -539,6 +617,12 @@ class TrainerABC(
                 else metric(preds, uncertainties, targets)
             )
         return metrics_vals
+
+    def training_step_start(
+        self, rng: PRNGKeyArray, step: Union[int, jax.Array]
+    ) -> PRNGKeyArray:
+        step = step if isinstance(step, int) or step.ndim == 0 else step[0]
+        return random.fold_in(rng, step)
 
 
 class JittedMixin:
@@ -608,7 +692,7 @@ class MultiDeviceMixin:
         return DataLoaderWrapper(dataloader) if dataloader is not None else dataloader
 
     @staticmethod
-    def sync_mutable(state: TrainState) -> TrainState:
+    def _sync_mutable(state: TrainState) -> TrainState:
         return (
             state.replace(mutable=MultiDeviceMixin.all_reduce_mean(state.mutable))
             if state.mutable is not None
@@ -616,12 +700,9 @@ class MultiDeviceMixin:
         )
 
     @staticmethod
-    def sync_gradients_and_loss(
-        grads: jnp.ndarray, loss: jnp.ndarray
-    ) -> Tuple[jnp.ndarray, jnp.ndarray]:
-        grad = lax.pmean(grads, axis_name="batch")
-        loss = lax.pmean(loss, axis_name="batch")
-        return grad, loss
+    def _sync_array(arr: jnp.ndarray) -> jnp.ndarray:
+        arr = lax.pmean(arr, axis_name="batch")
+        return arr
 
     def save_checkpoint(
         self,
@@ -631,7 +712,7 @@ class MultiDeviceMixin:
         force_save: bool = False,
         prefix: str = "checkpoint_",
     ) -> None:
-        state = self.sync_mutable(state)
+        state = self._sync_mutable(state)
         state = jax.device_get(tree_map(lambda x: x[0], state))
         return super(MultiDeviceMixin, self).save_checkpoint(
             state, save_checkpoint_dir, keep, force_save, prefix
@@ -653,6 +734,10 @@ class MultiDeviceMixin:
     def on_train_end(self, state: TrainState) -> TrainState:
         state = super(MultiDeviceMixin, self).on_train_end(state)
         return jax.device_get(tree_map(lambda x: x[0], state))
+
+    def training_step_start(self, rng: PRNGKeyArray, step: int) -> PRNGKeyArray:
+        step = step if isinstance(step, int) or step.ndim == 0 else step[0]
+        return jax.vmap(lambda r: random.fold_in(r, step))(rng)
 
     @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 3, 5, 6, 7))
     def training_step(
@@ -688,7 +773,7 @@ class MultiDeviceMixin:
 
     def on_validation_start(self, state: TrainState) -> TrainState:
         state = super(MultiDeviceMixin, self).on_validation_start(state)
-        state = self.sync_mutable(state)
+        state = self._sync_mutable(state)
         return state
 
     @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 3, 5, 6, 7, 8))

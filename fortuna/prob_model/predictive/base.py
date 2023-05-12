@@ -8,16 +8,11 @@ from typing import (
     Union,
 )
 
-import jax
-from jax import (
-    jit,
-    lax,
-    pmap,
-    random,
-)
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
+from flax.training.common_utils import shard_prng_key
+from jax import jit, lax, pmap, random
+from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
 from fortuna.data.loader import (
@@ -466,21 +461,26 @@ class Predictive(WithRNG):
         if distribute:
             inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
 
-        @jit
         def _sample(key, _inputs):
             sample = self.posterior.sample(inputs=_inputs, rng=key)
             return self.likelihood.model_manager.apply(
                 params=sample.params, inputs=_inputs, mutable=sample.mutable
             )
 
+        _sample = pmap(_sample) if distribute else jit(_sample)
+
         iterable = []
         size = 0
         for inputs in inputs_loader:
-            size += inputs.shape[0]
+            size += (
+                inputs.shape[0]
+                if not isinstance(inputs, dict)
+                else inputs[list(inputs.keys())[0]].shape[0]
+            )
             if distribute:
-                outputs = pmap(
-                    lambda _inputs: lax.map(lambda key: _sample(key, _inputs), keys)
-                )(inputs)
+                outputs = jnp.stack(
+                    list(map(lambda key: _sample(shard_prng_key(key), inputs), keys))
+                )
                 outputs = self._unshard_ensemble_arrays(outputs)
             else:
                 outputs = lax.map(lambda key: _sample(key, inputs), keys)

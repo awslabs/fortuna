@@ -1,18 +1,23 @@
 from typing import Union, Dict, Iterable, Optional, Tuple
 from jax import numpy as jnp
 
-from fortuna.data.loader.base import BaseDataLoaderABC, BaseInputsLoader, BaseTargetsLoader
+from fortuna.data.loader.base import (
+    BaseDataLoaderABC,
+    BaseInputsLoader,
+    BaseTargetsLoader,
+)
 from fortuna.data.loader.utils import IterableData
-from fortuna.typing import Array
+from fortuna.typing import Array, Shape
 
 
 class HuggingFaceDataLoader(BaseDataLoaderABC):
-
     def __init__(
-            self,
-            iterable: Union[Iterable[Dict[str, Array]], Iterable[Tuple[Dict[str, Array], Array]]],
-            num_unique_labels: int = None,
-            num_inputs: Optional[int] = None
+        self,
+        iterable: Union[
+            Iterable[Dict[str, Array]], Iterable[Tuple[Dict[str, Array], Array]]
+        ],
+        num_unique_labels: int = None,
+        num_inputs: Optional[int] = None,
     ):
         """
         A data loader class.
@@ -37,6 +42,16 @@ class HuggingFaceDataLoader(BaseDataLoaderABC):
             return super().size
 
     @property
+    def input_shape(self) -> Shape:
+        def fun():
+            for inputs, _ in self:
+                input_shape = {k: v.shape[1:] for k, v in inputs.items()}
+                break
+            return input_shape
+
+        return fun()
+
+    @property
     def num_unique_labels(self) -> Optional[int]:
         if self._num_unique_labels is None:
             self._num_unique_labels = len(jnp.unique(self.to_array_targets()))
@@ -44,7 +59,7 @@ class HuggingFaceDataLoader(BaseDataLoaderABC):
 
     def to_array_targets(self):
         targets = []
-        for (_, batch_targets) in self:
+        for _, batch_targets in self:
             targets.append(batch_targets)
         return jnp.concatenate(targets, 0)
 
@@ -53,5 +68,3 @@ class HuggingFaceDataLoader(BaseDataLoaderABC):
 
     def to_targets_loader(self):
         return BaseTargetsLoader(IterableData.data_loader_to_targets_iterable(self))
-
-
