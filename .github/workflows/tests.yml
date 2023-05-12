@@ -7,7 +7,9 @@ on:
 jobs:
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    runs-on:
+      group: fortuna
+      labels: fortuna_ubuntu-latest_32-core
     strategy:
       matrix:
         # Select the Python versions to test against

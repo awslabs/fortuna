@@ -10,7 +10,9 @@ jobs:
   build:
     # Functionality for testing documentation builds on multiple OSes and Python versions
     name: Build docs (${{ matrix.python-version }}, ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on:
+      group: fortuna
+      labels: fortuna_ubuntu-latest_32-core
     defaults:
       run:
         shell: bash -l {0}
