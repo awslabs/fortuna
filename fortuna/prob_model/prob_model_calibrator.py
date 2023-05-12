@@ -6,10 +6,10 @@ from typing import (
     Union,
 )
 
-from flax import jax_utils
 import jax
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from flax import jax_utils
+from jax._src.prng import PRNGKeyArray
 from jax.tree_util import tree_map
 
 from fortuna.data import TargetsLoader

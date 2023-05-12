@@ -6,9 +6,9 @@ from typing import (
     Optional,
 )
 
+import jax.numpy as jnp
 from flax.core import FrozenDict
 from flax.training import dynamic_scale
-import jax.numpy as jnp
 
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (

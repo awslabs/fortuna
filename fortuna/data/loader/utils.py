@@ -3,8 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 from itertools import zip_longest
 from typing import (
-    Any,
-    Callable,
     Iterable,
     Optional,
     Tuple,

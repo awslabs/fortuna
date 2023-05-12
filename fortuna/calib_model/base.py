@@ -3,13 +3,12 @@ import logging
 from typing import (
     Callable,
     Optional,
-    Tuple,
 )
 
-from flax.core.frozen_dict import freeze
-from flax.traverse_util import path_aware_map
 import jax.numpy as jnp
 import optax
+from flax.core.frozen_dict import freeze
+from flax.traverse_util import path_aware_map
 
 from fortuna.calib_model.calib_mixin import WithCalibCheckpointingMixin
 from fortuna.calib_model.calib_model_calibrator import (
@@ -189,7 +188,11 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
         outputs = self.model_manager.apply(
             oms.params, jnp.zeros((1,) + input_shape), mutable=oms.mutable
         )
-        return outputs[0].shape[-1] if isinstance(outputs, (list, tuple)) else outputs.shape[-1]
+        return (
+            outputs[0].shape[-1]
+            if isinstance(outputs, (list, tuple))
+            else outputs.shape[-1]
+        )
 
     def _init(self, data_loader: DataLoader, config: Config):
         for inputs, targets in data_loader:

@@ -11,13 +11,13 @@ from typing import (
     Union,
 )
 
+import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax import (
     random,
     vmap,
 )
 from jax._src.prng import PRNGKeyArray
-import jax.numpy as jnp
 from jax.tree_util import tree_map
 from optax._src.base import PyTree
 

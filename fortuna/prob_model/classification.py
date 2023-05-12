@@ -1,6 +1,6 @@
 import importlib
 import logging
-from typing import Dict, Optional, Union, Callable, Type
+from typing import Dict, Optional, Type
 
 import flax.linen as nn
 

@@ -6,9 +6,9 @@ from typing import (
     Union,
 )
 
-from jax import vmap
 import jax.numpy as jnp
 import numpy as np
+from jax import vmap
 
 from fortuna.conformal.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.classification.base import ConformalClassifier

@@ -4,14 +4,14 @@ from typing import (
     Union,
 )
 
+import jax.numpy as jnp
+import jax.scipy as jsp
 from jax import (
     lax,
     random,
     vmap,
 )
 from jax._src.prng import PRNGKeyArray
-import jax.numpy as jnp
-import jax.scipy as jsp
 
 from fortuna.data.loader import InputsLoader
 from fortuna.prob_model.posterior.base import Posterior

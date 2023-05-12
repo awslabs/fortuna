@@ -8,13 +8,12 @@ from typing import (
     Union,
 )
 
-import jax
+import jax.numpy as jnp
 from jax import (
     jit,
     pmap,
 )
 from jax._src.prng import PRNGKeyArray
-import jax.numpy as jnp
 
 from fortuna.data.loader import (
     DataLoader,

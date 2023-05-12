@@ -10,11 +10,11 @@ from typing import (
     Union,
 )
 
+import jax.numpy as jnp
+import numpy as np
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
-import jax.numpy as jnp
-import numpy as np
 
 from fortuna.data.loader import (
     DataLoader,
@@ -25,6 +25,7 @@ from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
+from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import (
     ADVIPosteriorApproximator,
@@ -41,9 +42,6 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import (
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
-from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
-import numpy as np
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.typing import (
     AnyKey,
@@ -52,6 +50,7 @@ from fortuna.typing import (
     Params,
     Status,
 )
+from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.nested_dicts import (

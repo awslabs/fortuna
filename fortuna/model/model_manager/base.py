@@ -1,11 +1,11 @@
 import abc
 from typing import Dict, Optional, Tuple, Union, Mapping
 
-from flax.core import FrozenDict
+import jax.numpy as jnp
 from flax import linen as nn
+from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
 from jax._src.prng import PRNGKeyArray
-import jax.numpy as jnp
 
 from fortuna.typing import Mutable, Params, InputData
 from fortuna.utils.random import WithRNG

@@ -1,8 +1,8 @@
 import abc
 from typing import Optional
 
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.typing import Array
 from fortuna.utils.random import WithRNG

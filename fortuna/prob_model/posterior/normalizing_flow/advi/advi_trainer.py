@@ -1,7 +1,7 @@
 from typing import Optional
 
-from flax.core import FrozenDict
 import jax
+from flax.core import FrozenDict
 from jax.tree_util import tree_map
 
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME

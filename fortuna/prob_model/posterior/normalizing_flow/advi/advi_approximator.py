@@ -1,9 +1,3 @@
-from typing import (
-    List,
-    Optional,
-    Tuple,
-)
-
 from fortuna.prob_model.posterior.base import PosteriorApproximator
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 

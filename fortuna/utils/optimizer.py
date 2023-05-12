@@ -1,9 +1,9 @@
-import optax
-from flax import traverse_util
-from flax.core import FrozenDict
 from typing import Dict, Optional, Callable
 
 import jax.numpy as jnp
+import optax
+from flax import traverse_util
+from flax.core import FrozenDict
 from optax._src import base
 
 from fortuna.typing import Params

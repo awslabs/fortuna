@@ -7,6 +7,8 @@ from typing import (
 )
 
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.collections import Collection
 from matplotlib.patches import (
     Circle,
@@ -15,10 +17,8 @@ from matplotlib.patches import (
 from matplotlib.path import Path
 from matplotlib.projections import register_projection
 from matplotlib.projections.polar import PolarAxes
-import matplotlib.pyplot as plt
 from matplotlib.spines import Spine
 from matplotlib.transforms import Affine2D
-import numpy as np
 
 from fortuna.data.loader import InputsLoader
 from fortuna.prob_model.regression import ProbRegressor

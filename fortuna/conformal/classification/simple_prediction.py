@@ -3,8 +3,8 @@ from typing import (
     Optional,
 )
 
-from jax import vmap
 import jax.numpy as jnp
+from jax import vmap
 
 from fortuna.conformal.classification.base import ConformalClassifier
 from fortuna.typing import Array

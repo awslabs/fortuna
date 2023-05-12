@@ -1,8 +1,8 @@
 from typing import Optional
 
 import jax
-from jax import vmap
 import jax.numpy as jnp
+from jax import vmap
 
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.base import Likelihood

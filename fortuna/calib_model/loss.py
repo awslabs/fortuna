@@ -7,8 +7,8 @@ from typing import (
     Union,
 )
 
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.likelihood.base import Likelihood
 from fortuna.typing import (

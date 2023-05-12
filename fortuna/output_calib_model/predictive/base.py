@@ -7,8 +7,8 @@ from typing import (
     Union,
 )
 
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_output_layer.base import ProbOutputLayer

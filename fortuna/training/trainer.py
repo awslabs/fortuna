@@ -1,7 +1,7 @@
 import abc
 import collections
-from functools import partial
 import logging
+from functools import partial
 from typing import (
     Any,
     Callable,
@@ -12,17 +12,17 @@ from typing import (
     Union,
 )
 
+import jax
+import jax.numpy as jnp
 from flax import jax_utils
 from flax.core import FrozenDict
 from flax.training.common_utils import stack_forest
-import jax
 from jax import (
     lax,
     random,
     value_and_grad,
 )
 from jax._src.prng import PRNGKeyArray
-import jax.numpy as jnp
 from jax.tree_util import tree_map
 from optax._src.base import PyTree
 from tqdm import trange

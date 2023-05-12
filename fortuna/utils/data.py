@@ -1,6 +1,6 @@
-from jax.tree_util import tree_map
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
+from jax.tree_util import tree_map
 
 from fortuna.data.loader import DataLoader
 from fortuna.typing import InputData, Shape

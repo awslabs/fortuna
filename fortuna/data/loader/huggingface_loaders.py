@@ -1,4 +1,5 @@
 from typing import Union, Dict, Iterable, Optional, Tuple
+
 from jax import numpy as jnp
 
 from fortuna.data.loader.base import (

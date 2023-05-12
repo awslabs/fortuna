@@ -11,8 +11,8 @@ from typing import (
     TypeVar,
 )
 
-from flax import jax_utils
 import jax
+from flax import jax_utils
 from jax.tree_util import tree_map
 
 from fortuna.data.loader.utils import IterableData

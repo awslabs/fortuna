@@ -1,7 +1,6 @@
 import copy
-import logging
-
 import importlib
+import logging
 
 import jax
 from flax.core import unfreeze

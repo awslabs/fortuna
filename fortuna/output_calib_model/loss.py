@@ -7,8 +7,8 @@ from typing import (
     Union,
 )
 
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.output_calib_model.predictive.base import Predictive
 from fortuna.typing import (

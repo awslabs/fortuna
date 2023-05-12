@@ -9,8 +9,8 @@ from typing import (
     Union,
 )
 
-from jax import vmap
 import jax.numpy as jnp
+from jax import vmap
 
 from fortuna.data.loader import (
     DataLoader,

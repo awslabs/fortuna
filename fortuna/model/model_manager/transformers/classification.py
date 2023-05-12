@@ -9,7 +9,6 @@ from jax._src.prng import PRNGKeyArray
 
 from fortuna.model.model_manager.classification import (
     ClassificationModelManager,
-    logger,
     SNGPClassificationModelManagerMixin,
 )
 from fortuna.typing import Params, Array, Mutable

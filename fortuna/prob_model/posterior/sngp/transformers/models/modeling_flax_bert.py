@@ -1,3 +1,5 @@
+from typing import Tuple, Optional
+
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
@@ -9,7 +11,6 @@ from transformers.models.bert.modeling_flax_bert import (
     FlaxBertModule,
     FlaxBertPreTrainedModel,
 )
-from typing import Tuple, Optional
 
 from fortuna.model.utils.spectral_norm import WithSpectralNorm
 

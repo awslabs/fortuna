@@ -12,7 +12,6 @@ from flax.training.common_utils import shard, shard_prng_key
 from jax import hessian, lax, vjp, devices, jit, pmap
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
-import jax.numpy as jnp
 from jax.tree_util import tree_map
 
 from fortuna.data.loader import (
@@ -22,16 +21,17 @@ from fortuna.data.loader import (
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
+from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.laplace import LAPLACE_NAME
 from fortuna.prob_model.posterior.laplace.laplace_approximator import (
     LaplacePosteriorApproximator,
 )
 from fortuna.prob_model.posterior.laplace.laplace_state import LaplaceState
-from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.prior.gaussian import (
     DiagonalGaussianPrior,
     IsotropicGaussianPrior,
@@ -44,7 +44,6 @@ from fortuna.utils.nested_dicts import (
     nested_unpair,
 )
 from fortuna.utils.random import generate_random_normal_like_tree
-from fortuna.prob_model.posterior.base import Posterior
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 

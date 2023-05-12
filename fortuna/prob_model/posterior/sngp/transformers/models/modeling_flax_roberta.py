@@ -1,3 +1,5 @@
+from typing import Tuple, Optional
+
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
@@ -8,7 +10,6 @@ from transformers.models.roberta.modeling_flax_roberta import (
     FlaxRobertaModule,
     create_position_ids_from_input_ids,
 )
-from typing import Tuple, Optional
 
 from fortuna.model.utils.spectral_norm import WithSpectralNorm
 

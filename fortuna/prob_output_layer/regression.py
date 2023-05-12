@@ -4,12 +4,12 @@ from typing import (
     Union,
 )
 
+import jax.numpy as jnp
 from jax import (
     random,
     vmap,
 )
 from jax._src.prng import PRNGKeyArray
-import jax.numpy as jnp
 
 from fortuna.prob_output_layer.base import ProbOutputLayer
 from fortuna.typing import Array

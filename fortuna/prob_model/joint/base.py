@@ -5,9 +5,9 @@ from typing import (
     Union,
 )
 
+import jax.numpy as jnp
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
-import jax.numpy as jnp
 
 from fortuna.likelihood.base import Likelihood
 from fortuna.model.model_manager.state import ModelManagerState

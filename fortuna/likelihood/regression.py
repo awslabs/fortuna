@@ -3,10 +3,10 @@ from typing import (
     Union,
 )
 
-from jax import vmap
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import numpy as np
+from jax import vmap
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import InputsLoader
 from fortuna.likelihood.base import Likelihood

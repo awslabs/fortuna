@@ -1,6 +1,7 @@
+from typing import Type, Optional
+
 from flax.training.dynamic_scale import DynamicScale
 from jax import numpy as jnp
-from typing import Type, Optional
 
 
 class HashableMixin:

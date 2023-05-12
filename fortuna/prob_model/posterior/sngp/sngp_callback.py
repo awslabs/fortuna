@@ -1,5 +1,5 @@
-from flax.core import FrozenDict
 import jax.numpy as jnp
+from flax.core import FrozenDict
 
 from fortuna.training.callback import Callback
 from fortuna.training.train_state import TrainState
