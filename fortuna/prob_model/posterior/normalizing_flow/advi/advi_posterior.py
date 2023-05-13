@@ -78,6 +78,10 @@ class ADVIPosterior(Posterior):
             An ADVI posterior approximator.
         """
         super().__init__(joint=joint, posterior_approximator=posterior_approximator)
+        self._base = None
+        self._architecture = None
+        self._unravel = None
+        self._indices = None
 
     def __str__(self):
         return ADVI_NAME
@@ -235,7 +239,7 @@ class ADVIPosterior(Posterior):
             rng = self.rng.get()
         state = self.state.get()
 
-        if not hasattr(self, "_base") or not hasattr(self, "_unravel"):
+        if self._base is None or not self._unravel is None:
             if state._encoded_which_params is None:
                 n_params = len(ravel_pytree(state.params)[0]) // 2
                 which_params = None
@@ -252,8 +256,8 @@ class ADVIPosterior(Posterior):
                         )[1]
                     )[0]
                 )
-            self._base, self._architecture = self._get_base_and_architecture(n_params)
-            self._unravel, self._indices = self._get_unravel(
+            _base, _architecture = self._get_base_and_architecture(n_params)
+            _unravel, _indices = self._get_unravel(
                 params=nested_unpair(
                     d=state.params.unfreeze(),
                     key_paths=which_params,
@@ -266,16 +270,26 @@ class ADVIPosterior(Posterior):
                 which_params=which_params,
             )[1:3]
 
+            self._base = _base
+            self._architecture = _architecture
+            self._unravel = _unravel
+            self._indices = _indices
+        else:
+            _base = self._base
+            _architecture = self._architecture
+            _unravel = self._unravel
+            _indices = self._indices
+
         if state._encoded_which_params is None:
-            means = self._unravel(
-                self._architecture.forward(
+            means = _unravel(
+                _architecture.forward(
                     {
                         s: ravel_pytree(
                             {k: v["params"][s] for k, v in state.params.items()}
                         )[0]
                         for s in ["mean", "log_std"]
                     },
-                    self._base.sample(rng),
+                    _base.sample(rng),
                 )[0][0]
             )
         else:
@@ -293,9 +307,9 @@ class ADVIPosterior(Posterior):
                 ]
                 for k, d in zip(["mean", "log_std"], [means, log_stds])
             }
-            rav_params = self._architecture.forward(
-                params=rav_params, u=self._base.sample(rng)
-            )[0][0]
+            rav_params = _architecture.forward(params=rav_params, u=_base.sample(rng))[
+                0
+            ][0]
 
             means = FrozenDict(
                 nested_set(
@@ -303,10 +317,8 @@ class ADVIPosterior(Posterior):
                     key_paths=which_params,
                     objs=tuple(
                         [
-                            _unravel(
-                                rav_params[self._indices[i] : self._indices[i + 1]]
-                            )
-                            for i, _unravel in enumerate(self._unravel)
+                            _unravel(rav_params[_indices[i] : _indices[i + 1]])
+                            for i, _unravel in enumerate(_unravel)
                         ]
                     ),
                 )
