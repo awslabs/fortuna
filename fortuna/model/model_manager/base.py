@@ -1,18 +1,20 @@
 import abc
 from typing import (
     Dict,
+    Mapping,
     Optional,
     Tuple,
     Union,
 )
 
+from flax import linen as nn
 from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
 from fortuna.typing import (
-    Array,
+    InputData,
     Mutable,
     Params,
 )
@@ -25,11 +27,14 @@ class ModelManager(WithRNG, abc.ABC):
     It orchestrates the forward pass of the models in the probabilistic model.
     """
 
+    def __init__(self, model: nn.Module):
+        self.model = model
+
     @abc.abstractmethod
     def apply(
         self,
         params: Params,
-        inputs: Array,
+        inputs: InputData,
         mutable: Optional[Mutable] = None,
         train: bool = False,
         rng: Optional[PRNGKeyArray] = None,
@@ -41,7 +46,7 @@ class ModelManager(WithRNG, abc.ABC):
         ----------
         params : Params
             The random parameters of the probabilistic model.
-        inputs : Array
+        inputs : InputData
             Input data points.
         mutable : Optional[Mutable]
             The mutable objects used to evaluate the models.
@@ -62,7 +67,7 @@ class ModelManager(WithRNG, abc.ABC):
     @abc.abstractmethod
     def init(
         self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
-    ) -> Dict[str, FrozenDict]:
+    ) -> Dict[str, Mapping]:
         """
         Initialize random parameters and mutable objects.
 

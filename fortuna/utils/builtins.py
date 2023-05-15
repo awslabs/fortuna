@@ -1,3 +1,12 @@
+from typing import (
+    Optional,
+    Type,
+)
+
+from flax.training.dynamic_scale import DynamicScale
+from jax import numpy as jnp
+
+
 class HashableMixin:
     def __hash__(self) -> int:
         return hash(
@@ -21,3 +30,8 @@ class HashableMixin:
             )
             return same_vals
         return False
+
+
+def get_dynamic_scale_instance_from_model_dtype(dtype: Type) -> Optional[DynamicScale]:
+    if dtype in [jnp.float16, jnp.bfloat16]:
+        return DynamicScale()

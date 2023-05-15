@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import pathlib
 from typing import (
     Dict,
     List,
@@ -10,6 +11,11 @@ from typing import (
 )
 
 from flax.core import FrozenDict
+from flax.training.common_utils import (
+    shard,
+    shard_prng_key,
+)
+import jax
 from jax import (
     devices,
     hessian,
@@ -22,6 +28,7 @@ from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 from jax.tree_util import tree_map
+import tqdm
 
 from fortuna.data.loader import (
     DataLoader,
@@ -128,7 +135,7 @@ class LaplacePosterior(Posterior):
         Returns
         -------
         Params
-            An estimate of the posterior standard deviation for each random parameter.
+            An estimate of the likelihood standard deviation for each random parameter.
         """
         rav, unravel = ravel_pytree(
             tuple([nested_get(params, keys) for keys in which_params])
@@ -184,7 +191,8 @@ class LaplacePosterior(Posterior):
                 (apply_calib_model_manager(params, _batch_inputs), _batch_targets),
             )
             ztj = lax.map(
-                lambda v: lax.map(vjp_fn(v[0]), v[1].T), (_batch_inputs[:, None], z)
+                lambda v: lax.map(vjp_fn(v[0]), v[1].T),
+                (tree_map(lambda x: x[:, None], _batch_inputs), z),
             )[0]
             if factorization == "diagonal":
                 return -jnp.sum(lam[:, :, None] * ztj**2, (0, 1))
@@ -200,7 +208,7 @@ class LaplacePosterior(Posterior):
         else:
             compute_hess_batch = jit(compute_hess_batch)
 
-        h = jnp.exp(-self.joint.prior.log_var)
+        h = 0.0
         for i, (batch_inputs, batch_targets) in enumerate(train_data_loader):
             if verbose:
                 logging.info(f"Hessian approximation for batch {i + 1}.")
@@ -208,8 +216,12 @@ class LaplacePosterior(Posterior):
 
         if n_gpu_devices > 0:
             h = jnp.sum(h, 0)
+        return unravel(h)
 
-        return unravel(1 / jnp.sqrt(h))
+    def _compute_std(self, prior_log_var: float, hess_lik_diag: Params) -> Params:
+        hess_prior = jnp.exp(-prior_log_var)
+        hess_lik_diag_rav, unravel = ravel_pytree(hess_lik_diag)
+        return unravel(1 / jnp.sqrt(hess_prior + hess_lik_diag_rav))
 
     def fit(
         self,
@@ -255,7 +267,7 @@ class LaplacePosterior(Posterior):
             which_params = None
 
         logging.info("Run the Laplace approximation.")
-        std_params = self._gnn_approx(
+        hess_lik_diag = self._gnn_approx(
             state.params,
             train_data_loader,
             mutable=state.mutable,
@@ -266,7 +278,8 @@ class LaplacePosterior(Posterior):
         )
         state = LaplaceState.convert_from_map_state(
             map_state=state,
-            std=std_params,
+            hess_lik_diag=hess_lik_diag,
+            prior_log_var=self.joint.prior.log_var,
             which_params=which_params,
         )
 
@@ -280,11 +293,22 @@ class LaplacePosterior(Posterior):
 
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.dump_state is True
-            else None
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
+        if (
+            val_data_loader is not None
+            and self.posterior_approximator.tune_prior_log_variance
+        ):
+            logging.info("Tuning the prior log-variance now")
+            opt_prior_log_var = self.prior_log_variance_tuning(
+                val_data_loader=val_data_loader,
+                n_posterior_samples=5,
+                distribute=fit_config.processor.devices == -1,
+            )
+            state = state.replace(prior_log_var=opt_prior_log_var)
+            self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+            logging.info(f"Best prior log-variance found: {opt_prior_log_var}")
         return status
 
     def sample(
@@ -294,16 +318,21 @@ class LaplacePosterior(Posterior):
     ) -> JointState:
         if rng is None:
             rng = self.rng.get()
-        state = self.state.get()
+        state: LaplaceState = self.state.get()
+        if kwargs.get("prior_log_var") is not None:
+            state = state.replace(prior_log_var=kwargs.get("prior_log_var"))
 
         if state._encoded_which_params is not None:
             which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
                 state._encoded_which_params
             )
-            mean, std = nested_unpair(
+            mean, hess_lik_diag = nested_unpair(
                 state.params.unfreeze(),
                 which_params,
-                ("mean", "std"),
+                ("mean", "hess_lik_diag"),
+            )
+            std = self._compute_std(
+                prior_log_var=state.prior_log_var, hess_lik_diag=hess_lik_diag
             )
 
             noise = generate_random_normal_like_tree(rng, std)
@@ -326,11 +355,14 @@ class LaplacePosterior(Posterior):
                 params[k] = FrozenDict(v)
             state = state.replace(params=FrozenDict(params))
         else:
-            mean, std = dict(), dict()
+            mean, hess_lik_diag = dict(), dict()
             for k, v in state.params.items():
                 mean[k] = FrozenDict({"params": v["params"]["mean"]})
-                std[k] = FrozenDict({"params": v["params"]["std"]})
+                hess_lik_diag[k] = FrozenDict({"params": v["params"]["hess_lik_diag"]})
 
+            std = self._compute_std(
+                prior_log_var=state.prior_log_var, hess_lik_diag=hess_lik_diag
+            )
             state = state.replace(
                 params=FrozenDict(
                     tree_map(
@@ -362,7 +394,7 @@ class LaplacePosterior(Posterior):
                         nested_unpair(
                             d=state.params.unfreeze(),
                             key_paths=which_params,
-                            labels=("mean", "std"),
+                            labels=("mean", "hess_lik_diag"),
                         )[0]
                     )
                 )
@@ -385,3 +417,98 @@ class LaplacePosterior(Posterior):
         )
 
         return state
+
+    def _batched_log_prob(
+        self,
+        batch,
+        prior_log_var: float,
+        n_posterior_samples: int = 30,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs,
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
+        import jax.random as random
+        import jax.scipy as jsp
+
+        if rng is None:
+            rng = self.rng.get()
+        keys = random.split(rng, n_posterior_samples)
+
+        def _lik_log_batched_prob(key):
+            sample = self.sample(inputs=batch[0], rng=key, prior_log_var=prior_log_var)
+            return self.joint.likelihood._batched_log_prob(
+                sample.params,
+                batch,
+                mutable=sample.mutable,
+                calib_params=sample.calib_params,
+                calib_mutable=sample.calib_mutable,
+                **kwargs,
+            )
+
+        return jsp.special.logsumexp(
+            lax.map(_lik_log_batched_prob, keys), axis=0
+        ) - jnp.log(n_posterior_samples)
+
+    def prior_log_variance_tuning(
+        self,
+        val_data_loader: DataLoader,
+        n_posterior_samples: int = 10,
+        mode: str = "cv",
+        min_prior_log_var: float = -3,
+        max_prior_log_var: float = 3,
+        grid_size: int = 20,
+        distribute: bool = False,
+    ) -> jnp.ndarray:
+        if mode == "cv":
+            return self._prior_log_variance_tuning_cv(
+                val_data_loader,
+                n_posterior_samples,
+                min_prior_log_var,
+                max_prior_log_var,
+                grid_size,
+                distribute,
+            )
+        elif mode == "marginal_lik":
+            raise NotImplementedError(
+                f"Optimizing the prior log variance via marginal likelihood maximization is not yet available."
+            )
+        else:
+            raise ValueError(f"Unrecognized mode={mode} for prior log variance tuning.")
+
+    def _prior_log_variance_tuning_cv(
+        self,
+        val_data_loader: DataLoader,
+        n_posterior_samples: int,
+        min_prior_log_var: float,
+        max_prior_log_var: float,
+        grid_size: int,
+        distribute: bool,
+    ) -> jnp.ndarray:
+        best = None
+        candidates = list(
+            jnp.linspace(min_prior_log_var, max_prior_log_var, grid_size)
+        ) + [jnp.array(self.joint.prior.log_var)]
+        if distribute:
+            rng = shard_prng_key(jax.random.PRNGKey(0))
+            val_data_loader = DeviceDimensionAugmentedLoader(val_data_loader)
+            candidates = [shard(c) for c in candidates]
+            fn = pmap(self._batched_log_prob, static_broadcasted_argnums=(2,))
+        else:
+            fn = jit(self._batched_log_prob, static_argnums=(2,))
+
+        for lpv in tqdm.tqdm(candidates, desc="Tuning prior log-var"):
+            neg_log_prob = -jnp.sum(
+                jnp.concatenate(
+                    [
+                        self.joint.likelihood._unshard_array(
+                            fn(batch, lpv, n_posterior_samples, rng)
+                        )
+                        for batch in val_data_loader
+                    ],
+                    0,
+                )
+            )
+            if best is None or neg_log_prob < best[-1]:
+                best = (lpv, neg_log_prob)
+
+        opt_prior_log_var = best[0].reshape()
+        return opt_prior_log_var

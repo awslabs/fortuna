@@ -95,7 +95,6 @@ class ProbModel(abc.ABC):
             fit_config=fit_config,
             map_fit_config=map_fit_config,
         )
-        logging.info("Fit completed.")
 
         calib_status = None
         if calib_data_loader:
@@ -137,7 +136,7 @@ class ProbModel(abc.ABC):
                     "Pre-compute ensemble of outputs on the calibration data loader."
                 )
 
-            distribute = jax.local_device_count() > 1
+            distribute = jax.local_devices()[0].platform != "cpu"
 
             (
                 calib_ensemble_outputs_loader,
@@ -165,9 +164,9 @@ class ProbModel(abc.ABC):
 
             trainer_cls = select_trainer_given_devices(
                 devices=calib_config.processor.devices,
-                BaseTrainer=ProbModelOutputCalibrator,
-                JittedTrainer=JittedProbModelOutputCalibrator,
-                MultiDeviceTrainer=MultiDeviceProbModelOutputCalibrator,
+                base_trainer_cls=ProbModelOutputCalibrator,
+                jitted_trainer_cls=JittedProbModelOutputCalibrator,
+                multi_device_trainer_cls=MultiDeviceProbModelOutputCalibrator,
                 disable_jit=calib_config.processor.disable_jit,
             )
 

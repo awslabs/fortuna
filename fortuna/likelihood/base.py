@@ -8,7 +8,6 @@ from typing import (
     Union,
 )
 
-import jax
 from jax import (
     jit,
     pmap,
