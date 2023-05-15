@@ -108,9 +108,9 @@ class SGHMCPosterior(SGMCMCPosterior):
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
-            BaseTrainer=MAPTrainer,
-            JittedTrainer=JittedMAPTrainer,
-            MultiDeviceTrainer=MultiDeviceMAPTrainer,
+            base_trainer_cls=MAPTrainer,
+            jitted_trainer_cls=JittedMAPTrainer,
+            multi_device_trainer_cls=MultiDeviceMAPTrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
 
