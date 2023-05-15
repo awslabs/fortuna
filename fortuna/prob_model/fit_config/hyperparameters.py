@@ -1,7 +1,7 @@
 from typing import Optional
 
 
-class FitHyperparametrs:
+class FitHyperparameters:
     def __init__(
         self,
         max_grad_norm: Optional[float] = None,

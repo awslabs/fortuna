@@ -8,7 +8,6 @@ from typing import (
 
 from flax import linen as nn
 import jax.numpy as jnp
-import numpy as np
 
 from fortuna.calib_model.base import CalibModel
 from fortuna.calib_model.config.base import Config
@@ -127,15 +126,15 @@ class CalibClassifier(CalibModel):
             raise ValueError(
                 """`data_loader` is either empty or incorrectly constructed."""
             )
-        data_output_dim = len(np.unique(data_loader.to_array_targets()))
+        output_dim = data_loader.num_unique_labels
         for x, y in data_loader:
             input_shape = get_input_shape(x)
             break
         model_manager_output_dim = self._get_output_dim(input_shape)
-        if model_manager_output_dim != data_output_dim:
+        if model_manager_output_dim != output_dim:
             raise ValueError(
                 f"""The outputs dimension of `model` must correspond to the number of different classes
-            in the target variables of `_data_loader`. However, {model_manager_output_dim} and {data_output_dim} were
+            in the target variables of `data_loader`. However, {model_manager_output_dim} and {output_dim} were
             found, respectively."""
             )
 

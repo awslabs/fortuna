@@ -35,7 +35,7 @@ from fortuna.prob_model import (
     ProbClassifier,
     SWAGPosteriorApproximator,
 )
-from fortuna.prob_model.fit_config.hyperparametrs import FitHyperparametrs
+from fortuna.prob_model.fit_config.hyperparameters import FitHyperparameters
 from fortuna.prob_model.posterior.posterior_approximations import (
     ADVI_NAME,
     DEEP_ENSEMBLE_NAME,
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--disable_gradient_checkpointing",
         action="store_true",
-        help="Gradient chheckpointing is used by default. Use --disable_gradient_checkpointing if you do not want to use it.",
+        help="Gradient checkpointing is used by default. Use --disable_gradient_checkpointing if you do not want to use it.",
     )
     parser.add_argument("--max_grad_norm", type=float, default=1.0)
     # posterior approximation
@@ -322,7 +322,7 @@ if __name__ == "__main__":
         prior=IsotropicGaussianPrior(log_var=args.prior_log_var),
     )
     fit_config = FitConfig(
-        hyperparameters=FitHyperparametrs(
+        hyperparameters=FitHyperparameters(
             max_grad_norm=args.max_grad_norm,
             gradient_accumulation_steps=args.gradient_accumulation_steps,
         ),
