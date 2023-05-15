@@ -31,7 +31,10 @@ from fortuna.typing import (
     Targets,
     Uncertainties,
 )
-from fortuna.utils.data import get_input_shape, get_inputs_from_shape
+from fortuna.utils.data import (
+    get_input_shape,
+    get_inputs_from_shape,
+)
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
 
@@ -186,9 +189,7 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             self.model_manager.init(input_shape, rng=self.rng.get(), **kwargs)
         )
         inputs = get_inputs_from_shape(input_shape)
-        outputs = self.model_manager.apply(
-            oms.params, inputs, mutable=oms.mutable
-        )
+        outputs = self.model_manager.apply(oms.params, inputs, mutable=oms.mutable)
         return (
             outputs[0].shape[-1]
             if isinstance(outputs, (list, tuple))
