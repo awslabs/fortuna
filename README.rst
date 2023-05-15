@@ -150,9 +150,12 @@ If you choose to pursue this way, first install Poetry and add it to your PATH
 
     poetry install
 
-All the dependencies will be installed at their required versions.
-If you also want to install the optional Sphinx dependencies to build the documentation,
-add the flag :code:`-E docs` to the command above.
+All the dependencies will be installed at their required versions. Consider adding the following flags to the command above:
+
+- :code:`-E transformers` if you want to use models and datasets from `Hugging Face <https://huggingface.co/>`_.
+- :code:`-E docs` if you want to install Sphinx dependencies to build the documentation.
+- :code:`-E notebooks` if you want to work with Jupyter notebooks.
+
 Finally, you can either access the virtualenv that Poetry created by typing :code:`poetry shell`,
 or execute commands within the virtualenv using the :code:`run` command, e.g. :code:`poetry run python`.
 
