@@ -67,9 +67,9 @@ class OutputCalibModel(WithOutputCalibCheckpointingMixin, abc.ABC):
             )
         trainer_cls = select_trainer_given_devices(
             devices=config.processor.devices,
-            BaseTrainer=OutputCalibModelCalibrator,
-            JittedTrainer=JittedOutputCalibModelCalibrator,
-            MultiDeviceTrainer=MultiDeviceOutputCalibModelCalibrator,
+            base_trainer_cls=OutputCalibModelCalibrator,
+            jitted_trainer_cls=JittedOutputCalibModelCalibrator,
+            multi_device_trainer_cls=MultiDeviceOutputCalibModelCalibrator,
             disable_jit=config.processor.disable_jit,
         )
 

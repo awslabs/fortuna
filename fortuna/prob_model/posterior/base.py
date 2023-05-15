@@ -20,7 +20,6 @@ from fortuna.prob_model.posterior.posterior_state_repository import (
 )
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import (
-    OptaxOptimizer,
     Path,
     Status,
 )

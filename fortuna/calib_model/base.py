@@ -3,7 +3,6 @@ import logging
 from typing import (
     Callable,
     Optional,
-    Tuple,
 )
 
 from flax.core.frozen_dict import freeze
@@ -27,9 +26,14 @@ from fortuna.typing import (
     Outputs,
     Path,
     Predictions,
+    Shape,
     Status,
     Targets,
     Uncertainties,
+)
+from fortuna.utils.data import (
+    get_input_shape,
+    get_inputs_from_shape,
 )
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
@@ -73,9 +77,9 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
 
         trainer_cls = select_trainer_given_devices(
             devices=config.processor.devices,
-            BaseTrainer=CalibModelCalibrator,
-            JittedTrainer=JittedCalibModelCalibrator,
-            MultiDeviceTrainer=MultiDeviceCalibModelCalibrator,
+            base_trainer_cls=CalibModelCalibrator,
+            jitted_trainer_cls=JittedCalibModelCalibrator,
+            multi_device_trainer_cls=MultiDeviceCalibModelCalibrator,
             disable_jit=config.processor.disable_jit,
         )
 
@@ -168,13 +172,13 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             keep=keep_top_n_checkpoints,
         )
 
-    def _get_output_dim(self, input_shape: Tuple, **kwargs) -> int:
+    def _get_output_dim(self, input_shape: Shape, **kwargs) -> int:
         """
         Initialize the state of the joint distribution.
 
         Parameters
         ----------
-        input_shape : Tuple
+        input_shape : Shape
             The shape of the input variable.
 
         Returns
@@ -184,13 +188,17 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
         oms = ModelManagerState.init_from_dict(
             self.model_manager.init(input_shape, rng=self.rng.get(), **kwargs)
         )
-        return self.model_manager.apply(
-            oms.params, jnp.zeros((1,) + input_shape), mutable=oms.mutable
-        ).shape[-1]
+        inputs = get_inputs_from_shape(input_shape)
+        outputs = self.model_manager.apply(oms.params, inputs, mutable=oms.mutable)
+        return (
+            outputs[0].shape[-1]
+            if isinstance(outputs, (list, tuple))
+            else outputs.shape[-1]
+        )
 
     def _init(self, data_loader: DataLoader, config: Config):
         for inputs, targets in data_loader:
-            input_shape = inputs.shape[1:]
+            input_shape = get_input_shape(inputs)
             break
 
         state = ModelManagerState.init_from_dict(
