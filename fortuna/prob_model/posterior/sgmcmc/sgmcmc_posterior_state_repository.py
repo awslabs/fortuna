@@ -24,11 +24,13 @@ from fortuna.utils.nested_dicts import (
 
 
 class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
-    def __init__(self,
-                 size: int,
-                 checkpoint_dir: Optional[Path] = None,
-                 all_params: Optional[Params] = None,
-                 which_params: Optional[Tuple[List[AnyKey], ...]] = None):
+    def __init__(
+        self,
+        size: int,
+        checkpoint_dir: Optional[Path] = None,
+        all_params: Optional[Params] = None,
+        which_params: Optional[Tuple[List[AnyKey], ...]] = None,
+    ):
         super().__init__(size=size, checkpoint_dir=checkpoint_dir)
         self._all_params = all_params
         self._which_params = which_params
@@ -80,7 +82,7 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
             checkpoint_path=checkpoint_path,
             optimizer=optimizer,
             prefix=prefix,
-            **kwargs
+            **kwargs,
         )
         return self._update_state(state, modify="add")
 

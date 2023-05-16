@@ -57,9 +57,7 @@ class SGHMCState(PosteriorState):
         SGHMCState
             An SGHMC state.
         """
-        _encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(
-            which_params
-        )
+        _encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(which_params)
         return cls.init(
             params=map_state.params,
             mutable=map_state.mutable,
