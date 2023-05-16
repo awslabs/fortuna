@@ -45,17 +45,17 @@ class SGMCMCSamplingCallback(Callback):
         self._current_step += 1
 
         if self._do_sample(self._current_step, self._samples_count):
-            if self._save_checkpoint_dir:
-                self._trainer.save_checkpoint(
-                    state,
-                    pathlib.Path(self._save_checkpoint_dir) / str(self._samples_count),
-                    force_save=True,
-                )
             self._state_repository.put(
                 state=state,
                 i=self._samples_count,
                 keep=self._keep_top_n_checkpoints,
             )
+            if self._save_checkpoint_dir:
+                self._trainer.save_checkpoint(
+                    self._state_repository.state[self._samples_count].get(),
+                    pathlib.Path(self._save_checkpoint_dir) / str(self._samples_count),
+                    force_save=True,
+                )
             self._samples_count += 1
 
         return state

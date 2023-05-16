@@ -1,9 +1,8 @@
 import logging
 from typing import Optional
-from itertools import cycle
 import pathlib
-from flax.core import FrozenDict
 
+from flax.core import FrozenDict
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.nested_dicts import nested_set, nested_get
 from fortuna.data.loader import DataLoader
@@ -19,8 +18,8 @@ from fortuna.prob_model.posterior.run_preliminary_map import (
 )
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.posterior_multi_state_repository import (
-    PosteriorMultiStateRepository,
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
+    SGMCMCPosteriorStateRepository,
 )
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
     SGMCMCPosterior,
@@ -136,18 +135,28 @@ class SGHMCPosterior(SGMCMCPosterior):
         else:
             state = self._init_map_state(map_state, train_data_loader, fit_config)
 
+        if fit_config.optimizer.freeze_fun is not None:
+            which_params = get_trainable_paths(
+                params=state.params, freeze_fun=fit_config.optimizer.freeze_fun
+            )
+        else:
+            which_params = None
+
         state = SGHMCState.convert_from_map_state(
             map_state=state,
             optimizer=fit_config.optimizer.method,
+            which_params=which_params,
         )
 
         state = super()._freeze_optimizer_in_state(state, fit_config)
 
-        self.state = PosteriorMultiStateRepository(
+        self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
             checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
             if fit_config.checkpointer.dump_state is True
             else None,
+            which_params=which_params,
+            all_params=state.params if which_params else None,
         )
 
         sghmc_sampling_callback = SGHMCSamplingCallback(
