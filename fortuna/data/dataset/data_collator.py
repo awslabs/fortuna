@@ -1,3 +1,5 @@
+# Code adapted from https://github.com/huggingface/transformers/blob/main/examples/flax/
+
 from typing import (
     Dict,
     List,
