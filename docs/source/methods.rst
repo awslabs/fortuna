@@ -29,6 +29,14 @@ Posterior approximation methods
     taken by averaging checkpoints over the stochastic optimization trajectory. The covariance is also estimated
     empirically along the trajectory, and it is made of a diagonal component and a low-rank non-diagonal one.
 
+- **Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)** `[Chen et al., 2014] <http://proceedings.mlr.press/v32/cheni14.pdf>`_
+    SGHMC approximates the posterior as a steady-state distribution of a Monte Carlo Markov chain with Hamiltonian dynamics.
+    After the initial "burn-in" phase, each step of the chain generates samples from the posterior.
+
+- **Cyclical Stochastic Gradient Langevin Dynamics (Cyclical SGLD)** `[Zhang et al., 2020] <https://openreview.net/pdf?id=rkeS1RVtPS>`_
+    Cyclical SGLD adapts the cyclical cosine step size schedule, and alternates between *exploration* and *sampling* stages to better
+    explore the multimodal posteriors for deep neural networks.
+
 Parametric calibration methods
 ------------------------------
 Fortuna supports parametric calibration by adding an output calibration model on top of the outputs of the model used for

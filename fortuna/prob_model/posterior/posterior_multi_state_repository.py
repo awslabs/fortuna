@@ -6,9 +6,6 @@ from typing import (
     Union,
 )
 
-from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_state import (
-    DeepEnsembleState,
-)
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
@@ -19,16 +16,16 @@ from fortuna.typing import (
 )
 
 
-class DeepEnsemblePosteriorStateRepository:
-    def __init__(self, ensemble_size: int, checkpoint_dir: Optional[Path] = None):
-        self.ensemble_size = ensemble_size
+class PosteriorMultiStateRepository:
+    def __init__(self, size: int, checkpoint_dir: Optional[Path] = None):
+        self.size = size
         self.state = [
             PosteriorStateRepository(
                 checkpoint_dir=os.path.join(checkpoint_dir, str(i))
                 if checkpoint_dir
                 else None
             )
-            for i in range(ensemble_size)
+            for i in range(size)
         ]
 
     def get(
@@ -50,7 +47,7 @@ class DeepEnsemblePosteriorStateRepository:
         if i is not None:
             return _get(i)
         state = []
-        for i in range(self.ensemble_size):
+        for i in range(self.size):
             state.append(_get(i))
         return state
 
@@ -70,7 +67,7 @@ class DeepEnsemblePosteriorStateRepository:
         if i is not None:
             _put(i)
         else:
-            for i in range(self.ensemble_size):
+            for i in range(self.size):
                 state.append(_put(i))
 
     def pull(
@@ -80,7 +77,7 @@ class DeepEnsemblePosteriorStateRepository:
         optimizer: Optional[OptaxOptimizer] = None,
         prefix: str = "checkpoint_",
         **kwargs,
-    ) -> Union[DeepEnsembleState, PosteriorState]:
+    ) -> PosteriorState:
         def _pull(_i):
             return self.state[_i].pull(
                 checkpoint_path=checkpoint_path,
@@ -92,7 +89,7 @@ class DeepEnsemblePosteriorStateRepository:
         if i is not None:
             return _pull(i)
         state = []
-        for i in range(self.ensemble_size):
+        for i in range(self.size):
             state.append(_pull(i))
         return state
 
@@ -119,7 +116,7 @@ class DeepEnsemblePosteriorStateRepository:
         if i is not None:
             _update(i)
         else:
-            for i in range(self.ensemble_size):
+            for i in range(self.size):
                 _update(i)
 
     def extract(
@@ -138,7 +135,7 @@ class DeepEnsemblePosteriorStateRepository:
         if i is not None:
             return _extract(i)
         dicts = []
-        for i in range(self.ensemble_size):
+        for i in range(self.size):
             dicts.append(_extract(i))
         return dicts
 
