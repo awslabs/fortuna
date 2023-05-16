@@ -24,4 +24,4 @@ jobs:
           pip install black
 
       - name: Run Black
-        run: black --check --verbose fortuna
+        run: black --check --diff --verbose fortuna

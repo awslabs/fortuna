@@ -19,4 +19,6 @@ In this section we show some examples of how to use Fortuna in classification an
    subnet_calibration
    two_moons_classification_sngp
    scaling_up_bayesian_inference
+   mnist_classification_sghmc
+   sgmcmc_diagnostics
    sentiment_analysis

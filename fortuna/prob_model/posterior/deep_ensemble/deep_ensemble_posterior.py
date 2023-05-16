@@ -26,8 +26,8 @@ from fortuna.prob_model.posterior.deep_ensemble import DEEP_ENSEMBLE_NAME
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_approximator import (
     DeepEnsemblePosteriorApproximator,
 )
-from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_repositories import (
-    DeepEnsemblePosteriorStateRepository,
+from fortuna.prob_model.posterior.posterior_multi_state_repository import (
+    PosteriorMultiStateRepository,
 )
 from fortuna.prob_model.posterior.map.map_posterior import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
@@ -160,17 +160,17 @@ class DeepEnsemblePosterior(Posterior):
                 gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
             )
 
-        if isinstance(self.state, DeepEnsemblePosteriorStateRepository):
+        if isinstance(self.state, PosteriorMultiStateRepository):
             for i in range(self.posterior_approximator.ensemble_size):
                 self.state.state[i].checkpoint_dir = (
-                    os.path.join(fit_config.checkpointer.save_checkpoint_dir, str(i))
+                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / str(i)
                     if fit_config.checkpointer.save_checkpoint_dir is not None
                     and fit_config.checkpointer.dump_state
                     else None
                 )
         else:
-            self.state = DeepEnsemblePosteriorStateRepository(
-                ensemble_size=self.posterior_approximator.ensemble_size,
+            self.state = PosteriorMultiStateRepository(
+                size=self.posterior_approximator.ensemble_size,
                 checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
                 if fit_config.checkpointer.dump_state is True
                 else None,
@@ -206,13 +206,13 @@ class DeepEnsemblePosterior(Posterior):
 
     def load_state(self, checkpoint_dir: Path) -> None:
         try:
-            self.restore_checkpoint(os.path.join(checkpoint_dir, "0"))
+            self.restore_checkpoint(pathlib.Path(checkpoint_dir) / "0")
         except ValueError:
             raise ValueError(
                 f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
             )
-        self.state = DeepEnsemblePosteriorStateRepository(
-            ensemble_size=self.posterior_approximator.ensemble_size,
+        self.state = PosteriorMultiStateRepository(
+            size=self.posterior_approximator.ensemble_size,
             checkpoint_dir=checkpoint_dir,
         )
 
@@ -267,12 +267,11 @@ class DeepEnsemblePosterior(Posterior):
         allowed_states: Optional[Tuple[Type[MAPState], ...]] = None,
     ) -> MAPState:
         if fit_config.checkpointer.restore_checkpoint_path is not None:
+            restore_checkpoint_path = pathlib.Path(
+                fit_config.checkpointer.restore_checkpoint_path
+            ) / str(i)
             state = self.restore_checkpoint(
-                restore_checkpoint_path=str(
-                    fit_config.checkpointer.restore_checkpoint_path
-                )
-                + "/"
-                + str(i),
+                restore_checkpoint_path=restore_checkpoint_path,
                 optimizer=fit_config.optimizer.method,
             )
         elif fit_config.checkpointer.start_from_current_state is not None:
