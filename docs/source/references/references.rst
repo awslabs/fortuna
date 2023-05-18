@@ -12,6 +12,7 @@ API References
    output_calibrator
    prob_output_layer
    conformal
+   ood_detection
    data_loader
    metric
    utils
