@@ -43,4 +43,4 @@ jobs:
           sudo apt install pandoc
           pip install pandoc
           cd docs
-          poetry run sphinx-build -b html -j auto source build/html
+          poetry run sphinx-build -b html source build/html

@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import (
+    Any,
+    Optional,
+)
 
-from flax.training import train_state
+from flax.training import (
+    dynamic_scale,
+    train_state,
+)
 import jax.numpy as jnp
 
 from fortuna.utils.strings import convert_string_to_jnp_array
@@ -10,6 +16,7 @@ from fortuna.utils.strings import convert_string_to_jnp_array
 
 class TrainState(train_state.TrainState):
     encoded_name: jnp.ndarray = convert_string_to_jnp_array("TrainState")
+    dynamic_scale: Optional[dynamic_scale.DynamicScale] = None
 
     @classmethod
     def init(cls, *args, **kwargs) -> Any:

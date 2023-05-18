@@ -132,9 +132,9 @@ class SWAGPosterior(Posterior):
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
-            BaseTrainer=SWAGTrainer,
-            JittedTrainer=JittedSWAGTrainer,
-            MultiDeviceTrainer=MultiDeviceSWAGTrainer,
+            base_trainer_cls=SWAGTrainer,
+            jitted_trainer_cls=JittedSWAGTrainer,
+            multi_device_trainer_cls=MultiDeviceSWAGTrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
         trainer = trainer_cls(

@@ -20,6 +20,7 @@ from fortuna.typing import (
     Array,
     Batch,
     InputData,
+    Shape,
     Status,
     Targets,
 )
@@ -28,8 +29,9 @@ T = TypeVar("T")
 
 
 class BaseDataLoaderABC(abc.ABC):
-    def __init__(self, iterable: IterableData):
+    def __init__(self, iterable: IterableData, num_unique_labels: int = None):
         self._iterable = iterable
+        self._num_unique_labels = num_unique_labels
 
     def __iter__(self) -> Iterable[Batch]:
         yield from self._iterable
@@ -50,6 +52,39 @@ class BaseDataLoaderABC(abc.ABC):
                 inputs = inputs[list(inputs.keys())[0]]
             c += inputs.shape[0]
         return c
+
+    @property
+    @abc.abstractmethod
+    def num_unique_labels(self) -> Optional[int]:
+        """
+        Number of unique target labels in the task (classification only)
+
+        Returns
+        -------
+        int
+            Number of unique target labels in the task if it is a classification one.
+            Otherwise returns None.
+        """
+        return self._num_unique_labels
+
+    def __len__(self) -> int:
+        """
+        The number of batches in the data loader.
+
+        Returns
+        -------
+        int
+            Number of batches.
+        """
+        return sum(1 for _ in self)
+
+    @property
+    @abc.abstractmethod
+    def input_shape(self) -> Shape:
+        """
+        Get the shape of the inputs in the data loader.
+        """
+        pass
 
     @abc.abstractmethod
     def to_inputs_loader(self) -> BaseInputsLoader:
@@ -74,6 +109,18 @@ class BaseDataLoaderABC(abc.ABC):
         BaseTargetsLoader
             The targets loader derived from the data loader. This will be a concrete instance of a subclass
             of :class:`~fortuna.data.loader.BaseTargetsLoader`.
+        """
+        pass
+
+    @abc.abstractmethod
+    def to_array_targets(self) -> Array:
+        """
+        Reduce a data loader to an array of target data.
+
+        Returns
+        -------
+        Array
+            Array of input data.
         """
         pass
 
@@ -241,6 +288,32 @@ class BaseInputsLoader:
             c += inputs.shape[0]
         return c
 
+    @property
+    def input_shape(self) -> Shape:
+        """Get the shape of the inputs in the inputs loader."""
+
+        def fun():
+            for inputs in self:
+                if isinstance(inputs, dict):
+                    input_shape = {k: v.shape[1:] for k, v in inputs.items()}
+                else:
+                    input_shape = inputs.shape[1:]
+                break
+            return input_shape
+
+        return fun()
+
+    def __len__(self) -> int:
+        """
+        The number of batches in the inputs loader.
+
+        Returns
+        -------
+        int
+            Number of batches.
+        """
+        return sum(1 for _ in self)
+
     @classmethod
     def from_data_loader(cls: Type[T], data_loader: BaseDataLoaderABC) -> T:
         """
@@ -353,6 +426,17 @@ class BaseTargetsLoader:
         for targets in self:
             c += targets.shape[0]
         return c
+
+    def __len__(self) -> int:
+        """
+        The number of batches in the targets loader.
+
+        Returns
+        -------
+        int
+            Number of batches.
+        """
+        return sum(1 for _ in self)
 
     @classmethod
     def from_data_loader(cls: Type[T], data_loader: BaseDataLoaderABC) -> T:

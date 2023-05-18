@@ -205,7 +205,7 @@ class WithSpectralConv2DNorm:
     spectral_norm_iteration: int = 1.0
     spectral_norm_bound: float = 0.95
 
-    def spectral_norm(self, layer: nn.Module, train: bool = False) -> Callable:
+    def spectral_norm(self, layer: Type[nn.Module], train: bool = False) -> Callable:
         return lambda *args, **kwargs: SpectralNormalizationConv2D(
             layer=layer(*args, **kwargs),
             iteration=self.spectral_norm_iteration,
@@ -229,7 +229,7 @@ class WithSpectralNorm:
     spectral_norm_iteration: int = 1.0
     spectral_norm_bound: float = 0.95
 
-    def spectral_norm(self, layer: nn.Module, train: bool = False) -> Callable:
+    def spectral_norm(self, layer: Type[nn.Module], train: bool = False) -> Callable:
         return lambda *args, **kwargs: SpectralNormalization(
             layer=layer(*args, **kwargs),
             iteration=self.spectral_norm_iteration,
