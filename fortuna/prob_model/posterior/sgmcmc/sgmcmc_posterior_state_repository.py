@@ -112,7 +112,7 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
     def _update_state(
         self,
         state: Union[List[PosteriorState], PosteriorState],
-        modify: str = "add",
+        modify: str,
     ) -> Union[List[PosteriorState], PosteriorState]:
         if self._which_params is None:
             return state
@@ -152,5 +152,7 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
                 ),
                 step=state.step,
             )
+        else:
+            raise RuntimeError(f"Invalid update state method {method}.")
 
         return state
