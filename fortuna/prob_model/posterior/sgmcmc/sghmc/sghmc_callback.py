@@ -1,11 +1,7 @@
-from typing import Optional
-import pathlib
-
 from fortuna.training.train_state import TrainState
 from fortuna.training.callback import Callback
 from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.training.trainer import TrainerABC
-from fortuna.typing import Path
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_sampling_callback import (
     SGMCMCSamplingCallback,
 )
@@ -22,7 +18,6 @@ class SGHMCSamplingCallback(SGMCMCSamplingCallback):
         trainer: TrainerABC,
         state_repository: TrainStateRepository,
         keep_top_n_checkpoints: int,
-        save_checkpoint_dir: Optional[Path] = None,
     ):
         """
         Stochastic Gradient Hamiltonian Monte Carlo (SGHMC) callback that collects samples
@@ -46,14 +41,11 @@ class SGHMCSamplingCallback(SGMCMCSamplingCallback):
             An instance of the state repository.
         keep_top_n_checkpoints: int
             Number of past checkpoint files to keep.
-        save_checkpoint_dir: Optional[Path]
-            The optional path to save checkpoints.
         """
         super().__init__(
             trainer=trainer,
             state_repository=state_repository,
             keep_top_n_checkpoints=keep_top_n_checkpoints,
-            save_checkpoint_dir=save_checkpoint_dir,
         )
 
         self._do_sample = (

@@ -155,9 +155,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
 
         self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
-            checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.dump_state is True
-            else None,
+            checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
             which_params=which_params,
             all_params=state.params if which_params else None,
         )
@@ -172,7 +170,6 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             trainer=trainer,
             state_repository=self.state,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
         )
 
         logging.info(f"Run CyclicalSGLD.")
