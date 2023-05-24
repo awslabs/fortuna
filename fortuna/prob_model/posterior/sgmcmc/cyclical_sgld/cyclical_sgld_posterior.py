@@ -17,8 +17,8 @@ from fortuna.prob_model.posterior.map.map_trainer import (
 from fortuna.prob_model.posterior.run_preliminary_map import (
     run_preliminary_map,
 )
-from fortuna.prob_model.posterior.posterior_multi_state_repository import (
-    PosteriorMultiStateRepository,
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
+    SGMCMCPosteriorStateRepository,
 )
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
     SGMCMCPosterior,
@@ -138,13 +138,26 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         else:
             state = self._init_map_state(map_state, train_data_loader, fit_config)
 
+        if fit_config.optimizer.freeze_fun is not None:
+            which_params = get_trainable_paths(
+                params=state.params, freeze_fun=fit_config.optimizer.freeze_fun
+            )
+        else:
+            which_params = None
+
+        state = CyclicalSGLDState.convert_from_map_state(
+            map_state=state,
+            optimizer=fit_config.optimizer.method,
+            which_params=which_params,
+        )
+
         state = super()._freeze_optimizer_in_state(state, fit_config)
 
-        self.state = PosteriorMultiStateRepository(
+        self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
-            checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.dump_state is True
-            else None,
+            checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
+            which_params=which_params,
+            all_params=state.params if which_params else None,
         )
 
         cyclical_sampling_callback = CyclicalSGLDSamplingCallback(
@@ -157,15 +170,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             trainer=trainer,
             state_repository=self.state,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
         )
-
-        state = CyclicalSGLDState.convert_from_map_state(
-            map_state=state,
-            optimizer=fit_config.optimizer.method,
-        )
-
-        state = super()._freeze_optimizer_in_state(state, fit_config)
 
         logging.info(f"Run CyclicalSGLD.")
         state, status = trainer.train(
