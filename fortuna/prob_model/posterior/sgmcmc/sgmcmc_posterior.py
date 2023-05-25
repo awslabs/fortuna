@@ -9,10 +9,11 @@ from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.posterior_multi_state_repository import (
-    PosteriorMultiStateRepository,
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
+    SGMCMCPosteriorStateRepository,
 )
 from fortuna.typing import Path
+from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
 class SGMCMCPosterior(Posterior):
@@ -43,6 +44,7 @@ class SGMCMCPosterior(Posterior):
             self.state.get(i=0),
             random.choice(rng, self.posterior_approximator.n_samples),
         )
+
         return JointState(
             params=state.params,
             mutable=state.mutable,
@@ -52,14 +54,19 @@ class SGMCMCPosterior(Posterior):
 
     def load_state(self, checkpoint_dir: Path) -> None:
         try:
-            self.restore_checkpoint(pathlib.Path(checkpoint_dir) / "0")
+            state = self.restore_checkpoint(pathlib.Path(checkpoint_dir) / "c")
         except ValueError:
             raise ValueError(
                 f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
             )
-        self.state = PosteriorMultiStateRepository(
+        which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
+            state._encoded_which_params
+        )
+        self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
             checkpoint_dir=checkpoint_dir,
+            which_params=which_params,
+            all_params=state.params if which_params else None,
         )
 
     def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:

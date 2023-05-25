@@ -624,6 +624,21 @@ class TrainerABC(
         step = step if isinstance(step, int) or step.ndim == 0 else step[0]
         return random.fold_in(rng, step)
 
+    def _sync_state(self, state: TrainState) -> TrainState:
+        return state
+
+    def save_checkpoint(
+        self,
+        state: TrainState,
+        save_checkpoint_dir: Path,
+        keep: int = 1,
+        force_save: bool = False,
+        prefix: str = "checkpoint_",
+    ) -> None:
+        return super().save_checkpoint(
+            self._sync_state(state), save_checkpoint_dir, keep, force_save, prefix
+        )
+
 
 class JittedMixin:
     @partial(jax.jit, static_argnums=(0, 3, 5, 6, 7))
@@ -704,19 +719,9 @@ class MultiDeviceMixin:
         arr = lax.pmean(arr, axis_name="batch")
         return arr
 
-    def save_checkpoint(
-        self,
-        state: TrainState,
-        save_checkpoint_dir: Path,
-        keep: int = 1,
-        force_save: bool = False,
-        prefix: str = "checkpoint_",
-    ) -> None:
+    def _sync_state(self, state: TrainState) -> TrainState:
         state = self._sync_mutable(state)
-        state = jax.device_get(tree_map(lambda x: x[0], state))
-        return super(MultiDeviceMixin, self).save_checkpoint(
-            state, save_checkpoint_dir, keep, force_save, prefix
-        )
+        return jax.device_get(tree_map(lambda x: x[0], state))
 
     def on_train_start(
         self, state: TrainState, dataloaders: List[DataLoader], rng: PRNGKeyArray
