@@ -32,9 +32,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
-mu = jnp.zeros([2,])
+mu = jnp.zeros(
+    [
+        2,
+    ]
+)
 r = np.pi / 4
-D = jnp.array([2., 1.])
+D = jnp.array([2.0, 1.0])
 P = jnp.array([[jnp.cos(r), jnp.sin(r)], [-jnp.sin(r), jnp.cos(r)]])
 sigma = P.T @ jnp.diag(D) @ P
 
@@ -43,9 +47,9 @@ sigma = P.T @ jnp.diag(D) @ P
 
 # %%
 N = 1_000
-disp = [1/5, 1, 3]
+disp = [1 / 5, 1, 3]
 rng = np.random.default_rng(0)
-samples = np.array([rng.multivariate_normal(mu, sigma ** d, size=N) for d in disp])
+samples = np.array([rng.multivariate_normal(mu, sigma**d, size=N) for d in disp])
 
 # %% [markdown]
 # The dataset of samples from the target distribution (in the middle) clearly aligns with confidence ellipses.
@@ -54,13 +58,18 @@ samples = np.array([rng.multivariate_normal(mu, sigma ** d, size=N) for d in dis
 titles = ["$\sqrt[5]{\Sigma}$", "$\Sigma$", "$\Sigma^{3}$"]
 _, axs = plt.subplots(1, len(samples), sharey=True, figsize=(12, 4))
 for i, ax in enumerate(axs.flatten()):
-    ax.axis('equal')
+    ax.axis("equal")
     ax.grid()
     ax.scatter(samples[i, :, 0], samples[i, :, 1], alpha=0.3)
     for std in range(1, 4):
         conf_ell = Ellipse(
-            xy=mu, width=D[0] * std, height=D[1] * std, angle=np.rad2deg(r),
-            edgecolor='black', linestyle='--', facecolor='none'
+            xy=mu,
+            width=D[0] * std,
+            height=D[1] * std,
+            angle=np.rad2deg(r),
+            edgecolor="black",
+            linestyle="--",
+            facecolor="none",
         )
         ax.add_artist(conf_ell)
     ax.set_title(titles[i])
@@ -71,7 +80,9 @@ plt.show()
 # Kernel Stein discrepancy with inverse multiquadric kernel is computed over an array of samples and corresponding gradients. Note that it has quadratic time complexity that would make it challenging to scale to large sequences.
 
 # %%
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_diagnostic import kernel_stein_discrepancy_imq
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_diagnostic import (
+    kernel_stein_discrepancy_imq,
+)
 
 logpdf = lambda params: stats.multivariate_normal.logpdf(params, mu, sigma)
 _, grads = vmap(vmap(value_and_grad(logpdf), 0, 0), 1, 1)(samples)
@@ -105,8 +116,11 @@ standard_error = jnp.sqrt(variance / ess)
 standard_error
 
 # %% [markdown]
-# Note that a sequence of strongly autocorrelated samples leads to a very low ESS: 
+# Note that a sequence of strongly autocorrelated samples leads to a very low ESS:
 
 # %%
 print("ESS for no auto-correlation:", effective_sample_size(rng.normal(size=200)))
-print("ESS for strong auto-correlation:", effective_sample_size(jnp.arange(200) + rng.normal(size=200)))
+print(
+    "ESS for strong auto-correlation:",
+    effective_sample_size(jnp.arange(200) + rng.normal(size=200)),
+)

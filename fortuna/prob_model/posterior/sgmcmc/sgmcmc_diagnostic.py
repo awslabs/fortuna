@@ -1,9 +1,16 @@
-from typing import Optional, List
-from optax._src.base import PyTree
+from typing import (
+    List,
+    Optional,
+)
 
-import jax.numpy as jnp
-from jax import jit, lax, vmap
+from jax import (
+    jit,
+    lax,
+    vmap,
+)
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
+from optax._src.base import PyTree
 
 
 @jit

@@ -1,45 +1,43 @@
 import logging
-from typing import Optional
 import pathlib
+from typing import Optional
 
 from flax.core import FrozenDict
-from fortuna.utils.freeze import get_trainable_paths
-from fortuna.utils.nested_dicts import nested_set, nested_get
+
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
-    MAPTrainer,
     JittedMAPTrainer,
+    MAPTrainer,
     MultiDeviceMAPTrainer,
 )
-from fortuna.prob_model.posterior.run_preliminary_map import (
-    run_preliminary_map,
-)
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
-    SGMCMCPosteriorStateRepository,
-)
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
-    SGMCMCPosterior,
-)
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import (
-    CYCLICAL_SGLD_NAME,
-)
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import (
     CyclicalSGLDPosteriorApproximator,
-)
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_integrator import (
-    cyclical_sgld_integrator,
 )
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_callback import (
     CyclicalSGLDSamplingCallback,
 )
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_integrator import (
+    cyclical_sgld_integrator,
+)
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_state import (
     CyclicalSGLDState,
 )
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import SGMCMCPosterior
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
+    SGMCMCPosteriorStateRepository,
+)
 from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+)
 
 logger = logging.getLogger(__name__)
 

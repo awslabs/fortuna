@@ -1,29 +1,20 @@
 import logging
-from typing import Optional
 import pathlib
+from typing import Optional
 
 from flax.core import FrozenDict
-from fortuna.utils.freeze import get_trainable_paths
-from fortuna.utils.nested_dicts import nested_set, nested_get
+
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.prob_model.posterior.map.map_trainer import (
-    MAPTrainer,
-    JittedMAPTrainer,
-    MultiDeviceMAPTrainer,
-)
-from fortuna.prob_model.posterior.run_preliminary_map import (
-    run_preliminary_map,
-)
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
-    SGMCMCPosteriorStateRepository,
+from fortuna.prob_model.posterior.map.map_trainer import (
+    JittedMAPTrainer,
+    MAPTrainer,
+    MultiDeviceMAPTrainer,
 )
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
-    SGMCMCPosterior,
-)
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
     SGHMCPosteriorApproximator,
@@ -31,12 +22,19 @@ from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_callback import (
     SGHMCSamplingCallback,
 )
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import (
-    sghmc_integrator,
-)
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import sghmc_integrator
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_state import SGHMCState
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import SGMCMCPosterior
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
+    SGMCMCPosteriorStateRepository,
+)
 from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+)
 
 logger = logging.getLogger(__name__)
 

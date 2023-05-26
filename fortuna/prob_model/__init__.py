@@ -19,16 +19,16 @@ from fortuna.prob_model.posterior.map.map_posterior import MAPPosteriorApproxima
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_approximator import (
     ADVIPosteriorApproximator,
 )
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import (
+    CyclicalSGLDPosteriorApproximator,
+)
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
+    SGHMCPosteriorApproximator,
+)
 from fortuna.prob_model.posterior.sngp.sngp_approximator import (
     SNGPPosteriorApproximator,
 )
 from fortuna.prob_model.posterior.swag.swag_approximator import (
     SWAGPosteriorApproximator,
-)
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
-    SGHMCPosteriorApproximator,
-)
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import (
-    CyclicalSGLDPosteriorApproximator,
 )
 from fortuna.prob_model.regression import ProbRegressor

@@ -1,10 +1,10 @@
-from fortuna.training.train_state import TrainState
-from fortuna.training.callback import Callback
-from fortuna.training.train_state_repository import TrainStateRepository
-from fortuna.training.trainer import TrainerABC
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_sampling_callback import (
     SGMCMCSamplingCallback,
 )
+from fortuna.training.callback import Callback
+from fortuna.training.train_state import TrainState
+from fortuna.training.train_state_repository import TrainStateRepository
+from fortuna.training.trainer import TrainerABC
 
 
 class SGHMCSamplingCallback(SGMCMCSamplingCallback):

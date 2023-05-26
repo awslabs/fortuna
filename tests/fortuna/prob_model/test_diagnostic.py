@@ -1,14 +1,17 @@
-import unittest
 from functools import partial
+import unittest
 
-import numpy as np
-import jax.numpy as jnp
-from jax import value_and_grad, vmap
+from jax import (
+    value_and_grad,
+    vmap,
+)
 from jax.flatten_util import ravel_pytree
+import jax.numpy as jnp
+import numpy as np
 
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_diagnostic import (
-    kernel_stein_discrepancy_imq,
     effective_sample_size,
+    kernel_stein_discrepancy_imq,
 )
 
 DATA_SIZE = 1000
@@ -19,7 +22,7 @@ class TestDiagnostic(unittest.TestCase):
         super().__init__(*args, **kwargs)
         self.rng = np.random.default_rng(0)
 
-        self.mu = np.array([0., 0.])
+        self.mu = np.array([0.0, 0.0])
         self.sigma = np.array([[1.5, 0.5], [0.5, 1.5]])
 
         def _mvn_log_density(params, mu=self.mu, sigma=self.sigma):
@@ -33,19 +36,24 @@ class TestDiagnostic(unittest.TestCase):
 
     def unflatten(self, x, keys=("x", "y")):
         assert len(x.shape) == 2 and x.shape[-1] == len(keys)
-        return [{k:v for k, v in zip(keys, val)} for val in x]
+        return [{k: v for k, v in zip(keys, val)} for val in x]
 
     def test_ksd_imq(self):
         samp1_flat = self.rng.multivariate_normal(self.mu, self.sigma, size=DATA_SIZE)
-        samp2_flat = self.rng.multivariate_normal(self.mu, self.sigma ** 3, size=DATA_SIZE)
+        samp2_flat = self.rng.multivariate_normal(
+            self.mu, self.sigma**3, size=DATA_SIZE
+        )
         _, grad1_flat = self.mvn_log_density_grad(samp1_flat)
         _, grad2_flat = self.mvn_log_density_grad(samp2_flat)
-        assert kernel_stein_discrepancy_imq(samp1_flat, grad1_flat) < \
-            kernel_stein_discrepancy_imq(samp2_flat, grad2_flat)
+        assert kernel_stein_discrepancy_imq(
+            samp1_flat, grad1_flat
+        ) < kernel_stein_discrepancy_imq(samp2_flat, grad2_flat)
         samp1_tree = self.unflatten(samp1_flat)
         grad1_tree = self.unflatten(grad1_flat)
-        assert jnp.allclose(kernel_stein_discrepancy_imq(samp1_flat, grad1_flat),
-                            kernel_stein_discrepancy_imq(samp1_tree, grad1_tree))
+        assert jnp.allclose(
+            kernel_stein_discrepancy_imq(samp1_flat, grad1_flat),
+            kernel_stein_discrepancy_imq(samp1_tree, grad1_tree),
+        )
 
     def test_ess(self):
         samp1_flat = self.rng.multivariate_normal(self.mu, self.sigma, size=DATA_SIZE)

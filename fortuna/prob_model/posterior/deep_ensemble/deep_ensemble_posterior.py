@@ -26,14 +26,14 @@ from fortuna.prob_model.posterior.deep_ensemble import DEEP_ENSEMBLE_NAME
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_approximator import (
     DeepEnsemblePosteriorApproximator,
 )
-from fortuna.prob_model.posterior.posterior_multi_state_repository import (
-    PosteriorMultiStateRepository,
-)
 from fortuna.prob_model.posterior.map.map_posterior import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
     JittedMAPTrainer,
     MAPTrainer,
     MultiDeviceMAPTrainer,
+)
+from fortuna.prob_model.posterior.posterior_multi_state_repository import (
+    PosteriorMultiStateRepository,
 )
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.typing import (

@@ -1,12 +1,8 @@
-from fortuna.prob_model.posterior.sgmcmc.base import (
-    SGMCMCPosteriorApproximator,
-)
+from fortuna.prob_model.posterior.sgmcmc.base import SGMCMCPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     Preconditioner,
     identity_preconditioner,
-)
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import (
-    CYCLICAL_SGLD_NAME,
 )
 
 

@@ -3,22 +3,22 @@ from __future__ import annotations
 from typing import (
     Dict,
     List,
-    Tuple,
     Optional,
+    Tuple,
 )
 
 import jax.numpy as jnp
 
-from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.utils.strings import (
-    convert_string_to_jnp_array,
-    encode_tuple_of_lists_of_strings_to_numpy,
-)
 from fortuna.prob_model.posterior.map.map_state import MAPState
+from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import (
     AnyKey,
     Array,
     OptaxOptimizer,
+)
+from fortuna.utils.strings import (
+    convert_string_to_jnp_array,
+    encode_tuple_of_lists_of_strings_to_numpy,
 )
 
 
