@@ -1,19 +1,21 @@
-import jax
-import jax.numpy as jnp
+from typing import (
+    NamedTuple,
+    Optional,
+)
 
-from fortuna.typing import Array
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
-    PreconditionerState,
-    Preconditioner,
-)
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
-    StepSchedule,
-)
-from fortuna.utils.random import generate_random_normal_like_tree
+import jax
 from jax._src.prng import PRNGKeyArray
-from optax._src.base import PyTree
+import jax.numpy as jnp
 from optax import GradientTransformation
-from typing import NamedTuple, Optional
+from optax._src.base import PyTree
+
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
+    Preconditioner,
+    PreconditionerState,
+)
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import StepSchedule
+from fortuna.typing import Array
+from fortuna.utils.random import generate_random_normal_like_tree
 
 
 class OptaxSGHMCState(NamedTuple):

@@ -6,7 +6,7 @@ from typing import (
 import flax.linen as nn
 import jax.numpy as jnp
 
-from fortuna.loss.regression.scaled_mse import scaled_mse_fn
+from fortuna.loss.regression.scaled_mse import scaled_mse_fn_from_outputs_and_targets
 from fortuna.output_calib_model.base import OutputCalibModel
 from fortuna.output_calib_model.config.base import Config
 from fortuna.output_calib_model.predictive.regression import RegressionPredictive
@@ -69,7 +69,9 @@ class OutputCalibRegressor(OutputCalibModel):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
-        loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = scaled_mse_fn,
+        loss_fn: Callable[
+            [Outputs, Targets], jnp.ndarray
+        ] = scaled_mse_fn_from_outputs_and_targets,
         config: Config = Config(),
     ) -> Status:
         """

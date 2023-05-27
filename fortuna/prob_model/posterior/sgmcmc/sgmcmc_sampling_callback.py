@@ -1,7 +1,7 @@
 from typing import Optional
 
-from fortuna.training.train_state import TrainState
 from fortuna.training.callback import Callback
+from fortuna.training.train_state import TrainState
 from fortuna.training.train_state_repository import TrainStateRepository
 from fortuna.training.trainer import TrainerABC
 

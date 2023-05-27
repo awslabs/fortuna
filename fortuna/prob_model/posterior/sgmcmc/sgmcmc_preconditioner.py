@@ -1,10 +1,13 @@
+from typing import (
+    Callable,
+    NamedTuple,
+)
+
 import jax
 import jax.numpy as jnp
-
 from optax._src.base import PyTree
-from typing import NamedTuple, Callable
-from fortuna.typing import Params
 
+from fortuna.typing import Params
 
 PreconditionerState = NamedTuple
 

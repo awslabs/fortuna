@@ -7,6 +7,7 @@ from typing import (
 )
 
 from flax.core import FrozenDict
+
 from fortuna.prob_model.posterior.posterior_multi_state_repository import (
     PosteriorMultiStateRepository,
 )
@@ -14,8 +15,8 @@ from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import (
     AnyKey,
     OptaxOptimizer,
-    Path,
     Params,
+    Path,
 )
 from fortuna.utils.nested_dicts import (
     nested_get,

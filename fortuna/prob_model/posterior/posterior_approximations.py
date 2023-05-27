@@ -12,18 +12,16 @@ from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_posterior import (
     ADVIPosterior,
 )
-from fortuna.prob_model.posterior.sngp import SNGP_NAME
-from fortuna.prob_model.posterior.sngp.sngp_posterior import SNGPPosterior
-from fortuna.prob_model.posterior.swag import SWAG_NAME
-from fortuna.prob_model.posterior.swag.swag_posterior import SWAGPosterior
-from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_posterior import (
-    SGHMCPosterior,
-)
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_posterior import (
     CyclicalSGLDPosterior,
 )
+from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_posterior import SGHMCPosterior
+from fortuna.prob_model.posterior.sngp import SNGP_NAME
+from fortuna.prob_model.posterior.sngp.sngp_posterior import SNGPPosterior
+from fortuna.prob_model.posterior.swag import SWAG_NAME
+from fortuna.prob_model.posterior.swag.swag_posterior import SWAGPosterior
 
 
 class PosteriorApproximations(enum.Enum):

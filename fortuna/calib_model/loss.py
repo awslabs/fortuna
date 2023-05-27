@@ -4,7 +4,6 @@ from typing import (
     List,
     Optional,
     Tuple,
-    Union,
 )
 
 from jax._src.prng import PRNGKeyArray
@@ -12,28 +11,29 @@ import jax.numpy as jnp
 
 from fortuna.likelihood.base import Likelihood
 from fortuna.typing import (
+    Array,
     Batch,
     CalibMutable,
     CalibParams,
     Mutable,
-    Outputs,
     Params,
-    Targets,
 )
 from fortuna.utils.random import WithRNG
 
 
 class Loss(WithRNG):
     def __init__(
-        self, likelihood: Likelihood, loss_fn: Callable[[Outputs, Targets], jnp.ndarray]
+        self,
+        likelihood: Likelihood,
+        loss_fn: Callable[[Callable, Params, Batch], Tuple[jnp.ndarray, Any]],
     ):
         self.likelihood = likelihood
         self.loss_fn = loss_fn
 
-    def __call__(
+    def _apply(
         self,
         params: Params,
-        batch: Batch,
+        inputs: Array,
         mutable: Optional[Mutable] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
@@ -42,7 +42,7 @@ class Loss(WithRNG):
         outputs: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
         **kwargs,
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
+    ) -> Tuple[jnp.ndarray, Any]:
         if return_aux is None:
             return_aux = []
         supported_aux = ["outputs", "mutable", "calib_mutable"]
@@ -78,7 +78,6 @@ class Loss(WithRNG):
                 training, that variable will be updated during the forward pass."""
             )
 
-        inputs, targets = batch
         if outputs is None:
             outs = self.likelihood.model_manager.apply(
                 params,
@@ -122,7 +121,31 @@ class Loss(WithRNG):
         if "mutable" in return_aux:
             aux["mutable"] = mutable
 
-        loss = self.loss_fn(outputs, targets)
-        if len(return_aux) > 0:
-            return loss, aux
-        return loss
+        return outputs, aux
+
+    def __call__(
+        self,
+        params: Params,
+        batch: Batch,
+        mutable: Optional[Mutable] = None,
+        calib_params: Optional[CalibParams] = None,
+        calib_mutable: Optional[CalibMutable] = None,
+        return_aux: Optional[List[str]] = None,
+        train: bool = False,
+        outputs: Optional[jnp.ndarray] = None,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs,
+    ) -> Tuple[jnp.ndarray, Any]:
+        apply = lambda _params, _inputs: self._apply(
+            params=_params,
+            inputs=_inputs,
+            mutable=mutable,
+            calib_params=calib_params,
+            calib_mutable=calib_mutable,
+            return_aux=return_aux,
+            train=train,
+            outputs=outputs,
+            rng=rng,
+            **kwargs,
+        )
+        return self.loss_fn(apply, params, batch)

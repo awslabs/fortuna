@@ -1,17 +1,24 @@
-from typing import Optional, Tuple, Type
 import pathlib
+from typing import (
+    Optional,
+    Tuple,
+    Type,
+)
 
+from jax import (
+    pure_callback,
+    random,
+)
 from jax._src.prng import PRNGKeyArray
-from jax import pure_callback, random
 
-from fortuna.prob_model.posterior.base import Posterior
-from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.state import JointState
+from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
     SGMCMCPosteriorStateRepository,
 )
+from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Path
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
