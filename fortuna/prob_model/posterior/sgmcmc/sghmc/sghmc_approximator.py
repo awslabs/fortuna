@@ -1,8 +1,7 @@
 from typing import Union
 
-from fortuna.prob_model.posterior.sgmcmc.base import (
-    SGMCMCPosteriorApproximator,
-)
+from fortuna.prob_model.posterior.sgmcmc.base import SGMCMCPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     Preconditioner,
     identity_preconditioner,
@@ -11,7 +10,6 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
     StepSchedule,
     constant_schedule,
 )
-from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 
 
 class SGHMCPosteriorApproximator(SGMCMCPosteriorApproximator):

@@ -1,19 +1,15 @@
-import jax
+from typing import NamedTuple
 
+import jax
+from jax._src.prng import PRNGKeyArray
 import optax
 from optax import GradientTransformation
 
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
-    Preconditioner,
-)
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import sghmc_integrator
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import Preconditioner
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
     cyclical_cosine_schedule_with_const_burnin,
 )
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import (
-    sghmc_integrator,
-)
-from jax._src.prng import PRNGKeyArray
-from typing import NamedTuple
 
 
 class OptaxCyclicalSGLDState(NamedTuple):
