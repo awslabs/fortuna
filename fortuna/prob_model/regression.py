@@ -9,6 +9,7 @@ import numpy as np
 from fortuna.data.loader import DataLoader
 from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.model.model_manager.regression import RegressionModelManager
+from fortuna.model_editor.base import ModelEditor
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
 from fortuna.prob_model.base import ProbModel
@@ -37,6 +38,7 @@ class ProbRegressor(ProbModel):
         prior: Prior = IsotropicGaussianPrior(),
         posterior_approximator: PosteriorApproximator = SWAGPosteriorApproximator(),
         output_calibrator: Optional[nn.Module] = RegressionTemperatureScaler(),
+        model_editor: Optional[ModelEditor] = None,
         seed: int = 0,
     ):
         r"""
@@ -63,6 +65,8 @@ class ProbRegressor(ProbModel):
             of the likelihood with a scalar temperature parameter. Given outputs :math:`o` of the model manager, the
             output calibrator is described by a function :math:`g(\phi, o)`, where `phi` are deterministic
             calibration parameters.
+        model_editor : ModelEditor
+            A model_editor objects. It takes the forward pass and transforms the outputs.
         seed: int
             A random seed.
 
@@ -104,7 +108,7 @@ class ProbRegressor(ProbModel):
         self.output_calibrator = output_calibrator
 
         self.model_manager = RegressionModelManager(
-            model, likelihood_log_variance_model
+            model, likelihood_log_variance_model, model_editor=model_editor
         )
         self.output_calib_manager = OutputCalibManager(
             output_calibrator=output_calibrator
