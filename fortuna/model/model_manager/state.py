@@ -20,7 +20,7 @@ class ModelManagerState:
 
     def __init__(self, params: Params, mutable: Optional[Mutable] = None):
         """
-        An model manager state class.
+        A model manager state class.
 
         Parameters
         ----------

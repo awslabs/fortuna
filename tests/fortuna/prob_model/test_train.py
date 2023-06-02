@@ -1,5 +1,7 @@
 import tempfile
 
+import flax.linen as nn
+import jax.numpy as jnp
 import numpy as np
 import pytest
 
@@ -170,12 +172,13 @@ def train_and_sample(
     sample(method, model, train_data_loader)
 
 
-def define_prob_model(task, method):
+def define_prob_model(task, method, model_editor=None):
     if task == "regression":
         return ProbRegressor(
             model=MyModel(OUTPUT_DIM),
             likelihood_log_variance_model=MyModel(OUTPUT_DIM),
             posterior_approximator=METHODS[method],
+            model_editor=model_editor,
         )
     else:
         return ProbClassifier(
@@ -183,7 +186,21 @@ def define_prob_model(task, method):
             if method != "sngp"
             else MyModelWithSpectralNorm(OUTPUT_DIM),
             posterior_approximator=METHODS[method],
+            model_editor=model_editor,
         )
+
+
+class ModelEditor(nn.Module):
+    @nn.compact
+    def __call__(self, apply_fn, model_params, x, has_aux: bool):
+        log_temp = self.param("log_temp", nn.initializers.zeros, (1,))
+        f = apply_fn(model_params, x)
+        if has_aux:
+            f, aux = f
+        f += log_temp
+        if has_aux:
+            return f, aux
+        return f
 
 
 def dryrun_task(task, method):
@@ -350,6 +367,26 @@ def dryrun_task(task, method):
         prob_model.load_state(tmp_dir + "/tmp")
         sample(method, prob_model, train_data_loader)
         prob_model.predictive.log_prob(train_data_loader)
+
+    prob_model = define_prob_model(task, method, model_editor=ModelEditor())
+    train_and_sample(
+        task,
+        method,
+        prob_model,
+        train_data_loader,
+        calib_data_loader,
+        val_data_loader,
+        map_fit_config=map_fit_config,
+    )
+    state = (
+        prob_model.posterior.state.get()
+        if method not in ["deep_ensemble", "sghmc", "cyclical_sgld"]
+        else prob_model.posterior.state.get(-1)
+    )
+    model_editor_params = state.params["model_editor"]["params"].unfreeze()
+    if method in ["advi", "laplace"]:
+        model_editor_params = model_editor_params["mean"]
+    assert not jnp.allclose(model_editor_params["log_temp"], jnp.array([0.0]))
 
 
 @pytest.mark.parametrize("method", METHODS.keys())

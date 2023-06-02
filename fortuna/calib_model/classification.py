@@ -16,6 +16,7 @@ from fortuna.data import DataLoader
 from fortuna.likelihood.classification import ClassificationLikelihood
 from fortuna.loss.classification.focal_loss import focal_loss_fn
 from fortuna.model.model_manager.classification import ClassificationModelManager
+from fortuna.model_editor.base import ModelEditor
 from fortuna.prob_output_layer.classification import (
     ClassificationMaskedProbOutputLayer,
     ClassificationProbOutputLayer,
@@ -29,7 +30,12 @@ from fortuna.utils.data import get_input_shape
 
 
 class CalibClassifier(CalibModel):
-    def __init__(self, model: nn.Module, seed: int = 0):
+    def __init__(
+        self,
+        model: nn.Module,
+        model_editor: Optional[ModelEditor] = None,
+        seed: int = 0,
+    ):
         r"""
         A calibration classifier class.
 
@@ -40,6 +46,8 @@ class CalibClassifier(CalibModel):
             the logits of a softmax probability vector. The output dimension must be the same as the number of classes.
             Let :math:`x` be input variables and :math:`w` the random model parameters. Then the model is described by
             a function :math:`f(w, x)`, where each component of :math:`f` corresponds to one of the classes.
+        model_editor : ModelEditor
+            A model_editor objects. It takes the forward pass and transforms the outputs.
         seed: int
             A random seed.
 
@@ -59,7 +67,9 @@ class CalibClassifier(CalibModel):
         predictive : ClassificationPredictive
             This denotes the predictive distribution, that is :math:`p(y|x, \mathcal{D})`.
         """
-        self.model_manager = self._get_model_manager(model, ClassificationModelManager)
+        self.model_manager = self._get_model_manager(
+            model, model_editor, ClassificationModelManager
+        )
         self.prob_output_layer = self._get_prob_output_layer(model)
         self.likelihood = ClassificationLikelihood(
             model_manager=self.model_manager,
@@ -92,6 +102,7 @@ class CalibClassifier(CalibModel):
     def _get_model_manager(
         self,
         model: nn.Module,
+        model_editor: Optional[nn.Module],
         model_manager_cls: Type,
     ) -> ClassificationModelManager:
         try:
@@ -108,9 +119,11 @@ class CalibClassifier(CalibModel):
             )
             # load model manager
             if isinstance(model, FlaxPreTrainedModel):
-                model_manager = HuggingFaceClassificationModelManager(model)
+                model_manager = HuggingFaceClassificationModelManager(
+                    model, model_editor
+                )
             else:
-                model_manager = model_manager_cls(model)
+                model_manager = model_manager_cls(model, model_editor)
         except ModuleNotFoundError as e:
             logging.warning(
                 "No module named 'transformer' is installed. "
@@ -118,7 +131,7 @@ class CalibClassifier(CalibModel):
                 "please install the optional 'transformers' dependency of fortuna."
                 'Using poetry, you can achieve this by entering: `poetry install --extras "transformers"`'
             )
-            model_manager = model_manager_cls(model)
+            model_manager = model_manager_cls(model, model_editor)
         return model_manager
 
     def _check_output_dim(self, data_loader: DataLoader):
