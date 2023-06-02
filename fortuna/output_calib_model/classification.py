@@ -7,9 +7,7 @@ import flax.linen as nn
 import jax.numpy as jnp
 import numpy as np
 
-from fortuna.loss.classification.focal_loss import (
-    focal_loss_fn_from_outputs_and_targets,
-)
+from fortuna.loss.classification.focal_loss import focal_loss_fn
 from fortuna.output_calib_model.base import OutputCalibModel
 from fortuna.output_calib_model.config.base import Config
 from fortuna.output_calib_model.predictive.classification import (
@@ -74,9 +72,7 @@ class OutputCalibClassifier(OutputCalibModel):
         calib_targets: Array,
         val_outputs: Optional[Array] = None,
         val_targets: Optional[Array] = None,
-        loss_fn: Callable[
-            [Outputs, Targets], jnp.ndarray
-        ] = focal_loss_fn_from_outputs_and_targets,
+        loss_fn: Callable[[Outputs, Targets], jnp.ndarray] = focal_loss_fn,
         config: Config = Config(),
     ) -> Status:
         """

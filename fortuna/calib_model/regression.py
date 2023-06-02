@@ -13,6 +13,7 @@ from fortuna.data import DataLoader
 from fortuna.likelihood.regression import RegressionLikelihood
 from fortuna.loss.regression.scaled_mse import scaled_mse_fn
 from fortuna.model.model_manager.regression import RegressionModelManager
+from fortuna.model_editor.base import ModelEditor
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
 from fortuna.typing import (
     Outputs,
@@ -23,7 +24,11 @@ from fortuna.typing import (
 
 class CalibRegressor(CalibModel):
     def __init__(
-        self, model: nn.Module, likelihood_log_variance_model: nn.Module, seed: int = 0
+        self,
+        model: nn.Module,
+        likelihood_log_variance_model: nn.Module,
+        model_editor: Optional[ModelEditor] = None,
+        seed: int = 0,
     ):
         r"""
         A calibration regressor class.
@@ -39,6 +44,8 @@ class CalibRegressor(CalibModel):
             A model characterizing the log-variance of a Gaussian likelihood function. The outputs must belong to the
             same space as the target variables. Let :math:`x` be input variables and :math:`w` the random model
             parameters. Then the model is described by a function :math:`\log\sigma^2(w, x)`.
+        model_editor : ModelEditor
+            A model_editor objects. It takes the forward pass and transforms the outputs.
         seed: int
             A random seed.
 
@@ -61,7 +68,7 @@ class CalibRegressor(CalibModel):
             This denotes the predictive distribution, that is :math:`p(y|\phi, x, \mathcal{D})`.
         """
         self.model_manager = RegressionModelManager(
-            model, likelihood_log_variance_model
+            model, likelihood_log_variance_model, model_editor=model_editor
         )
         self.prob_output_layer = RegressionProbOutputLayer()
         self.likelihood = RegressionLikelihood(

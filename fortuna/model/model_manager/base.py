@@ -27,8 +27,9 @@ class ModelManager(WithRNG, abc.ABC):
     It orchestrates the forward pass of the models in the probabilistic model.
     """
 
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module, model_editor: Optional[nn.Module] = None):
         self.model = model
+        self.model_editor = model_editor
 
     @abc.abstractmethod
     def apply(
