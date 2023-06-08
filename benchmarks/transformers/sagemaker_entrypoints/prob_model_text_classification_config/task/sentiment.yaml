@@ -1,0 +1,11 @@
+name: "sentiment"
+hparams:
+  dataset_name: "imdb"
+  text_columns: "text"
+  num_labels: 2
+  train_split: "train"
+  validation_split: "test[:25%]+test[-25%:]"
+  test_split: "test[25%:75%]"
+  ood_dataset_name: "yelp_polarity"
+  ood_text_columns: "text"
+  ood_test_split: "test[25%:75%]"
