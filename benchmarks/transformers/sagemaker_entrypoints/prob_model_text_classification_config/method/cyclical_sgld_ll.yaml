@@ -1,0 +1,6 @@
+name: "cyclical_sgld"
+hparams:
+  posterior_approximator_name: "cyclical_sgld"
+  last_layer_only: "true"
+  num_train_epochs: 6
+  n_posterior_samples: 15
