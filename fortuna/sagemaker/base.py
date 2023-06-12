@@ -115,35 +115,39 @@ def run_training_job(config_dir: str, config_filename: str):
     Run a training job on Amazon SageMaker starting from a path to the configuration directory, and the name of the main configuration file.
     All configuration files should be written in `yaml` format. The following information must be provided.
 
-    sagemaker:
-      account_id: ~
-      iam_role: ~
-      entrypoint: ~
-      instance_type: ~
-      profile: ~
-      region: ~
+    .. code-block:: yaml
 
-    dataset:
-      base_data_path: ~
+        sagemaker:
+          account_id: ~
+          iam_role: ~
+          entrypoint: ~
+          instance_type: ~
+          profile: ~
+          region: ~
 
-    task:
-      name: ~
+        dataset:
+          base_data_path: ~
 
-    model:
-      name: ~
+        task:
+          name: ~
 
-    method:
-      name: ~
+        model:
+          name: ~
 
-    `sagemaker` may optionally include `metrics`, which specifies the `training metrics <>`__ to be tracked by SageMaker,
-     and `tuner`, which configures the `hyperparameter tuning <https://sagemaker.readthedocs.io/en/stable/api/training/tuner.html>`__.
-     Any argument to pass to the entrypoint script must be specified under `hparams` in either `task`, `model` or `method`.
-     For example:
+        method:
+          name: ~
 
-     model:
-      name: ~
-      hparams:
-        some_hyperparameter: ~
+    `sagemaker` may optionally include `metrics`, which specifies the `training metrics <https://docs.aws.amazon.com/sagemaker/latest/dg/training-metrics.html>`_ to be tracked by SageMaker,
+    and `tuner`, which configures the `hyperparameter tuning <https://sagemaker.readthedocs.io/en/stable/api/training/tuner.html>`_.
+    Any argument to pass to the entrypoint script must be specified under `hparams` in either `task`, `model` or `method`.
+    For example:
+
+    .. code-block:: yaml
+
+        model:
+          name: ~
+            hparams:
+              some_hyperparameter: ~
 
     For the training job to run successfully, you must have already built and pushed a Docker imagine to AWS in the
     region specified by the configuration file. You can do so by running `bash fortuna/docker/build_and_push.sh`,

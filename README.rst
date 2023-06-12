@@ -172,15 +172,15 @@ We offer a simple pipeline that allows you to run Fortuna on Amazon SageMaker wi
 
 1. Create an AWS account - it is free! Store the account ID and the region where you want to launch training jobs.
 
-2. First, `update your local AWS credentials <https://docs.aws.amazon.com/cli/latest/userguide/cli-authentication-short-term.html>`__.
-   Then you need to build and `push a Docker image to an Amazon ECR repository <https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-push-ecr-image.html>`__.
+2. First, `update your local AWS credentials <https://docs.aws.amazon.com/cli/latest/userguide/cli-authentication-short-term.html>`_.
+   Then you need to build and `push a Docker image to an Amazon ECR repository <https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-push-ecr-image.html>`_.
    This `script <https://github.com/awslabs/fortuna/tree/main/fortuna/docker/build_and_push.sh>`_ will help you doing so -
    it will require your AWS account ID and region. If you need other packages to be included in your Docker image,
    you should consider customize the `Dockerfile <https://github.com/awslabs/fortuna/tree/main/fortuna/docker/Dockerfile>`_.
    NOTE: the script has been tested on a M1 MacOS.
    It is possible that different operating systems will need small modifications.
 
-3. Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html>`__.
+3. Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html>`_.
    You will need this to dump the results from your training jobs on Amazon Sagemaker.
 
 3. Write a configuration `yaml` file. This will include your AWS details, the path to the entrypoint script that you want
