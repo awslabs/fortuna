@@ -1,0 +1,12 @@
+name: "mnli"
+hparams:
+  dataset_name: "glue"
+  text_columns: "premise,hypothesis"
+  num_labels: 3
+  train_split: "train"
+  validation_split: "validation_matched[:50%]"
+  test_split: "validation_matched[-50%:]"
+  ood_dataset_name: "snli"
+  ood_text_columns: "premise,hypothesis"
+  ood_test_split: "test[:50%]"
+  task_name: "mnli"

@@ -1,0 +1,6 @@
+name: "sghmc"
+hparams:
+  posterior_approximator_name: "sghmc"
+  last_layer_only: "true"
+  num_train_epochs: 6
+  n_posterior_samples: 15
