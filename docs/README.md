@@ -4,7 +4,7 @@ The documentation for Fortuna can be found [here](https://aws-fortuna.readthedoc
 
 ## Build the documentation
 
-The documentation for Fortuna is comprised of a series of notebooks. To serve these locally, there are two steps that need to be taken that we outline below.
+The documentation for Fortuna consists of a series of notebooks. To serve these locally, there are two steps that need to be taken that we outline below.
 
 ### Prerequisites
 
