@@ -1,6 +1,7 @@
 import enum
 
 from fortuna.output_calib_model.state import OutputCalibState
+from fortuna.prob_model.posterior.sgmcmc.hmc.hmc_state import HMCState
 from fortuna.prob_model.posterior.laplace.laplace_state import LaplaceState
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import ADVIState
@@ -21,3 +22,4 @@ class NameToPosteriorState(enum.Enum):
     vars()[SWAGState.__name__] = SWAGState
     vars()[SGHMCState.__name__] = SGHMCState
     vars()[CyclicalSGLDState.__name__] = CyclicalSGLDState
+    vars()[HMCState.__name__] = HMCState
