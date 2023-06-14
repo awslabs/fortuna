@@ -96,7 +96,7 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
         params = {"model": {"params": self.model.params}}
         if self.model_editor is not None:
             if rng is None:
-                rng = self.rng
+                rng = self.rng.get()
             output_shape = jax.eval_shape(
                 self.model, **get_inputs_from_shape(input_shape)
             ).logits.shape
