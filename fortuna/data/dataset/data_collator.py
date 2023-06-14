@@ -78,7 +78,8 @@ class FlaxDataCollatorForMultipleChoice:
 
 @flax.struct.dataclass
 class FlaxDataCollatorForLanguageModeling:
-    # Obtained from from https://github.com/huggingface/transformers/blob/main/examples/flax/language-modeling/run_mlm_flax.py
+    # Adapted from https://github.com/huggingface/transformers/blob/main/examples/flax/language-modeling/run_mlm_flax.py
+    # and https://github.com/huggingface/transformers/blob/91b62f5a785264b626ec7ba708c894ac0276f5cb/src/transformers/data/data_collator.py#607
     """
     Data collator used for language modeling. Inputs are dynamically padded to the maximum length of a batch if they
     are not all of the same length.
@@ -86,6 +87,10 @@ class FlaxDataCollatorForLanguageModeling:
     ----------
     tokenizer: Union[:class:`~transformers.PreTrainedTokenizer`, :class:`~transformers.PreTrainedTokenizerFast`]
         The tokenizer used for encoding the data.
+    mlm: bool
+        Whether or not to use masked language modeling. If set to `False`, the labels are the same as the inputs
+        with the padding tokens ignored (by setting them to -100). Otherwise, the labels are -100 for non-masked
+        tokens and the value to predict for the masked token. Default: True.
     mlm_probability: float
         The probability with which to (randomly) mask tokens in the input.
     .. note::
@@ -96,10 +101,11 @@ class FlaxDataCollatorForLanguageModeling:
     """
 
     tokenizer: PreTrainedTokenizerBase
+    mlm: bool = True
     mlm_probability: float = 0.15
 
     def __post_init__(self):
-        if self.tokenizer.mask_token is None:
+        if self.mlm and self.tokenizer.mask_token is None:
             raise ValueError(
                 "This tokenizer does not have a mask token which is necessary for masked language modeling. "
                 "You should pass `mlm=False` to train on causal language modeling instead."
@@ -115,12 +121,21 @@ class FlaxDataCollatorForLanguageModeling:
             return_tensors=TensorType.NUMPY,
         )
 
-        # If special token mask has been preprocessed, pop it from the dict.
-        special_tokens_mask = batch.pop("special_tokens_mask", None)
+        if self.mlm:
+            # If special token mask has been preprocessed, pop it from the dict.
+            special_tokens_mask = batch.pop("special_tokens_mask", None)
 
-        batch["input_ids"], batch["labels"] = self.mask_tokens(
-            batch["input_ids"], special_tokens_mask=special_tokens_mask
-        )
+            batch["input_ids"], batch["labels"] = self.mask_tokens(
+                batch["input_ids"], special_tokens_mask=special_tokens_mask
+            )
+        else:
+            labels = batch["input_ids"]
+            if self.tokenizer.pad_token_id is not None:
+                # Replace self.tokenizer.pad_token_id with -100
+                labels = np.where(labels == self.tokenizer.pad_token_id, -100, labels)
+            else:
+                labels = np.copy(labels)  # Makes a copy, just in case
+            batch["labels"] = labels
         return batch
 
     def mask_tokens(
@@ -130,6 +145,7 @@ class FlaxDataCollatorForLanguageModeling:
         Prepare masked tokens inputs/labels for masked language modeling: 80% MASK, 10% random, 10% original.
         """
         labels = inputs.copy()
+
         # We sample a few tokens in each sequence for MLM training (with probability `self.mlm_probability`)
         probability_matrix = np.full(labels.shape, self.mlm_probability)
         special_tokens_mask = special_tokens_mask.astype("bool")
