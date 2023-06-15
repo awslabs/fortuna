@@ -1,6 +1,8 @@
 from typing import (
+    Any,
     Callable,
     Dict,
+    Optional,
     Tuple,
     Union,
 )
@@ -8,6 +10,7 @@ from typing import (
 import jax.numpy as jnp
 
 from fortuna.typing import (
+    AnyKey,
     Array,
     InputData,
     Params,
@@ -21,13 +24,17 @@ def probit_scaling(
     x: InputData,
     log_var: Union[float, Array],
     has_aux: bool = False,
+    freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None,
+    top_k: Optional[int] = None,
 ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
-    f, jacobian_squared_row_norm = value_and_jacobian_squared_row_norm(
-        apply_fn, params, x, has_aux=has_aux
+    f, scale = value_and_jacobian_squared_row_norm(
+        apply_fn, params, x, has_aux=has_aux, freeze_fun=freeze_fun, top_k=top_k
     )
+
     if has_aux:
         f, aux = f
-    f /= 1 + jnp.pi / 8 * jnp.exp(log_var) * jacobian_squared_row_norm
+
+    f /= 1 + jnp.pi / 8 * jnp.exp(log_var) * scale
 
     if has_aux:
         return f, aux

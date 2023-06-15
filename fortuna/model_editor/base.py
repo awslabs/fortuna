@@ -2,6 +2,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Optional,
     Tuple,
     Union,
 )
@@ -11,7 +12,7 @@ import jax.numpy as jnp
 
 from fortuna.typing import (
     InputData,
-    Params,
+    Mutable,
 )
 
 
@@ -20,9 +21,9 @@ class ModelEditor(nn.Module):
     def __call__(
         self,
         apply_fn: Callable[
-            [Params, InputData], Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]
+            [Dict, InputData], Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]
         ],
-        model_params: Params,
+        model_params: Dict,
         x: Any,
         has_aux: bool,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
@@ -31,9 +32,9 @@ class ModelEditor(nn.Module):
 
         Parameters
         ----------
-        apply_fn: Callable[[Params, InputData], Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]]
+        apply_fn: Callable[[Dict, InputData], Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]]
             The model forward pass.
-        model_params: Params
+        model_params: Dict
             The model parameters.
         x: Array
             Batch of inputs.

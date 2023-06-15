@@ -1,10 +1,12 @@
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Optional,
     Tuple,
+    Union,
 )
 
 from flax.core.frozen_dict import freeze
@@ -99,7 +101,9 @@ def get_trainable_paths(
     Tuple[List[AnyKey], ...]
         A tuple of sequences of keys pointing to the trainable parameters only.
     """
-    return _get_paths_with_label(params, freeze_fun, "trainable")
+    return get_paths_with_label(
+        params, freeze_fun, "trainable", allowed_labels=["frozen", "trainable"]
+    )
 
 
 def get_frozen_paths(
@@ -122,18 +126,21 @@ def get_frozen_paths(
     Tuple[List[AnyKey], ...]
         A tuple of sequences of keys pointing to the frozen parameters only.
     """
-    return _get_paths_with_label(params, freeze_fun, "frozen")
+    return get_paths_with_label(
+        params, freeze_fun, "frozen", allowed_labels=["frozen", "trainable"]
+    )
 
 
-def _get_paths_with_label(
-    params: Params,
+def get_paths_with_label(
+    params: Union[Params, Dict],
     freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]],
-    label: str,
+    label: Union[str, bool],
+    allowed_labels: Optional[List[Union[str, bool]]] = None,
 ) -> Tuple[List[AnyKey], ...]:
     paths = path_aware_map(lambda p, v: p, params)
     if freeze_fun is not None:
         conds = list(flatten_dict(path_aware_map(freeze_fun, params)).values())
-        all_values_in_labels(conds, ["trainable", "frozen"])
+        all_values_in_labels(conds, allowed_labels)
         return tuple(
             [list(p) for c, p in zip(conds, flatten_dict(paths)) if c == label]
         )
