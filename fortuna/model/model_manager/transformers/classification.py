@@ -104,9 +104,11 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
             rngs = {"params": params_key, "dropout": dropout_key}
 
             def apply_fn(p, x):
-                _outputs = self.model(x, params=p)
+                _outputs = self.model(**x, params=p)
                 if hasattr(_outputs, "logits"):
                     _outputs = _outputs.logits
+                    if _outputs.ndim == 3:
+                        _outputs = _outputs[:, -1]
                 return _outputs
 
             params.update(
@@ -115,7 +117,7 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
                         rngs,
                         apply_fn=apply_fn,
                         model_params=params["model"]["params"],
-                        x=jnp.zeros(output_shape),
+                        x=get_inputs_from_shape(input_shape),
                         has_aux=False,
                     )
                 )

@@ -25,6 +25,14 @@ class SGHMCPosteriorApproximator(SGMCMCPosteriorApproximator):
         """
         SGHMC posterior approximator. It is responsible to define how the posterior distribution is approximated.
 
+        The total number of available posterior samples depends on the number of training steps, `burnin_length`,
+        and `n_thinning` parameters:
+
+        `n_available_samples` = (`n_training_steps` - `burnin_length`) % `n_thinning`
+
+        Setting the desired number of samples `n_samples` larger than `n_available_samples` will result in an
+        exception.
+
         Parameters
         ----------
         n_samples: int
