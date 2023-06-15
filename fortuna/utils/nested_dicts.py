@@ -52,15 +52,15 @@ def nested_set(
     :param objs: Tuple
         Each element of the tuple is an object that will be assigned to the item specified by the corresponding
         sequence of keys.
-    :param allow_nonexisten: bool
+    :param allow_nonexistent: bool
         Whether to create sequence of keys that are not found in the input dictionary or throw an exception.
     """
     if type(key_paths) != tuple:
         raise TypeError("`key_paths` must be a tuple.")
     if type(objs) != tuple:
-        raise TypeError("`values` must be a tuple.")
+        raise TypeError("`objs` must be a tuple.")
     if len(key_paths) != len(objs):
-        raise ValueError("`key_paths` and `values` must have the same length.")
+        raise ValueError("`key_paths` and `objs` must have the same length.")
 
     d0 = deepcopy(d)
 

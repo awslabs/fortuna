@@ -55,8 +55,6 @@ class RegressionModelManager(ModelManager):
         train: bool = False,
         rng: Optional[PRNGKeyArray] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
-        params = params.unfreeze()
-
         # setup dropout key
         if rng is not None:
             rng, model_dropout_key, lik_log_var_dropout_key = random.split(rng, 3)
