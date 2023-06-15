@@ -65,6 +65,8 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
             )
             if hasattr(_outputs, "logits"):
                 _outputs = _outputs.logits
+                if _outputs.ndim == 3:
+                    _outputs = _outputs[:, -1]
 
             if isinstance(_outputs, tuple) and not has_aux:
                 _outputs = _outputs[0]
@@ -116,7 +118,7 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
                     model_editor=self.model_editor.init(
                         rngs,
                         apply_fn=apply_fn,
-                        model_params=params["model"]["params"],
+                        model_params=FrozenDict(params["model"]["params"]),
                         x=get_inputs_from_shape(input_shape),
                         has_aux=False,
                     )
@@ -181,7 +183,7 @@ class SNGPHuggingFaceClassificationModelManager(
                     model_editor=self.model_editor.init(
                         rngs,
                         apply_fn=apply_fn,
-                        model_params=params["model"]["params"],
+                        model_params=FrozenDict(params["model"]["params"]),
                         x=get_inputs_from_shape(input_shape),
                         has_aux=False,
                     )
