@@ -356,12 +356,17 @@ class HuggingFaceMaskedLMDataset(HuggingFaceClassificationDatasetABC):
     def __init__(
         self,
         *args,
+        mlm: bool = True,
         mlm_probability: Optional[float] = 0.15,
         **kwargs,
     ):
         """
         Parameters
         ----------
+        mlm: bool
+            Whether or not to use masked language modeling. If set to `False`, the labels are the same as the inputs
+            with the padding tokens ignored (by setting them to -100). Otherwise, the labels are -100 for non-masked
+            tokens and the value to predict for the masked token. Default: True.
         mlm_probability Optional[float]
             The probability with which to (randomly) mask tokens in the input,
             when the task is masked language modeling.
@@ -372,6 +377,7 @@ class HuggingFaceMaskedLMDataset(HuggingFaceClassificationDatasetABC):
             logger.warning(
                 f"You are not using a Fast Tokenizer, so whole words cannot be masked, only tokens."
             )
+        self.mlm = mlm
         self.mlm_probability = mlm_probability
         self.num_unique_labels = self.tokenizer.vocab_size
 
