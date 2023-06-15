@@ -437,6 +437,7 @@ class HuggingFaceMaskedLMDataset(HuggingFaceClassificationDatasetABC):
         if self._data_collator is None:
             self._data_collator = FlaxDataCollatorForLanguageModeling(
                 tokenizer=self.tokenizer,
+                mlm=self.mlm,
                 mlm_probability=self.mlm_probability,
             )
         return self._data_collator
