@@ -303,11 +303,11 @@ if __name__ == "__main__":
     ####           TRAIN!            ####
     #####################################
     def accuracy_mlm(preds: Array, targets: Array) -> jnp.ndarray:
-        if preds.ndim > 2:
+        if preds.ndim > 1:
             raise ValueError(
                 """`preds` must be a one-dimensional array of predicted classes."""
             )
-        if targets.ndim > 2:
+        if targets.ndim > 1:
             raise ValueError(
                 """`targets` must be a one-dimensional array of target classes."""
             )

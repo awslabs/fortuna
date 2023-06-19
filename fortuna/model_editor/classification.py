@@ -17,7 +17,7 @@ from fortuna.typing import (
     InputData,
     Params,
 )
-from fortuna.utils.probit import probit_scaling
+from fortuna.utils.probit import sequential_probit_scaling
 
 
 class ProbitClassificationModelEditor(ModelEditor):
@@ -35,7 +35,7 @@ class ProbitClassificationModelEditor(ModelEditor):
         has_aux: bool,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
         log_var = self.param("log_var", nn.initializers.zeros, (1,))
-        outputs = probit_scaling(
+        outputs = sequential_probit_scaling(
             apply_fn,
             model_params,
             x,
