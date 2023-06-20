@@ -23,6 +23,8 @@ from fortuna.utils.probit import sequential_probit_scaling
 class ProbitClassificationModelEditor(ModelEditor):
     freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None
     top_k: Optional[int] = None
+    memory: Optional[int] = None
+    n_final_tokens: Optional[int] = None
 
     @nn.compact
     def __call__(
@@ -43,5 +45,7 @@ class ProbitClassificationModelEditor(ModelEditor):
             has_aux=has_aux,
             freeze_fun=self.freeze_fun,
             top_k=self.top_k,
+            memory=self.memory,
+            n_final_tokens=self.n_final_tokens
         )
         return outputs

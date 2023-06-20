@@ -21,7 +21,6 @@ from fortuna.utils.freeze import get_paths_with_label
 from flax.core import FrozenDict
 from fortuna.utils.grad import value_and_jacobian_squared_row_norm
 from functools import partial
-from tqdm import trange
 
 
 def probit_scaling(
@@ -55,7 +54,8 @@ def sequential_probit_scaling(
     has_aux: bool = False,
     freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None,
     top_k: Optional[int] = None,
-    memory: Optional[int] = None
+    memory: Optional[int] = None,
+    n_final_tokens: Optional[int] = None
 ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
     params = params.unfreeze()
 
@@ -97,7 +97,11 @@ def sequential_probit_scaling(
     if memory is None:
         memory = seq_length
     if memory <= 0 or memory > seq_length:
-        raise ValueError(f"`memory` must be greter than 0 and cannot be greater than {seq_length}.")
+        raise ValueError(f"`memory` must be greater than 0 and cannot be greater than {seq_length}.")
+    if n_final_tokens is None:
+        n_final_tokens = seq_length
+    if n_final_tokens <= 0 or n_final_tokens > seq_length:
+        raise ValueError(f"`n_final_tokens` must be greater than 0 and cannot be greater than {seq_length}.")
 
     indices = None
     if top_k is not None:
@@ -132,7 +136,7 @@ def sequential_probit_scaling(
         P = vmap(
             lambda tau: compute_cov(new_tau, tau),
             out_axes=2
-        )(jnp.arange(max(1, new_tau-memory), new_tau))
+        )(jnp.arange(max(seq_length - n_final_tokens + 1, new_tau - memory), new_tau))
         return P.reshape(P.shape[0], P.shape[1], P.shape[2] * P.shape[3])
 
     @vmap
@@ -172,14 +176,24 @@ def sequential_probit_scaling(
 
         return Jinv, get_diag(C)
 
-    C = compute_cov(0, 0)
+    C = compute_cov(seq_length - n_final_tokens, seq_length - n_final_tokens)
     diagCs = [get_diag(C)]
     if seq_length > 1:
         Jinv = jnp.linalg.inv(C)
-        for tau in trange(2, seq_length + 1, desc="Sequence generation"):
+        for tau in range(seq_length - n_final_tokens + 2, seq_length + 1):
             Jinv, _diagC = fun(Jinv, tau)
             diagCs.append(_diagC)
     diagCs = jnp.stack(diagCs, axis=1)
+
+    if n_final_tokens < seq_length:
+        diagCs = jnp.concatenate(
+            (
+                    jnp.max(diagCs, 1, keepdims=True).repeat(seq_length - n_final_tokens, axis=1),
+                    diagCs
+            ),
+            axis=1
+        )
+
     scales = jnp.max(diagCs, axis=2, keepdims=True)
 
     if top_k is not None:
