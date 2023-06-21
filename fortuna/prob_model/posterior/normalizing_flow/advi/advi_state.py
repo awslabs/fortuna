@@ -8,12 +8,14 @@ from typing import (
 
 import jax.numpy as jnp
 
-from fortuna.prob_model.posterior.state import PosteriorState
+from fortuna.prob_model.posterior.normalizing_flow.normalizing_flow_state import (
+    NormalizingFlowState,
+)
 from fortuna.typing import Array
 from fortuna.utils.strings import convert_string_to_jnp_array
 
 
-class ADVIState(PosteriorState):
+class ADVIState(NormalizingFlowState):
     """
     Attributes
     ----------

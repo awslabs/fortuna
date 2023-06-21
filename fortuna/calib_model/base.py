@@ -5,10 +5,8 @@ from typing import (
     Optional,
 )
 
-from flax.core.frozen_dict import freeze
-from flax.traverse_util import path_aware_map
+from flax.core import FrozenDict
 import jax.numpy as jnp
-import optax
 
 from fortuna.calib_model.calib_mixin import WithCalibCheckpointingMixin
 from fortuna.calib_model.calib_model_calibrator import (
@@ -36,6 +34,11 @@ from fortuna.utils.data import (
     get_inputs_from_shape,
 )
 from fortuna.utils.device import select_trainer_given_devices
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+)
 from fortuna.utils.random import RandomNumberGenerator
 
 
@@ -94,22 +97,32 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             early_stopping_monitor=config.monitor.early_stopping_monitor,
             early_stopping_min_delta=config.monitor.early_stopping_min_delta,
             early_stopping_patience=config.monitor.early_stopping_patience,
+            freeze_fun=config.optimizer.freeze_fun,
         )
 
         state = self._init_state(calib_data_loader, config)
 
         if config.optimizer.freeze_fun is not None:
-            partition_optimizers = {
-                "trainable": config.optimizer.method,
-                "frozen": optax.set_to_zero(),
-            }
-            partition_params = freeze(
-                path_aware_map(config.optimizer.freeze_fun, state.params)
+            trainable_paths = get_trainable_paths(
+                state.params, config.optimizer.freeze_fun
             )
-            config.optimizer.method = optax.multi_transform(
-                partition_optimizers, partition_params
+            state = state.replace(
+                opt_state=config.optimizer.method.init(
+                    FrozenDict(
+                        nested_set(
+                            d={},
+                            key_paths=trainable_paths,
+                            objs=tuple(
+                                [
+                                    nested_get(state.params.unfreeze(), path)
+                                    for path in trainable_paths
+                                ]
+                            ),
+                            allow_nonexistent=True,
+                        )
+                    )
+                )
             )
-            state = self._init_state(calib_data_loader, config)
 
         loss = Loss(self.likelihood, loss_fn=loss_fn)
         loss.rng = self.rng
