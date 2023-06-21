@@ -75,6 +75,7 @@ class MAPPosterior(Posterior):
             early_stopping_monitor=fit_config.monitor.early_stopping_monitor,
             early_stopping_min_delta=fit_config.monitor.early_stopping_min_delta,
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
+            freeze_fun=fit_config.optimizer.freeze_fun,
         )
 
         if super()._is_state_available_somewhere(fit_config):

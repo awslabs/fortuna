@@ -32,8 +32,8 @@ from fortuna.typing import (
     CalibParams,
     Mutable,
     Params,
+    Path,
 )
-from fortuna.utils.nested_dicts import nested_set
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
 
@@ -71,9 +71,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         base: Distribution,
         architecture: object,
         which_params: Optional[Tuple[List[str]]],
-        all_params: Optional[Params] = None,
-        indices: Optional[List[int]] = None,
-        unravel: Union[List[Callable], Callable],
+        unravel: Callable,
+        sub_unravel: Callable,
         **kwargs,
     ):
         super(NormalizingFlowTrainer, self).__init__(**kwargs)
@@ -91,9 +90,8 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(
             which_params
         )
-        self._all_params = all_params
-        self._indices = indices
         self._unravel = unravel
+        self._sub_unravel = sub_unravel
 
     def training_loss_step(
         self,
@@ -115,7 +113,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         v, ldj = self.sample_forward(key, params, kwargs["n_samples"])
         neg_logp, aux = vmap(
             lambda _rav_params: loss_fun(
-                self._get_params_from_rav(_rav_params, unravel),
+                unravel(_rav_params),
                 batch,
                 n_data=n_data,
                 mutable=mutable,
@@ -209,7 +207,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         v, ldj = self.sample_forward(key, state.params, kwargs["n_samples"])
         neg_logp, aux = vmap(
             lambda _rav_params: loss_fun(
-                self._get_params_from_rav(_rav_params, unravel),
+                self._unravel(_rav_params),
                 batch,
                 n_data=n_data,
                 mutable=state.mutable,
@@ -232,19 +230,3 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
                 **{f"val_{m}": v for m, v in val_metrics.items()},
             }
         return dict(val_loss=loss)
-
-    def _get_params_from_rav(self, _rav, unravel) -> Params:
-        if self._which_params is None:
-            return unravel(_rav)
-        return FrozenDict(
-            nested_set(
-                d=self._all_params.unfreeze(),
-                key_paths=self._which_params,
-                objs=tuple(
-                    [
-                        _unravel(_rav[self._indices[i] : self._indices[i + 1]])
-                        for i, _unravel in enumerate(unravel)
-                    ]
-                ),
-            )
-        )
