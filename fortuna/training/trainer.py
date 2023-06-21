@@ -37,6 +37,7 @@ from fortuna.training.mixin import (
 )
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (
+    AnyKey,
     Array,
     Batch,
     CalibMutable,
@@ -47,6 +48,15 @@ from fortuna.typing import (
     Status,
 )
 from fortuna.utils.builtins import HashableMixin
+from fortuna.utils.freeze import (
+    get_frozen_paths,
+    get_trainable_paths,
+)
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+    nested_update,
+)
 from fortuna.utils.training import clip_grandients_by_norm
 
 
@@ -67,6 +77,7 @@ class TrainerABC(
         keep_top_n_checkpoints: int = 2,
         disable_training_metrics_computation: bool = False,
         eval_every_n_epochs: int = 1,
+        freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None,
         **kwargs,
     ):
         super(TrainerABC, self).__init__(*args, **kwargs)
@@ -80,6 +91,7 @@ class TrainerABC(
         self._global_training_step = 0
         self._unravel = None
         self.multi_device = False
+        self.freeze_fun = freeze_fun
 
     @abc.abstractmethod
     def training_loss_step(
@@ -112,19 +124,27 @@ class TrainerABC(
         else:
             value_and_grad_fn = state.dynamic_scale.value_and_grad
 
+        forward_fun = lambda params: self.training_loss_step(
+            loss_fun,
+            params,
+            batch,
+            state.mutable,
+            rng,
+            n_data,
+            unravel,
+            state.calib_params,
+            state.calib_mutable,
+            kwargs,
+        )
+        if self.freeze_fun is not None:
+            frozen_forward_fun = lambda trainable_params: forward_fun(
+                params=self._get_all_params(
+                    state=state, trainable_params=trainable_params
+                )
+            )
+
         grad_fn = value_and_grad_fn(
-            lambda params: self.training_loss_step(
-                loss_fun,
-                params,
-                batch,
-                state.mutable,
-                rng,
-                n_data,
-                unravel,
-                state.calib_params,
-                state.calib_mutable,
-                kwargs,
-            ),
+            forward_fun if self.freeze_fun is None else frozen_forward_fun,
             has_aux=True,
         )
         outputs = grad_fn(state.params)
@@ -588,6 +608,37 @@ class TrainerABC(
         dataloaders: List[DataLoader],
         rng: PRNGKeyArray,
     ) -> Tuple[TrainState, List[DataLoader], PRNGKeyArray]:
+        if self.freeze_fun is not None:
+            frozen_paths = get_frozen_paths(state.params, self.freeze_fun)
+            trainable_paths = get_trainable_paths(state.params, self.freeze_fun)
+            state = state.replace(
+                frozen_params=FrozenDict(
+                    nested_set(
+                        d={},
+                        key_paths=frozen_paths,
+                        objs=tuple(
+                            [
+                                nested_get(state.params.unfreeze(), path)
+                                for path in frozen_paths
+                            ]
+                        ),
+                        allow_nonexistent=True,
+                    )
+                ),
+                params=FrozenDict(
+                    nested_set(
+                        d={},
+                        key_paths=trainable_paths,
+                        objs=tuple(
+                            [
+                                nested_get(state.params.unfreeze(), path)
+                                for path in trainable_paths
+                            ]
+                        ),
+                        allow_nonexistent=True,
+                    )
+                ),
+            )
         return state, dataloaders, rng
 
     def on_train_end(self, state: TrainState) -> TrainState:
@@ -597,6 +648,11 @@ class TrainerABC(
             keep=self.keep_top_n_checkpoints,
             force_save=True,
         )
+
+        if self.freeze_fun is not None:
+            state = state.replace(
+                params=self._get_all_params(state), frozen_params=None
+            )
         return state
 
     def on_validation_start(self, state: TrainState) -> TrainState:
@@ -635,9 +691,27 @@ class TrainerABC(
         force_save: bool = False,
         prefix: str = "checkpoint_",
     ) -> None:
+        if self.freeze_fun is not None:
+            state = state.replace(
+                params=self._get_all_params(state), frozen_params=None
+            )
         return super().save_checkpoint(
             self._sync_state(state), save_checkpoint_dir, keep, force_save, prefix
         )
+
+    def _get_all_params(
+        self, state: TrainState, trainable_params: Optional[Params] = None
+    ):
+        if self.freeze_fun is not None:
+            return FrozenDict(
+                nested_update(
+                    state.frozen_params.unfreeze(),
+                    trainable_params.unfreeze()
+                    if trainable_params is not None
+                    else state.params.unfreeze(),
+                )
+            )
+        return trainable_params if trainable_params is not None else state.params
 
 
 class JittedMixin:

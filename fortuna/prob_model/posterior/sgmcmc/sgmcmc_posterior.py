@@ -18,7 +18,6 @@ from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
     SGMCMCPosteriorStateRepository,
 )
-from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Path
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
