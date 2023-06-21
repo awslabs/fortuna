@@ -145,6 +145,7 @@ class SWAGPosterior(Posterior):
             disable_training_metrics_computation=fit_config.monitor.disable_training_metrics_computation,
             eval_every_n_epochs=fit_config.monitor.eval_every_n_epochs,
             early_stopping_verbose=False,
+            freeze_fun=fit_config.optimizer.freeze_fun,
             which_params=which_params,
         )
 

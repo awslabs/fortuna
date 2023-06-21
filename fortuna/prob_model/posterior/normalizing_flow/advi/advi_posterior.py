@@ -126,7 +126,7 @@ class ADVIPosterior(Posterior):
         else:
             which_params = None
 
-        rav, self._unravel, self._indices, rav_log_stds = self._get_unravel(
+        rav, self._unravel, sub_unravel, rav_log_stds = self._get_unravel(
             params=state.params, log_stds=log_stds, which_params=which_params
         )
 
@@ -151,12 +151,12 @@ class ADVIPosterior(Posterior):
             early_stopping_monitor=fit_config.monitor.early_stopping_monitor,
             early_stopping_min_delta=fit_config.monitor.early_stopping_min_delta,
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
+            freeze_fun=fit_config.optimizer.freeze_fun,
             base=self._base,
             architecture=self._architecture,
             which_params=which_params,
-            all_params=state.params if which_params else None,
-            indices=self._indices,
             unravel=self._unravel,
+            sub_unravel=sub_unravel,
         )
 
         state = self._init_advi_from_map_state(
@@ -187,7 +187,6 @@ class ADVIPosterior(Posterior):
             max_grad_norm=fit_config.hyperparameters.max_grad_norm,
             gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
         )
-        trainer._all_params = None
 
         self.state = PosteriorStateRepository(
             fit_config.checkpointer.save_checkpoint_dir
@@ -239,7 +238,7 @@ class ADVIPosterior(Posterior):
             rng = self.rng.get()
         state = self.state.get()
 
-        if self._base is None or not self._unravel is None:
+        if self._base is None or self._unravel is None:
             if state._encoded_which_params is None:
                 n_params = len(ravel_pytree(state.params)[0]) // 2
                 which_params = None
@@ -257,28 +256,29 @@ class ADVIPosterior(Posterior):
                     )[0]
                 )
             _base, _architecture = self._get_base_and_architecture(n_params)
-            _unravel, _indices = self._get_unravel(
-                params=nested_unpair(
-                    d=state.params.unfreeze(),
-                    key_paths=which_params,
-                    labels=("mean", "log_std"),
-                )[0]
-                if which_params
-                else {
-                    k: dict(params=v["params"]["mean"]) for k, v in state.params.items()
-                },
+            _unravel = self._get_unravel(
+                FrozenDict(
+                    nested_unpair(
+                        d=state.params.unfreeze(),
+                        key_paths=which_params,
+                        labels=("mean", "log_std"),
+                    )[0]
+                    if which_params
+                    else {
+                        k: dict(params=v["params"]["mean"])
+                        for k, v in state.params.items()
+                    }
+                ),
                 which_params=which_params,
-            )[1:3]
+            )[1]
 
             self._base = _base
             self._architecture = _architecture
             self._unravel = _unravel
-            self._indices = _indices
         else:
             _base = self._base
             _architecture = self._architecture
             _unravel = self._unravel
-            _indices = self._indices
 
         if state._encoded_which_params is None:
             means = _unravel(
@@ -311,18 +311,7 @@ class ADVIPosterior(Posterior):
                 0
             ][0]
 
-            means = FrozenDict(
-                nested_set(
-                    d=means,
-                    key_paths=which_params,
-                    objs=tuple(
-                        [
-                            _unravel(rav_params[_indices[i] : _indices[i + 1]])
-                            for i, _unravel in enumerate(_unravel)
-                        ]
-                    ),
-                )
-            )
+            means = _unravel(rav_params)
 
         return JointState(
             params=FrozenDict(means),
@@ -413,32 +402,33 @@ class ADVIPosterior(Posterior):
         if which_params is None:
             rav, unravel = ravel_pytree(params)
             rav_log_stds = ravel_pytree(log_stds)[0] if log_stds is not None else None
-            indices = None
+            sub_unravel = None
         else:
+            rav, sub_unravel = ravel_pytree(
+                tuple([nested_get(params, path) for path in which_params])
+            )
 
-            def unravel_fn(_params, _path):
-                return ravel_pytree(nested_get(_params, _path))
-
-            rav, unravel, indices, rav_log_stds = [], [], [], []
-
-            for path in which_params:
-                _rav, _unravel = unravel_fn(params, path)
-                unravel.append(_unravel)
-                rav.append(_rav)
-
-                if log_stds is not None:
-                    rav_log_stds.append(unravel_fn(log_stds, path)[0])
-
-                indices.append(len(_rav))
-
-            rav = jnp.concatenate(rav)
+            def unravel(_rav):
+                return FrozenDict(
+                    nested_set(
+                        d=params.unfreeze(),
+                        key_paths=which_params,
+                        objs=sub_unravel(_rav),
+                    )
+                )
 
             if log_stds is not None:
-                rav_log_stds = jnp.concatenate(rav_log_stds)
+                rav_log_stds = ravel_pytree(
+                    nested_set(
+                        d={},
+                        key_paths=which_params,
+                        objs=tuple(
+                            [nested_get(log_stds, path) for path in which_params]
+                        ),
+                        allow_nonexistent=True,
+                    )
+                )[0]
             else:
                 rav_log_stds = None
 
-            unravel = tuple(unravel)
-            indices = np.concatenate((np.array([0]), np.cumsum(indices)))
-
-        return rav, unravel, indices, rav_log_stds
+        return rav, unravel, sub_unravel, rav_log_stds
