@@ -211,12 +211,7 @@ def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> jnp.ndarr
     jnp.ndarray
         The Brier score.
     """
-    if probs.ndim != 2:
-        raise ValueError(
-            """`probs` must be a two-dimensional array of probabilities for each class and each data
-        point."""
-        )
     if type(targets) == TargetsLoader:
         targets = targets.to_array_targets()
-    targets = jax.nn.one_hot(targets, probs.shape[1])
+    targets = jax.nn.one_hot(targets, probs.shape[-1])
     return jnp.mean(jnp.sum((probs - targets) ** 2, axis=1))

@@ -25,6 +25,7 @@ class ProbitClassificationModelEditor(ModelEditor):
     top_k: Optional[int] = None
     memory: Optional[int] = None
     n_final_tokens: Optional[int] = None
+    init_log_var: float = -10.0
 
     @nn.compact
     def __call__(
@@ -36,7 +37,9 @@ class ProbitClassificationModelEditor(ModelEditor):
         x: Any,
         has_aux: bool,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
-        log_var = self.param("log_var", nn.initializers.zeros, (1,))
+        log_var = self.param(
+            "log_var", nn.initializers.constant(self.init_log_var), (1,)
+        )
         outputs = sequential_probit_scaling(
             apply_fn,
             model_params,
@@ -46,6 +49,6 @@ class ProbitClassificationModelEditor(ModelEditor):
             freeze_fun=self.freeze_fun,
             top_k=self.top_k,
             memory=self.memory,
-            n_final_tokens=self.n_final_tokens
+            n_final_tokens=self.n_final_tokens,
         )
         return outputs
