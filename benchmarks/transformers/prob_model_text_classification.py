@@ -36,6 +36,7 @@ from fortuna.metric.classification import (
     accuracy,
     expected_calibration_error,
 )
+from fortuna.model_editor import ProbitModelEditor
 from fortuna.prob_model import (
     ADVIPosteriorApproximator,
     DeepEnsemblePosteriorApproximator,
@@ -51,7 +52,6 @@ from fortuna.prob_model import (
     SNGPPosteriorApproximator,
     SWAGPosteriorApproximator,
 )
-from fortuna.model_editor import ProbitModelEditor
 from fortuna.prob_model.fit_config.hyperparameters import FitHyperparameters
 from fortuna.prob_model.posterior.posterior_approximations import (
     ADVI_NAME,
@@ -400,7 +400,7 @@ if __name__ == "__main__":
     if args.enable_probit_model_editor:
         model_editor = ProbitModelEditor(
             freeze_fun=lambda p, v: True if "classifier" in p else False,
-            init_log_var=0.
+            init_log_var=0.0,
         )
 
     ### TRAINING
@@ -498,7 +498,9 @@ if __name__ == "__main__":
         )
 
     if args.enable_probit_model_editor:
-        logger.info(f"Probit log-variance: {prob_model.posterior.state.get().params['model_editor']['params']['log_var']}")
+        logger.info(
+            f"Probit log-variance: {prob_model.posterior.state.get().params['model_editor']['params']['log_var']}"
+        )
 
     ### IN-D PERFORMANCE
     test_inputs_loader = test_data_loader.to_inputs_loader()

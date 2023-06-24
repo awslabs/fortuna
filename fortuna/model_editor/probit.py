@@ -51,6 +51,6 @@ class ProbitModelEditor(ModelEditor):
             top_k=self.top_k,
             memory=self.memory,
             n_final_tokens=self.n_final_tokens,
-            stop_gradient=self.stop_gradient
+            stop_gradient=self.stop_gradient,
         )
         return outputs
