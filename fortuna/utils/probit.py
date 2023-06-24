@@ -69,6 +69,7 @@ def sequential_probit_scaling(
     top_k: Optional[int] = None,
     memory: Optional[int] = None,
     n_final_tokens: Optional[int] = None,
+    stop_gradient: bool = False
 ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
     params = params.unfreeze()
 
@@ -161,7 +162,7 @@ def sequential_probit_scaling(
 
             return vmap(J1J2T_op)(jnp.eye(size)).T
 
-        return jnp.where(prev_tau != 0, _compute_cov(x, indices), jnp.empty(block_size))
+        return jnp.where(prev_tau != -1, _compute_cov(x, indices), jnp.empty(block_size))
 
     init_tau = seq_length - n_final_tokens + 1
 
@@ -200,7 +201,7 @@ def sequential_probit_scaling(
 
     def get_diagCs(_params):
         old_taus = jnp.concatenate(
-            (jnp.zeros(memory - 1, dtype="int32"), jnp.array([init_tau], dtype="int32"))
+            (jnp.zeros(memory - 1, dtype="int32") - 1, jnp.array([init_tau], dtype="int32"))
         )
         C = compute_cov(old_taus[-1], old_taus[-1])
 
@@ -233,7 +234,9 @@ def sequential_probit_scaling(
 
         return diagCs
 
-    diagCs = lax.stop_gradient(get_diagCs(params if sub_params is None else sub_params))
+    diagCs = get_diagCs(params if sub_params is None else sub_params)
+    if stop_gradient:
+        diagCs = lax.stop_gradient(diagCs)
 
     if top_k is not None:
         scales = jnp.max(diagCs, axis=2, keepdims=True).repeat(n_outputs, axis=2)

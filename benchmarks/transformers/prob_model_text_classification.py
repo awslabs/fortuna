@@ -36,7 +36,6 @@ from fortuna.metric.classification import (
     accuracy,
     expected_calibration_error,
 )
-from fortuna.model_editor.classification import ProbitClassificationModelEditor
 from fortuna.prob_model import (
     ADVIPosteriorApproximator,
     DeepEnsemblePosteriorApproximator,
@@ -52,6 +51,7 @@ from fortuna.prob_model import (
     SNGPPosteriorApproximator,
     SWAGPosteriorApproximator,
 )
+from fortuna.model_editor import ProbitModelEditor
 from fortuna.prob_model.fit_config.hyperparameters import FitHyperparameters
 from fortuna.prob_model.posterior.posterior_approximations import (
     ADVI_NAME,
@@ -214,6 +214,9 @@ if __name__ == "__main__":
     parser.add_argument("--sgmcmc_polynomial_schedule_gamma", type=float, default=0.55)
     parser.add_argument("--sgmcmc_preconditioner", type=strbool, default=False)
     parser.add_argument("--sghmc_momentum_decay", type=float, default=0.01)
+    # model editor
+    parser.add_argument("--enable_probit_model_editor", type=strbool, default=False)
+    parser.add_argument("--init_probit_log_var", type=float, default=-5)
     # optimizer
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--adam_eps", type=float, default=1e-8)
@@ -393,6 +396,13 @@ if __name__ == "__main__":
         ),
     }
 
+    model_editor = None
+    if args.enable_probit_model_editor:
+        model_editor = ProbitModelEditor(
+            freeze_fun=lambda p, v: True if "classifier" in p else False,
+            init_log_var=0.
+        )
+
     ### TRAINING
     prob_model = ProbClassifier(
         model=model,
@@ -401,9 +411,7 @@ if __name__ == "__main__":
         ],
         prior=IsotropicGaussianPrior(log_var=args.prior_log_var),
         output_calibrator=None,
-        model_editor=ProbitClassificationModelEditor(
-            freeze_fun=lambda p, v: True if "classifier" in p else False, top_k=10
-        ),
+        model_editor=model_editor,
     )
 
     fit_config = FitConfig(
@@ -488,6 +496,9 @@ if __name__ == "__main__":
         raise ValueError(
             "Either restore_checkpoint_path or num_train_epochs > 0 should be specified."
         )
+
+    if args.enable_probit_model_editor:
+        logger.info(f"Probit log-variance: {prob_model.posterior.state.get().params['model_editor']['params']['log_var']}")
 
     ### IN-D PERFORMANCE
     test_inputs_loader = test_data_loader.to_inputs_loader()
