@@ -8,13 +8,13 @@ from typing import (
 
 from flax import linen as nn
 from flax.core import FrozenDict
-from flax.training.checkpoints import PyTree
 import jax
 from jax import (
     numpy as jnp,
     random,
 )
 from jax._src.prng import PRNGKeyArray
+from optax._src.base import PyTree
 
 from fortuna.model.model_manager.classification import (
     ClassificationModelManager,

@@ -9,14 +9,15 @@ from typing import (
 
 from flax import linen as nn
 from flax.core import FrozenDict
-from flax.training.checkpoints import PyTree
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from optax._src.base import PyTree
 
 from fortuna.typing import (
     InputData,
     Mutable,
     Params,
+    Shape,
 )
 from fortuna.utils.random import WithRNG
 
@@ -67,14 +68,14 @@ class ModelManager(WithRNG, abc.ABC):
 
     @abc.abstractmethod
     def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, input_shape: Shape, rng: Optional[PRNGKeyArray] = None, **kwargs
     ) -> Dict[str, Mapping]:
         """
         Initialize random parameters and mutable objects.
 
         Parameters
         ----------
-        input_shape : Tuple
+        input_shape : Shape
             The shape of the input variable.
         rng: Optional[PRNGKeyArray]
             A random number generator.

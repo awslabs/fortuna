@@ -1,6 +1,6 @@
 import tempfile
 
-import flax.linen as nn
+from flax import linen as nn
 import jax.numpy as jnp
 import numpy as np
 import pytest
@@ -8,9 +8,11 @@ import pytest
 from fortuna.data.loader import DataLoader
 from fortuna.metric.classification import accuracy
 from fortuna.metric.regression import rmse
+from fortuna.partitioner.base import Partitioner
 from fortuna.prob_model import (
     CalibConfig,
     CalibOptimizer,
+    CalibProcessor,
     FitConfig,
     FitMonitor,
     SNGPPosteriorApproximator,
@@ -45,7 +47,7 @@ from tests.make_model import (
 OUTPUT_DIM = 2
 BATCH_SIZE = 8
 INPUT_SHAPE = (3,)
-N_DATA = 10
+N_DATA = 16
 
 METHODS = {
     "map": MAPPosteriorApproximator(),
@@ -81,14 +83,14 @@ def make_data_loader(
 
 
 def fit_config(
-    task, restore_path, start_current, save_dir, dump_state, save_n_steps, freeze
+    task, restore_dir, start_current, save_dir, dump_state, save_n_steps, freeze
 ):
     return FitConfig(
         optimizer=FitOptimizer(n_epochs=3, freeze_fun=freeze),
         monitor=FitMonitor(metrics=(accuracy if task == "classification" else rmse,)),
         checkpointer=FitCheckpointer(
             start_from_current_state=start_current,
-            restore_checkpoint_path=restore_path,
+            restore_checkpoint_dir=restore_dir,
             save_checkpoint_dir=save_dir,
             dump_state=dump_state,
             save_every_n_steps=save_n_steps,
@@ -96,7 +98,10 @@ def fit_config(
     )
 
 
-calib_config = CalibConfig(optimizer=CalibOptimizer(n_epochs=3))
+calib_config = CalibConfig(
+    optimizer=CalibOptimizer(n_epochs=3),
+    processor=CalibProcessor(n_posterior_samples=2),
+)
 
 
 def train(
@@ -105,7 +110,7 @@ def train(
     train_data_loader,
     val_data_loader,
     calib_data_loader,
-    restore_path=None,
+    restore_dir=None,
     start_current=False,
     save_dir=None,
     dump_state=False,
@@ -119,7 +124,7 @@ def train(
         calib_data_loader=calib_data_loader,
         fit_config=fit_config(
             task,
-            restore_path,
+            restore_dir,
             start_current,
             save_dir,
             dump_state,
@@ -147,7 +152,7 @@ def train_and_sample(
     train_data_loader,
     val_data_loader,
     calib_data_loader,
-    restore_path=None,
+    restore_dir=None,
     start_current=False,
     save_dir=None,
     dump_state=False,
@@ -161,7 +166,7 @@ def train_and_sample(
         train_data_loader,
         val_data_loader,
         calib_data_loader,
-        restore_path,
+        restore_dir,
         start_current,
         save_dir,
         dump_state,
@@ -173,12 +178,18 @@ def train_and_sample(
 
 
 def define_prob_model(task, method, model_editor=None):
+    partitioner = Partitioner(
+        axis_dims={"mp": 2, "fsdp": 1, "dp": 2},
+        rules={"l1/kernel": ("fsdp", "mp"), "bn1": ("mp",)},
+    )
+
     if task == "regression":
         return ProbRegressor(
             model=MyModel(OUTPUT_DIM),
             likelihood_log_variance_model=MyModel(OUTPUT_DIM),
             posterior_approximator=METHODS[method],
             model_editor=model_editor,
+            partitioner=partitioner,
         )
     else:
         return ProbClassifier(
@@ -187,6 +198,7 @@ def define_prob_model(task, method, model_editor=None):
             else MyModelWithSpectralNorm(OUTPUT_DIM),
             posterior_approximator=METHODS[method],
             model_editor=model_editor,
+            partitioner=partitioner,
         )
 
 
@@ -213,7 +225,7 @@ def dryrun_task(task, method):
     prob_model = define_prob_model(task, method)
     map_fit_config = fit_config(
         task,
-        restore_path=None,
+        restore_dir=None,
         start_current=None,
         save_dir=None,
         dump_state=False,
@@ -252,7 +264,7 @@ def dryrun_task(task, method):
     with tempfile.TemporaryDirectory() as tmp_dir:
         map_fit_config = fit_config(
             task,
-            restore_path=None,
+            restore_dir=None,
             start_current=None,
             save_dir=None,
             dump_state=False,
@@ -277,14 +289,15 @@ def dryrun_task(task, method):
             train_data_loader,
             val_data_loader,
             calib_data_loader,
-            restore_path=tmp_dir,
+            restore_dir=tmp_dir,
         )
 
         prob_model = define_prob_model(task, method)
-        prob_model.load_state(tmp_dir)
+        prob_model.load_state(tmp_dir + "/last")
         sample(method, prob_model, train_data_loader)
         prob_model.predictive.log_prob(train_data_loader)
 
+        prob_model = define_prob_model(task, method)
         if method not in ["laplace", "swag"]:
             train_and_sample(
                 task,
@@ -315,7 +328,7 @@ def dryrun_task(task, method):
             calib_data_loader,
             save_dir=tmp_dir,
             dump_state=True,
-            restore_path=tmp_dir,
+            restore_dir=tmp_dir,
             freeze=freeze_fun,
         )
         train_and_sample(
@@ -327,7 +340,7 @@ def dryrun_task(task, method):
             calib_data_loader,
             save_dir=tmp_dir,
             dump_state=True,
-            restore_path=tmp_dir,
+            restore_dir=tmp_dir,
             freeze=freeze_fun,
         )
         train_and_sample(
@@ -339,7 +352,7 @@ def dryrun_task(task, method):
             calib_data_loader,
             map_fit_config=fit_config(
                 task,
-                restore_path=None,
+                restore_dir=None,
                 start_current=None,
                 save_dir=None,
                 dump_state=False,

@@ -8,6 +8,13 @@ from typing import (
 )
 
 from flax.core import FrozenDict
+from jax.tree_util import (
+    DictKey,
+    FlattenedIndexKey,
+    GetAttrKey,
+    SequenceKey,
+    tree_map_with_path,
+)
 
 from fortuna.typing import AnyKey
 
@@ -213,3 +220,39 @@ def nested_update(
             else:
                 updated_mapping[k] = v
     return updated_mapping
+
+
+def path_to_string(
+    path: Tuple[Union[DictKey, SequenceKey, GetAttrKey, FlattenedIndexKey, AnyKey]],
+    separator: str = None,
+) -> Union[str, Tuple[str]]:
+    """
+    Transform a sequence of keys into a string.
+
+    Parameters
+    ----------
+    path: Tuple[Union[DictKey, SequenceKey, GetAttrKey, FlattenedIndexKey, AnyKey]]
+        A sequence of keys.
+    separator: str
+        A string to interpret as separator.
+
+    Returns
+    -------
+    Union[str, Tuple[str]]
+        A sequence of keys.
+    """
+    keys = []
+    for key in path:
+        if isinstance(key, SequenceKey):
+            keys.append(str(key.idx))
+        elif isinstance(key, DictKey):
+            keys.append(str(key.key))
+        elif isinstance(key, GetAttrKey):
+            keys.append(str(key.name))
+        elif isinstance(key, FlattenedIndexKey):
+            keys.append(str(key.key))
+        else:
+            keys.append(str(key))
+    if separator is None:
+        return tuple(keys)
+    return separator.join(keys)

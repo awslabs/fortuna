@@ -6,19 +6,12 @@ from typing import (
     Union,
 )
 
-from flax import jax_utils
-import jax
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
-from jax.tree_util import tree_map
 
-from fortuna.data import TargetsLoader
 from fortuna.output_calib_model.state import OutputCalibState
-from fortuna.training.output_calibrator import (
-    JittedMixin,
-    MultiDeviceMixin,
-    OutputCalibratorABC,
-)
+from fortuna.training.output_calibrator.base import OutputCalibratorABC
+from fortuna.training.output_calibrator.mixins.sharding import ShardingMixin
 from fortuna.typing import (
     Array,
     Batch,
@@ -60,7 +53,7 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
             },
         )
 
-    def val_loss_step(
+    def validation_loss_step(
         self,
         state: OutputCalibState,
         batch: Batch,
@@ -84,49 +77,5 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
         return "calibration"
 
 
-class ProbModelMultiDeviceMixin(MultiDeviceMixin):
-    @staticmethod
-    def _add_device_dim_to_outputs_loader(
-        outputs_loader: TargetsLoader,
-    ) -> TargetsLoader:
-        def _reshape_batch(batch):
-            n_devices = jax.local_device_count()
-            if batch.shape[1] % n_devices != 0:
-                raise ValueError(
-                    f"The size of all output batches must be a multiple of {n_devices}, that is the number of "
-                    f"available devices. However, a batch of outputs with shape {batch.shape[1]} was found. "
-                    f"Please set an appropriate batch size."
-                )
-            shape = batch.shape
-            return (
-                batch.swapaxes(0, 1)
-                .reshape(n_devices, shape[1] // n_devices, shape[0], shape[2])
-                .swapaxes(1, 2)
-            )
-
-        class TargetsLoaderWrapper:
-            def __init__(self, outputs_loader: TargetsLoader):
-                self._outputs_loader = outputs_loader
-
-            def __iter__(self):
-                outputs_loader = map(
-                    lambda batch: tree_map(_reshape_batch, batch), self._outputs_loader
-                )
-                outputs_loader = jax_utils.prefetch_to_device(outputs_loader, 2)
-                yield from outputs_loader
-
-        return (
-            TargetsLoaderWrapper(outputs_loader)
-            if outputs_loader is not None
-            else outputs_loader
-        )
-
-
-class JittedProbModelOutputCalibrator(JittedMixin, ProbModelOutputCalibrator):
-    pass
-
-
-class MultiDeviceProbModelOutputCalibrator(
-    ProbModelMultiDeviceMixin, ProbModelOutputCalibrator
-):
+class ShardedProbModelOutputCalibrator(ShardingMixin, ProbModelOutputCalibrator):
     pass

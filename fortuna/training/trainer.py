@@ -2,6 +2,7 @@ import abc
 import collections
 from functools import partial
 import logging
+from pathlib import Path as _Path
 from typing import (
     Any,
     Callable,
@@ -12,29 +13,28 @@ from typing import (
     Union,
 )
 
-from flax import jax_utils
 from flax.core import FrozenDict
 from flax.training.common_utils import stack_forest
 import jax
 from jax import (
-    lax,
     random,
     value_and_grad,
+    vmap,
 )
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 from optax._src.base import PyTree
+from orbax.checkpoint import CheckpointManager
 from tqdm import trange
 from tqdm.std import tqdm as TqdmDecorator
 
 from fortuna.data.loader import DataLoader
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.training.callback import Callback
-from fortuna.training.mixin import (
-    InputValidatorMixin,
-    WithCheckpointingMixin,
-    WithEarlyStoppingMixin,
-)
+from fortuna.training.mixins.checkpointing import WithCheckpointingMixin
+from fortuna.training.mixins.early_stopping import WithEarlyStoppingMixin
+from fortuna.training.mixins.input_validator import InputValidatorMixin
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (
     AnyKey,
@@ -71,6 +71,8 @@ class TrainerABC(
         self,
         *args,
         predict_fn: Callable[[jnp.ndarray], jnp.ndarray],
+        partition_manager: Optional[PartitionManager],
+        checkpoint_manager: Optional[CheckpointManager],
         uncertainty_fn: Optional[Callable[[jnp.ndarray], jnp.ndarray]] = None,
         save_checkpoint_dir: Optional[Path] = None,
         save_every_n_steps: Optional[int] = None,
@@ -80,7 +82,12 @@ class TrainerABC(
         freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None,
         **kwargs,
     ):
-        super(TrainerABC, self).__init__(*args, **kwargs)
+        super(TrainerABC, self).__init__(
+            *args,
+            partition_manager=partition_manager,
+            checkpoint_manager=checkpoint_manager,
+            **kwargs,
+        )
         self.predict_fn = predict_fn
         self.uncertainty_fn = uncertainty_fn
         self.save_checkpoint_dir = save_checkpoint_dir
@@ -348,8 +355,13 @@ class TrainerABC(
         improved = self.early_stopping_update(
             validation_losses_and_metrics_current_epoch
         )
-        if improved and self.save_checkpoint_dir:
-            self.save_checkpoint(state, self.save_checkpoint_dir, force_save=True)
+        if improved and self.save_checkpoint_dir is not None:
+            self.save_checkpoint(
+                state,
+                str(_Path(self.save_checkpoint_dir) / "best"),
+                force_save=True,
+                prefix="",
+            )
         return validation_losses_and_metrics_current_epoch
 
     def train(
@@ -357,11 +369,11 @@ class TrainerABC(
         rng: PRNGKeyArray,
         state: TrainState,
         loss_fun: Callable,
-        training_dataloader: DataLoader,
+        training_data_loader: DataLoader,
         training_dataset_size: int,
         n_epochs: int = 1,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
-        validation_dataloader: Optional[DataLoader] = None,
+        validation_data_loader: Optional[DataLoader] = None,
         validation_dataset_size: Optional[int] = None,
         verbose: bool = True,
         unravel: Optional[Callable[[any], PyTree]] = None,
@@ -369,18 +381,18 @@ class TrainerABC(
         **kwargs,
     ) -> Tuple[TrainState, Status]:
         training_kwargs = FrozenDict(kwargs)
-        if validation_dataloader:
+        if validation_data_loader:
             assert (
                 validation_dataset_size is not None
-            ), "`validation_dataset_size` is required when `validation_dataloader` is provided."
+            ), "`validation_dataset_size` is required when `validation_data_loader` is provided."
 
         training_losses_and_metrics = collections.defaultdict(list)
         validation_losses_and_metrics = collections.defaultdict(list)
 
-        state, dataloaders, rng = self.on_train_start(
-            state, [training_dataloader, validation_dataloader], rng
+        state, data_loaders, rng = self.on_train_start(
+            state, [training_data_loader, validation_data_loader], rng
         )
-        training_dataloader, validation_dataloader = dataloaders
+        training_data_loader, validation_data_loader = data_loaders
 
         progress_bar = trange(n_epochs, desc="Epoch")
         for epoch in progress_bar:
@@ -395,7 +407,7 @@ class TrainerABC(
                 metrics,
                 rng,
                 state,
-                training_dataloader,
+                training_data_loader,
                 training_dataset_size,
                 training_kwargs,
                 verbose,
@@ -410,7 +422,7 @@ class TrainerABC(
                 )
 
             # validation loop
-            if self.should_perform_validation(validation_dataloader, epoch):
+            if self.should_perform_validation(validation_data_loader, epoch):
                 # performance evaluation on the whole validation dataset
                 state = self.on_validation_start(state)
                 (
@@ -422,7 +434,7 @@ class TrainerABC(
                     rng=rng,
                     state=state,
                     training_kwargs=training_kwargs,
-                    validation_dataloader=validation_dataloader,
+                    validation_data_loader=validation_data_loader,
                     validation_dataset_size=validation_dataset_size,
                     verbose=verbose,
                     unravel=unravel,
@@ -460,7 +472,7 @@ class TrainerABC(
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], jnp.ndarray], ...]],
         rng: PRNGKeyArray,
         state: TrainState,
-        training_dataloader: DataLoader,
+        training_data_loader: DataLoader,
         training_dataset_size: int,
         training_kwargs: FrozenDict[str, Any],
         verbose: bool,
@@ -476,7 +488,7 @@ class TrainerABC(
         state = self.training_epoch_start(state, callbacks)
         # ensure to use a different key at each step
         model_key = self.training_step_start(rng, state.step)
-        for step, batch in enumerate(training_dataloader):
+        for step, batch in enumerate(training_data_loader):
             # forward and backward pass
             state, aux = self.training_step(
                 state,
@@ -539,14 +551,14 @@ class TrainerABC(
         rng: PRNGKeyArray,
         state: TrainState,
         training_kwargs: FrozenDict[str, Any],
-        validation_dataloader: DataLoader,
+        validation_data_loader: DataLoader,
         validation_dataset_size: int,
         verbose: bool = True,
         unravel: Optional[Callable[[any], PyTree]] = None,
     ) -> Tuple[Dict[str, float], str]:
         validation_losses_and_metrics_epoch_all_steps = []
         validation_epoch_metrics_str = ""
-        for batch in validation_dataloader:
+        for batch in validation_data_loader:
             validation_losses_and_metrics_current_batch = self.validation_step(
                 state,
                 batch,
@@ -590,10 +602,10 @@ class TrainerABC(
         return losses_and_metrics
 
     def should_perform_validation(
-        self, validation_dataloader: Optional[DataLoader], epoch: int
+        self, validation_data_loader: Optional[DataLoader], epoch: int
     ) -> bool:
         return (
-            validation_dataloader is not None
+            validation_data_loader is not None
             and self.eval_every_n_epochs > 0
             and epoch % self.eval_every_n_epochs == 0
         )
@@ -605,7 +617,7 @@ class TrainerABC(
     def on_train_start(
         self,
         state: TrainState,
-        dataloaders: List[DataLoader],
+        data_loaders: List[DataLoader],
         rng: PRNGKeyArray,
     ) -> Tuple[TrainState, List[DataLoader], PRNGKeyArray]:
         if self.freeze_fun is not None:
@@ -639,14 +651,17 @@ class TrainerABC(
                     )
                 ),
             )
-        return state, dataloaders, rng
+        return state, data_loaders, rng
 
     def on_train_end(self, state: TrainState) -> TrainState:
         self.save_checkpoint(
             state,
-            save_checkpoint_dir=self.save_checkpoint_dir,
+            save_checkpoint_dir=str(_Path(self.save_checkpoint_dir) / "last")
+            if self.save_checkpoint_dir is not None
+            else None,
             keep=self.keep_top_n_checkpoints,
             force_save=True,
+            prefix="",
         )
 
         if self.freeze_fun is not None:
@@ -677,7 +692,7 @@ class TrainerABC(
     def training_step_start(
         self, rng: PRNGKeyArray, step: Union[int, jax.Array]
     ) -> PRNGKeyArray:
-        step = step if isinstance(step, int) or step.ndim == 0 else step[0]
+        # step = step if isinstance(step, int) or step.ndim == 0 else step[0]
         return random.fold_in(rng, step)
 
     def _sync_state(self, state: TrainState) -> TrainState:
@@ -689,14 +704,14 @@ class TrainerABC(
         save_checkpoint_dir: Path,
         keep: int = 1,
         force_save: bool = False,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
     ) -> None:
         if self.freeze_fun is not None:
             state = state.replace(
                 params=self._get_all_params(state), frozen_params=None
             )
         return super().save_checkpoint(
-            self._sync_state(state), save_checkpoint_dir, keep, force_save, prefix
+            self._sync_state(state), save_checkpoint_dir, keep, force_save
         )
 
     def _get_all_params(
@@ -712,162 +727,3 @@ class TrainerABC(
                 )
             )
         return trainable_params if trainable_params is not None else state.params
-
-
-class JittedMixin:
-    @partial(jax.jit, static_argnums=(0, 3, 5, 6, 7))
-    def training_step(
-        self,
-        state: TrainState,
-        batch: Batch,
-        loss_fun: Callable,
-        rng: PRNGKeyArray,
-        n_data: int,
-        unravel: Optional[Callable[[any], PyTree]] = None,
-        kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(
-            state, batch, loss_fun, rng, n_data, unravel, kwargs
-        )
-
-    @partial(jax.jit, static_argnums=(0, 3, 5, 6, 7, 8))
-    def validation_step(
-        self,
-        state: TrainState,
-        batch: Batch,
-        loss_fun: Callable,
-        rng: PRNGKeyArray,
-        n_data: int,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
-        unravel: Optional[Callable[[any], PyTree]] = None,
-        kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Dict[str, jnp.ndarray]:
-        return super().validation_step(
-            state, batch, loss_fun, rng, n_data, metrics, unravel, kwargs
-        )
-
-
-class MultiDeviceMixin:
-    all_reduce_mean = jax.pmap(lambda x: lax.pmean(x, "x"), "x")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.multi_device = True
-
-    @staticmethod
-    def _add_device_dim_to_input_dataloader(dataloader: DataLoader) -> DataLoader:
-        def _reshape_input_batch(batch):
-            n_devices = jax.local_device_count()
-            if batch.shape[0] % n_devices != 0:
-                raise ValueError(
-                    f"The size of all batches must be a multiple of {n_devices}, that is the number of "
-                    f"available devices. Please set an appropriate batch size in the data loader."
-                )
-            single_input_shape = batch.shape[1:]
-            # reshape to (local_devices, device_batch_size, *single_input_shape)
-            return batch.reshape((n_devices, -1) + single_input_shape)
-
-        class DataLoaderWrapper:
-            def __init__(self, dataloader):
-                self.dataloader = dataloader
-
-            def __iter__(self):
-                dataloader = map(
-                    lambda batch: tree_map(_reshape_input_batch, batch), self.dataloader
-                )
-                dataloader = jax_utils.prefetch_to_device(dataloader, 2)
-                yield from dataloader
-
-        return DataLoaderWrapper(dataloader) if dataloader is not None else dataloader
-
-    @staticmethod
-    def _sync_mutable(state: TrainState) -> TrainState:
-        return (
-            state.replace(mutable=MultiDeviceMixin.all_reduce_mean(state.mutable))
-            if state.mutable is not None
-            else state
-        )
-
-    @staticmethod
-    def _sync_array(arr: jnp.ndarray) -> jnp.ndarray:
-        arr = lax.pmean(arr, axis_name="batch")
-        return arr
-
-    def _sync_state(self, state: TrainState) -> TrainState:
-        state = self._sync_mutable(state)
-        return jax.device_get(tree_map(lambda x: x[0], state))
-
-    def on_train_start(
-        self, state: TrainState, dataloaders: List[DataLoader], rng: PRNGKeyArray
-    ) -> Tuple[TrainState, List[DataLoader], PRNGKeyArray]:
-        state, dataloaders, rng = super(MultiDeviceMixin, self).on_train_start(
-            state, dataloaders, rng
-        )
-        state = jax_utils.replicate(state)
-        dataloaders = [
-            self._add_device_dim_to_input_dataloader(dl) for dl in dataloaders
-        ]
-        model_key = random.split(rng, jax.local_device_count())
-        return state, dataloaders, model_key
-
-    def on_train_end(self, state: TrainState) -> TrainState:
-        state = super(MultiDeviceMixin, self).on_train_end(state)
-        return jax.device_get(tree_map(lambda x: x[0], state))
-
-    def training_step_start(self, rng: PRNGKeyArray, step: int) -> PRNGKeyArray:
-        step = step if isinstance(step, int) or step.ndim == 0 else step[0]
-        return jax.vmap(lambda r: random.fold_in(r, step))(rng)
-
-    @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 3, 5, 6, 7))
-    def training_step(
-        self,
-        state: TrainState,
-        batch: Batch,
-        loss_fun: Callable,
-        rng: PRNGKeyArray,
-        n_data: int,
-        unravel: Optional[Callable[[any], PyTree]] = None,
-        kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Tuple[TrainState, Dict[str, Any]]:
-        return super().training_step(
-            state, batch, loss_fun, rng, n_data, unravel, kwargs
-        )
-
-    def training_step_end(
-        self,
-        current_epoch: int,
-        state: TrainState,
-        aux: Dict[str, Any],
-        batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
-        callbacks: Optional[List[Callback]] = None,
-        kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Tuple[TrainState, Dict[str, jnp.ndarray]]:
-        state, training_losses_and_metrics = super(
-            MultiDeviceMixin, self
-        ).training_step_end(
-            current_epoch, state, aux, batch, metrics, callbacks, kwargs
-        )
-        return state, tree_map(lambda x: x.mean(), training_losses_and_metrics)
-
-    def on_validation_start(self, state: TrainState) -> TrainState:
-        state = super(MultiDeviceMixin, self).on_validation_start(state)
-        state = self._sync_mutable(state)
-        return state
-
-    @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 3, 5, 6, 7, 8))
-    def validation_step(
-        self,
-        state: TrainState,
-        batch: Batch,
-        loss_fun: Callable,
-        rng: PRNGKeyArray,
-        n_data: int,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
-        unravel: Optional[Callable[[any], PyTree]] = None,
-        kwargs: FrozenDict[str, Any] = FrozenDict(),
-    ) -> Dict[str, jnp.ndarray]:
-        validation_losses_and_metrics = super().validation_step(
-            state, batch, loss_fun, rng, n_data, metrics, unravel, kwargs
-        )
-        return lax.pmean(validation_losses_and_metrics, axis_name="batch")

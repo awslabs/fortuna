@@ -6,17 +6,17 @@ from typing import (
     Optional,
 )
 
-import jax
+from jax import eval_shape
 import jax.numpy as jnp
 
 from fortuna.data.loader import DataLoader
 from fortuna.output_calib_model.state import OutputCalibState
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.prob_model_calibrator import (
-    JittedProbModelOutputCalibrator,
-    MultiDeviceProbModelOutputCalibrator,
     ProbModelOutputCalibrator,
+    ShardedProbModelOutputCalibrator,
 )
 from fortuna.typing import (
     Array,
@@ -24,7 +24,6 @@ from fortuna.typing import (
     Status,
 )
 from fortuna.utils.data import check_data_loader_is_not_random
-from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.random import RandomNumberGenerator
 
 
@@ -46,6 +45,7 @@ class ProbModel(abc.ABC):
         self.joint.rng = self.rng
         self.posterior.rng = self.rng
         self.predictive.rng = self.rng
+        self.partition_manager.rng = self.rng
 
     def train(
         self,
@@ -136,7 +136,7 @@ class ProbModel(abc.ABC):
                     "Pre-compute ensemble of outputs on the calibration data loader."
                 )
 
-            distribute = jax.local_devices()[0].platform != "cpu"
+            shard = not calib_config.processor.disable_jit
 
             (
                 calib_ensemble_outputs_loader,
@@ -145,7 +145,7 @@ class ProbModel(abc.ABC):
                 inputs_loader=calib_data_loader.to_inputs_loader(),
                 n_output_samples=calib_config.processor.n_posterior_samples,
                 return_size=True,
-                distribute=distribute,
+                shard=shard,
             )
             if calib_config.monitor.verbose:
                 logging.info(
@@ -156,22 +156,39 @@ class ProbModel(abc.ABC):
                     inputs_loader=val_data_loader.to_inputs_loader(),
                     n_output_samples=calib_config.processor.n_posterior_samples,
                     return_size=True,
-                    distribute=distribute,
+                    shard=shard,
                 )
                 if val_data_loader is not None
                 else (None, None)
             )
 
-            trainer_cls = select_trainer_given_devices(
-                devices=calib_config.processor.devices,
-                base_trainer_cls=ProbModelOutputCalibrator,
-                jitted_trainer_cls=JittedProbModelOutputCalibrator,
-                multi_device_trainer_cls=MultiDeviceProbModelOutputCalibrator,
-                disable_jit=calib_config.processor.disable_jit,
+            output_calib_partition_manager = PartitionManager(
+                partitioner=self.partition_manager.partitioner
+            )
+
+            if calib_config.checkpointer.restore_checkpoint_dir is None:
+                calib_dict = self.posterior.state.extract_calib_keys()
+                state = OutputCalibState.init(
+                    params=calib_dict["calib_params"],
+                    mutable=calib_dict["calib_mutable"],
+                    optimizer=calib_config.optimizer.method,
+                )
+            else:
+                state = self.posterior.state.restore_checkpoint(
+                    calib_config.checkpointer.restore_checkpoint_dir,
+                    optimizer=calib_config.optimizer.method,
+                )
+            output_calib_partition_manager.shapes_dtypes = eval_shape(lambda: state)
+
+            trainer_cls = (
+                ShardedProbModelOutputCalibrator
+                if not calib_config.processor.disable_jit
+                else ProbModelOutputCalibrator
             )
 
             calibrator = trainer_cls(
                 calib_outputs_loader=calib_ensemble_outputs_loader,
+                partition_manager=output_calib_partition_manager,
                 val_outputs_loader=val_ensemble_outputs_loader,
                 predict_fn=self.prob_output_layer.predict,
                 uncertainty_fn=uncertainty_fn,
@@ -184,20 +201,6 @@ class ProbModel(abc.ABC):
                 early_stopping_min_delta=calib_config.monitor.early_stopping_min_delta,
                 early_stopping_patience=calib_config.monitor.early_stopping_patience,
             )
-
-            if calib_config.checkpointer.restore_checkpoint_path is None:
-                calib_dict = self.posterior.state.extract_calib_keys()
-
-                state = OutputCalibState.init(
-                    params=calib_dict["calib_params"],
-                    mutable=calib_dict["calib_mutable"],
-                    optimizer=calib_config.optimizer.method,
-                )
-            else:
-                state = self.posterior.restore_checkpoint(
-                    calib_config.checkpointer.restore_checkpoint_path,
-                    optimizer=calib_config.optimizer.method,
-                )
 
             if calib_config.monitor.verbose:
                 logging.info("Start calibration.")
@@ -225,7 +228,7 @@ class ProbModel(abc.ABC):
                 if calib_config.monitor.verbose:
                     logging.info("Dump state to disk.")
                 self.save_state(
-                    checkpoint_path=calib_config.checkpointer.save_checkpoint_dir
+                    checkpoint_dir=calib_config.checkpointer.save_checkpoint_dir
                 )
 
             if calib_config.monitor.verbose:
@@ -233,29 +236,27 @@ class ProbModel(abc.ABC):
 
             return status
 
-    def load_state(self, checkpoint_path: Path) -> None:
+    def load_state(self, checkpoint_dir: Path) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
         probabilistic model.
 
         Parameters
         ----------
-        checkpoint_path : Path
+        checkpoint_dir : Path
             Path to a checkpoint file or directory to restore.
         """
-        return self.posterior.load_state(checkpoint_path)
+        return self.posterior.load_state(checkpoint_dir)
 
-    def save_state(
-        self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1
-    ) -> None:
+    def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         """
         Save the posterior distribution state as a checkpoint.
 
         Parameters
         ----------
-        checkpoint_path : Path
+        checkpoint_dir : Path
             Path to file or directory where to save the current state.
         keep_top_n_checkpoints : int
             Number of past checkpoint files to keep.
         """
-        return self.posterior.save_state(checkpoint_path, keep_top_n_checkpoints)
+        return self.posterior.save_state(checkpoint_dir, keep_top_n_checkpoints)

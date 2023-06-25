@@ -9,13 +9,19 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
 )
 
 from flax import jax_utils
 import jax
+from jax.sharding import PartitionSpec
 from jax.tree_util import tree_map
 
-from fortuna.data.loader.utils import IterableData
+from fortuna.data.loader.utils import (
+    IterableData,
+    prefetch_to_mesh,
+)
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.typing import (
     Array,
     Batch,
@@ -185,7 +191,7 @@ class BaseDataLoaderABC(abc.ABC):
         T
             A concrete instance of a subclass of :class:`~fortuna.data.loader.BaseDataLoader`.
         """
-        return cls(iterable=IterableData.from_tf_dataloader(tf_data_loader))
+        return cls(iterable=IterableData.from_tf_data_loader(tf_data_loader))
 
     @classmethod
     def from_torch_data_loader(cls: Type[T], torch_data_loader) -> T:
@@ -203,7 +209,7 @@ class BaseDataLoaderABC(abc.ABC):
         T
             A concrete instance of a subclass of :class:`~fortuna.data.loader.BaseDataLoader`.
         """
-        return cls(iterable=IterableData.from_torch_dataloader(torch_data_loader))
+        return cls(iterable=IterableData.from_torch_data_loader(torch_data_loader))
 
     @classmethod
     def from_inputs_loaders(
@@ -544,4 +550,25 @@ class DeviceDimensionAugmentedLoader:
     def __iter__(self, *args, **kwargs):
         loader = map(lambda batch: tree_map(self._reshape_inputs, batch), self._loader)
         loader = jax_utils.prefetch_to_device(loader, 2)
+        yield from loader
+
+
+class ShardedPrefetchedLoader:
+    def __init__(
+        self,
+        loader,
+        partition_manager: Optional[PartitionManager] = None,
+        partition_spec: Optional[PartitionSpec] = None,
+    ):
+        self._loader = loader
+        self.partition_manager = partition_manager
+        self.partition_spec = partition_spec
+
+    def __iter__(self, *args, **kwargs):
+        loader = prefetch_to_mesh(
+            iter(self._loader),
+            2,
+            self.partition_manager.partitioner.mesh,
+            self.partition_spec,
+        )
         yield from loader

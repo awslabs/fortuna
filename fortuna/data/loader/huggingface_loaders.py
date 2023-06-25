@@ -35,7 +35,7 @@ class HuggingFaceDataLoader(BaseDataLoaderABC):
         Parameters
         ----------
         iterable : Union[Iterable[Dict[str, Array]], Iterable[Tuple[Dict[str, Array],Array]]]
-            A data loader obtained via :func:`~HuggingFaceClassificationDataset.get_dataloader`.
+            A data loader obtained via :func:`~HuggingFaceClassificationDataset.get_data_loader`.
         num_unique_labels: int
             Number of unique target labels in the task (classification only)
         num_inputs: Optional[int]

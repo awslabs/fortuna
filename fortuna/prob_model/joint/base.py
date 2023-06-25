@@ -6,6 +6,7 @@ from typing import (
 )
 
 from flax.core import FrozenDict
+from jax import random
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
@@ -154,7 +155,9 @@ class Joint(WithRNG):
             return loss, aux
         return -outs
 
-    def init(self, input_shape: Shape, **kwargs) -> JointState:
+    def init(
+        self, input_shape: Shape, rng: Optional[PRNGKeyArray] = None, **kwargs
+    ) -> JointState:
         """
         Initialize the state of the joint distribution.
 
@@ -162,15 +165,19 @@ class Joint(WithRNG):
         ----------
         input_shape : Shape
             The shape of the input variable.
+        rng: Optional[PRNGKeyArray]
+            A random number generator key.
 
         Returns
         -------
         A state of the joint distribution.
         """
+        if rng is None:
+            rng = self.rng.get()
+        key1, key2 = random.split(rng)
+
         oms = ModelManagerState.init_from_dict(
-            self.likelihood.model_manager.init(
-                input_shape, rng=self.rng.get(), **kwargs
-            )
+            self.likelihood.model_manager.init(input_shape, rng=key1, **kwargs)
         )
         inputs = get_inputs_from_shape(input_shape)
         outputs = self.likelihood.model_manager.apply(
@@ -184,7 +191,7 @@ class Joint(WithRNG):
         ocms = OutputCalibManagerState.init_from_dict(
             FrozenDict(
                 output_calibrator=self.likelihood.output_calib_manager.init(
-                    output_dim=output_dim
+                    output_dim=output_dim, rng=key2
                 )
             )
         )

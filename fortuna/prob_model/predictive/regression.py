@@ -363,9 +363,6 @@ class RegressionPredictive(Predictive):
         if type(q) == list:
             q = jnp.array(q)
         samples = self.sample(
-            inputs_loader=inputs_loader,
-            n_target_samples=n_target_samples,
-            rng=rng,
-            distribute=distribute,
+            inputs_loader=inputs_loader, n_target_samples=n_target_samples, rng=rng
         )
         return jnp.quantile(samples, q, axis=0)

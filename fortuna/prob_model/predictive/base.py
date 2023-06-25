@@ -1,5 +1,7 @@
 import abc
+import inspect
 from typing import (
+    Any,
     Callable,
     Dict,
     List,
@@ -8,24 +10,24 @@ from typing import (
     Union,
 )
 
-from flax.training.common_utils import shard_prng_key
 from jax import (
     jit,
     lax,
-    pmap,
     random,
 )
 from jax._src.prng import PRNGKeyArray
+from jax.experimental.pjit import pjit
 import jax.numpy as jnp
 import jax.scipy as jsp
+from jax.sharding import PartitionSpec
 from jax.tree_util import tree_map
 
 from fortuna.data.loader import (
     DataLoader,
-    DeviceDimensionAugmentedLoader,
     InputsLoader,
     TargetsLoader,
 )
+from fortuna.data.loader.base import ShardedPrefetchedLoader
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.typing import (
     Array,
@@ -54,7 +56,7 @@ class Predictive(WithRNG):
         data_loader: DataLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
         **kwargs,
     ) -> jnp.ndarray:
         r"""
@@ -77,8 +79,8 @@ class Predictive(WithRNG):
             that would be produced using the posterior distribution state.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -88,12 +90,12 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_data_loader(
+        return self._loop_fun_through_loader(
             self._batched_log_prob,
             data_loader,
             n_posterior_samples,
             rng,
-            distribute,
+            shard,
             **kwargs,
         )
 
@@ -102,25 +104,49 @@ class Predictive(WithRNG):
         batch: Batch,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        shard: bool = True,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_posterior_samples)
 
-        def _lik_log_batched_prob(key):
-            sample = self.posterior.sample(inputs=batch[0], rng=key)
+        def _lik_log_batched_prob(params, mutable, calib_params, calib_mutable):
             return self.likelihood._batched_log_prob(
-                sample.params,
+                params,
                 batch,
-                mutable=sample.mutable,
-                calib_params=sample.calib_params,
-                calib_mutable=sample.calib_mutable,
+                mutable=mutable,
+                calib_params=calib_params,
+                calib_mutable=calib_mutable,
                 **kwargs,
             )
 
+        if shard:
+            _lik_log_batched_prob = pjit(
+                _lik_log_batched_prob,
+                in_shardings=(
+                    self.posterior.partition_manager.shardings.params,
+                    self.posterior.partition_manager.shardings.mutable,
+                    self.posterior.partition_manager.shardings.calib_params,
+                    self.posterior.partition_manager.shardings.calib_mutable,
+                ),
+                out_shardings=PartitionSpec(("dp", "fsdp")),
+            )
+        else:
+            _lik_log_batched_prob = jit(_lik_log_batched_prob)
+
+        def _fun(key):
+            sample = self.posterior.sample(inputs=batch[0], rng=key)
+            with self.posterior.partition_manager.partitioner.mesh:
+                return _lik_log_batched_prob(
+                    sample.params,
+                    sample.mutable,
+                    sample.calib_params,
+                    sample.calib_mutable,
+                )
+
         return jsp.special.logsumexp(
-            lax.map(_lik_log_batched_prob, keys), axis=0
+            jnp.stack(list(map(_fun, keys))), axis=0
         ) - jnp.log(n_posterior_samples)
 
     def _batched_log_joint_prob(
@@ -238,9 +264,9 @@ class Predictive(WithRNG):
         n_target_samples: int = 1,
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
         **kwargs,
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]]:
+    ) -> Tuple[Array, Dict[str, Array]] | Array:
         r"""
         Sample from an approximation of the predictive distribution for each input data point, that is
 
@@ -254,6 +280,7 @@ class Predictive(WithRNG):
 
         Parameters
         ----------
+        **kwargs
         inputs_loader : InputsLoader
             A loader of input data points.
         n_target_samples : int
@@ -262,63 +289,27 @@ class Predictive(WithRNG):
             Return auxiliary objects. We currently support 'outputs'.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
-        Union[jnp.ndarray, Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]]
+        Tuple[Array, Dict[str, Array]] | Array
             Samples for each input data point. Optionally, an auxiliary object is returned.
         """
         if not rng:
             rng = self.rng.get()
 
-        def fun(_inputs):
-            return self._batched_sample(
-                _inputs, n_target_samples, return_aux, rng, **kwargs
-            )
-
-        if distribute:
-            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
-            fun = pmap(fun)
-            if return_aux is None or len(return_aux) == 0:
-                return jnp.concatenate(
-                    [
-                        self.likelihood._unshard_array(fun(inputs))
-                        for inputs in inputs_loader
-                    ],
-                    1,
-                )
-            else:
-                samples, aux_outputs = [], []
-                for inputs in inputs_loader:
-                    _samples, _aux = fun(inputs)
-                    samples.append(self.likelihood._unshard_array(_samples))
-                    if "outputs" in _aux:
-                        aux_outputs.append(
-                            self.likelihood._unshard_array(_aux["outputs"])
-                        )
-                samples = jnp.concatenate(samples, axis=0)
-                aux = dict()
-                if "outputs" in aux:
-                    aux["outputs"] = jnp.concatenate(aux_outputs, axis=0)
-                return samples, aux
-        else:
-            fun = jit(fun)
-            if return_aux is None or len(return_aux) == 0:
-                return jnp.concatenate([fun(inputs) for inputs in inputs_loader], 1)
-            else:
-                samples, aux_outputs = [], []
-                for inputs in inputs_loader:
-                    _samples, _aux = fun(inputs)
-                    samples.append(_samples)
-                    if "outputs" in _aux:
-                        aux_outputs.append(_aux["outputs"])
-                samples = jnp.concatenate(samples, axis=0)
-                aux = dict()
-                if "outputs" in aux:
-                    aux["outputs"] = jnp.concatenate(aux_outputs, axis=0)
-                return samples, aux
+        return self._loop_fun_through_loader(
+            self._batched_sample,
+            inputs_loader,
+            n_target_samples,
+            rng,
+            shard,
+            is_fun_ensembled=False,
+            return_aux=return_aux,
+            **kwargs,
+        )
 
     def _batched_sample(
         self,
@@ -326,8 +317,9 @@ class Predictive(WithRNG):
         n_target_samples: int = 1,
         return_aux: Optional[List[str]] = None,
         rng: Optional[PRNGKeyArray] = None,
+        shard: bool = True,
         **kwargs,
-    ) -> jnp.ndarray:
+    ) -> Union[jnp.ndarray, Dict[str, jnp.ndarray]]:
         if return_aux is None:
             return_aux = []
 
@@ -335,33 +327,57 @@ class Predictive(WithRNG):
             rng = self.rng.get()
         keys = random.split(rng, n_target_samples)
 
-        def _sample(key):
-            key1, key2 = random.split(key, 2)
-            _post_sample = self.posterior.sample(inputs=inputs, rng=key1)
-            outs = self.likelihood._batched_sample(
+        def _sample(rng, params, mutable, calib_params, calib_mutable):
+            return self.likelihood._batched_sample(
                 1,
-                _post_sample.params,
+                params,
                 inputs,
-                mutable=_post_sample.mutable,
-                calib_params=_post_sample.calib_params,
-                calib_mutable=_post_sample.calib_mutable,
+                mutable=mutable,
+                calib_params=calib_params,
+                calib_mutable=calib_mutable,
                 return_aux=return_aux,
-                rng=key2,
+                rng=rng,
                 **kwargs,
             )
-            if len(return_aux) > 0:
-                _samples, aux = outs
-                return _samples.squeeze(0), aux
-            return outs.squeeze(0)
 
-        return lax.map(_sample, keys)
+        if shard:
+            _sample = pjit(
+                _sample,
+                in_shardings=(
+                    self.posterior.partition_manager.shardings.params,
+                    self.posterior.partition_manager.shardings.mutable,
+                    self.posterior.partition_manager.shardings.calib_params,
+                    self.posterior.partition_manager.shardings.calib_mutable,
+                ),
+                out_shardings=PartitionSpec(("dp", "fsdp"))
+                if not len(return_aux)
+                else (PartitionSpec(("dp", "fsdp")), PartitionSpec()),
+            )
+
+        def _fun(key):
+            key1, key2 = random.split(key, 2)
+            with self.posterior.partition_manager.partitioner.mesh:
+                sample = self.posterior.sample(inputs=inputs, rng=key1)
+                return _sample(
+                    key2,
+                    sample.params,
+                    sample.mutable,
+                    sample.calib_params,
+                    sample.calib_mutable,
+                )
+
+        samples = list(map(_fun, keys))
+        if len(return_aux):
+            samples, aux = samples
+            return jnp.stack(samples), aux
+        return jnp.stack(samples)
 
     def sample_calibrated_outputs(
         self,
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         r"""
         Sample parameters from the posterior distribution state and compute calibrated outputs.
@@ -374,8 +390,8 @@ class Predictive(WithRNG):
             Number of output samples to draw for each input.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -385,12 +401,13 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_ensemble_fun_through_inputs_loader(
+        return self._loop_fun_through_loader(
             self._sample_batched_calibrated_outputs,
             inputs_loader,
             n_output_samples,
             rng,
-            distribute,
+            shard,
+            is_fun_ensembled=True,
         )
 
     def _sample_batched_calibrated_outputs(
@@ -398,39 +415,58 @@ class Predictive(WithRNG):
         inputs: Array,
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
+        shard: bool = True,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_output_samples)
 
-        def _sample(key):
-            sample = self.posterior.sample(inputs=inputs, rng=key)
+        def _apply_fn(params, mutable, calib_params, calib_mutable):
             return self.likelihood._get_batched_calibrated_outputs(
-                params=sample.params,
+                params=params,
                 inputs=inputs,
-                mutable=sample.mutable,
-                calib_params=sample.calib_params,
-                calib_mutable=sample.calib_mutable,
+                mutable=mutable,
+                calib_params=calib_params,
+                calib_mutable=calib_mutable,
             )
 
-        return lax.map(_sample, keys)
+        if shard:
+            _apply_fn = pjit(
+                _apply_fn,
+                in_shardings=(
+                    self.posterior.partition_manager.shardings.params,
+                    self.posterior.partition_manager.shardings.mutable,
+                    self.posterior.partition_manager.shardings.calib_params,
+                    self.posterior.partition_manager.shardings.calib_mutable,
+                ),
+                out_shardings=PartitionSpec(("fsdp", "dp")),
+            )
+        else:
+            _apply_fn = jit(_apply_fn)
+
+        def _sample(key):
+            sample = self.posterior.sample(inputs=inputs, rng=key)
+            with self.posterior.partition_manager.partitioner.mesh:
+                return _apply_fn(sample.params, sample.mutable)
+
+        return jnp.stack(list(map(_sample, keys)))
 
     def _sample_outputs(
         self,
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(
+        return self._loop_fun_through_loader(
             self._sample_batched_outputs,
             inputs_loader,
             n_output_samples,
             rng,
-            distribute,
+            shard,
         )
 
     def _sample_batched_outputs(
@@ -438,18 +474,35 @@ class Predictive(WithRNG):
         inputs: Array,
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
+        shard: bool = True,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_output_samples)
 
-        def _sample(key):
-            sample = self.posterior.sample(inputs=inputs, rng=key)
+        def _apply_fn(params, mutable):
             return self.likelihood.model_manager.apply(
-                params=sample.params, inputs=inputs, mutable=sample.mutable
+                params=params, inputs=inputs, mutable=mutable
             )
 
-        return lax.map(_sample, keys)
+        if shard:
+            _apply_fn = pjit(
+                _apply_fn,
+                in_shardings=(
+                    self.posterior.partition_manager.shardings.params,
+                    self.posterior.partition_manager.shardings.mutable,
+                ),
+                out_shardings=PartitionSpec(("fsdp", "dp")),
+            )
+        else:
+            _apply_fn = jit(_apply_fn)
+
+        def _sample(key):
+            sample = self.posterior.sample(inputs=inputs, rng=key)
+            with self.posterior.partition_manager.partitioner.mesh:
+                return _apply_fn(sample.params, sample.mutable)
+
+        return jnp.stack(list(map(_sample, keys)))
 
     def _sample_outputs_loader(
         self,
@@ -457,22 +510,11 @@ class Predictive(WithRNG):
         n_output_samples: int = 1,
         rng: Optional[PRNGKeyArray] = None,
         return_size: bool = False,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> Union[TargetsLoader, Tuple[TargetsLoader, int]]:
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_output_samples)
-
-        if distribute:
-            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
-
-        def _sample(key, _inputs):
-            sample = self.posterior.sample(inputs=_inputs, rng=key)
-            return self.likelihood.model_manager.apply(
-                params=sample.params, inputs=_inputs, mutable=sample.mutable
-            )
-
-        _sample = pmap(_sample) if distribute else jit(_sample)
 
         iterable = []
         size = 0
@@ -482,13 +524,18 @@ class Predictive(WithRNG):
                 if not isinstance(inputs, dict)
                 else inputs[list(inputs.keys())[0]].shape[0]
             )
-            if distribute:
-                outputs = jnp.stack(
-                    list(map(lambda key: _sample(shard_prng_key(key), inputs), keys))
+            outputs = jnp.stack(
+                list(
+                    map(
+                        lambda key: self._sample_batched_outputs(
+                            inputs=inputs,
+                            rng=key,
+                            shard=shard,
+                        )[0],
+                        keys,
+                    )
                 )
-                outputs = self._unshard_ensemble_arrays(outputs)
-            else:
-                outputs = lax.map(lambda key: _sample(key, inputs), keys)
+            )
             iterable.append(outputs)
         iterable = TargetsLoader.from_iterable(iterable=iterable)
         if return_size:
@@ -500,7 +547,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive mean of the target variable, that is
@@ -522,8 +569,8 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         rng: Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -533,8 +580,8 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(
-            self._batched_mean, inputs_loader, n_posterior_samples, rng, distribute
+        return self._loop_fun_through_loader(
+            self._batched_mean, inputs_loader, n_posterior_samples, rng, shard
         )
 
     def _batched_mean(
@@ -542,25 +589,46 @@ class Predictive(WithRNG):
         inputs: Array,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        shard: bool = True,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_posterior_samples)
 
-        def fun(i, _curr_sum):
-            _sample = self.posterior.sample(inputs=inputs, rng=keys[i])
-            _curr_sum += self.likelihood._batched_mean(
-                _sample.params,
+        def _lik_batched_mean(params, mutable, calib_params, calib_mutable):
+            return self.likelihood._batched_mean(
+                params,
                 inputs,
-                _sample.mutable,
-                calib_params=_sample.calib_params,
-                calib_mutable=_sample.calib_mutable,
+                mutable,
+                calib_params=calib_params,
+                calib_mutable=calib_mutable,
             )
-            return _curr_sum
 
-        curr_sum = fun(0, 0.0)
-        curr_sum = lax.fori_loop(1, n_posterior_samples, fun, curr_sum)
-        return curr_sum / n_posterior_samples
+        if shard:
+            _lik_batched_mean = pjit(
+                _lik_batched_mean,
+                in_shardings=(
+                    self.posterior.partition_manager.shardings.params,
+                    self.posterior.partition_manager.shardings.mutable,
+                    self.posterior.partition_manager.shardings.calib_params,
+                    self.posterior.partition_manager.shardings.calib_mutable,
+                ),
+                out_shardings=PartitionSpec(("dp", "fsdp")),
+            )
+        else:
+            _lik_batched_mean = jit(_lik_batched_mean)
+
+        def fun(key):
+            _sample = self.posterior.sample(inputs=inputs, rng=key)
+            with self.posterior.partition_manager.partitioner.mesh:
+                return _lik_batched_mean(
+                    params=_sample.params,
+                    mutable=_sample.mutable,
+                    calib_params=_sample.calib_params,
+                    calib_mutable=_sample.calib_mutable,
+                )
+
+        return jnp.mean(list(map(fun, keys)), axis=0)
 
     @abc.abstractmethod
     def mode(
@@ -569,7 +637,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int = 30,
         means: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive mode of the target variable, that is
@@ -592,8 +660,8 @@ class Predictive(WithRNG):
             An estimate of the predictive mean.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -607,7 +675,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive aleatoric variance of the target variable, that is
@@ -629,8 +697,8 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -645,7 +713,7 @@ class Predictive(WithRNG):
             inputs_loader,
             n_posterior_samples,
             rng,
-            distribute,
+            shard,
         )
 
     def _batched_aleatoric_variance(
@@ -678,7 +746,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive epistemic variance of the one-hot encoded target variable, that is
@@ -700,8 +768,8 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -711,12 +779,12 @@ class Predictive(WithRNG):
         if rng is None:
             rng = self.rng.get()
 
-        return self._loop_fun_through_inputs_loader(
+        return self._loop_fun_through_loader(
             self._batched_epistemic_variance,
             inputs_loader,
             n_posterior_samples,
             rng,
-            distribute,
+            shard,
         )
 
     def _batched_epistemic_variance(
@@ -758,7 +826,7 @@ class Predictive(WithRNG):
         aleatoric_variances: Optional[jnp.ndarray] = None,
         epistemic_variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive variance of the target variable, that is
@@ -785,8 +853,8 @@ class Predictive(WithRNG):
             An estimate of the epistemic predictive variance for each input.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -801,7 +869,7 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=key,
-                distribute=distribute,
+                shard=shard,
             )
         if epistemic_variances is None:
             rng, key = random.split(rng)
@@ -809,7 +877,7 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=key,
-                distribute=distribute,
+                shard=shard,
             )
         return aleatoric_variances + epistemic_variances
 
@@ -819,7 +887,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int = 30,
         variances: Optional[jnp.ndarray] = None,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
     ) -> jnp.ndarray:
         r"""
         Estimate the predictive standard deviation of the target variable, that is
@@ -842,8 +910,8 @@ class Predictive(WithRNG):
             An estimate of the predictive variance.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        distribute: bool
-            Whether to distribute computation over multiple devices, if available.
+        shard: bool
+            Whether to shard computation over multiple devices, if available.
 
         Returns
         -------
@@ -855,84 +923,44 @@ class Predictive(WithRNG):
                 inputs_loader=inputs_loader,
                 n_posterior_samples=n_posterior_samples,
                 rng=rng,
-                distribute=distribute,
+                shard=shard,
             )
         return jnp.sqrt(variances)
 
-    @staticmethod
-    def _unshard_ensemble_arrays(arr: Array) -> Array:
-        arr = arr.swapaxes(1, 2)
-        arr = arr.reshape((arr.shape[0] * arr.shape[1],) + arr.shape[2:])
-        return arr.swapaxes(0, 1)
-
-    def _loop_fun_through_inputs_loader(
+    def _loop_fun_through_loader(
         self,
         fun: Callable,
-        inputs_loader: InputsLoader,
+        loader: Union[InputsLoader, DataLoader, TargetsLoader],
         n_posterior_samples: int,
         rng: PRNGKeyArray,
-        distribute: bool = True,
+        shard: bool,
+        is_fun_ensembled: bool = False,
+        return_aux: Optional[List[str]] = None,
         **kwargs,
-    ) -> Array:
-        def fun2(_inputs):
-            return fun(_inputs, n_posterior_samples, rng, **kwargs)
+    ) -> tuple[Any, ...] | Array:
+        if shard:
+            loader = ShardedPrefetchedLoader(
+                loader=loader, partition_manager=self.posterior.partition_manager
+            )
 
-        if distribute:
-            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
-            fun2 = pmap(fun2)
-            return jnp.concatenate(
+        def fun2(_data):
+            if "return_aux" in inspect.getfullargspec(fun)[0]:
+                return fun(
+                    _data,
+                    n_posterior_samples,
+                    rng,
+                    shard,
+                    return_aux=return_aux,
+                    **kwargs,
+                )
+            return fun(_data, n_posterior_samples, rng, shard, **kwargs)
+
+        outs = [fun2(data) for data in loader]
+        if return_aux is not None:
+            return tuple(
                 [
-                    self.likelihood._unshard_array(fun2(inputs))
-                    for inputs in inputs_loader
-                ],
-                0,
+                    tree_map(lambda v: jnp.concatenate(v, int(is_fun_ensembled)), out)
+                    for out in zip(*outs)
+                ]
             )
-        fun2 = jit(fun2)
-        return jnp.concatenate([fun2(inputs) for inputs in inputs_loader], 0)
-
-    def _loop_fun_through_data_loader(
-        self,
-        fun: Callable,
-        data_loader: DataLoader,
-        n_posterior_samples: int,
-        rng: PRNGKeyArray,
-        distribute: bool = True,
-        **kwargs,
-    ) -> Array:
-        def fun2(_batch):
-            return fun(_batch, n_posterior_samples, rng, **kwargs)
-
-        if distribute:
-            data_loader = DeviceDimensionAugmentedLoader(data_loader)
-            fun2 = pmap(fun2)
-            return jnp.concatenate(
-                [self.likelihood._unshard_array(fun2(batch)) for batch in data_loader],
-                0,
-            )
-        fun2 = jit(fun2)
-        return jnp.concatenate([fun2(batch) for batch in data_loader], 0)
-
-    def _loop_ensemble_fun_through_inputs_loader(
-        self,
-        fun: Callable,
-        inputs_loader: InputsLoader,
-        n_posterior_samples: int,
-        rng: PRNGKeyArray,
-        distribute: bool = True,
-        **kwargs,
-    ) -> Array:
-        def fun2(_inputs):
-            return fun(_inputs, n_posterior_samples, rng, **kwargs)
-
-        if distribute:
-            inputs_loader = DeviceDimensionAugmentedLoader(inputs_loader)
-            fun2 = pmap(fun2)
-            return jnp.concatenate(
-                [
-                    self._unshard_ensemble_arrays(fun2(inputs))
-                    for inputs in inputs_loader
-                ],
-                1,
-            )
-        fun2 = jit(fun2)
-        return jnp.concatenate([fun2(inputs) for inputs in inputs_loader], 1)
+        return jnp.concatenate(outs, int(is_fun_ensembled))

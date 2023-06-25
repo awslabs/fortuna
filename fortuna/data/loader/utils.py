@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import collections
 from copy import deepcopy
+import itertools
 from itertools import zip_longest
 from typing import (
     Iterable,
@@ -9,6 +11,12 @@ from typing import (
     Union,
 )
 
+import jax
+from jax.sharding import (
+    Mesh,
+    NamedSharding,
+    PartitionSpec,
+)
 import numpy as np
 
 from fortuna.typing import (
@@ -44,9 +52,9 @@ class IterableData:
         return cls(_inner)
 
     @classmethod
-    def from_tf_dataloader(cls, tf_dataloader) -> IterableData:
+    def from_tf_data_loader(cls, tf_data_loader) -> IterableData:
         def _inner():
-            for batch_inputs, batch_targets in tf_dataloader:
+            for batch_inputs, batch_targets in tf_data_loader:
                 if not isinstance(batch_inputs, dict):
                     batch_inputs = batch_inputs.numpy()
                 else:
@@ -57,9 +65,9 @@ class IterableData:
         return cls(_inner)
 
     @classmethod
-    def from_torch_dataloader(cls, torch_dataloader) -> IterableData:
+    def from_torch_data_loader(cls, torch_data_loader) -> IterableData:
         def _inner():
-            for batch_inputs, batch_targets in torch_dataloader:
+            for batch_inputs, batch_targets in torch_data_loader:
                 if not isinstance(batch_inputs, dict):
                     batch_inputs = batch_inputs.numpy()
                 else:
@@ -218,3 +226,29 @@ class PrefetchedGenerator:
         if not self._ready:
             self._batch = self._generator.__next__()
             self._ready = True
+
+
+def prefetch_to_mesh(iterator, size: int, mesh: Mesh, xs_spec):
+    queue = collections.deque()
+
+    def _prefetch(xs):
+        return jax.device_put(
+            xs,
+            NamedSharding(
+                mesh,
+                xs_spec
+                if xs_spec is not None
+                else xs.sharding.spec
+                if hasattr(xs, "sharding")
+                else PartitionSpec(),
+            ),
+        )
+
+    def enqueue(n):  # Enqueues *up to* `n` elements from the iterator.
+        for data in itertools.islice(iterator, n):
+            queue.append(jax.tree_util.tree_map(_prefetch, data))
+
+    enqueue(size)  # Fill up the buffer.
+    while queue:
+        yield queue.popleft()
+        enqueue(1)

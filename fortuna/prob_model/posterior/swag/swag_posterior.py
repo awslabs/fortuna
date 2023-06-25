@@ -112,7 +112,7 @@ class SWAGPosterior(Posterior):
             raise ValueError(
                 "The SWAG approximation must start from a preliminary run of MAP or an existing "
                 "checkpoint or state. Please configure `map_fit_config`, or "
-                "`fit_config.checkpointer.restore_checkpoint_path`, "
+                "`fit_config.checkpointer.restore_checkpoint_dir`, "
                 "or `fit_config.checkpointer.start_from_current_state`."
             )
 
@@ -155,11 +155,11 @@ class SWAGPosterior(Posterior):
             rng=self.rng.get(),
             state=state,
             loss_fun=self.joint._batched_negative_log_joint_prob,
-            training_dataloader=train_data_loader,
+            training_data_loader=train_data_loader,
             training_dataset_size=train_data_loader.size,
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
-            validation_dataloader=val_data_loader,
+            validation_data_loader=val_data_loader,
             validation_dataset_size=val_data_loader.size
             if val_data_loader is not None
             else None,

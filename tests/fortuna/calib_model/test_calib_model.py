@@ -128,7 +128,7 @@ class TestCalibCalibrate(unittest.TestCase):
         )
         self.class_config_restore = lambda restore_dir: Config(
             optimizer=Optimizer(n_epochs=3),
-            checkpointer=Checkpointer(restore_checkpoint_path=restore_dir),
+            checkpointer=Checkpointer(restore_checkpoint_dir=restore_dir),
         )
         self.reg_config_nodir_nodump = Config(
             optimizer=Optimizer(n_epochs=3), monitor=Monitor(metrics=(scaled_mse,))
@@ -150,7 +150,7 @@ class TestCalibCalibrate(unittest.TestCase):
         )
         self.reg_config_restore = lambda restore_dir: Config(
             optimizer=Optimizer(n_epochs=3),
-            checkpointer=Checkpointer(restore_checkpoint_path=restore_dir),
+            checkpointer=Checkpointer(restore_checkpoint_dir=restore_dir),
         )
 
     def test_dryrun_reg(self):
@@ -217,10 +217,10 @@ class TestCalibCalibrate(unittest.TestCase):
             )
 
             # load state
-            calib_reg.load_state(checkpoint_path=tmp_dir)
+            calib_reg.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            calib_reg.save_state(checkpoint_path=tmp_dir)
+            calib_reg.save_state(checkpoint_dir=tmp_dir)
 
             # model_editor
             calib_reg = CalibRegressor(
@@ -304,10 +304,10 @@ class TestCalibCalibrate(unittest.TestCase):
             )
 
             # load state
-            calib_class.load_state(checkpoint_path=tmp_dir)
+            calib_class.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            calib_class.save_state(checkpoint_path=tmp_dir)
+            calib_class.save_state(checkpoint_dir=tmp_dir)
 
             # model_editor
             calib_class = CalibClassifier(model=model, model_editor=ModelEditor())

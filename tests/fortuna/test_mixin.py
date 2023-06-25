@@ -7,10 +7,9 @@ import optax
 
 from fortuna.prob_model.posterior.posterior_mixin import WithPosteriorCheckpointingMixin
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.training.mixin import (
-    InputValidatorMixin,
-    WithEarlyStoppingMixin,
-)
+from fortuna.training.mixins.checkpointing import WithCheckpointingMixin
+from fortuna.training.mixins.early_stopping import WithEarlyStoppingMixin
+from fortuna.training.mixins.input_validator import InputValidatorMixin
 
 
 class FakeTrainerWithCheckpointing(

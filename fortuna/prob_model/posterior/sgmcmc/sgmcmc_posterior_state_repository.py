@@ -39,14 +39,14 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
     def get(
         self,
         i: int = None,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
         **kwargs,
     ) -> Union[List[PosteriorState], PosteriorState]:
         state = super().get(
             i=i,
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
             prefix=prefix,
             **kwargs,
@@ -57,15 +57,15 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
         self,
         state: PosteriorState,
         i: int = None,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         keep: int = 1,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
     ) -> None:
         state = self._update_state(state, modify="remove")
         return super().put(
             state=state,
             i=i,
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             keep=keep,
             prefix=prefix,
         )
@@ -73,14 +73,14 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
     def pull(
         self,
         i: int = None,
-        checkpoint_path: Path = None,
+        checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
         **kwargs,
     ) -> PosteriorState:
         state = super().pull(
             i=i,
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
             prefix=prefix,
             **kwargs,
@@ -91,14 +91,14 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
         self,
         keys: List[str],
         i: int = None,
-        checkpoint_path: Optional[Path] = None,
-        prefix: str = "checkpoint_",
+        checkpoint_dir: Optional[Path] = None,
+        prefix: str = "",
         **kwargs,
     ) -> Union[Dict, List[Dict]]:
         def _extract(_i):
             state = self.get(
                 i=_i,
-                checkpoint_path=checkpoint_path,
+                checkpoint_dir=checkpoint_dir,
                 prefix=prefix,
             )
             return {k: getattr(state, k) for k in keys}

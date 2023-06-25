@@ -31,14 +31,14 @@ class PosteriorMultiStateRepository:
     def get(
         self,
         i: int = None,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
         **kwargs,
     ) -> Union[List[PosteriorState], PosteriorState]:
         def _get(_i):
             return self.state[_i].get(
-                checkpoint_path=checkpoint_path,
+                checkpoint_dir=checkpoint_dir,
                 optimizer=optimizer,
                 prefix=prefix,
                 **kwargs,
@@ -55,13 +55,13 @@ class PosteriorMultiStateRepository:
         self,
         state: PosteriorState,
         i: int = None,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         keep: int = 1,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
     ) -> None:
         def _put(_i):
             return self.state[_i].put(
-                state=state, checkpoint_path=checkpoint_path, keep=keep, prefix=prefix
+                state=state, checkpoint_dir=checkpoint_dir, keep=keep, prefix=prefix
             )
 
         if i is not None:
@@ -73,14 +73,14 @@ class PosteriorMultiStateRepository:
     def pull(
         self,
         i: int = None,
-        checkpoint_path: Path = None,
+        checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
         **kwargs,
     ) -> PosteriorState:
         def _pull(_i):
             return self.state[_i].pull(
-                checkpoint_path=checkpoint_path,
+                checkpoint_dir=checkpoint_dir,
                 optimizer=optimizer,
                 prefix=prefix,
                 **kwargs,
@@ -97,16 +97,16 @@ class PosteriorMultiStateRepository:
         self,
         variables: Dict,
         i: int = None,
-        checkpoint_path: Path = None,
+        checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         keep: int = 1,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
         **kwargs,
     ):
         def _update(_i):
             self.state[_i].update(
                 variables=variables,
-                checkpoint_path=checkpoint_path,
+                checkpoint_dir=checkpoint_dir,
                 optimizer=optimizer,
                 keep=keep,
                 prefix=prefix,
@@ -123,13 +123,13 @@ class PosteriorMultiStateRepository:
         self,
         keys: List[str],
         i: int = None,
-        checkpoint_path: Optional[Path] = None,
-        prefix: str = "checkpoint_",
+        checkpoint_dir: Optional[Path] = None,
+        prefix: str = "",
         **kwargs,
     ) -> Union[Dict, List[Dict]]:
         def _extract(_i):
             return self.state[_i].extract(
-                keys=keys, checkpoint_path=checkpoint_path, prefix=prefix, **kwargs
+                keys=keys, checkpoint_dir=checkpoint_dir, prefix=prefix, **kwargs
             )
 
         if i is not None:
@@ -141,10 +141,10 @@ class PosteriorMultiStateRepository:
 
     def extract_calib_keys(
         self,
-        checkpoint_path: Optional[Path] = None,
-        prefix: str = "checkpoint_",
+        checkpoint_dir: Optional[Path] = None,
+        prefix: str = "",
         **kwargs,
     ) -> Dict:
         return self.extract(
-            ["calib_params", "calib_mutable"], 0, checkpoint_path, prefix, **kwargs
+            ["calib_params", "calib_mutable"], 0, checkpoint_dir, prefix, **kwargs
         )

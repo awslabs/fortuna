@@ -252,7 +252,7 @@ class LaplacePosterior(Posterior):
             raise ValueError(
                 "The Laplace approximation must start from a preliminary run of MAP or an existing "
                 "checkpoint or state. Please configure `map_fit_config`, or "
-                "`fit_config.checkpointer.restore_checkpoint_path`, "
+                "`fit_config.checkpointer.restore_checkpoint_dir`, "
                 "or `fit_config.checkpointer.start_from_current_state`."
             )
 

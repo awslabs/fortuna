@@ -18,10 +18,8 @@ from fortuna.prob_model.posterior.normalizing_flow.normalizing_flow_state import
 from fortuna.prob_model.posterior.normalizing_flow.normalizing_flow_trainer import (
     NormalizingFlowTrainer,
 )
-from fortuna.training.trainer import (
-    JittedMixin,
-    MultiDeviceMixin,
-)
+from fortuna.training.mixins.jitted import JittedMixin
+from fortuna.training.mixins.multi_device import MultiDeviceMixin
 from fortuna.typing import (
     Params,
     Path,
@@ -47,7 +45,7 @@ class ADVITrainer(NormalizingFlowTrainer):
         save_checkpoint_dir: Path,
         keep: int = 1,
         force_save: bool = False,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
     ) -> None:
         state = state.replace(
             params=self._unravel_params(state.params),
@@ -96,7 +94,7 @@ class ADVITrainer(NormalizingFlowTrainer):
     def on_train_start(
         self,
         state: NormalizingFlowState,
-        dataloaders: List[DataLoader],
+        data_loaders: List[DataLoader],
         rng: PRNGKeyArray,
     ) -> Tuple[NormalizingFlowState, List[DataLoader], PRNGKeyArray]:
         if self.freeze_fun is not None:
@@ -152,7 +150,7 @@ class ADVITrainer(NormalizingFlowTrainer):
                 ),
             )
 
-        return state, dataloaders, rng
+        return state, data_loaders, rng
 
 
 class JittedADVITrainer(JittedMixin, ADVITrainer):

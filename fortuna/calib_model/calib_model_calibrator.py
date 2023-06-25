@@ -13,11 +13,9 @@ import jax.numpy as jnp
 from optax._src.base import PyTree
 
 from fortuna.calib_model.state import CalibState
-from fortuna.training.trainer import (
-    JittedMixin,
-    MultiDeviceMixin,
-    TrainerABC,
-)
+from fortuna.training.mixins.jitted import JittedMixin
+from fortuna.training.mixins.multi_device import MultiDeviceMixin
+from fortuna.training.trainer import TrainerABC
 from fortuna.typing import (
     Array,
     Batch,

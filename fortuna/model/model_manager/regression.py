@@ -7,11 +7,11 @@ from typing import (
 
 from flax.core import FrozenDict
 import flax.linen as nn
-from flax.training.checkpoints import PyTree
 import jax
 from jax import random
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from optax._src.base import PyTree
 
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.typing import (
@@ -65,6 +65,7 @@ class RegressionModelManager(ModelManager):
             lik_log_var_rngs = None
 
         if mutable is not None:
+            mutable = mutable.unfreeze()
             mutable["model"] = mutable.get("model")
             mutable["lik_log_var"] = mutable.get("lik_log_var")
 
@@ -102,12 +103,12 @@ class RegressionModelManager(ModelManager):
             self._check_outputs(model_outputs, lik_log_var_outputs)
 
             aux = dict()
-            if m_mutable or llv_mutable:
+            if train and (m_mutable or llv_mutable):
                 aux["mutable"] = dict()
                 if m_mutable:
                     aux["mutable"]["model"] = m_mutable
                 if llv_mutable:
-                    aux["mutable"]["lik_log_var"] = m_mutable
+                    aux["mutable"]["lik_log_var"] = llv_mutable
 
             return jnp.concatenate(
                 (model_outputs, lik_log_var_outputs), axis=-1

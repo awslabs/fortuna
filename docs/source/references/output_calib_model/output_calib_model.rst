@@ -8,19 +8,19 @@ Please find their references below.
 
 .. automodule:: fortuna.output_calib_model.classification
     :members:
-    :exclude-members: get_path_latest_checkpoint, save_checkpoint, restore_checkpoint
+    :exclude-members: save_checkpoint, restore_checkpoint
 
 .. _output_calib_regressor:
 
 .. automodule:: fortuna.output_calib_model.regression
     :members:
-    :exclude-members: get_path_latest_checkpoint, save_checkpoint, restore_checkpoint
+    :exclude-members: save_checkpoint, restore_checkpoint
 
 .. _output_calib_base:
 
 .. automodule:: fortuna.output_calib_model.base
     :members:
-    :exclude-members: get_path_latest_checkpoint, save_checkpoint, restore_checkpoint
+    :exclude-members: save_checkpoint, restore_checkpoint
 
 .. toctree::
    :maxdepth: 1

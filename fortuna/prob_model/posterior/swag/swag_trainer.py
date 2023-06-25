@@ -16,10 +16,8 @@ from jax.tree_util import tree_map
 from fortuna.prob_model.posterior.map.map_trainer import MAPTrainer
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.training.callback import Callback
-from fortuna.training.trainer import (
-    JittedMixin,
-    MultiDeviceMixin,
-)
+from fortuna.training.mixins.jitted import JittedMixin
+from fortuna.training.mixins.multi_device import MultiDeviceMixin
 from fortuna.typing import (
     Array,
     Batch,
@@ -98,7 +96,7 @@ class SWAGTrainer(MAPTrainer):
         save_checkpoint_dir: Path,
         keep: int = 1,
         force_save: bool = False,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
     ) -> None:
         state = self._update_state_with_stats(state)
         super().save_checkpoint(state, save_checkpoint_dir, keep, force_save, prefix)

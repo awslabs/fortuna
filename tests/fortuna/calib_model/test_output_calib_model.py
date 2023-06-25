@@ -123,7 +123,7 @@ class TestApproximations(unittest.TestCase):
         self.calib_config_restore = lambda directory, metric: Config(
             optimizer=Optimizer(n_epochs=3),
             monitor=Monitor(metrics=(metric,)),
-            checkpointer=Checkpointer(restore_checkpoint_path=directory),
+            checkpointer=Checkpointer(restore_checkpoint_dir=directory),
         )
 
     def test_dryrun_reg_map(self):
@@ -178,10 +178,10 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            calib_model.load_state(checkpoint_path=tmp_dir)
+            calib_model.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            calib_model.save_state(checkpoint_path=tmp_dir)
+            calib_model.save_state(checkpoint_dir=tmp_dir)
 
     def test_dryrun_class_map(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -234,7 +234,7 @@ class TestApproximations(unittest.TestCase):
             )
 
             # load state
-            calib_model.load_state(checkpoint_path=tmp_dir)
+            calib_model.load_state(checkpoint_dir=tmp_dir)
 
             # save state
-            calib_model.save_state(checkpoint_path=tmp_dir)
+            calib_model.save_state(checkpoint_dir=tmp_dir)
