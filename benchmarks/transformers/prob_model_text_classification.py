@@ -216,7 +216,9 @@ if __name__ == "__main__":
     parser.add_argument("--sghmc_momentum_decay", type=float, default=0.01)
     # model editor
     parser.add_argument("--enable_probit_model_editor", type=strbool, default=False)
-    parser.add_argument("--init_probit_log_var", type=float, default=-5)
+    parser.add_argument("--probit_init_log_var", type=float, default=-5)
+    parser.add_argument("--probit_stop_gradient", type=strbool, default=False)
+    parser.add_argument("--probit_last_layer_only", type=strbool, default=False)
     # optimizer
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--adam_eps", type=float, default=1e-8)
@@ -398,9 +400,11 @@ if __name__ == "__main__":
 
     model_editor = None
     if args.enable_probit_model_editor:
+        probit_freeze_fun = lambda p, v: True if "classifier" in p else False if args.probit_last_layer_only else None
         model_editor = ProbitModelEditor(
-            freeze_fun=lambda p, v: True if "classifier" in p else False,
-            init_log_var=0.0,
+            freeze_fun=probit_freeze_fun,
+            init_log_var=args.probit_init_log_var,
+            stop_gradient=args.probit_stop_gradient
         )
 
     ### TRAINING
