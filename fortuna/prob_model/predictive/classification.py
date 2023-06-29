@@ -460,7 +460,8 @@ class ClassificationPredictive(Predictive):
         Returns
         -------
         jnp.ndarray
-            A conformal set for each of the inputs.
+            A conformal set for each of the inputs. Contains two columns with TRUE/FALSE, where the first and second columns indicate if
+            Y = 0 or Y = 1 respectively is included in the conformal set.
         """
         # returns n_posterior_samples x (n_test + n_test +n)
         ensemble_train_test_log_probs = self.ensemble_log_prob(
