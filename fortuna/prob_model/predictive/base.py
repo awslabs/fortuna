@@ -49,7 +49,7 @@ class Predictive(WithRNG):
         self.likelihood = posterior.joint.likelihood
         self.posterior = posterior
 
-####
+    ####
     def ensemble_log_prob(
         self,
         data_loader: DataLoader,
@@ -57,7 +57,7 @@ class Predictive(WithRNG):
         rng: Optional[PRNGKeyArray] = None,
         distribute: bool = True,
         **kwargs,
-    ) -> jnp.ndarray:    
+    ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
 
@@ -69,9 +69,8 @@ class Predictive(WithRNG):
             distribute,
             **kwargs,
         )
-        
-        return log_probs.swapaxes(0,1)
 
+        return log_probs.swapaxes(0, 1)
 
     def _batched_ensemble_log_prob(
         self,
@@ -95,8 +94,11 @@ class Predictive(WithRNG):
                 **kwargs,
             )
 
-        return lax.map(_lik_log_batched_prob, keys).swapaxes(0,1) # notice that we use lax.map and not vmap to avoid parallel posterior sampling
-####
+        return lax.map(_lik_log_batched_prob, keys).swapaxes(
+            0, 1
+        )  # notice that we use lax.map and not vmap to avoid parallel posterior sampling
+
+    ####
     def log_prob(
         self,
         data_loader: DataLoader,
