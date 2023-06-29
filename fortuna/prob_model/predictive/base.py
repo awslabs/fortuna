@@ -58,6 +58,35 @@ class Predictive(WithRNG):
         distribute: bool = True,
         **kwargs,
     ) -> jnp.ndarray:
+        r"""
+        Compute the log-likelihood at each posterior sample, that is
+
+        .. math::
+            \log p(y|x, theta^{(i)}),
+
+        where:
+         - :math:`x` is an observed input variable;
+         - :math:`y` is an observed target variable;
+         - :math:`theta^{(i)}` is a sample from the posterior.
+
+        Parameters
+        ----------
+        data_loader : DataLoader
+            A data loader.
+        n_posterior_samples : int
+            Number of posterior samples to draw in order to compute the log -ikelihood.
+            that would be produced using the posterior distribution state.
+        rng : Optional[PRNGKeyArray]
+            A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
+
+        Returns
+        -------
+        jnp.ndarray
+            An array of log-likelihood values at each posterior sample for each data point.
+        """
+
         if rng is None:
             rng = self.rng.get()
 
