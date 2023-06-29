@@ -49,6 +49,54 @@ class Predictive(WithRNG):
         self.likelihood = posterior.joint.likelihood
         self.posterior = posterior
 
+####
+    def ensemble_log_prob(
+        self,
+        data_loader: DataLoader,
+        n_posterior_samples: int = 30,
+        rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
+        **kwargs,
+    ) -> jnp.ndarray:    
+        if rng is None:
+            rng = self.rng.get()
+
+        log_probs = self._loop_fun_through_data_loader(
+            self._batched_ensemble_log_prob,
+            data_loader,
+            n_posterior_samples,
+            rng,
+            distribute,
+            **kwargs,
+        )
+        
+        return log_probs.swapaxes(0,1)
+
+
+    def _batched_ensemble_log_prob(
+        self,
+        batch: Batch,
+        n_posterior_samples: int = 30,
+        rng: Optional[PRNGKeyArray] = None,
+        **kwargs,
+    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
+        if rng is None:
+            rng = self.rng.get()
+        keys = random.split(rng, n_posterior_samples)
+
+        def _lik_log_batched_prob(key):
+            sample = self.posterior.sample(inputs=batch[0], rng=key)
+            return self.likelihood._batched_log_prob(
+                sample.params,
+                batch,
+                mutable=sample.mutable,
+                calib_params=sample.calib_params,
+                calib_mutable=sample.calib_mutable,
+                **kwargs,
+            )
+
+        return lax.map(_lik_log_batched_prob, keys).swapaxes(0,1) # notice that we use lax.map and not vmap to avoid parallel posterior sampling
+####
     def log_prob(
         self,
         data_loader: DataLoader,
