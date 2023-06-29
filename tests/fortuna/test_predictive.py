@@ -84,6 +84,18 @@ class TestPredictives(unittest.TestCase):
             )
             assert log_probs.shape == (self.n_inputs,)
 
+            ensemble_log_probs = self.prob_class.predictive.ensemble_log_prob(
+                self.class_data_loader,
+                n_posterior_samples=self.n_post_samples,
+            )
+            assert ensemble_log_probs.shape == (self.n_post_samples, self.n_inputs)
+
+            ensemble_log_probs = self.prob_reg.predictive.ensemble_log_prob(
+                self.reg_data_loader,
+                n_posterior_samples=self.n_post_samples,
+            )
+            assert ensemble_log_probs.shape == (self.n_post_samples, self.n_inputs)
+
             sample = self.prob_class.predictive.sample(
                 self.class_inputs_loader,
                 n_target_samples=self.n_post_samples,
