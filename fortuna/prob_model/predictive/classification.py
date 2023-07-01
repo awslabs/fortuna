@@ -8,7 +8,10 @@ from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
 
-from fortuna.data.loader import InputsLoader
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.predictive.base import Predictive
 
@@ -427,9 +430,8 @@ class ClassificationPredictive(Predictive):
 
     def conformal_set(
         self,
-        train_test_data_loader: InputsLoader,
-        n: int,
-        n_test: int,
+        train_data_loader: DataLoader,
+        test_inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         error: float = 0.05,
         rng: Optional[PRNGKeyArray] = None,
@@ -440,13 +442,10 @@ class ClassificationPredictive(Predictive):
 
         Parameters
         ----------
-        train_test_data_loader : InputsLoader
-            A loader of input data points where the first n data are training,
-            followed by n_test with Y = 0 then n_test with Y = 1.
-        n : int
-            Size of training set
-        n_test : int
-            Size of test set
+        train_data_loader : DataLoader
+            A training data loader.
+        test_inputs_loader : InputsLoader
+            A test inputs loader.
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
         error: float
@@ -463,6 +462,31 @@ class ClassificationPredictive(Predictive):
             A conformal set for each of the inputs. Contains two columns with TRUE/FALSE, where the first and second columns indicate if
             Y = 0 or Y = 1 respectively is included in the conformal set.
         """
+
+        # Extract training data
+        n = train_data_loader.size
+        train_data = train_data_loader.to_array_data()
+
+        # Extract test inputs and evaluate on grid (Y = 0 and Y = 1)
+        n_test = test_inputs_loader.size
+        test_data = test_inputs_loader.to_array_inputs()
+        test_data_all0 = (test_data, jnp.zeros(n_test))
+        test_data_all1 = (test_data, jnp.ones(n_test))
+        test_data_grid = (
+            jnp.concatenate((test_data_all0[0], test_data_all1[0]), axis=0),
+            jnp.concatenate((test_data_all0[1], test_data_all1[1]), axis=0),
+        )
+
+        # Combine training data and test data grid (with both Y = 0 and Y = 1) into big matrix, so random posterior samples are the same rng
+        train_test_data = (
+            jnp.concatenate((train_data[0], test_data_grid[0]), axis=0),
+            jnp.concatenate((train_data[1], test_data_grid[1]), axis=0),
+        )
+
+        train_test_data_loader = DataLoader.from_array_data(
+            train_test_data, batch_size=128, prefetch=True
+        )
+
         # returns n_posterior_samples x (n_test + n_test +n)
         ensemble_train_test_log_probs = self.ensemble_log_prob(
             data_loader=train_test_data_loader, n_posterior_samples=n_posterior_samples
