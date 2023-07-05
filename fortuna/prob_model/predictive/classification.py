@@ -469,13 +469,11 @@ class ClassificationPredictive(Predictive):
 
         # Extract test inputs and evaluate on grid (Y = 0 and Y = 1)
         n_test = test_inputs_loader.size
-        test_data = test_inputs_loader.to_array_inputs()
-        test_data_all0 = (test_data, jnp.zeros(n_test))
-        test_data_all1 = (test_data, jnp.ones(n_test))
-        test_data_grid = (
-            jnp.concatenate((test_data_all0[0], test_data_all1[0]), axis=0),
-            jnp.concatenate((test_data_all0[1], test_data_all1[1]), axis=0),
-        )
+        test_data_grid = DataLoader.from_inputs_loaders(
+            inputs_loaders=[test_inputs_loader, test_inputs_loader],
+            targets=[0, 1],
+            how="concatenate",
+        ).to_array_data()
 
         # Combine training data and test data grid (with both Y = 0 and Y = 1) into big matrix, so random posterior samples are the same rng
         train_test_data = (
