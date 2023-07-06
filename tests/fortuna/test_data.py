@@ -86,7 +86,7 @@ class TestDataLoaders(unittest.TestCase):
             assert len(x) == len(y)
 
         data_loader = DataLoader.from_inputs_loaders(
-            inputs_loaders, targets, how="interpose"
+            inputs_loaders, targets, how="concatenate"
         )
         for i, (x, y) in enumerate(data_loader):
             assert (
