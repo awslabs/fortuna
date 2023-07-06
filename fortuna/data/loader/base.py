@@ -551,3 +551,15 @@ class DeviceDimensionAugmentedLoader:
         loader = map(lambda batch: tree_map(self._reshape_inputs, batch), self._loader)
         loader = jax_utils.prefetch_to_device(loader, 2)
         yield from loader
+
+
+class ConcatenatedLoader:
+    def __init__(
+        self,
+        loaders: List[Any],
+    ):
+        self._loaders = loaders
+
+    def __iter__(self, *args, **kwargs):
+        for loader in self._loaders:
+            yield from loader

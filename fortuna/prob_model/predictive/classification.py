@@ -9,6 +9,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 
 from fortuna.data.loader import (
+    ConcatenatedLoader,
     DataLoader,
     InputsLoader,
 )
@@ -465,24 +466,18 @@ class ClassificationPredictive(Predictive):
 
         # Extract training data
         n_train = train_data_loader.size
-        train_data = train_data_loader.to_array_data()
 
         # Extract test inputs and evaluate on grid (Y = 0 and Y = 1)
         n_test = test_inputs_loader.size
-        test_data_grid = DataLoader.from_inputs_loaders(
+        test_data_grid_loader = DataLoader.from_inputs_loaders(
             inputs_loaders=[test_inputs_loader, test_inputs_loader],
             targets=[0, 1],
             how="concatenate",
-        ).to_array_data()
-
-        # Combine training data and test data grid (with both Y = 0 and Y = 1) into big matrix, so random posterior samples are the same rng
-        train_test_data = (
-            jnp.concatenate((train_data[0], test_data_grid[0]), axis=0),
-            jnp.concatenate((train_data[1], test_data_grid[1]), axis=0),
         )
 
-        train_test_data_loader = DataLoader.from_array_data(
-            train_test_data, batch_size=128, prefetch=True
+        # Combine training data and test data grid (with both Y = 0 and Y = 1) into single loader, so random posterior samples are the same rng
+        train_test_data_loader = ConcatenatedLoader(
+            loaders=[train_data_loader, test_data_grid_loader]
         )
 
         # returns n_posterior_samples x (n_class*n_test +n)
@@ -513,19 +508,27 @@ class ClassificationPredictive(Predictive):
         @jit  # compute rank of nonconformity score (unnormalized by n+1)
         def _compute_cb_region_importancesampling(
             ensemble_testgrid_log_probs,
-        ): 
+        ):
             # compute importance sampling weights and normalizing constant
             importance_weights = jnp.exp(ensemble_testgrid_log_probs.T)
             normalizing_constant = jnp.sum(importance_weights, axis=1).reshape(-1, 1)
-            print(jnp.shape(importance_weights/normalizing_constant))
+            print(jnp.shape(importance_weights / normalizing_constant))
 
             # compute predictives for y_i,x_i and y_new,x_n+1
-            prob_train = jnp.dot(importance_weights / normalizing_constant, jnp.exp(ensemble_train_log_probs))
-            prob_test = jnp.sum(importance_weights**2, axis=1).reshape(-1, 1) / normalizing_constant
+            prob_train = jnp.dot(
+                importance_weights / normalizing_constant,
+                jnp.exp(ensemble_train_log_probs),
+            )
+            prob_test = (
+                jnp.sum(importance_weights**2, axis=1).reshape(-1, 1)
+                / normalizing_constant
+            )
 
             # compute nonconformity score and sort
             prob_train_test = jnp.concatenate((prob_train, prob_test), axis=1)
-            rank_test = jnp.sum(prob_train_test <= prob_train_test[:, -1].reshape(-1, 1), axis=1)
+            rank_test = jnp.sum(
+                prob_train_test <= prob_train_test[:, -1].reshape(-1, 1), axis=1
+            )
 
             # Compute region of grid which is in confidence set
             region_true = rank_test > error * (n_train + 1)
@@ -541,15 +544,19 @@ class ClassificationPredictive(Predictive):
             @jit  # compute Effective sample size
             def _diagnose_importancesampling_weights(
                 ensemble_testgrid_log_probs,
-            ): 
+            ):
                 # compute importance sampling weights and normalizing
                 log_importance_weights = ensemble_testgrid_log_probs.T.reshape(
                     jnp.shape(ensemble_testgrid_log_probs)[1], -1, 1
                 )
-                log_normalizing_constant = jsp.special.logsumexp(log_importance_weights, axis=1)
+                log_normalizing_constant = jsp.special.logsumexp(
+                    log_importance_weights, axis=1
+                )
 
                 # compute ESS
-                importance_weights = jnp.exp(log_importance_weights - log_normalizing_constant.reshape(-1, 1, 1))
+                importance_weights = jnp.exp(
+                    log_importance_weights - log_normalizing_constant.reshape(-1, 1, 1)
+                )
                 ESS = 1 / jnp.sum(importance_weights**2, axis=1)
                 return ESS
 
