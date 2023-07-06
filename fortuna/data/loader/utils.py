@@ -173,6 +173,11 @@ class IterableData:
                     for inputs in inputs_loader:
                         yield inputs, target * np.ones(inputs.shape[0], dtype="int32")
 
+        else:
+            hows = ["interpose", "concatenate"]
+            raise ValueError(
+                f"`how={how} not recognized. Please choose among the following options: {hows}."
+            )
         return cls(_inner)
 
     @classmethod
