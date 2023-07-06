@@ -435,7 +435,7 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples: int = 30,
         error: float = 0.05,
         rng: Optional[PRNGKeyArray] = None,
-        ESS: bool = False,
+        return_ess: bool = False,
     ) -> jnp.ndarray:
         r"""
         Estimate conformal sets for the target variable.
@@ -453,8 +453,8 @@ class ClassificationPredictive(Predictive):
             `error=0.05` corresponds to a 95% level of confidence.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
-        ESS: bool
-            Whether to compute ESS of importance weights or not.
+        return_ess: bool
+            Whether to compute effective sample size of importance weights or not.
 
         Returns
         -------
@@ -464,7 +464,7 @@ class ClassificationPredictive(Predictive):
         """
 
         # Extract training data
-        n = train_data_loader.size
+        n_train = train_data_loader.size
         train_data = train_data_loader.to_array_data()
 
         # Extract test inputs and evaluate on grid (Y = 0 and Y = 1)
@@ -485,23 +485,23 @@ class ClassificationPredictive(Predictive):
             train_test_data, batch_size=128, prefetch=True
         )
 
-        # returns n_posterior_samples x (n_test + n_test +n)
+        # returns n_posterior_samples x (n_class*n_test +n)
         ensemble_train_test_log_probs = self.ensemble_log_prob(
             data_loader=train_test_data_loader, n_posterior_samples=n_posterior_samples
         )
 
         # Divide back out into test set grid and training
         ensemble_train_log_probs = ensemble_train_test_log_probs[
-            :, 0:n
+            :, 0:n_train
         ]  # training log likelihood
         ensemble_test0_log_probs = ensemble_train_test_log_probs[
-            :, n : n + n_test
+            :, n_train : n_train + n_test
         ]  # test log likelihoods at Y = 0
         ensemble_test1_log_probs = ensemble_train_test_log_probs[
-            :, n + n_test : n + 2 * n_test
+            :, n_train + n_test : n_train + 2 * n_test
         ]  # test log likelihoods at Y = 1
 
-        # log likelihood values for each test input, posterior sample, and grid point (shape =  n_test x  n_posterior_samples x 2)
+        # log likelihood values for each test input, posterior sample, and grid point (shape =  n_test x  n_posterior_samples x n_class)
         ensemble_testgrid_log_probs = jnp.concatenate(
             (
                 ensemble_test0_log_probs.T.reshape(-1, n_posterior_samples, 1),
@@ -511,61 +511,53 @@ class ClassificationPredictive(Predictive):
         )
 
         @jit  # compute rank of nonconformity score (unnormalized by n+1)
-        def _compute_cb_region_IS(ensemble_testgrid_log_probs):
-            n = jnp.shape(ensemble_train_log_probs)[
-                1
-            ]  # ensemble_train_log_probs is n_posterior_samples x n; training data log likelihood values
-            n_plot = jnp.shape(ensemble_testgrid_log_probs)[
-                1
-            ]  # ensemble_testgrid_log_probs is n_posterior_samples x n_plot_grid;  test data log likelihood values for each posterior sample
-            rank_cp = jnp.zeros(n_plot)
-
-            # compute importance sampling weights and normalizing
-            wjk = jnp.exp(ensemble_testgrid_log_probs.T)
-            Zjk = jnp.sum(wjk, axis=1).reshape(-1, 1)
+        def _compute_cb_region_importancesampling(
+            ensemble_testgrid_log_probs,
+        ): 
+            # compute importance sampling weights and normalizing constant
+            importance_weights = jnp.exp(ensemble_testgrid_log_probs.T)
+            normalizing_constant = jnp.sum(importance_weights, axis=1).reshape(-1, 1)
+            print(jnp.shape(importance_weights/normalizing_constant))
 
             # compute predictives for y_i,x_i and y_new,x_n+1
-            p_cp = jnp.dot(wjk / Zjk, jnp.exp(ensemble_train_log_probs))
-            p_new = jnp.sum(wjk**2, axis=1).reshape(-1, 1) / Zjk
+            prob_train = jnp.dot(importance_weights / normalizing_constant, jnp.exp(ensemble_train_log_probs))
+            prob_test = jnp.sum(importance_weights**2, axis=1).reshape(-1, 1) / normalizing_constant
 
             # compute nonconformity score and sort
-            pred_tot = jnp.concatenate((p_cp, p_new), axis=1)
-            rank_cp = jnp.sum(pred_tot <= pred_tot[:, -1].reshape(-1, 1), axis=1)
+            prob_train_test = jnp.concatenate((prob_train, prob_test), axis=1)
+            rank_test = jnp.sum(prob_train_test <= prob_train_test[:, -1].reshape(-1, 1), axis=1)
 
             # Compute region of grid which is in confidence set
-            region_true = rank_cp > error * (n + 1)
+            region_true = rank_test > error * (n_train + 1)
             return region_true
 
         # Compute CB interval for each
-        conf_set = vmap(_compute_cb_region_IS)(ensemble_testgrid_log_probs)
+        conformal_set = vmap(_compute_cb_region_importancesampling)(
+            ensemble_testgrid_log_probs
+        )
 
-        if ESS:
+        if return_ess:
             ## DIAGNOSE IMPORTANCE WEIGHTS ##
             @jit  # compute Effective sample size
-            def _diagnose_is_weights(ensemble_testgrid_log_probs):
-                n = jnp.shape(ensemble_train_log_probs)[
-                    1
-                ]  # ensemble_train_log_probs is n_posterior_samples x n
-                n_plot = jnp.shape(ensemble_testgrid_log_probs)[
-                    1
-                ]  # ensemble_testgrid_log_probs is n_posterior_samples x n_plot_grid
-                rank_cp = jnp.zeros(n_plot)
-
+            def _diagnose_importancesampling_weights(
+                ensemble_testgrid_log_probs,
+            ): 
                 # compute importance sampling weights and normalizing
-                logwjk = ensemble_testgrid_log_probs.T.reshape(n_plot, -1, 1)
-                logZjk = jsp.special.logsumexp(logwjk, axis=1)
-
-                # compute predictives for y_i,x_i and y_new,x_n+1
-                logp_new = jsp.special.logsumexp(2 * logwjk, axis=1) - logZjk
+                log_importance_weights = ensemble_testgrid_log_probs.T.reshape(
+                    jnp.shape(ensemble_testgrid_log_probs)[1], -1, 1
+                )
+                log_normalizing_constant = jsp.special.logsumexp(log_importance_weights, axis=1)
 
                 # compute ESS
-                wjk = jnp.exp(logwjk - logZjk.reshape(-1, 1, 1))
-                ESS = 1 / jnp.sum(wjk**2, axis=1)
+                importance_weights = jnp.exp(log_importance_weights - log_normalizing_constant.reshape(-1, 1, 1))
+                ESS = 1 / jnp.sum(importance_weights**2, axis=1)
                 return ESS
 
             ###
-            ESS = vmap(_diagnose_is_weights)(ensemble_testgrid_log_probs)
-            return conf_set, ESS
+            ESS = vmap(_diagnose_importancesampling_weights)(
+                ensemble_testgrid_log_probs
+            )
+            return conformal_set, ESS
 
         else:
-            return conf_set
+            return conformal_set
