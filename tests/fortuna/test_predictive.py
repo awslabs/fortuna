@@ -203,11 +203,16 @@ class TestPredictives(unittest.TestCase):
                 n_posterior_samples=self.n_post_samples,
             ).shape == (self.n_inputs,)
 
-            assert self.prob_class.predictive.conformal_set(
-                train_data_loader=self.class_data_loader,
-                test_inputs_loader=self.class_inputs_loader,
-                n_posterior_samples=self.n_post_samples,
-            ).shape == (self.n_inputs, 2)
+            assert (
+                len(
+                    self.prob_class.predictive.conformal_set(
+                        train_data_loader=self.class_data_loader,
+                        test_inputs_loader=self.class_inputs_loader,
+                        n_posterior_samples=self.n_post_samples,
+                    )
+                )
+                == self.n_inputs
+            )
 
             assert self.prob_reg.predictive.quantile(
                 jnp.array([0.3, 0.6]),

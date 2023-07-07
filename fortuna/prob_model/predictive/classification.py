@@ -448,7 +448,7 @@ class ClassificationPredictive(Predictive):
             A training data loader.
         test_inputs_loader : InputsLoader
             A test inputs loader.
-        n_classes : 
+        n_classes :
             Number of unique classes (we assume targets are from 0:n_classes-1)
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
@@ -472,7 +472,7 @@ class ClassificationPredictive(Predictive):
         # Extract test inputs and evaluate on each class (e.g. Y = 0, Y = 1)
         n_test = test_inputs_loader.size
         test_data_grid_loader = DataLoader.from_inputs_loaders(
-            inputs_loaders=[test_inputs_loader]*n_classes,
+            inputs_loaders=[test_inputs_loader] * n_classes,
             targets=jnp.arange(n_classes).tolist(),
             how="concatenate",
         )
@@ -490,10 +490,11 @@ class ClassificationPredictive(Predictive):
         ensemble_train_log_probs = ensemble_train_test_log_probs[
             :, 0:n_train
         ]  # training log likelihood
-    
-        # test log prob for each test input, posterior sample, and class (shape =  n_test x  n_posterior_samples x n_classes)
-        ensemble_testgrid_log_probs = jnp.dstack(jnp.vsplit(ensemble_train_test_log_probs[:,n_train:].T, n_classes))  # Split test log_probs for each class (in third axis)
 
+        # test log prob for each test input, posterior sample, and class (shape =  n_test x  n_posterior_samples x n_classes)
+        ensemble_testgrid_log_probs = jnp.dstack(
+            jnp.vsplit(ensemble_train_test_log_probs[:, n_train:].T, n_classes)
+        )  # Split test log_probs for each class (in third axis)
 
         @jit  # compute rank of nonconformity score (unnormalized by n+1)
         def _compute_cb_region_importancesampling(
@@ -521,14 +522,16 @@ class ClassificationPredictive(Predictive):
 
             # Compute region of grid which is in confidence set
             region_true = rank_test > error * (n_train + 1)
-            
+
             return region_true
 
         # Compute CB interval for each
         conformal_region = vmap(_compute_cb_region_importancesampling)(
             ensemble_testgrid_log_probs
         )
-        conformal_set = [jnp.where(conformal_region[j])[0].tolist() for j in range(n_test)]
+        conformal_set = [
+            jnp.where(conformal_region[j])[0].tolist() for j in range(n_test)
+        ]
 
         if return_ess:
             ## DIAGNOSE IMPORTANCE WEIGHTS ##
