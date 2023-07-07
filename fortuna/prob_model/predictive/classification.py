@@ -433,6 +433,7 @@ class ClassificationPredictive(Predictive):
         self,
         train_data_loader: DataLoader,
         test_inputs_loader: InputsLoader,
+        n_classes: int = 2,
         n_posterior_samples: int = 30,
         error: float = 0.05,
         rng: Optional[PRNGKeyArray] = None,
@@ -447,6 +448,8 @@ class ClassificationPredictive(Predictive):
             A training data loader.
         test_inputs_loader : InputsLoader
             A test inputs loader.
+        n_classes : 
+            Number of unique classes (we assume targets are from 0:n_classes-1)
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
         error: float
@@ -459,51 +462,38 @@ class ClassificationPredictive(Predictive):
 
         Returns
         -------
-        jnp.ndarray
-            A conformal set for each of the inputs. Contains two columns with TRUE/FALSE, where the first and second columns indicate if
-            Y = 0 or Y = 1 respectively is included in the conformal set.
+        List[List[int]]
+            A list of conformal sets for each test input.
         """
 
         # Extract training data
         n_train = train_data_loader.size
 
-        # Extract test inputs and evaluate on grid (Y = 0 and Y = 1)
+        # Extract test inputs and evaluate on each class (e.g. Y = 0, Y = 1)
         n_test = test_inputs_loader.size
         test_data_grid_loader = DataLoader.from_inputs_loaders(
-            inputs_loaders=[test_inputs_loader, test_inputs_loader],
-            targets=[0, 1],
+            inputs_loaders=[test_inputs_loader]*n_classes,
+            targets=jnp.arange(n_classes).tolist(),
             how="concatenate",
         )
 
-        # Combine training data and test data grid (with both Y = 0 and Y = 1) into single loader, so random posterior samples are the same rng
+        # Combine training data and test data grid into single loader, so random posterior samples are the same rng
         train_test_data_loader = ConcatenatedLoader(
             loaders=[train_data_loader, test_data_grid_loader]
         )
 
-        # returns n_posterior_samples x (n_class*n_test +n)
+        # returns n_posterior_samples x (n_classes*n_test +n)
         ensemble_train_test_log_probs = self.ensemble_log_prob(
             data_loader=train_test_data_loader, n_posterior_samples=n_posterior_samples
         )
-
-        # Divide back out into test set grid and training
+        # Split training log_probs
         ensemble_train_log_probs = ensemble_train_test_log_probs[
             :, 0:n_train
         ]  # training log likelihood
-        ensemble_test0_log_probs = ensemble_train_test_log_probs[
-            :, n_train : n_train + n_test
-        ]  # test log likelihoods at Y = 0
-        ensemble_test1_log_probs = ensemble_train_test_log_probs[
-            :, n_train + n_test : n_train + 2 * n_test
-        ]  # test log likelihoods at Y = 1
+    
+        # test log prob for each test input, posterior sample, and class (shape =  n_test x  n_posterior_samples x n_classes)
+        ensemble_testgrid_log_probs = jnp.dstack(jnp.vsplit(ensemble_train_test_log_probs[:,n_train:].T, n_classes))  # Split test log_probs for each class (in third axis)
 
-        # log likelihood values for each test input, posterior sample, and grid point (shape =  n_test x  n_posterior_samples x n_class)
-        ensemble_testgrid_log_probs = jnp.concatenate(
-            (
-                ensemble_test0_log_probs.T.reshape(-1, n_posterior_samples, 1),
-                ensemble_test1_log_probs.T.reshape(-1, n_posterior_samples, 1),
-            ),
-            axis=2,
-        )
 
         @jit  # compute rank of nonconformity score (unnormalized by n+1)
         def _compute_cb_region_importancesampling(
@@ -512,7 +502,6 @@ class ClassificationPredictive(Predictive):
             # compute importance sampling weights and normalizing constant
             importance_weights = jnp.exp(ensemble_testgrid_log_probs.T)
             normalizing_constant = jnp.sum(importance_weights, axis=1).reshape(-1, 1)
-            print(jnp.shape(importance_weights / normalizing_constant))
 
             # compute predictives for y_i,x_i and y_new,x_n+1
             prob_train = jnp.dot(
@@ -532,12 +521,14 @@ class ClassificationPredictive(Predictive):
 
             # Compute region of grid which is in confidence set
             region_true = rank_test > error * (n_train + 1)
+            
             return region_true
 
         # Compute CB interval for each
-        conformal_set = vmap(_compute_cb_region_importancesampling)(
+        conformal_region = vmap(_compute_cb_region_importancesampling)(
             ensemble_testgrid_log_probs
         )
+        conformal_set = [jnp.where(conformal_region[j])[0].tolist() for j in range(n_test)]
 
         if return_ess:
             ## DIAGNOSE IMPORTANCE WEIGHTS ##
