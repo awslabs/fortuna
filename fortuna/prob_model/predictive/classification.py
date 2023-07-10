@@ -7,6 +7,7 @@ from jax import (
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
+import numpy as np
 
 from fortuna.data.loader import (
     ConcatenatedLoader,
@@ -433,7 +434,6 @@ class ClassificationPredictive(Predictive):
         self,
         train_data_loader: DataLoader,
         test_inputs_loader: InputsLoader,
-        n_classes: int = 2,
         n_posterior_samples: int = 30,
         error: float = 0.05,
         rng: Optional[PRNGKeyArray] = None,
@@ -448,8 +448,6 @@ class ClassificationPredictive(Predictive):
             A training data loader.
         test_inputs_loader : InputsLoader
             A test inputs loader.
-        n_classes :
-            Number of unique classes (we assume targets are from 0:n_classes-1)
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
         error: float
@@ -468,6 +466,7 @@ class ClassificationPredictive(Predictive):
 
         # Extract training data
         n_train = train_data_loader.size
+        n_classes = train_data_loader.num_unique_labels
 
         # Extract test inputs and evaluate on each class (e.g. Y = 0, Y = 1)
         n_test = test_inputs_loader.size
@@ -525,13 +524,18 @@ class ClassificationPredictive(Predictive):
 
             return region_true
 
-        # Compute CB interval for each
-        conformal_region = vmap(_compute_cb_region_importancesampling)(
-            ensemble_testgrid_log_probs
+        # Compute CB region for each test input
+        conformal_region = np.array(
+            vmap(_compute_cb_region_importancesampling)(ensemble_testgrid_log_probs)
         )
-        conformal_set = [
-            jnp.where(conformal_region[j])[0].tolist() for j in range(n_test)
-        ]
+
+        # Convert CB region into sets
+        sizes = (conformal_region.sum(axis=1)).astype("int32")
+        region_argsort = np.argsort(conformal_region, axis=1)[:, ::-1]
+        conformal_set = np.zeros(len(sizes), dtype=object)
+        for s in np.unique(sizes):
+            idx = np.where(sizes == s)[0]
+            conformal_set[idx] = region_argsort[idx, :s][:, ::-1].tolist()
 
         if return_ess:
             ## DIAGNOSE IMPORTANCE WEIGHTS ##
