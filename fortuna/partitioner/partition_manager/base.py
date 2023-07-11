@@ -23,7 +23,7 @@ from jax.tree_util import (
 
 from fortuna.partitioner.base import Partitioner
 from fortuna.training.train_state import TrainState
-from fortuna.utils.partition import match_partition_specs
+from fortuna.utils.partition.base import match_partition_specs
 from fortuna.utils.random import WithRNG
 
 

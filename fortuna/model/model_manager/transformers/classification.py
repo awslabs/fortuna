@@ -12,6 +12,7 @@ import jax
 from jax import (
     numpy as jnp,
     random,
+    eval_shape
 )
 from jax._src.prng import PRNGKeyArray
 from optax._src.base import PyTree
@@ -26,6 +27,8 @@ from fortuna.typing import (
     Mutable,
     Params,
 )
+from flax.traverse_util import flatten_dict
+from flax.core.frozen_dict import unfreeze
 from fortuna.utils.data import get_inputs_from_shape
 from fortuna.utils.nested_dicts import nested_update
 
@@ -89,14 +92,21 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
     def init(
         self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
     ) -> Dict[str, Mapping]:
-        assert self.model._is_initialized, (
-            "At the moment Fortuna supports models from Hugging Face that are loaded via "
-            "`from_pretrained` method, which also takes care of model initialization."
-        )
+        if rng is None:
+            rng = self.rng.get()
+
+        if not self.model._is_initialized:
+            if not hasattr(self.model, "_params"):
+                raise ValueError("If the transformer model is not initialized, you must externally pass the model "
+                                 "parameters as attribute `_params` to `model`.")
+
+            # jit(self.model.init_weights, static_argnums=(1,), backend="cpu")(rng, (1,) + input_shape["input_ids"], self.model._params)
+            self._params_shape_tree = eval_shape(lambda: self.model._params)
+            self._required_params = set(flatten_dict(unfreeze(self._params_shape_tree)).keys())
+            self.model._is_initialized = True
+
         params = {"model": {"params": self.model.params}}
         if self.model_editor is not None:
-            if rng is None:
-                rng = self.rng.get()
             rng, params_key, dropout_key = random.split(rng, 3)
             rngs = {"params": params_key, "dropout": dropout_key}
 

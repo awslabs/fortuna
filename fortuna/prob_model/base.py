@@ -228,7 +228,7 @@ class ProbModel(abc.ABC):
                 if calib_config.monitor.verbose:
                     logging.info("Dump state to disk.")
                 self.save_state(
-                    checkpoint_dir=calib_config.checkpointer.save_checkpoint_dir
+                    checkpoint_dir=str(Path(calib_config.checkpointer.save_checkpoint_dir) / "calibrated")
                 )
 
             if calib_config.monitor.verbose:

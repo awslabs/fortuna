@@ -11,7 +11,6 @@ from fortuna.typing import (
 # from flax.training import checkpoints
 
 
-
 class WithCalibCheckpointingMixin(WithCheckpointingMixin):
     pass
     # def restore_checkpoint(

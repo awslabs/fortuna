@@ -179,8 +179,8 @@ def train_and_sample(
 
 def define_prob_model(task, method, model_editor=None):
     partitioner = Partitioner(
-        axis_dims={"mp": 2, "fsdp": 1, "dp": 2},
-        rules={"l1/kernel": ("fsdp", "mp"), "bn1": ("mp",)},
+        axes_dims={"mp": 2, "fsdp": 2, "dp": 2},
+        rules={"l1/kernel": (None, "mp"), "bn1": ("mp",)},
     )
 
     if task == "regression":

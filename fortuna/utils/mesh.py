@@ -10,7 +10,7 @@ from jax.sharding import (
 )
 import numpy as np
 
-from fortuna.utils.partition import get_names_from_partition_spec
+from fortuna.utils.partition.base import get_names_from_partition_spec
 
 
 def get_mesh(axis_dims: Dict[str, int]):
@@ -24,7 +24,7 @@ def get_mesh(axis_dims: Dict[str, int]):
         )
     for v in dims:
         if type(v) != int:
-            raise ValueError("All values in `axis_dims` must be integers or `-1`.")
+            raise ValueError("All values in `axes_dims` must be integers or `-1`.")
     if len(np.where(np.array(dims) == -1)[0]) > 1:
         raise ValueError("At most one axis dimension can be `-1`.")
 
@@ -34,7 +34,7 @@ def get_mesh(axis_dims: Dict[str, int]):
     reminder = n_devices % fixed_prod
     if fixed_prod > n_devices:
         raise ValueError(
-            f"The product of the specified axis dimensions cannot be greater than {n_devices}, "
+            f"The product of the specified axes dimensions cannot be greater than {n_devices}, "
             f"the number of available devices."
         )
     if reminder != 0:

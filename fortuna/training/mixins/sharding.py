@@ -40,9 +40,10 @@ class ShardingMixin:
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Tuple[TrainState, Dict[str, Any]]:
+        fun=super().training_step
         with self.partition_manager.partitioner.mesh:
             return pjit(
-                super().training_step,
+                fun,
                 static_argnums=(2, 4, 5, 6),
                 in_shardings=(
                     self.partition_manager.shardings,

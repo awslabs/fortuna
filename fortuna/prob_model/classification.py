@@ -259,7 +259,7 @@ class ProbClassifier(ProbModel):
         calib_config: CalibConfig = CalibConfig(),
         **fit_kwargs,
     ) -> Dict[str, Status]:
-        self._check_output_dim(train_data_loader)
+        # self._check_output_dim(train_data_loader)
         return super().train(
             train_data_loader,
             val_data_loader,
@@ -292,7 +292,7 @@ class ProbClassifier(ProbModel):
         Status
             A calibration status object. It provides information about the calibration.
         """
-        self._check_output_dim(calib_data_loader)
+        # self._check_output_dim(calib_data_loader)
         if val_data_loader is not None:
             self._check_output_dim(val_data_loader)
         return super()._calibrate(

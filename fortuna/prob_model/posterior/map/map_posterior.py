@@ -21,7 +21,7 @@ from fortuna.prob_model.posterior.map.map_trainer import (
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
-from fortuna.typing import Status
+from fortuna.typing import Status, Shape
 from fortuna.utils.builtins import get_dynamic_scale_instance_from_model_dtype
 from fortuna.utils.checkpoint import get_checkpoint_manager
 
@@ -109,10 +109,11 @@ class MAPPosterior(Posterior):
             state = self._freeze_optimizer_in_state(state, fit_config)
             self.partition_manager.shapes_dtypes = eval_shape(lambda: state)
         else:
+            input_shape = train_data_loader.input_shape
 
             def init_state_fn(rng):
                 _state = self._init_state(
-                    data_loader=train_data_loader, fit_config=fit_config, rng=rng
+                    input_shape=input_shape, fit_config=fit_config, rng=rng
                 )
                 return self._freeze_optimizer_in_state(_state, fit_config)
 
@@ -168,11 +169,11 @@ class MAPPosterior(Posterior):
 
     def _init_state(
         self,
-        data_loader: DataLoader,
+        input_shape: Shape,
         fit_config: FitConfig,
         rng: Optional[PRNGKeyArray] = None,
     ) -> MAPState:
-        state = super()._init_joint_state(data_loader=data_loader, rng=rng)
+        state = super()._init_joint_state(input_shape=input_shape, rng=rng)
         return MAPState.init(
             params=state.params,
             mutable=state.mutable,

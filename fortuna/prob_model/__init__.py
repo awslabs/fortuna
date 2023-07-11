@@ -9,6 +9,7 @@ from fortuna.prob_model.fit_config.checkpointer import FitCheckpointer
 from fortuna.prob_model.fit_config.monitor import FitMonitor
 from fortuna.prob_model.fit_config.optimizer import FitOptimizer
 from fortuna.prob_model.fit_config.processor import FitProcessor
+from fortuna.prob_model.fit_config.hyperparameters import FitHyperparameters
 from fortuna.prob_model.posterior.deep_ensemble.deep_ensemble_approximator import (
     DeepEnsemblePosteriorApproximator,
 )

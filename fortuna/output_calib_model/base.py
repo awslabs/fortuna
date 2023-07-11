@@ -10,10 +10,8 @@ import jax.numpy as jnp
 
 from fortuna.output_calib_model.config.base import Config
 from fortuna.output_calib_model.loss import Loss
-from fortuna.output_calib_model.output_calib_state_repository import (
-    OutputCalibStateRepository,
-)
-from fortuna.output_calib_model.output_calibrator.output_calib_model_calibrator import (
+from fortuna.training.train_state_repository import TrainStateRepository
+from fortuna.output_calib_model.output_calibrator.base import (
     JittedOutputCalibModelCalibrator,
     MultiDeviceOutputCalibModelCalibrator,
     OutputCalibModelCalibrator,
@@ -121,7 +119,7 @@ class OutputCalibModel(WithCheckpointingMixin, abc.ABC):
             verbose=config.monitor.verbose,
         )
 
-        self.predictive.state = OutputCalibStateRepository(
+        self.predictive.state = TrainStateRepository(
             config.checkpointer.save_checkpoint_dir
             if config.checkpointer.dump_state is True
             else None

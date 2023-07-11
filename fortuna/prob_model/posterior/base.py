@@ -23,6 +23,7 @@ from fortuna.prob_model.posterior.posterior_state_repository import (
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import (
     Path,
+    Shape,
     Status,
 )
 from fortuna.utils.checkpoint import get_checkpoint_manager
@@ -99,9 +100,11 @@ class Posterior(WithRNG):
         return state
 
     def _init_joint_state(
-        self, data_loader: DataLoader, rng: Optional[PRNGKeyArray] = None
+        self, data_loader: Optional[DataLoader] = None, input_shape: Optional[Shape] = None, rng: Optional[PRNGKeyArray] = None
     ) -> JointState:
-        return self.joint.init(input_shape=data_loader.input_shape, rng=rng)
+        if data_loader is None and input_shape is None:
+            raise ValueError("At least one between `data_loader` and `input_shape` must be provided.")
+        return self.joint.init(input_shape=input_shape or data_loader.input_shape, rng=rng)
 
     @staticmethod
     def _freeze_optimizer_in_state(
