@@ -29,15 +29,7 @@ def accuracy(preds: Array, targets: Array) -> jnp.ndarray:
     jnp.ndarray
         The computed accuracy.
     """
-    if preds.ndim > 1:
-        raise ValueError(
-            """`preds` must be a one-dimensional array of predicted classes."""
-        )
-    if targets.ndim > 1:
-        raise ValueError(
-            """`targets` must be a one-dimensional array of target classes."""
-        )
-    return jnp.mean(preds == targets)
+    return jnp.mean(jnp.equal(preds, targets))
 
 
 def compute_counts_confs_accs(
@@ -211,12 +203,7 @@ def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> jnp.ndarr
     jnp.ndarray
         The Brier score.
     """
-    if probs.ndim != 2:
-        raise ValueError(
-            """`probs` must be a two-dimensional array of probabilities for each class and each data
-        point."""
-        )
     if type(targets) == TargetsLoader:
         targets = targets.to_array_targets()
-    targets = jax.nn.one_hot(targets, probs.shape[1])
-    return jnp.mean(jnp.sum((probs - targets) ** 2, axis=1))
+    targets = jax.nn.one_hot(targets, probs.shape[-1])
+    return jnp.mean(jnp.sum((probs - targets) ** 2, axis=-1))

@@ -193,13 +193,13 @@ if __name__ == "__main__":
 
     try:
         logger.info(list(pathlib.Path(args.restore_checkpoint_dir).rglob("*")))
-        restore_checkpoint_path = unpack_model_tar(
+        restore_checkpoint_dir = unpack_model_tar(
             list(pathlib.Path(args.restore_checkpoint_dir).rglob("*"))[0]
         )
-        logger.info(list(pathlib.Path(restore_checkpoint_path).rglob("*")))
+        logger.info(list(pathlib.Path(restore_checkpoint_dir).rglob("*")))
     except:
         logger.info("No checkpoint to restore")
-        restore_checkpoint_path = None
+        restore_checkpoint_dir = None
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
 
@@ -303,11 +303,11 @@ if __name__ == "__main__":
     ####           TRAIN!            ####
     #####################################
     def accuracy_mlm(preds: Array, targets: Array) -> jnp.ndarray:
-        if preds.ndim > 2:
+        if preds.ndim > 1:
             raise ValueError(
                 """`preds` must be a one-dimensional array of predicted classes."""
             )
-        if targets.ndim > 2:
+        if targets.ndim > 1:
             raise ValueError(
                 """`targets` must be a one-dimensional array of target classes."""
             )
@@ -341,7 +341,7 @@ if __name__ == "__main__":
             save_checkpoint_dir=args.save_checkpoint_dir,
             save_every_n_steps=args.save_every_n_steps,
             keep_top_n_checkpoints=args.keep_top_n_checkpoints,
-            restore_checkpoint_path=restore_checkpoint_path,
+            restore_checkpoint_dir=restore_checkpoint_dir,
         ),
     )
     if args.last_layer_only and (
@@ -357,7 +357,7 @@ if __name__ == "__main__":
             and args.last_layer_only
             else None,
         )
-        if restore_checkpoint_path is not None:
+        if restore_checkpoint_dir is not None:
             fit_config.optimizer = last_layer_optimizer
             train_kwargs = {"fit_config": fit_config}
         else:

@@ -89,7 +89,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
     def get_data_loader(
         self,
         dataset: Dataset,
-        per_device_batch_size: int,
+        batch_size: int,
         rng: PRNGKeyArray,
         shuffle: bool = False,
         drop_last: bool = False,
@@ -103,26 +103,26 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         ----------
         dataset: Dataset
             A tokenizeed dataset (see :meth:`.HuggingFaceClassificationDatasetABC.get_tokenized_datasets`).
-        per_device_batch_size: bool
-            Batch size for each device.
+        batch_size: bool
+            Total batch size, possibly divided over multiple devices.
         rng: PRNGKeyArray
             Random number generator.
         shuffle: bool
             if True, shuffle the data so that each batch is a ranom sample from the dataset.
         drop_last: bool
-            if True, the last batch (which potentially is smaller then the default batch size) is dropped.
+            if True, the last batch (which potentially is smaller than the default batch size) is dropped.
         verbose: bool
-            Whether to show a progress bar while iterating over the dataloader or not.
+            Whether to show a progress bar while iterating over the data_loader or not.
 
         Returns
         -------
         HuggingFaceDataLoader
-            The dataloader
+            The data_loader
         """
         iterable = IterableData.from_callable(
             lambda *args, **kwargs: self._get_data_loader(
                 dataset,
-                batch_size=per_device_batch_size * jax.local_device_count(),
+                batch_size=batch_size,
                 shuffle=shuffle,
                 drop_last=drop_last,
                 rng=rng,

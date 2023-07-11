@@ -98,13 +98,13 @@ def _run_training_job(cfg: DictConfig) -> None:
         rules=rules,
     )
 
-    if "tuner" in cfg.sagemaker:
-        logger.info(f"Starting hyperparams optimization: {cfg.sagemaker.tuner}")
+    if "tuner" in cfg.hyperparams:
+        logger.info(f"Starting hyperparams optimization: {cfg.hyperparams.tuner}")
         estimator = HyperparameterTuner(
             estimator=estimator,
             base_tuning_job_name=base_job_name,
             metric_definitions=metrics,
-            **instantiate(cfg.sagemaker.tuner, _convert_="partial"),
+            **instantiate(cfg.hyperparams.tuner, _convert_="partial"),
         )
 
     estimator.fit(inputs=channels, wait=False)

@@ -7,7 +7,7 @@ class CalibCheckpointer:
     def __init__(
         self,
         save_checkpoint_dir: Optional[Path] = None,
-        restore_checkpoint_path: Optional[Path] = None,
+        restore_checkpoint_dir: Optional[Path] = None,
         save_every_n_steps: Optional[int] = None,
         keep_top_n_checkpoints: Optional[int] = 2,
         dump_state: bool = False,
@@ -19,7 +19,7 @@ class CalibCheckpointer:
         ----------
         save_checkpoint_dir: Optional[Path] = None
             Save directory location.
-        restore_checkpoint_path: Optional[Path]
+        restore_checkpoint_dir: Optional[Path]
             Path to checkpoint file or directory to restore.
         save_every_n_steps: int
             Number of training steps between checkpoints. To disable, set `every_n_train_steps` to None or 0 (no
@@ -32,6 +32,6 @@ class CalibCheckpointer:
         """
         self.save_checkpoint_dir = save_checkpoint_dir
         self.save_every_n_steps = save_every_n_steps
-        self.restore_checkpoint_path = restore_checkpoint_path
+        self.restore_checkpoint_dir = restore_checkpoint_dir
         self.keep_top_n_checkpoints = keep_top_n_checkpoints
         self.dump_state = dump_state

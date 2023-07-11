@@ -17,10 +17,9 @@ from optax._src.base import PyTree
 from fortuna.prob_model.posterior.map import *
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.posterior_trainer import PosteriorTrainerABC
-from fortuna.training.trainer import (
-    JittedMixin,
-    MultiDeviceMixin,
-)
+from fortuna.training.mixins.jitted import JittedMixin
+from fortuna.training.mixins.multi_device import MultiDeviceMixin
+from fortuna.training.mixins.sharding import ShardingMixin
 from fortuna.typing import (
     Array,
     Batch,
@@ -110,4 +109,8 @@ class JittedMAPTrainer(JittedMixin, MAPTrainer):
 
 
 class MultiDeviceMAPTrainer(MultiDeviceMixin, MAPTrainer):
+    pass
+
+
+class ShardedMAPTrainer(ShardingMixin, MAPTrainer):
     pass

@@ -36,7 +36,7 @@ from fortuna.metric.classification import (
     accuracy,
     expected_calibration_error,
 )
-from fortuna.model_editor.classification import ProbitClassificationModelEditor
+from fortuna.model_editor import ProbitModelEditor
 from fortuna.prob_model import (
     ADVIPosteriorApproximator,
     DeepEnsemblePosteriorApproximator,
@@ -214,6 +214,11 @@ if __name__ == "__main__":
     parser.add_argument("--sgmcmc_polynomial_schedule_gamma", type=float, default=0.55)
     parser.add_argument("--sgmcmc_preconditioner", type=strbool, default=False)
     parser.add_argument("--sghmc_momentum_decay", type=float, default=0.01)
+    # model editor
+    parser.add_argument("--enable_probit_model_editor", type=strbool, default=False)
+    parser.add_argument("--probit_init_log_var", type=float, default=-5)
+    parser.add_argument("--probit_stop_gradient", type=strbool, default=False)
+    parser.add_argument("--probit_last_layer_only", type=strbool, default=False)
     # optimizer
     parser.add_argument("--learning_rate", type=float, default=2e-5)
     parser.add_argument("--adam_eps", type=float, default=1e-8)
@@ -235,13 +240,13 @@ if __name__ == "__main__":
 
     try:
         logger.info(list(pathlib.Path(args.load_model_dir).rglob("*")))
-        restore_checkpoint_path = unpack_model_tar(
+        restore_checkpoint_dir = unpack_model_tar(
             list(pathlib.Path(args.load_model_dir).rglob("*"))[0]
         )
-        logger.info(list(pathlib.Path(restore_checkpoint_path).rglob("*")))
+        logger.info(list(pathlib.Path(restore_checkpoint_dir).rglob("*")))
     except:
         logger.info("No checkpoint to restore")
-        restore_checkpoint_path = None
+        restore_checkpoint_dir = None
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_name_or_path)
 
@@ -393,6 +398,21 @@ if __name__ == "__main__":
         ),
     }
 
+    model_editor = None
+    if args.enable_probit_model_editor:
+        probit_freeze_fun = (
+            lambda p, v: True
+            if "classifier" in p
+            else False
+            if args.probit_last_layer_only
+            else None
+        )
+        model_editor = ProbitModelEditor(
+            freeze_fun=probit_freeze_fun,
+            init_log_var=args.probit_init_log_var,
+            stop_gradient=args.probit_stop_gradient,
+        )
+
     ### TRAINING
     prob_model = ProbClassifier(
         model=model,
@@ -401,9 +421,7 @@ if __name__ == "__main__":
         ],
         prior=IsotropicGaussianPrior(log_var=args.prior_log_var),
         output_calibrator=None,
-        model_editor=ProbitClassificationModelEditor(
-            freeze_fun=lambda p, v: True if "classifier" in p else False, top_k=10
-        ),
+        model_editor=model_editor,
     )
 
     fit_config = FitConfig(
@@ -426,7 +444,7 @@ if __name__ == "__main__":
             save_checkpoint_dir=args.output_data_dir,
             save_every_n_steps=args.save_every_n_steps,
             keep_top_n_checkpoints=args.keep_top_n_checkpoints,
-            restore_checkpoint_path=restore_checkpoint_path,
+            restore_checkpoint_dir=restore_checkpoint_dir,
         ),
         callbacks=[
             ResetCovarianceCallback(
@@ -457,7 +475,7 @@ if __name__ == "__main__":
             last_layer_optimizer = FitOptimizer(
                 method=optimizer, n_epochs=args.num_train_epochs, freeze_fun=freeze_fun
             )
-            if restore_checkpoint_path is not None:
+            if restore_checkpoint_dir is not None:
                 fit_config.optimizer = last_layer_optimizer
                 train_kwargs = {"fit_config": fit_config}
             else:
@@ -482,11 +500,16 @@ if __name__ == "__main__":
             calib_data_loader=None,
             **train_kwargs,
         )
-    elif restore_checkpoint_path is not None:
-        prob_model.load_state(restore_checkpoint_path)
+    elif restore_checkpoint_dir is not None:
+        prob_model.load_state(restore_checkpoint_dir)
     else:
         raise ValueError(
-            "Either restore_checkpoint_path or num_train_epochs > 0 should be specified."
+            "Either restore_checkpoint_dir or num_train_epochs > 0 should be specified."
+        )
+
+    if args.enable_probit_model_editor:
+        logger.info(
+            f"Probit log-variance: {prob_model.posterior.state.get().params['model_editor']['params']['log_var']}"
         )
 
     ### IN-D PERFORMANCE

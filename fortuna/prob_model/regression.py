@@ -12,6 +12,8 @@ from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.model_editor.base import ModelEditor
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.output_calibrator.regression import RegressionTemperatureScaler
+from fortuna.partitioner.base import Partitioner
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.prob_model.base import ProbModel
 from fortuna.prob_model.calib_config.base import CalibConfig
 from fortuna.prob_model.fit_config.base import FitConfig
@@ -39,6 +41,7 @@ class ProbRegressor(ProbModel):
         posterior_approximator: PosteriorApproximator = SWAGPosteriorApproximator(),
         output_calibrator: Optional[nn.Module] = RegressionTemperatureScaler(),
         model_editor: Optional[ModelEditor] = None,
+        partitioner: Partitioner = Partitioner(),
         seed: int = 0,
     ):
         r"""
@@ -67,6 +70,8 @@ class ProbRegressor(ProbModel):
             calibration parameters.
         model_editor : ModelEditor
             A model_editor objects. It takes the forward pass and transforms the outputs.
+        partitioner : Partitioner
+            A partitioning object for data, fully sharded data model parallelization.
         seed: int
             A random seed.
 
@@ -119,10 +124,14 @@ class ProbRegressor(ProbModel):
             self.model_manager, self.prob_output_layer, self.output_calib_manager
         )
         self.joint = Joint(self.prior, self.likelihood)
-
+        self.partition_manager = PartitionManager(partitioner)
         self.posterior = getattr(
             PosteriorApproximations, posterior_approximator.__str__()
-        ).value(joint=self.joint, posterior_approximator=posterior_approximator)
+        ).value(
+            joint=self.joint,
+            posterior_approximator=posterior_approximator,
+            partition_manager=self.partition_manager,
+        )
         self.predictive = RegressionPredictive(self.posterior)
 
         super().__init__(seed=seed)
@@ -141,6 +150,7 @@ class ProbRegressor(ProbModel):
         outputs = self.model_manager.apply(
             params=s.params, inputs=np.zeros((1,) + input_shape), mutable=s.mutable
         )
+
         if outputs.shape[1] != 2 * output_dim:
             raise ValueError(
                 f"""The outputs dimension of both `model` and `likelihood_log_variance_model` must be the same as

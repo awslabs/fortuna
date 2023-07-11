@@ -1,5 +1,4 @@
-from copy import deepcopy
-import os
+from shutil import rmtree
 from typing import (
     Dict,
     List,
@@ -7,7 +6,11 @@ from typing import (
     Union,
 )
 
-from fortuna.training.mixin import WithCheckpointingMixin
+from jax import eval_shape
+from orbax.checkpoint import CheckpointManager
+
+from fortuna.partitioner.partition_manager.base import PartitionManager
+from fortuna.training.mixins.checkpointing import WithCheckpointingMixin
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (
     OptaxOptimizer,
@@ -16,95 +19,78 @@ from fortuna.typing import (
 
 
 class TrainStateRepository(WithCheckpointingMixin):
-    def __init__(self, checkpoint_dir: Optional[Path] = None):
-        super().__init__()
-        self.checkpoint_dir = checkpoint_dir
-        self.__state = None
+    def __init__(
+        self,
+        partition_manager: PartitionManager,
+        checkpoint_manager: Optional[CheckpointManager] = None,
+    ):
+        super().__init__(partition_manager=partition_manager)
+        self.checkpoint_manager = checkpoint_manager
+        self._state = None
 
     def get(
         self,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "checkpoint_",
-        **kwargs,
     ) -> Union[Dict, TrainState]:
-        if not checkpoint_path and not self.checkpoint_dir and not self.__state:
+        if not checkpoint_dir and not self.checkpoint_manager and not self._state:
             raise ValueError("No state available.")
-        if checkpoint_path or self.checkpoint_dir:
+        if checkpoint_dir or self.checkpoint_manager:
             return self.restore_checkpoint(
-                restore_checkpoint_path=checkpoint_path or self.checkpoint_dir,
-                optimizer=optimizer,
-                prefix=prefix,
-                **kwargs,
+                restore_checkpoint_dir=checkpoint_dir, optimizer=optimizer
             )
         if optimizer is not None:
-            self.__state = self.__state.replace(
-                tx=optimizer, opt_state=optimizer.init(self.__state.params)
-            )
-        return deepcopy(self.__state)
+            state = self.partition_manager.reshard(self._state)
+            state = state.replace(tx=optimizer, opt_state=optimizer.init(state.params))
+            return state
+        return self._state
 
     def put(
         self,
         state: TrainState,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_dir: Optional[Path] = None,
         keep: int = 1,
-        prefix: str = "checkpoint_",
     ) -> None:
-        if checkpoint_path or self.checkpoint_dir:
+        if checkpoint_dir or self.checkpoint_manager:
             self.save_checkpoint(
                 state=state,
-                save_checkpoint_dir=checkpoint_path or self.checkpoint_dir,
+                save_checkpoint_dir=checkpoint_dir,
                 keep=keep,
                 force_save=True,
-                prefix=prefix,
             )
         else:
-            self.__state = state
+            self._state = state
 
     def pull(
         self,
-        checkpoint_path: Path = None,
+        checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "checkpoint_",
-        **kwargs,
     ) -> TrainState:
         state = self.get(
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
-            prefix=prefix,
-            **kwargs,
         )
-        if checkpoint_path or self.checkpoint_dir:
-            os.remove(
-                checkpoint_path
-                or self.get_path_latest_checkpoint(self.checkpoint_dir, prefix=prefix)
-            )
+        if checkpoint_dir or self.checkpoint_manager:
+            if checkpoint_dir is None:
+                self.checkpoint_manager.delete(self.checkpoint_manager.latest_step())
+            else:
+                rmtree(checkpoint_dir)
         return state
 
     def update(
         self,
         variables: Dict,
-        checkpoint_path: Path = None,
+        checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         keep: int = 1,
-        prefix: str = "checkpoint_",
-        **kwargs,
     ):
         state = self.pull(
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
-            prefix=prefix,
-            **kwargs,
         )
         state = state.replace(**variables)
-        self.put(state, checkpoint_path=checkpoint_path, keep=keep, prefix=prefix)
+        self.put(state, checkpoint_dir=checkpoint_dir, keep=keep)
 
-    def extract(
-        self,
-        keys: List[str],
-        checkpoint_path: Optional[Path] = None,
-        prefix: str = "checkpoint_",
-        **kwargs,
-    ) -> Dict:
-        state = self.get(checkpoint_path=checkpoint_path, prefix=prefix, **kwargs)
+    def extract(self, keys: List[str], checkpoint_dir: Optional[Path] = None) -> Dict:
+        state = self.get(checkpoint_dir=checkpoint_dir)
         return {k: getattr(state, k) for k in keys}

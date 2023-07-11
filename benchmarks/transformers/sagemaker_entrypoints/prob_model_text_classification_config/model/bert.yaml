@@ -4,6 +4,6 @@ hparams:
   per_device_eval_batch_size: 32
   per_device_train_batch_size: 32
   learning_rate: 2e-05
-  num_warmup_steps: 10000
+  num_warmup_steps: 500
   prior_log_var: 100.0
   weight_decay: 0.01

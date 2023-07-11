@@ -568,7 +568,7 @@ class TestTrainer(unittest.TestCase):
         self.assertTrue(trainer.should_perform_validation({}, 10))
 
     def test__validation_loop(self):
-        validation_dataloader = [
+        validation_data_loader = [
             [jnp.array([[0, 0.0, 0.0], [0, 0.0, 0]]), jnp.array([0.0, 0.0])],
             [jnp.array([[0.1, 0.0, 10], [0, 0.0, 0]]), jnp.array([1.0, 0.0])],
         ]
@@ -580,7 +580,7 @@ class TestTrainer(unittest.TestCase):
             observed_validation_epoch_metrics_str,
         ) = trainer._validation_loop(
             state=None,
-            validation_dataloader=validation_dataloader,
+            validation_data_loader=validation_data_loader,
             validation_dataset_size=2,
             loss_fun=lambda x: x,
             rng=jax.random.PRNGKey(0),
@@ -600,7 +600,7 @@ class TestTrainer(unittest.TestCase):
             observed_validation_epoch_metrics_str,
         ) = trainer._validation_loop(
             state=None,
-            validation_dataloader=validation_dataloader,
+            validation_data_loader=validation_data_loader,
             validation_dataset_size=2,
             loss_fun=lambda x: x,
             rng=jax.random.PRNGKey(0),
@@ -618,7 +618,7 @@ class TestTrainer(unittest.TestCase):
         )
 
     def test__training_loop(self):
-        training_dataloader = [
+        training_data_loader = [
             [jnp.array([[0, 0.0, 0.0], [0, 0.0, 0]]), jnp.array([0.0, 0.0])],
             [jnp.array([[0.1, 0.0, 10], [0, 0.0, 0]]), jnp.array([1.0, 0.0])],
         ]
@@ -635,7 +635,7 @@ class TestTrainer(unittest.TestCase):
             metrics=(accuracy,),
             rng=jax.random.PRNGKey(0),
             state=FakeTrainState(),
-            training_dataloader=training_dataloader,
+            training_data_loader=training_data_loader,
             training_dataset_size=2,
             training_kwargs=FrozenDict({}),
             unravel=None,

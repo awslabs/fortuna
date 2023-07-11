@@ -10,11 +10,11 @@ from typing import (
 
 from flax.core import FrozenDict
 import flax.linen as nn
-from flax.training.checkpoints import PyTree
 import jax
 from jax import random
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from optax._src.base import PyTree
 
 from fortuna.model.model_manager.base import ModelManager
 from fortuna.model.utils.random_features import RandomFeatureGaussianProcess

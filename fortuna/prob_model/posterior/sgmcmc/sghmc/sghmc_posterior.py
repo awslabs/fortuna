@@ -172,11 +172,11 @@ class SGHMCPosterior(SGMCMCPosterior):
             rng=self.rng.get(),
             state=state,
             loss_fun=self.joint._batched_log_joint_prob,
-            training_dataloader=train_data_loader,
+            training_data_loader=train_data_loader,
             training_dataset_size=train_data_loader.size,
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
-            validation_dataloader=val_data_loader,
+            validation_data_loader=val_data_loader,
             validation_dataset_size=val_data_loader.size
             if val_data_loader is not None
             else None,

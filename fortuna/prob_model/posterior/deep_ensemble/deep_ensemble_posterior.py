@@ -149,11 +149,11 @@ class DeepEnsemblePosterior(Posterior):
                 rng=self.rng.get(),
                 state=_state,
                 loss_fun=self.joint._batched_negative_log_joint_prob,
-                training_dataloader=train_data_loader,
+                training_data_loader=train_data_loader,
                 training_dataset_size=train_data_size,
                 n_epochs=fit_config.optimizer.n_epochs,
                 metrics=fit_config.monitor.metrics,
-                validation_dataloader=val_data_loader,
+                validation_data_loader=val_data_loader,
                 validation_dataset_size=val_data_size,
                 verbose=fit_config.monitor.verbose,
                 callbacks=fit_config.callbacks,
@@ -267,12 +267,12 @@ class DeepEnsemblePosterior(Posterior):
         fit_config: FitConfig,
         allowed_states: Optional[Tuple[Type[MAPState], ...]] = None,
     ) -> MAPState:
-        if fit_config.checkpointer.restore_checkpoint_path is not None:
-            restore_checkpoint_path = pathlib.Path(
-                fit_config.checkpointer.restore_checkpoint_path
+        if fit_config.checkpointer.restore_checkpoint_dir is not None:
+            restore_checkpoint_dir = pathlib.Path(
+                fit_config.checkpointer.restore_checkpoint_dir
             ) / str(i)
             state = self.restore_checkpoint(
-                restore_checkpoint_path=restore_checkpoint_path,
+                restore_checkpoint_dir=restore_checkpoint_dir,
                 optimizer=fit_config.optimizer.method,
             )
         elif fit_config.checkpointer.start_from_current_state is not None:
@@ -281,7 +281,7 @@ class DeepEnsemblePosterior(Posterior):
         if allowed_states is not None and not isinstance(state, allowed_states):
             raise ValueError(
                 f"The type of the restored checkpoint must be within {allowed_states}. "
-                f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                f"However, {fit_config.checkpointer.restore_checkpoint_dir} pointed to a state "
                 f"with type {type(state)}."
             )
 

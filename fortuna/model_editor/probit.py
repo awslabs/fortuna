@@ -17,12 +17,16 @@ from fortuna.typing import (
     InputData,
     Params,
 )
-from fortuna.utils.probit import probit_scaling
+from fortuna.utils.probit import sequential_probit_scaling
 
 
-class ProbitClassificationModelEditor(ModelEditor):
+class ProbitModelEditor(ModelEditor):
     freeze_fun: Optional[Callable[[Tuple[AnyKey, ...], Array], str]] = None
     top_k: Optional[int] = None
+    memory: Optional[int] = None
+    n_final_tokens: Optional[int] = None
+    init_log_var: float = -5.0
+    stop_gradient: bool = False
 
     @nn.compact
     def __call__(
@@ -34,8 +38,10 @@ class ProbitClassificationModelEditor(ModelEditor):
         x: Any,
         has_aux: bool,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
-        log_var = self.param("log_var", nn.initializers.zeros, (1,))
-        outputs = probit_scaling(
+        log_var = self.param(
+            "log_var", nn.initializers.constant(self.init_log_var), (1,)
+        )
+        outputs = sequential_probit_scaling(
             apply_fn,
             model_params,
             x,
@@ -43,5 +49,8 @@ class ProbitClassificationModelEditor(ModelEditor):
             has_aux=has_aux,
             freeze_fun=self.freeze_fun,
             top_k=self.top_k,
+            memory=self.memory,
+            n_final_tokens=self.n_final_tokens,
+            stop_gradient=self.stop_gradient,
         )
         return outputs

@@ -10,20 +10,23 @@ from typing import (
 
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
+from orbax.checkpoint.checkpoint_manager import CheckpointManager
 
 from fortuna.data.loader import DataLoader
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
-from fortuna.prob_model.posterior.posterior_mixin import WithPosteriorCheckpointingMixin
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import (
     Path,
+    Shape,
     Status,
 )
+from fortuna.utils.checkpoint import get_checkpoint_manager
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.nested_dicts import (
     nested_get,
@@ -46,10 +49,15 @@ class PosteriorApproximator(abc.ABC):
         return {}
 
 
-class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
+class Posterior(WithRNG):
     state = None
 
-    def __init__(self, joint: Joint, posterior_approximator: PosteriorApproximator):
+    def __init__(
+        self,
+        joint: Joint,
+        posterior_approximator: PosteriorApproximator,
+        partition_manager: PartitionManager,
+    ):
         r"""
         Posterior distribution class. This refers to :math:`p(w|\mathcal{D}, \phi)`, where :math:`w` are the random
         model parameters, :math:`\mathcal{D}` is a training data set and :math:`\phi` are calibration parameters.
@@ -60,35 +68,43 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
             A joint distribution object.
         posterior_approximator: PosteriorApproximator
             A posterior approximator.
+        partition_manager: PartitionManager
+            An object to manage partitions.
         """
         super().__init__()
         self.joint = joint
         self.posterior_approximator = posterior_approximator
+        self.partition_manager = partition_manager
 
     def _restore_state_from_somewhere(
         self,
         fit_config: FitConfig,
         allowed_states: Optional[Tuple[Type[PosteriorState], ...]] = None,
+        checkpoint_manager: Optional[CheckpointManager] = None,
     ) -> PosteriorState:
-        if fit_config.checkpointer.restore_checkpoint_path is not None:
-            state = self.restore_checkpoint(
-                restore_checkpoint_path=fit_config.checkpointer.restore_checkpoint_path,
-                optimizer=fit_config.optimizer.method,
+        if checkpoint_manager is not None:
+            repo = PosteriorStateRepository(
+                partition_manager=self.partition_manager,
+                checkpoint_manager=checkpoint_manager,
             )
+            state = repo.get(optimizer=fit_config.optimizer.method)
         elif fit_config.checkpointer.start_from_current_state is not None:
             state = self.state.get(optimizer=fit_config.optimizer.method)
 
         if allowed_states is not None and not isinstance(state, allowed_states):
             raise ValueError(
                 f"The type of the restored checkpoint must be within {allowed_states}. "
-                f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
-                f"with type {type(state)}."
+                f"However, the restored checkpoint has type {type(state)}."
             )
 
         return state
 
-    def _init_joint_state(self, data_loader: DataLoader) -> JointState:
-        return self.joint.init(input_shape=data_loader.input_shape)
+    def _init_joint_state(
+        self, data_loader: Optional[DataLoader] = None, input_shape: Optional[Shape] = None, rng: Optional[PRNGKeyArray] = None
+    ) -> JointState:
+        if data_loader is None and input_shape is None:
+            raise ValueError("At least one between `data_loader` and `input_shape` must be provided.")
+        return self.joint.init(input_shape=input_shape or data_loader.input_shape, rng=rng)
 
     @staticmethod
     def _freeze_optimizer_in_state(
@@ -165,33 +181,29 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         """
         pass
 
-    def load_state(self, checkpoint_path: Path) -> None:
+    def load_state(self, checkpoint_dir: Path) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be
         compatible with the current probabilistic model.
 
         Parameters
         ----------
-        checkpoint_path: Path
+        checkpoint_dir: Path
             Path to checkpoint file or directory to restore.
         """
-        try:
-            self.restore_checkpoint(checkpoint_path)
-        except ValueError:
-            raise ValueError(
-                f"No checkpoint was found in `checkpoint_path={checkpoint_path}`."
-            )
-        self.state = PosteriorStateRepository(checkpoint_dir=checkpoint_path)
+        self.state = PosteriorStateRepository(
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
+        )
+        self.partition_manager.shapes_dtypes = self.state.get_shapes_dtypes_checkpoint()
 
-    def save_state(
-        self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1
-    ) -> None:
+    def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         """
         Save the state of the posterior distribution to a checkpoint directory.
 
         Parameters
         ----------
-        checkpoint_path: Path
+        checkpoint_dir: Path
             Path to checkpoint file or directory to restore.
         keep_top_n_checkpoints: int
             Number of past checkpoint files to keep.
@@ -203,7 +215,7 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
             )
         return self.state.put(
             self.state.get(),
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             keep=keep_top_n_checkpoints,
         )
 
@@ -216,10 +228,9 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
                 "`save_checkpoint_dir` must be passed when `dump_state` is set to True."
             )
 
-    @staticmethod
-    def _is_state_available_somewhere(fit_config: FitConfig) -> bool:
+    def _is_state_available_somewhere(self, fit_config: FitConfig) -> bool:
         return (
-            fit_config.checkpointer.restore_checkpoint_path is not None
+            fit_config.checkpointer.restore_checkpoint_dir is not None
             or fit_config.checkpointer.start_from_current_state
         )
 
@@ -234,7 +245,7 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
             logging.warning(
                 "Parameters frozen via `fit_config.optimizer.freeze_fun` will not be updated. To start "
                 "from sensible frozen parameters, you should configure "
-                "`fit_config.checkpointer.restore_checkpoint_path`, or "
+                "`fit_config.checkpointer.restore_checkpoint_dir`, or "
                 "`fit_config.checkpointer.start_from_current_state`, or `map_fit_config`. "
                 "Otherwise, "
                 "a randomly initialized configuration of frozen parameters will be returned."

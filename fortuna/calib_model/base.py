@@ -137,11 +137,11 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             rng=self.rng.get(),
             state=state,
             loss_fun=loss,
-            training_dataloader=calib_data_loader,
+            training_data_loader=calib_data_loader,
             training_dataset_size=n_calib_data,
             n_epochs=config.optimizer.n_epochs,
             metrics=config.monitor.metrics,
-            validation_dataloader=val_data_loader,
+            validation_data_loader=val_data_loader,
             validation_dataset_size=n_val_data,
             verbose=config.monitor.verbose,
             callbacks=config.callbacks,
@@ -158,30 +158,28 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             logging.info("Calibration completed.")
         return status
 
-    def load_state(self, checkpoint_path: Path) -> None:
+    def load_state(self, checkpoint_dir: Path) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
         probabilistic model.
 
         Parameters
         ----------
-        checkpoint_path : Path
+        checkpoint_dir : Path
             Path to a checkpoint file or directory to restore.
         """
         try:
-            self.restore_checkpoint(checkpoint_path)
+            self.restore_checkpoint(checkpoint_dir)
         except ValueError:
             raise ValueError(
-                f"No checkpoint was found in `checkpoint_path={checkpoint_path}`."
+                f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
             )
-        self.predictive.state = CalibStateRepository(checkpoint_dir=checkpoint_path)
+        self.predictive.state = CalibStateRepository(checkpoint_dir=checkpoint_dir)
 
-    def save_state(
-        self, checkpoint_path: Path, keep_top_n_checkpoints: int = 1
-    ) -> None:
+    def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         return self.predictive.state.put(
             self.predictive.state.get(),
-            checkpoint_path=checkpoint_path,
+            checkpoint_dir=checkpoint_dir,
             keep=keep_top_n_checkpoints,
         )
 
@@ -224,7 +222,7 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
         )
 
     def _init_state(self, calib_data_loader: DataLoader, config: Config) -> CalibState:
-        if config.checkpointer.restore_checkpoint_path is None:
+        if config.checkpointer.restore_checkpoint_dir is None:
             if config.checkpointer.start_from_current_state:
                 state = self.predictive.state.get(optimizer=config.optimizer.method)
             else:
@@ -233,10 +231,10 @@ class CalibModel(WithCalibCheckpointingMixin, abc.ABC):
             if config.checkpointer.start_from_current_state:
                 logging.warning(
                     "`config.checkpointer.start_from_current_state` will be ignored since "
-                    "`config.checkpointer.restore_checkpoint_path` is given."
+                    "`config.checkpointer.restore_checkpoint_dir` is given."
                 )
             state = self.restore_checkpoint(
-                restore_checkpoint_path=config.checkpointer.restore_checkpoint_path,
+                restore_checkpoint_dir=config.checkpointer.restore_checkpoint_dir,
                 optimizer=config.optimizer.method,
             )
         return state

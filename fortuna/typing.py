@@ -30,3 +30,4 @@ Uncertainties = jnp.ndarray
 Predictions = jnp.ndarray
 AnyKey = Union[str, int]
 Shape = Union[Iterable[int], Dict[str, Iterable[int]]]
+AxisDims = Dict

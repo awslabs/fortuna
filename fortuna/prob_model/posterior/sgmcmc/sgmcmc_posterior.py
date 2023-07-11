@@ -84,12 +84,12 @@ class SGMCMCPosterior(Posterior):
         fit_config: FitConfig,
         allowed_states: Optional[Tuple[Type[MAPState], ...]] = None,
     ) -> MAPState:
-        if fit_config.checkpointer.restore_checkpoint_path is not None:
-            restore_checkpoint_path = (
-                pathlib.Path(fit_config.checkpointer.restore_checkpoint_path) / "c"
+        if fit_config.checkpointer.restore_checkpoint_dir is not None:
+            restore_checkpoint_dir = (
+                pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir) / "c"
             )
             state = self.restore_checkpoint(
-                restore_checkpoint_path=restore_checkpoint_path,
+                restore_checkpoint_dir=restore_checkpoint_dir,
                 optimizer=fit_config.optimizer.method,
             )
         elif fit_config.checkpointer.start_from_current_state is not None:
@@ -101,7 +101,7 @@ class SGMCMCPosterior(Posterior):
         if allowed_states is not None and not isinstance(state, allowed_states):
             raise ValueError(
                 f"The type of the restored checkpoint must be within {allowed_states}. "
-                f"However, {fit_config.checkpointer.restore_checkpoint_path} pointed to a state "
+                f"However, {fit_config.checkpointer.restore_checkpoint_dir} pointed to a state "
                 f"with type {type(state)}."
             )
 

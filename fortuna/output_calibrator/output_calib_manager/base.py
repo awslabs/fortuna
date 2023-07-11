@@ -6,10 +6,10 @@ from typing import (
 
 from flax.core import FrozenDict
 import flax.linen as nn
-from flax.training.checkpoints import PyTree
 from jax import random
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
+from optax._src.base import PyTree
 
 from fortuna.typing import (
     Array,
@@ -106,7 +106,9 @@ class OutputCalibManager(WithRNG):
         rng, params_key, dropout_key = random.split(rng, 3)
         rngs = {"params": params_key, "dropout": dropout_key}
         return (
-            self.output_calibrator.init(rngs, jnp.zeros((1, output_dim)), **kwargs)
+            FrozenDict(
+                self.output_calibrator.init(rngs, jnp.zeros((1, output_dim)), **kwargs)
+            )
             if self.output_calibrator is not None
             else None
         )

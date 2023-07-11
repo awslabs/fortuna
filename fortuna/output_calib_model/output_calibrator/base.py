@@ -31,14 +31,11 @@ from fortuna.data.loader import (
     TargetsLoader,
 )
 from fortuna.output_calib_model.state import OutputCalibState
-from fortuna.training.mixin import (
-    InputValidatorMixin,
-    WithCheckpointingMixin,
-    WithEarlyStoppingMixin,
-)
+from fortuna.training.mixins.checkpointing import WithCheckpointingMixin
+from fortuna.training.mixins.early_stopping import WithEarlyStoppingMixin
+from fortuna.training.mixins.input_validator import InputValidatorMixin
 from fortuna.typing import (
     Array,
-    Batch,
     CalibMutable,
     CalibParams,
     Path,
@@ -47,7 +44,7 @@ from fortuna.typing import (
 from fortuna.utils.builtins import HashableMixin
 
 
-class OutputCalibratorABC(
+class OutputCalibModelCalibrator(
     HashableMixin,
     WithCheckpointingMixin,
     WithEarlyStoppingMixin,
@@ -57,10 +54,12 @@ class OutputCalibratorABC(
     def __init__(
         self,
         *args,
-        calib_outputs_loader: TargetsLoader,
+        calib_outputs: Array,
+        calib_targets: Array,
         predict_fn: Callable[[jnp.ndarray], jnp.ndarray],
         uncertainty_fn: Callable[[jnp.ndarray], jnp.ndarray],
-        val_outputs_loader: Optional[TargetsLoader] = None,
+        val_outputs: Array,
+        val_targets: Array,
         save_checkpoint_dir: Optional[Path] = None,
         save_every_n_steps: Optional[int] = None,
         keep_top_n_checkpoints: int = 2,
@@ -68,9 +67,11 @@ class OutputCalibratorABC(
         eval_every_n_epochs: int = 1,
         **kwargs,
     ):
-        super(OutputCalibratorABC, self).__init__(*args, **kwargs)
-        self._calib_outputs_loader = calib_outputs_loader
-        self._val_outputs_loader = val_outputs_loader
+        super(OutputCalibModelCalibrator, self).__init__(*args, **kwargs)
+        self._calib_outputs = calib_outputs
+        self._calib_targets = calib_targets
+        self._val_outputs = val_outputs
+        self._val_targets = val_targets
         self.predict_fn = predict_fn
         self.uncertainty_fn = uncertainty_fn
         self.save_checkpoint_dir = save_checkpoint_dir
@@ -85,27 +86,23 @@ class OutputCalibratorABC(
         rng: PRNGKeyArray,
         state: OutputCalibState,
         loss_fun: Callable,
-        training_data_loader: DataLoader,
-        training_dataset_size: int,
         n_epochs: int = 1,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ] = None,
-        val_data_loader: Optional[DataLoader] = None,
-        val_dataset_size: Optional[int] = None,
         verbose: bool = True,
     ) -> Tuple[OutputCalibState, Status]:
         training_losses_and_metrics = collections.defaultdict(list)
         val_losses_and_metrics = collections.defaultdict(list)
 
-        state, data_loaders, outputs_loaders, rng = self.on_train_start(
+        state, targets, outputs, rng = self.on_train_start(
             state,
-            [training_data_loader, val_data_loader],
-            [self._calib_outputs_loader, self._val_outputs_loader],
+            [self._calib_targets, self._val_targets],
+            [self._calib_outputs, self._val_outputs],
             rng,
         )
-        training_data_loader, val_data_loader = data_loaders
-        calib_outputs_loader, val_outputs_loader = outputs_loaders
+        calib_targets, val_targets = targets
+        calib_outputs, val_outputs = outputs
 
         progress_bar = trange(n_epochs, desc="Epoch")
         for epoch in progress_bar:
@@ -120,9 +117,8 @@ class OutputCalibratorABC(
                 metrics,
                 rng,
                 state,
-                training_data_loader,
-                calib_outputs_loader,
-                training_dataset_size,
+                calib_targets,
+                calib_outputs,
                 verbose,
                 progress_bar,
             )
@@ -133,7 +129,7 @@ class OutputCalibratorABC(
                 )
 
             # validation loop
-            if self.should_perform_validation(val_data_loader, epoch):
+            if self.should_perform_validation(val_targets, epoch):
                 # performance evaluation on the whole validation dataset
                 state = self.on_val_start(state)
                 (
@@ -144,9 +140,8 @@ class OutputCalibratorABC(
                     metrics=metrics,
                     rng=rng,
                     state=state,
-                    val_data_loader=val_data_loader,
-                    val_outputs_loader=val_outputs_loader,
-                    val_dataset_size=val_dataset_size,
+                    targets=val_targets,
+                    outputs=val_outputs,
                     verbose=verbose,
                 )
                 if verbose:
@@ -180,45 +175,39 @@ class OutputCalibratorABC(
         ],
         rng: PRNGKeyArray,
         state: OutputCalibState,
-        training_data_loader: DataLoader,
-        calib_outputs_loader: TargetsLoader,
-        training_dataset_size: int,
+        targets: Array,
+        outputs: Array,
         verbose: bool,
         progress_bar: TqdmDecorator,
     ) -> Tuple[OutputCalibState, Dict[str, float], str]:
         training_losses_and_metrics_epoch_all_steps = []
         training_batch_metrics_str = ""
-        for step, (batch, outputs) in enumerate(
-            zip(training_data_loader, calib_outputs_loader)
-        ):
-            # forward and backward pass
-            state, aux = self.training_step(
-                state, batch, outputs, loss_fun, rng, training_dataset_size
+        # forward and backward pass
+        state, aux = self.training_step(state, targets, outputs, loss_fun, rng)
+        # compute training losses and metrics for the current batch
+        training_losses_and_metrics_current_batch = self.training_step_end(
+            current_epoch=current_epoch,
+            state=state,
+            aux=aux,
+            targets=targets,
+            metrics=metrics,
+        )
+        # keep track of training losses and metrics [granularity=batch]
+        training_losses_and_metrics_epoch_all_steps.append(
+            training_losses_and_metrics_current_batch
+        )
+        # logging
+        if verbose:
+            training_batch_metrics_str = " | ".join(
+                [
+                    f"{m}: {round(float(v), 5)}"
+                    for m, v in training_losses_and_metrics_current_batch.items()
+                ]
             )
-            # compute training losses and metrics for the current batch
-            training_losses_and_metrics_current_batch = self.training_step_end(
-                current_epoch=current_epoch,
-                state=state,
-                aux=aux,
-                batch=batch,
-                metrics=metrics,
+            progress_bar.set_description(
+                f"Epoch: {current_epoch + 1} | " + training_batch_metrics_str,
+                refresh=True,
             )
-            # keep track of training losses and metrics [granularity=batch]
-            training_losses_and_metrics_epoch_all_steps.append(
-                training_losses_and_metrics_current_batch
-            )
-            # logging
-            if verbose:
-                training_batch_metrics_str = " | ".join(
-                    [
-                        f"{m}: {round(float(v), 5)}"
-                        for m, v in training_losses_and_metrics_current_batch.items()
-                    ]
-                )
-                progress_bar.set_description(
-                    f"Epoch: {current_epoch + 1} | " + training_batch_metrics_str,
-                    refresh=True,
-                )
 
         # compute training losses and metrics avg for the current epoch + other ops (if needed)
         training_losses_and_metrics_current_epoch = self.training_epoch_end(
@@ -234,18 +223,22 @@ class OutputCalibratorABC(
     def training_step(
         self,
         state: OutputCalibState,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         loss_fun: Callable,
         rng: PRNGKeyArray,
-        n_data: int,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
         # ensure to use a different key at each step
         model_key = random.fold_in(rng, state.step)
 
         grad_fn = value_and_grad(
             lambda params: self.training_loss_step(
-                loss_fun, params, batch, outputs, state.mutable, model_key, n_data
+                loss_fun,
+                params,
+                targets,
+                outputs,
+                state.mutable,
+                model_key,
             ),
             has_aux=True,
         )
@@ -262,25 +255,42 @@ class OutputCalibratorABC(
             },
         )
 
-    @abc.abstractmethod
     def training_loss_step(
         self,
         loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
         params: CalibParams,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         mutable: CalibMutable,
         rng: PRNGKeyArray,
-        n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, Any]]:
-        pass
+        return_aux = ["outputs"]
+        if mutable is not None:
+            return_aux += ["mutable"]
+        loss, aux = loss_fun(
+            params=params,
+            targets=targets,
+            outputs=outputs,
+            mutable=mutable,
+            rng=rng,
+            return_aux=["outputs", "mutable"],
+        )
+        logging_kwargs = None
+        return (
+            loss,
+            {
+                "outputs": aux.get("outputs"),
+                "mutable": aux.get("mutable"),
+                "logging_kwargs": logging_kwargs,
+            },
+        )
 
     def training_step_end(
         self,
         current_epoch: int,
         state: OutputCalibState,
         aux: Dict[str, Any],
-        batch: Batch,
+        targets: Array,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ],
@@ -309,14 +319,14 @@ class OutputCalibratorABC(
                         (uncertainties.shape[0] * uncertainties.shape[1],)
                         + uncertainties.shape[2:]
                     ),
-                    batch[1].reshape(
-                        (batch[1].shape[0] * batch[1].shape[1],) + batch[1].shape[2:]
+                    targets.reshape(
+                        (targets.shape[0] * targets.shape[1],) + targets.shape[2:]
                     ),
                     metrics,
                 )
             else:
                 training_batch_metrics = self.compute_metrics(
-                    preds, uncertainties, batch[1], metrics
+                    preds, uncertainties, targets, metrics
                 )
             for k, v in training_batch_metrics.items():
                 training_losses_and_metrics[k] = v
@@ -330,26 +340,23 @@ class OutputCalibratorABC(
         ],
         rng: PRNGKeyArray,
         state: OutputCalibState,
-        val_data_loader: DataLoader,
-        val_outputs_loader: TargetsLoader,
-        val_dataset_size: int,
+        targets: Array,
+        outputs: Array,
         verbose: bool = True,
     ) -> Tuple[Dict[str, float], str]:
         val_losses_and_metrics_epoch_all_steps = []
         val_epoch_metrics_str = ""
-        for batch, outputs in zip(val_data_loader, val_outputs_loader):
-            val_losses_and_metrics_current_batch = self.val_step(
-                state,
-                batch,
-                outputs,
-                loss_fun,
-                rng,
-                val_dataset_size,
-                metrics,
-            )
-            val_losses_and_metrics_epoch_all_steps.append(
-                val_losses_and_metrics_current_batch
-            )
+        val_losses_and_metrics_current_batch = self.val_step(
+            state,
+            targets,
+            outputs,
+            loss_fun,
+            rng,
+            metrics,
+        )
+        val_losses_and_metrics_epoch_all_steps.append(
+            val_losses_and_metrics_current_batch
+        )
         # compute validation losses and metrics for the current epoch
         val_losses_and_metrics_current_epoch = self.val_epoch_end(
             val_losses_and_metrics_epoch_all_steps, state
@@ -367,35 +374,40 @@ class OutputCalibratorABC(
     def val_step(
         self,
         state: OutputCalibState,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         loss_fun: Callable,
         rng: PRNGKeyArray,
-        n_data: int,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ] = None,
     ) -> Dict[str, jnp.ndarray]:
-        val_loss, aux = self.val_loss_step(state, batch, outputs, loss_fun, rng, n_data)
-        val_metrics = self.val_metrics_step(aux, batch, metrics)
+        val_loss, aux = self.val_loss_step(state, targets, outputs, loss_fun, rng)
+        val_metrics = self.val_metrics_step(aux, targets, metrics)
         return {"val_loss": val_loss, **val_metrics}
 
-    @abc.abstractmethod
     def val_loss_step(
         self,
         state: OutputCalibState,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         loss_fun: Callable,
         rng: PRNGKeyArray,
-        n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
-        pass
+        loss, aux = loss_fun(
+            params=state.params,
+            targets=targets,
+            outputs=outputs,
+            mutable=state.mutable,
+            rng=rng,
+            return_aux=["outputs"],
+        )
+        return loss, aux
 
     def val_metrics_step(
         self,
         aux: Dict[str, jnp.ndarray],
-        batch: Batch,
+        targets: Array,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ] = None,
@@ -404,7 +416,7 @@ class OutputCalibratorABC(
             val_metrics = self.compute_metrics(
                 self.predict_fn(aux["outputs"]),
                 self.uncertainty_fn(aux["outputs"]),
-                batch[1],
+                targets,
                 metrics,
             )
             return {f"val_{m}": v for m, v in val_metrics.items()}
@@ -428,7 +440,7 @@ class OutputCalibratorABC(
         )
         # early stopping
         improved = self.early_stopping_update(val_losses_and_metrics_current_epoch)
-        if improved and self.save_checkpoint_dir:
+        if improved and self.save_checkpoint_dir is not None:
             self.save_checkpoint(state, self.save_checkpoint_dir, force_save=True)
         return val_losses_and_metrics_current_epoch
 
@@ -457,11 +469,11 @@ class OutputCalibratorABC(
     def on_train_start(
         self,
         state: OutputCalibState,
-        data_loaders: List[DataLoader],
-        outputs_loaders: List[TargetsLoader],
+        targets: List[Array],
+        outputs: List[Array],
         rng: PRNGKeyArray,
-    ) -> Tuple[OutputCalibState, List[DataLoader], List[TargetsLoader], PRNGKeyArray]:
-        return state, data_loaders, outputs_loaders, rng
+    ) -> Tuple[OutputCalibState, List[Array], List[Array], PRNGKeyArray]:
+        return state, targets, outputs, rng
 
     def on_train_end(self, state: OutputCalibState) -> OutputCalibState:
         self.save_checkpoint(
@@ -491,29 +503,27 @@ class OutputCalibratorABC(
 
 
 class JittedMixin:
-    @partial(jax.jit, static_argnums=(0, 4, 6))
+    @partial(jax.jit, static_argnums=(0, 4))
     def training_step(
         self,
         state: OutputCalibState,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         loss_fun: Callable,
         rng: PRNGKeyArray,
-        n_data: int,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
-        return super().training_step(state, batch, outputs, loss_fun, rng, n_data)
+        return super().training_step(state, targets, outputs, loss_fun, rng)
 
-    @partial(jax.jit, static_argnums=(0, 4, 6))
+    @partial(jax.jit, static_argnums=(0, 4))
     def val_loss_step(
         self,
         state: OutputCalibState,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         loss_fun: Callable,
         rng: PRNGKeyArray,
-        n_data: int,
     ) -> Dict[str, jnp.ndarray]:
-        return super().val_loss_step(state, batch, outputs, loss_fun, rng, n_data)
+        return super().val_loss_step(state, targets, outputs, loss_fun, rng)
 
 
 class MultiDeviceMixin:
@@ -524,62 +534,14 @@ class MultiDeviceMixin:
         self.multi_device = True
 
     @staticmethod
-    def _add_device_dim_to_data_loader(data_loader: DataLoader) -> DataLoader:
-        def _reshape_batch(batch):
-            n_devices = jax.local_device_count()
-            if batch.shape[0] % n_devices != 0:
-                raise ValueError(
-                    f"The size of all batches must be a multiple of {n_devices}, that is the number of "
-                    f"available devices. However, a batch with shape {batch.shape[0]} was found. "
-                    f"Please set an appropriate batch size."
-                )
-            return batch.reshape((n_devices, -1) + batch.shape[1:])
-
-        class DataLoaderWrapper:
-            def __init__(self, data_loader: DataLoader):
-                self._data_loader = data_loader
-
-            def __iter__(self):
-                data_loader = map(
-                    lambda batch: tree_map(_reshape_batch, batch), self._data_loader
-                )
-                data_loader = jax_utils.prefetch_to_device(data_loader, 2)
-                yield from data_loader
-
-        return (
-            DataLoaderWrapper(data_loader) if data_loader is not None else data_loader
-        )
-
-    @staticmethod
-    def _add_device_dim_to_outputs_loader(
-        outputs_loader: TargetsLoader,
-    ) -> TargetsLoader:
-        def _reshape_batch(batch):
-            n_devices = jax.local_device_count()
-            if batch.shape[0] % n_devices != 0:
-                raise ValueError(
-                    f"The size of all output batches must be a multiple of {n_devices}, that is the number of "
-                    f"available devices. However, a batch of outputs with shape {batch.shape[0]} was found. "
-                    f"Please set an appropriate batch size."
-                )
-            return batch.reshape((n_devices, -1) + batch.shape[1:])
-
-        class TargetsLoaderWrapper:
-            def __init__(self, outputs_loader: TargetsLoader):
-                self._outputs_loader = outputs_loader
-
-            def __iter__(self):
-                outputs_loader = map(
-                    lambda batch: tree_map(_reshape_batch, batch), self._outputs_loader
-                )
-                outputs_loader = jax_utils.prefetch_to_device(outputs_loader, 2)
-                yield from outputs_loader
-
-        return (
-            TargetsLoaderWrapper(outputs_loader)
-            if outputs_loader is not None
-            else outputs_loader
-        )
+    def _add_device_dim_to_array(arr: Array) -> Array:
+        n_devices = jax.local_device_count()
+        if arr.shape[0] % n_devices != 0:
+            raise ValueError(
+                f"The number of data points of all outputs and targets must be a multiple of {n_devices}, "
+                f"that is the number of available devices. However, {arr.shape[0]} were found."
+            )
+        return arr.reshape((n_devices, -1) + arr.shape[1:]) if arr is not None else arr
 
     @staticmethod
     def sync_mutable(state: OutputCalibState) -> OutputCalibState:
@@ -603,7 +565,7 @@ class MultiDeviceMixin:
         save_checkpoint_dir: Path,
         keep: int = 1,
         force_save: bool = False,
-        prefix: str = "checkpoint_",
+        prefix: str = "",
     ) -> None:
         state = self.sync_mutable(state)
         state = jax.device_get(tree_map(lambda x: x[0], state))
@@ -614,51 +576,50 @@ class MultiDeviceMixin:
     def on_train_start(
         self,
         state: OutputCalibState,
-        data_loaders: List[DataLoader],
-        outputs_loaders: List[TargetsLoader],
+        targets: List[Array],
+        outputs: List[Array],
         rng: PRNGKeyArray,
     ) -> Tuple[OutputCalibState, List[DataLoader], List[TargetsLoader], PRNGKeyArray]:
-        state, data_loaders, outputs_loaders, rng = super(
-            MultiDeviceMixin, self
-        ).on_train_start(state, data_loaders, outputs_loaders, rng)
+        state, targets, outputs, rng = super(MultiDeviceMixin, self).on_train_start(
+            state, targets, outputs, rng
+        )
         state = jax_utils.replicate(state)
-        data_loaders = [
-            self._add_device_dim_to_data_loader(dl) if dl is not None else dl
-            for dl in data_loaders
+        targets = [
+            self._add_device_dim_to_array(arr) if arr is not None else arr
+            for arr in targets
         ]
-        outputs_loaders = [
-            self._add_device_dim_to_outputs_loader(ol) if ol is not None else ol
-            for ol in outputs_loaders
+        outputs = [
+            self._add_device_dim_to_array(arr) if arr is not None else arr
+            for arr in outputs
         ]
         model_key = random.split(rng, jax.local_device_count())
-        return state, data_loaders, outputs_loaders, model_key
+        return state, targets, outputs, model_key
 
     def on_train_end(self, state: OutputCalibState) -> OutputCalibState:
         state = super(MultiDeviceMixin, self).on_train_end(state)
         return jax.device_get(tree_map(lambda x: x[0], state))
 
-    @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 4, 6))
+    @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 4))
     def training_step(
         self,
         state: OutputCalibState,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         loss_fun: Callable,
         rng: PRNGKeyArray,
-        n_data: int,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
-        return super().training_step(state, batch, outputs, loss_fun, rng, n_data)
+        return super().training_step(state, targets, outputs, loss_fun, rng)
 
     def training_step_end(
         self,
         current_epoch: int,
         state: OutputCalibState,
         aux: Dict[str, Any],
-        batch: Batch,
-        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
+        targets: Array,
+        metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], Array], ...]],
     ) -> Dict[str, jnp.ndarray]:
         training_losses_and_metrics = super(MultiDeviceMixin, self).training_step_end(
-            current_epoch, state, aux, batch, metrics
+            current_epoch, state, aux, targets, metrics
         )
         return tree_map(lambda x: x.mean(), training_losses_and_metrics)
 
@@ -668,30 +629,29 @@ class MultiDeviceMixin:
             state = self.sync_mutable(state)
         return state
 
-    @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 4, 6))
+    @partial(jax.pmap, axis_name="batch", static_broadcasted_argnums=(0, 4))
     def val_loss_step(
         self,
         state: OutputCalibState,
-        batch: Batch,
+        targets: Array,
         outputs: Array,
         loss_fun: Callable,
         rng: PRNGKeyArray,
-        n_data: int,
     ) -> Dict[str, jnp.ndarray]:
-        val_losses = super().val_loss_step(state, batch, outputs, loss_fun, rng, n_data)
+        val_losses = super().val_loss_step(state, targets, outputs, loss_fun, rng)
         return lax.pmean(val_losses, axis_name="batch")
 
     def val_metrics_step(
         self,
         aux: Dict[str, jnp.ndarray],
-        batch: Batch,
+        targets: Array,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ] = None,
     ) -> Dict[str, jnp.ndarray]:
         outputs = aux["outputs"]
         outputs = outputs.reshape(outputs.shape[0] * outputs.shape[1], -1)
-        targets = batch[1].reshape(batch[1].shape[0] * batch[1].shape[1], -1)
+        targets = targets.reshape(targets.shape[0] * targets.shape[1], -1)
         if metrics is not None:
             val_metrics = self.compute_metrics(
                 self.predict_fn(outputs), self.uncertainty_fn(outputs), targets, metrics
@@ -699,3 +659,13 @@ class MultiDeviceMixin:
             return {f"val_{m}": v for m, v in val_metrics.items()}
         else:
             return {}
+
+
+class JittedOutputCalibModelCalibrator(JittedMixin, OutputCalibModelCalibrator):
+    pass
+
+
+class MultiDeviceOutputCalibModelCalibrator(
+    MultiDeviceMixin, OutputCalibModelCalibrator
+):
+    pass
