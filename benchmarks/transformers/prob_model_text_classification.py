@@ -36,7 +36,6 @@ from fortuna.metric.classification import (
     accuracy,
     expected_calibration_error,
 )
-from fortuna.model_editor.classification import ProbitClassificationModelEditor
 from fortuna.prob_model import (
     ADVIPosteriorApproximator,
     DeepEnsemblePosteriorApproximator,
@@ -401,9 +400,6 @@ if __name__ == "__main__":
         ],
         prior=IsotropicGaussianPrior(log_var=args.prior_log_var),
         output_calibrator=None,
-        model_editor=ProbitClassificationModelEditor(
-            freeze_fun=lambda p, v: True if "classifier" in p else False, top_k=10
-        ),
     )
 
     fit_config = FitConfig(
