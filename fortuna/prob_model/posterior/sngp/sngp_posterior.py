@@ -13,6 +13,8 @@ from fortuna.prob_model.posterior.sngp.sngp_callback import ResetCovarianceCallb
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Status
 from fortuna.utils.nested_dicts import find_one_path_to_key
+from fortuna.partitioner.partition_manager.base import PartitionManager
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,7 @@ class SNGPPosterior(MAPPosterior):
         self,
         joint: Joint,
         posterior_approximator: SNGPPosteriorApproximator,
+        partition_manager: PartitionManager,
     ):
         """
         Spectral-normalized Neural Gaussian Process (`SNGP <https://arxiv.org/abs/2006.10108>`_) approximate posterior class.
@@ -33,7 +36,7 @@ class SNGPPosterior(MAPPosterior):
         posterior_approximator: SNGPPosteriorApproximator
             An SNGP posterior approximator.
         """
-        super().__init__(joint=joint, posterior_approximator=posterior_approximator)
+        super().__init__(joint=joint, posterior_approximator=posterior_approximator, partition_manager=partition_manager)
 
     def fit(
         self,

@@ -7,22 +7,28 @@ from typing import (
     Optional,
     Tuple,
     Union,
+    Any,
+    Callable
 )
-
+from fortuna.data.loader.base import ShardedPrefetchedLoader
 from flax.core import FrozenDict
 from flax.training.common_utils import (
     shard,
     shard_prng_key,
 )
 import jax
+from jax.sharding import PartitionSpec
+from jax.experimental.pjit import pjit
 from jax import (
     devices,
     hessian,
     jit,
     lax,
     pmap,
+    random,
     vjp,
 )
+import jax.scipy as jsp
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
@@ -58,15 +64,19 @@ from fortuna.typing import (
     Mutable,
     Params,
     Status,
+    Array
 )
+from fortuna.utils.checkpoint import get_checkpoint_manager
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.nested_dicts import (
     nested_get,
     nested_set,
     nested_unpair,
 )
+from pathlib import Path
 from fortuna.utils.random import generate_random_normal_like_tree
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
+from fortuna.partitioner.partition_manager.base import PartitionManager
 
 
 class LaplacePosterior(Posterior):
@@ -74,6 +84,7 @@ class LaplacePosterior(Posterior):
         self,
         joint: Joint,
         posterior_approximator: LaplacePosteriorApproximator,
+        partition_manager: PartitionManager,
     ):
         """
         Laplace approximation posterior class.
@@ -85,7 +96,7 @@ class LaplacePosterior(Posterior):
         posterior_approximator: LaplacePosteriorApproximator
             A Laplace posterior approximator.
         """
-        super().__init__(joint=joint, posterior_approximator=posterior_approximator)
+        super().__init__(joint=joint, posterior_approximator=posterior_approximator, partition_manager=partition_manager)
         if type(joint.prior) not in [DiagonalGaussianPrior, IsotropicGaussianPrior]:
             raise ValueError(
                 """The Laplace posterior_approximation is not supported for this model. The prior distribution must be one of the
@@ -234,14 +245,27 @@ class LaplacePosterior(Posterior):
 
         status = dict()
 
+        checkpoint_restorer = (
+            get_checkpoint_manager(
+                str(
+                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            )
+            if fit_config.checkpointer.restore_checkpoint_dir is not None
+            else None
+        )
+
         if super()._is_state_available_somewhere(fit_config):
             state = super()._restore_state_from_somewhere(
-                fit_config=fit_config, allowed_states=(MAPState, LaplaceState)
+                fit_config=fit_config, allowed_states=(MAPState, LaplaceState), checkpoint_manager=checkpoint_restorer, _do_reshard=False
             )
 
         elif super()._should_run_preliminary_map(fit_config, map_fit_config):
             state, status["map"] = run_preliminary_map(
                 joint=self.joint,
+                partition_manager=self.partition_manager,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
@@ -282,16 +306,18 @@ class LaplacePosterior(Posterior):
             which_params=which_params,
         )
 
-        if fit_config.checkpointer.save_checkpoint_dir:
-            self.save_checkpoint(
-                state,
-                save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
-                keep=fit_config.checkpointer.keep_top_n_checkpoints,
-                force_save=True,
-            )
-
         self.state = PosteriorStateRepository(
-            fit_config.checkpointer.save_checkpoint_dir
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(
+                checkpoint_dir=str(
+                    Path(fit_config.checkpointer.save_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            )
+            if fit_config.checkpointer.save_checkpoint_dir is not None
+            and fit_config.checkpointer.dump_state
+            else None,
         )
         self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
@@ -299,7 +325,7 @@ class LaplacePosterior(Posterior):
             val_data_loader is not None
             and self.posterior_approximator.tune_prior_log_variance
         ):
-            logging.info("Tuning the prior log-variance now")
+            logging.info("Tuning the prior log-variance now.")
             opt_prior_log_var = self.prior_log_variance_tuning(
                 val_data_loader=val_data_loader,
                 n_posterior_samples=5,
@@ -423,6 +449,7 @@ class LaplacePosterior(Posterior):
         prior_log_var: float,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         import jax.random as random
@@ -432,19 +459,27 @@ class LaplacePosterior(Posterior):
             rng = self.rng.get()
         keys = random.split(rng, n_posterior_samples)
 
-        def _lik_log_batched_prob(key):
-            sample = self.sample(inputs=batch[0], rng=key, prior_log_var=prior_log_var)
+        def _eval_batched_log_prob(params, mutable, calib_params, calib_mutable):
             return self.joint.likelihood._batched_log_prob(
-                sample.params,
+                params,
                 batch,
-                mutable=sample.mutable,
-                calib_params=sample.calib_params,
-                calib_mutable=sample.calib_mutable,
+                mutable=mutable,
+                calib_params=calib_params,
+                calib_mutable=calib_mutable,
                 **kwargs,
             )
 
+        if distribute:
+            _eval_batched_log_prob = pmap(_eval_batched_log_prob)
+        else:
+            _eval_batched_log_prob = jit(_eval_batched_log_prob)
+
+        def fun(key):
+            sample = self.sample(inputs=batch[0], rng=key, prior_log_var=prior_log_var)
+            return _eval_batched_log_prob(sample.params, sample.mutable, sample.calib_params, sample.calib_mutable)
+
         return jsp.special.logsumexp(
-            lax.map(_lik_log_batched_prob, keys), axis=0
+            lax.map(fun, keys), axis=0
         ) - jnp.log(n_posterior_samples)
 
     def prior_log_variance_tuning(
@@ -483,23 +518,16 @@ class LaplacePosterior(Posterior):
         distribute: bool,
     ) -> jnp.ndarray:
         best = None
-        candidates = list(
-            jnp.linspace(min_prior_log_var, max_prior_log_var, grid_size)
-        ) + [jnp.array(self.joint.prior.log_var)]
+        candidates = jnp.concatenate((jnp.linspace(min_prior_log_var, max_prior_log_var, grid_size), jnp.array([self.joint.prior.log_var])))
         if distribute:
-            rng = shard_prng_key(jax.random.PRNGKey(0))
             val_data_loader = DeviceDimensionAugmentedLoader(val_data_loader)
-            candidates = [shard(c) for c in candidates]
-            fn = pmap(self._batched_log_prob, static_broadcasted_argnums=(2,))
-        else:
-            fn = jit(self._batched_log_prob, static_argnums=(2,))
 
         for lpv in tqdm.tqdm(candidates, desc="Tuning prior log-var"):
             neg_log_prob = -jnp.sum(
                 jnp.concatenate(
                     [
                         self.joint.likelihood._unshard_array(
-                            fn(batch, lpv, n_posterior_samples, rng)
+                            self._batched_log_prob(batch, lpv, n_posterior_samples, self.rng.get())
                         )
                         for batch in val_data_loader
                     ],

@@ -14,16 +14,22 @@ from fortuna.typing import (
     OptaxOptimizer,
     Path,
 )
+from fortuna.partitioner.partition_manager.base import PartitionManager
+from orbax.checkpoint import CheckpointManager
 
 
 class PosteriorMultiStateRepository:
-    def __init__(self, size: int, checkpoint_dir: Optional[Path] = None):
+    def __init__(
+            self,
+            size: int,
+            partition_manager: Optional[PartitionManager] = None,
+            checkpoint_manager: Optional[CheckpointManager] = None,
+    ):
         self.size = size
         self.state = [
             PosteriorStateRepository(
-                checkpoint_dir=os.path.join(checkpoint_dir, str(i))
-                if checkpoint_dir
-                else None
+                partition_manager=partition_manager,
+                checkpoint_manager=checkpoint_manager
             )
             for i in range(size)
         ]
@@ -33,14 +39,12 @@ class PosteriorMultiStateRepository:
         i: int = None,
         checkpoint_dir: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "",
         **kwargs,
     ) -> Union[List[PosteriorState], PosteriorState]:
         def _get(_i):
             return self.state[_i].get(
                 checkpoint_dir=checkpoint_dir,
                 optimizer=optimizer,
-                prefix=prefix,
                 **kwargs,
             )
 
@@ -57,11 +61,10 @@ class PosteriorMultiStateRepository:
         i: int = None,
         checkpoint_dir: Optional[Path] = None,
         keep: int = 1,
-        prefix: str = "",
     ) -> None:
         def _put(_i):
             return self.state[_i].put(
-                state=state, checkpoint_dir=checkpoint_dir, keep=keep, prefix=prefix
+                state=state, checkpoint_dir=checkpoint_dir, keep=keep
             )
 
         if i is not None:
@@ -75,15 +78,11 @@ class PosteriorMultiStateRepository:
         i: int = None,
         checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "",
-        **kwargs,
     ) -> PosteriorState:
         def _pull(_i):
             return self.state[_i].pull(
                 checkpoint_dir=checkpoint_dir,
                 optimizer=optimizer,
-                prefix=prefix,
-                **kwargs,
             )
 
         if i is not None:
@@ -100,7 +99,6 @@ class PosteriorMultiStateRepository:
         checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         keep: int = 1,
-        prefix: str = "",
         **kwargs,
     ):
         def _update(_i):
@@ -109,7 +107,6 @@ class PosteriorMultiStateRepository:
                 checkpoint_dir=checkpoint_dir,
                 optimizer=optimizer,
                 keep=keep,
-                prefix=prefix,
                 **kwargs,
             )
 
@@ -124,12 +121,10 @@ class PosteriorMultiStateRepository:
         keys: List[str],
         i: int = None,
         checkpoint_dir: Optional[Path] = None,
-        prefix: str = "",
-        **kwargs,
     ) -> Union[Dict, List[Dict]]:
         def _extract(_i):
             return self.state[_i].extract(
-                keys=keys, checkpoint_dir=checkpoint_dir, prefix=prefix, **kwargs
+                keys=keys, checkpoint_dir=checkpoint_dir
             )
 
         if i is not None:
@@ -142,9 +137,7 @@ class PosteriorMultiStateRepository:
     def extract_calib_keys(
         self,
         checkpoint_dir: Optional[Path] = None,
-        prefix: str = "",
-        **kwargs,
     ) -> Dict:
         return self.extract(
-            ["calib_params", "calib_mutable"], 0, checkpoint_dir, prefix, **kwargs
+            ["calib_params", "calib_mutable"], 0, checkpoint_dir
         )

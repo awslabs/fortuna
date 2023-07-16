@@ -121,7 +121,7 @@ class Predictive(WithRNG):
                 **kwargs,
             )
 
-        if shard:
+        if shard and self.posterior.partition_manager.shardings is not None:
             _lik_log_batched_prob = pjit(
                 _lik_log_batched_prob,
                 in_shardings=(
@@ -266,7 +266,7 @@ class Predictive(WithRNG):
         rng: Optional[PRNGKeyArray] = None,
         shard: bool = True,
         **kwargs,
-    ) -> Tuple[Array, Dict[str, Array]] | Array:
+    ) -> Union[Tuple[Array, Dict[str, Array]], Array]:
         r"""
         Sample from an approximation of the predictive distribution for each input data point, that is
 
@@ -340,7 +340,7 @@ class Predictive(WithRNG):
                 **kwargs,
             )
 
-        if shard:
+        if shard and self.posterior.partition_manager.shardings is not None:
             _sample = pjit(
                 _sample,
                 in_shardings=(
@@ -430,7 +430,7 @@ class Predictive(WithRNG):
                 calib_mutable=calib_mutable,
             )
 
-        if shard:
+        if shard and self.posterior.partition_manager.shardings is not None:
             _apply_fn = pjit(
                 _apply_fn,
                 in_shardings=(
@@ -485,7 +485,7 @@ class Predictive(WithRNG):
                 params=params, inputs=inputs, mutable=mutable
             )
 
-        if shard:
+        if shard and getattr(self.posterior.partition_manager, "shardings") is not None:
             _apply_fn = pjit(
                 _apply_fn,
                 in_shardings=(
@@ -604,7 +604,7 @@ class Predictive(WithRNG):
                 calib_mutable=calib_mutable,
             )
 
-        if shard:
+        if shard and self.posterior.partition_manager.shardings is not None:
             _lik_batched_mean = pjit(
                 _lik_batched_mean,
                 in_shardings=(
@@ -937,8 +937,8 @@ class Predictive(WithRNG):
         is_fun_ensembled: bool = False,
         return_aux: Optional[List[str]] = None,
         **kwargs,
-    ) -> tuple[Any, ...] | Array:
-        if shard:
+    ) -> Union[tuple[Any, ...], Array]:
+        if shard and self.posterior.partition_manager.shardings is not None:
             loader = ShardedPrefetchedLoader(
                 loader=loader, partition_manager=self.posterior.partition_manager
             )

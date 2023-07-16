@@ -8,7 +8,7 @@ import jax
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_map
-
+import pathlib
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi.advi_state import ADVIState
@@ -57,9 +57,12 @@ class ADVITrainer(NormalizingFlowTrainer):
     def on_train_end(self, state: NormalizingFlowState) -> NormalizingFlowState:
         self.save_checkpoint(
             state,
-            save_checkpoint_dir=self.save_checkpoint_dir,
+            save_checkpoint_dir=str(pathlib.Path(self.save_checkpoint_dir) / "last")
+            if self.save_checkpoint_dir is not None
+            else None,
             keep=self.keep_top_n_checkpoints,
             force_save=True,
+            prefix="",
         )
 
         state = state.replace(

@@ -179,7 +179,7 @@ def train_and_sample(
 
 def define_prob_model(task, method, model_editor=None):
     partitioner = Partitioner(
-        axes_dims={"mp": 2, "fsdp": 2, "dp": 2},
+        axes_dims={"mp": 1, "fsdp": 1, "dp": 1},
         rules={"l1/kernel": (None, "mp"), "bn1": ("mp",)},
     )
 
@@ -326,7 +326,7 @@ def dryrun_task(task, method):
             train_data_loader,
             val_data_loader,
             calib_data_loader,
-            save_dir=tmp_dir,
+            save_dir=tmp_dir + "2",
             dump_state=True,
             restore_dir=tmp_dir,
             freeze=freeze_fun,
@@ -338,9 +338,9 @@ def dryrun_task(task, method):
             train_data_loader,
             val_data_loader,
             calib_data_loader,
-            save_dir=tmp_dir,
+            save_dir=tmp_dir + "3",
             dump_state=True,
-            restore_dir=tmp_dir,
+            restore_dir=tmp_dir + "2",
             freeze=freeze_fun,
         )
         train_and_sample(
@@ -359,7 +359,7 @@ def dryrun_task(task, method):
                 save_n_steps=None,
                 freeze=None,
             ),
-            save_dir=tmp_dir,
+            save_dir=tmp_dir + "4",
             dump_state=True,
             freeze=freeze_fun,
         )
@@ -372,12 +372,12 @@ def dryrun_task(task, method):
             val_data_loader,
             calib_data_loader,
             start_current=True,
-            save_dir=tmp_dir + "/tmp",
+            save_dir=tmp_dir + "5",
             save_n_steps=1,
             freeze=freeze_fun,
         )
         prob_model = define_prob_model(task, method)
-        prob_model.load_state(tmp_dir + "/tmp")
+        prob_model.load_state(tmp_dir + "5")
         sample(method, prob_model, train_data_loader)
         prob_model.predictive.log_prob(train_data_loader)
 

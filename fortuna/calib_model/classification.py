@@ -21,11 +21,14 @@ from fortuna.prob_output_layer.classification import (
     ClassificationMaskedProbOutputLayer,
     ClassificationProbOutputLayer,
 )
+from fortuna.partitioner.base import Partitioner
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.typing import (
     Outputs,
     Status,
     Targets,
 )
+from fortuna.calib_model.calib_mixin import WithCalibCheckpointingMixin
 from fortuna.utils.data import get_input_shape
 
 
@@ -34,6 +37,7 @@ class CalibClassifier(CalibModel):
         self,
         model: nn.Module,
         model_editor: Optional[ModelEditor] = None,
+        partitioner: Partitioner = Partitioner(),
         seed: int = 0,
     ):
         r"""
@@ -48,6 +52,8 @@ class CalibClassifier(CalibModel):
             a function :math:`f(w, x)`, where each component of :math:`f` corresponds to one of the classes.
         model_editor : ModelEditor
             A model_editor objects. It takes the forward pass and transforms the outputs.
+        partitioner : Partitioner
+            A partitioning object for data, fully sharded data model parallelization.
         seed: int
             A random seed.
 
@@ -76,6 +82,7 @@ class CalibClassifier(CalibModel):
             prob_output_layer=self.prob_output_layer,
             output_calib_manager=None,
         )
+        self.partition_manager = PartitionManager(partitioner)
         self.predictive = ClassificationPredictive(likelihood=self.likelihood)
         super().__init__(seed=seed)
 

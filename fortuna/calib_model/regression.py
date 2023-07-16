@@ -15,6 +15,9 @@ from fortuna.loss.regression.scaled_mse import scaled_mse_fn
 from fortuna.model.model_manager.regression import RegressionModelManager
 from fortuna.model_editor.base import ModelEditor
 from fortuna.prob_output_layer.regression import RegressionProbOutputLayer
+from fortuna.partitioner.base import Partitioner
+from fortuna.partitioner.partition_manager.base import PartitionManager
+from fortuna.calib_model.calib_mixin import WithCalibCheckpointingMixin
 from fortuna.typing import (
     Outputs,
     Status,
@@ -28,6 +31,7 @@ class CalibRegressor(CalibModel):
         model: nn.Module,
         likelihood_log_variance_model: nn.Module,
         model_editor: Optional[ModelEditor] = None,
+        partitioner: Partitioner = Partitioner(),
         seed: int = 0,
     ):
         r"""
@@ -46,6 +50,8 @@ class CalibRegressor(CalibModel):
             parameters. Then the model is described by a function :math:`\log\sigma^2(w, x)`.
         model_editor : ModelEditor
             A model_editor objects. It takes the forward pass and transforms the outputs.
+        partitioner : Partitioner
+            A partitioning object for data, fully sharded data model parallelization.
         seed: int
             A random seed.
 
@@ -76,6 +82,7 @@ class CalibRegressor(CalibModel):
             prob_output_layer=self.prob_output_layer,
             output_calib_manager=None,
         )
+        self.partition_manager = PartitionManager(partitioner)
         self.predictive = RegressionPredictive(likelihood=self.likelihood)
         super().__init__(seed=seed)
 

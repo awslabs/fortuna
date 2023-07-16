@@ -86,7 +86,7 @@ class Loss(WithRNG):
                 mutable=mutable,
                 rng=rng,
             )
-            if "mutable" in return_aux:
+            if train and "mutable" is not None:
                 outputs, aux = outs
                 mutable = aux["mutable"]
             else:
@@ -104,17 +104,17 @@ class Loss(WithRNG):
                 outputs=outputs,
                 calib="calib_mutable" in return_aux,
             )
-        if (
-            calib_mutable is not None
-            and calib_mutable["output_calibrator"] is not None
-            and "calib_mutable" in return_aux
-        ):
-            outputs, aux["calib_mutable"] = outs
-            aux["calib_mutable"] = dict(output_calibrator=aux["calib_mutable"])
-        else:
-            outputs = outs
-            if "calib_mutable" in return_aux:
-                aux["calib_mutable"] = dict(output_calibrator=None)
+            if (
+                calib_mutable is not None
+                and calib_mutable["output_calibrator"] is not None
+                and "calib_mutable" in return_aux
+            ):
+                outputs, aux["calib_mutable"] = outs
+                aux["calib_mutable"] = dict(output_calibrator=aux["calib_mutable"])
+            else:
+                outputs = outs
+                if "calib_mutable" in return_aux:
+                    aux["calib_mutable"] = dict(output_calibrator=None)
 
         if "outputs" in return_aux:
             aux["outputs"] = outputs

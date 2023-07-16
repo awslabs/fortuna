@@ -4,11 +4,7 @@ from typing import (
     Tuple,
 )
 
-import jax.numpy as jnp
-from jax.sharding import (
-    PartitionSpec,
-    Sharding,
-)
+from jax.sharding import PartitionSpec
 from jax.tree_util import tree_map_with_path
 import numpy as np
 from optax._src.base import PyTree

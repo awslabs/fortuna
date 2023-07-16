@@ -21,7 +21,7 @@ from fortuna.typing import (
 class TrainStateRepository(WithCheckpointingMixin):
     def __init__(
         self,
-        partition_manager: PartitionManager,
+        partition_manager: Optional[PartitionManager] = None,
         checkpoint_manager: Optional[CheckpointManager] = None,
     ):
         super().__init__(partition_manager=partition_manager)
@@ -32,6 +32,7 @@ class TrainStateRepository(WithCheckpointingMixin):
         self,
         checkpoint_dir: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
+        _do_reshard: bool = True
     ) -> Union[Dict, TrainState]:
         if not checkpoint_dir and not self.checkpoint_manager and not self._state:
             raise ValueError("No state available.")
@@ -40,9 +41,11 @@ class TrainStateRepository(WithCheckpointingMixin):
                 restore_checkpoint_dir=checkpoint_dir, optimizer=optimizer
             )
         if optimizer is not None:
-            state = self.partition_manager.reshard(self._state)
-            state = state.replace(tx=optimizer, opt_state=optimizer.init(state.params))
-            return state
+            if self.partition_manager is not None and _do_reshard:
+                state = self.partition_manager.reshard(self._state)
+                return state.replace(tx=optimizer, opt_state=optimizer.init(state.params))
+            else:
+                self._state = self._state.replace(tx=optimizer, opt_state=optimizer.init(self._state.params))
         return self._state
 
     def put(

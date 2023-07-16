@@ -32,7 +32,7 @@ class WithCheckpointingMixin:
     def __init__(
         self,
         *,
-        partition_manager: PartitionManager,
+        partition_manager: Optional[PartitionManager] = None,
         checkpoint_manager: Optional[CheckpointManager] = None,
         **kwargs,
     ):
@@ -90,13 +90,16 @@ class WithCheckpointingMixin:
         optimizer: Optional[OptaxOptimizer] = None,
         name_to_train_state: NameToTrainState = NameToTrainState,
     ) -> TrainState:
-        ref = self._get_ref()
+        ref = self._get_ref(lazy=False)
         restored = self.checkpoint_manager.restore(
             self.checkpoint_manager.latest_step(),
             items=ref,
             restore_kwargs={"restore_args": ref},
             directory=restore_checkpoint_dir,
         )
+        if isinstance(restored, dict):
+            name = "".join([chr(n) for n in restored["encoded_name"]])
+            restored = name_to_train_state[name].value.init_from_dict(restored)
 
         if optimizer is not None:
             restored = restored.replace(
@@ -110,7 +113,7 @@ class WithCheckpointingMixin:
         restore_checkpoint_dir: Path,
         name_to_train_state: NameToTrainState = NameToTrainState,
     ):
-        ref = self._get_ref_without_shardings()
+        ref = self._get_ref_without_shardings(lazy=True)
         state = self.checkpoint_manager.restore(
             self.checkpoint_manager.latest_step(),
             items=ref,
@@ -133,21 +136,22 @@ class WithCheckpointingMixin:
             self.partition_manager.shapes_dtypes,
         )
 
-    def _get_ref_without_shardings(self):
+    def _get_ref_without_shardings(self, lazy):
         return tree_map_with_path(
             lambda p, v: ArrayRestoreArgs(
-                lazy=True, sharding=SingleDeviceSharding(device=local_devices()[0])
+                lazy=lazy, sharding=SingleDeviceSharding(device=local_devices()[0])
             ),
             self.checkpoint_manager.structure(),
         )
 
-    def _get_ref(self):
+    def _get_ref(self, lazy=False):
         if (
-            self.partition_manager.shardings is not None
+            self.partition_manager is not None
+            and self.partition_manager.shardings is not None
             and self.partition_manager.shapes_dtypes is not None
         ):
             return self._get_ref_from_shardings()
-        return self._get_ref_without_shardings()
+        return self._get_ref_without_shardings(lazy=False)
 
 
 class ArrayRestoreArgsWithShape(ArrayRestoreArgs):

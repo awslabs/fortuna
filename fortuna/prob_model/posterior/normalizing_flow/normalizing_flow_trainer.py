@@ -32,8 +32,9 @@ from fortuna.typing import (
     CalibParams,
     Mutable,
     Params,
-    Path,
 )
+from fortuna.partitioner.partition_manager.base import PartitionManager
+from orbax.checkpoint import CheckpointManager
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
 
@@ -73,9 +74,14 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         which_params: Optional[Tuple[List[str]]],
         unravel: Callable,
         sub_unravel: Callable,
+        partition_manager: Optional[PartitionManager] = None,
+        checkpoint_manager: Optional[CheckpointManager] = None,
         **kwargs,
     ):
-        super(NormalizingFlowTrainer, self).__init__(**kwargs)
+        super(NormalizingFlowTrainer, self).__init__(
+            partition_manager=partition_manager,
+            checkpoint_manager=checkpoint_manager,
+            **kwargs)
         # base distribution
         self.sample_base = base.sample
         self.base_log_joint_prob = base.log_joint_prob

@@ -23,18 +23,28 @@ from fortuna.typing import (
     Batch,
     Path,
 )
+from fortuna.partitioner.partition_manager.base import PartitionManager
+from orbax.checkpoint import CheckpointManager
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
 
 class SWAGTrainer(MAPTrainer):
-    def __init__(self, *, which_params: Optional[Tuple[List[str]]], **kwargs):
-        super(SWAGTrainer, self).__init__(**kwargs)
+    def __init__(self,
+                 *,
+                 partition_manager: Optional[PartitionManager] = None,
+                 checkpoint_manager: Optional[CheckpointManager] = None,
+                 which_params: Optional[Tuple[List[str]]],
+                 **kwargs
+                 ):
+        super(SWAGTrainer, self).__init__(partition_manager=partition_manager, checkpoint_manager=checkpoint_manager, **kwargs)
         self._mean_rav_params = None
         self._mean_squared_rav_params = None
         self._deviation_rav_params = None
         self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(
             which_params
         )
+        self.partition_manager = partition_manager
+        self.checkpoint_manager = checkpoint_manager
 
     def _update_state_with_stats(self, state: SWAGState) -> SWAGState:
         var = self._mean_squared_rav_params - self._mean_rav_params**2

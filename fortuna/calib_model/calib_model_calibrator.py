@@ -13,8 +13,7 @@ import jax.numpy as jnp
 from optax._src.base import PyTree
 
 from fortuna.calib_model.state import CalibState
-from fortuna.training.mixins.jitted import JittedMixin
-from fortuna.training.mixins.multi_device import MultiDeviceMixin
+from fortuna.training.mixins.sharding import ShardingMixin
 from fortuna.training.trainer import TrainerABC
 from fortuna.typing import (
     Array,
@@ -100,9 +99,5 @@ class CalibModelCalibrator(TrainerABC):
         return dict(val_loss=loss)
 
 
-class JittedCalibModelCalibrator(JittedMixin, CalibModelCalibrator):
-    pass
-
-
-class MultiDeviceCalibModelCalibrator(MultiDeviceMixin, CalibModelCalibrator):
+class ShardedCalibModelCalibrator(ShardingMixin, CalibModelCalibrator):
     pass

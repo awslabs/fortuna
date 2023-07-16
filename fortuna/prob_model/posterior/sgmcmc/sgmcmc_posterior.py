@@ -18,8 +18,11 @@ from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
     SGMCMCPosteriorStateRepository,
 )
+from fortuna.prob_model.posterior.posterior_state_repository import PosteriorStateRepository
+from fortuna.utils.checkpoint import get_checkpoint_manager
+from fortuna.partitioner.partition_manager.base import PartitionManager
+from orbax.checkpoint import CheckpointManager
 from fortuna.typing import Path
-from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 
 
 class SGMCMCPosterior(Posterior):
@@ -59,40 +62,35 @@ class SGMCMCPosterior(Posterior):
         )
 
     def load_state(self, checkpoint_dir: Path) -> None:
-        try:
-            state = self.restore_checkpoint(pathlib.Path(checkpoint_dir) / "c")
-        except ValueError:
-            raise ValueError(
-                f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
-            )
-        which_params = decode_encoded_tuple_of_lists_of_strings_to_array(
-            state._encoded_which_params
-        )
         self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
-            checkpoint_dir=checkpoint_dir,
-            which_params=which_params,
-            all_params=state.params if which_params else None,
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
         )
+        self.partition_manager.shapes_dtypes = self.state.get_shapes_dtypes_checkpoint()
 
     def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         for i in range(self.posterior_approximator.n_samples):
             self.state.put(state=self.state.get(i), i=i, keep=keep_top_n_checkpoints)
 
     def _restore_state_from_somewhere(
-        self,
-        fit_config: FitConfig,
-        allowed_states: Optional[Tuple[Type[MAPState], ...]] = None,
+            self,
+            fit_config: FitConfig,
+            allowed_states: Optional[Tuple[Type[MAPState], ...]] = None,
+            partition_manager: Optional[PartitionManager] = None,
+            checkpoint_manager: Optional[CheckpointManager] = None,
+            _do_reshard: bool = True
     ) -> MAPState:
-        if fit_config.checkpointer.restore_checkpoint_dir is not None:
-            restore_checkpoint_dir = (
-                pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir) / "c"
+        if checkpoint_manager is not None:
+            repo = PosteriorStateRepository(
+                partition_manager=partition_manager,
+                checkpoint_manager=get_checkpoint_manager(
+                    checkpoint_dir=str(pathlib.Path(checkpoint_manager.directory) / "c") if checkpoint_manager is not None else None,
+                    keep_top_n_checkpoints=checkpoint_manager._options.max_to_keep if checkpoint_manager is not None else None
+                ),
             )
-            state = self.restore_checkpoint(
-                restore_checkpoint_dir=restore_checkpoint_dir,
-                optimizer=fit_config.optimizer.method,
-            )
-        elif fit_config.checkpointer.start_from_current_state is not None:
+            state = repo.get(optimizer=fit_config.optimizer.method, _do_reshard=_do_reshard)
+        elif fit_config.checkpointer.start_from_current_state:
             state = self.state.get(
                 i=self.state.size - 1,
                 optimizer=fit_config.optimizer.method,
@@ -101,8 +99,7 @@ class SGMCMCPosterior(Posterior):
         if allowed_states is not None and not isinstance(state, allowed_states):
             raise ValueError(
                 f"The type of the restored checkpoint must be within {allowed_states}. "
-                f"However, {fit_config.checkpointer.restore_checkpoint_dir} pointed to a state "
-                f"with type {type(state)}."
+                f"However, the restored checkpoint has type {type(state)}."
             )
 
         self._check_state(state)

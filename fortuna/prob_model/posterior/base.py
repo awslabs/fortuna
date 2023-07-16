@@ -7,7 +7,7 @@ from typing import (
     Tuple,
     Type,
 )
-
+from fortuna.prob_model.posterior.map.map_state import MAPState
 from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from orbax.checkpoint.checkpoint_manager import CheckpointManager
@@ -80,16 +80,18 @@ class Posterior(WithRNG):
         self,
         fit_config: FitConfig,
         allowed_states: Optional[Tuple[Type[PosteriorState], ...]] = None,
+        partition_manager: Optional[PartitionManager] = None,
         checkpoint_manager: Optional[CheckpointManager] = None,
+        _do_reshard: bool = True
     ) -> PosteriorState:
         if checkpoint_manager is not None:
             repo = PosteriorStateRepository(
-                partition_manager=self.partition_manager,
+                partition_manager=partition_manager,
                 checkpoint_manager=checkpoint_manager,
             )
             state = repo.get(optimizer=fit_config.optimizer.method)
-        elif fit_config.checkpointer.start_from_current_state is not None:
-            state = self.state.get(optimizer=fit_config.optimizer.method)
+        elif fit_config.checkpointer.start_from_current_state:
+            state = self.state.get(optimizer=fit_config.optimizer.method, _do_reshard=_do_reshard)
 
         if allowed_states is not None and not isinstance(state, allowed_states):
             raise ValueError(
@@ -195,7 +197,9 @@ class Posterior(WithRNG):
             partition_manager=self.partition_manager,
             checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
         )
-        self.partition_manager.shapes_dtypes = self.state.get_shapes_dtypes_checkpoint()
+        # currently, sharding is only supported when using MAP
+        if isinstance(self.state, MAPState):
+            self.partition_manager.shapes_dtypes = self.state.get_shapes_dtypes_checkpoint()
 
     def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         """

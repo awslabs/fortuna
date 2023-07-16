@@ -13,6 +13,8 @@ from fortuna.data.loader import (
     DataLoader,
     InputsLoader,
 )
+from pathlib import Path
+from fortuna.utils.checkpoint import get_checkpoint_manager
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
@@ -26,6 +28,7 @@ from fortuna.prob_model.posterior.swag import SWAG_NAME
 from fortuna.prob_model.posterior.swag.swag_approximator import (
     SWAGPosteriorApproximator,
 )
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.prob_model.posterior.swag.swag_state import SWAGState
 from fortuna.prob_model.posterior.swag.swag_trainer import (
     JittedSWAGTrainer,
@@ -46,7 +49,12 @@ from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_ar
 
 
 class SWAGPosterior(Posterior):
-    def __init__(self, joint: Joint, posterior_approximator: SWAGPosteriorApproximator):
+    def __init__(
+            self,
+            joint: Joint,
+            posterior_approximator: SWAGPosteriorApproximator,
+            partition_manager: PartitionManager
+    ):
         """
         SWAG approximate posterior class.
 
@@ -57,7 +65,7 @@ class SWAGPosterior(Posterior):
         posterior_approximator: SWAGPosteriorApproximator
             A SWAG posterior approximator.
         """
-        super().__init__(joint=joint, posterior_approximator=posterior_approximator)
+        super().__init__(joint=joint, posterior_approximator=posterior_approximator, partition_manager=partition_manager)
 
     def __str__(self):
         return SWAG_NAME
@@ -94,14 +102,29 @@ class SWAGPosterior(Posterior):
 
         status = dict()
 
+        checkpoint_restorer = (
+            get_checkpoint_manager(
+                str(
+                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            )
+            if fit_config.checkpointer.restore_checkpoint_dir is not None
+            else None
+        )
+
         if super()._is_state_available_somewhere(fit_config):
             state = super()._restore_state_from_somewhere(
-                fit_config=fit_config, allowed_states=(MAPState, SWAGState)
+                fit_config=fit_config,
+                allowed_states=(MAPState, SWAGState),
+                checkpoint_manager=checkpoint_restorer,
+                _do_reshard=False
             )
 
         elif super()._should_run_preliminary_map(fit_config, map_fit_config):
             state, status["map"] = run_preliminary_map(
                 joint=self.joint,
+                partition_manager=self.partition_manager,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
@@ -139,6 +162,11 @@ class SWAGPosterior(Posterior):
         )
         trainer = trainer_cls(
             predict_fn=self.joint.likelihood.prob_output_layer.predict,
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(
+                fit_config.checkpointer.save_checkpoint_dir,
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            ),
             save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
             save_every_n_steps=fit_config.checkpointer.save_every_n_steps,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -169,11 +197,20 @@ class SWAGPosterior(Posterior):
         )
 
         self.state = PosteriorStateRepository(
-            fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.dump_state is True
-            else None
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(
+                checkpoint_dir=str(
+                    Path(fit_config.checkpointer.save_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            )
+            if fit_config.checkpointer.save_checkpoint_dir is not None
+            and fit_config.checkpointer.dump_state
+            else None,
         )
-        self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+        if self.state.checkpoint_manager is None:
+            self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
         return status
 

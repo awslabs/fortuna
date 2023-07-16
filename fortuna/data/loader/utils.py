@@ -239,7 +239,7 @@ def prefetch_to_mesh(iterator, size: int, mesh: Mesh, xs_spec):
                 xs_spec
                 if xs_spec is not None
                 else xs.sharding.spec
-                if hasattr(xs, "sharding")
+                if hasattr(xs, "sharding") and hasattr(xs.sharding, "spec")
                 else PartitionSpec(),
             ),
         )

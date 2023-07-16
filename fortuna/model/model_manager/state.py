@@ -54,7 +54,7 @@ class ModelManagerState:
         mutable = FrozenDict(
             {
                 k: FrozenDict({_k: _v for _k, _v in v.items() if _k != "params"})
-                for k, v in d.items()
+                for k, v in d.items() if k != "model_editor"
             }
         )
         flag = 0

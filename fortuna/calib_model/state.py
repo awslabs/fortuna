@@ -16,6 +16,8 @@ from fortuna.typing import (
     OptaxOptimizer,
     Params,
 )
+import jax.numpy as jnp
+from fortuna.utils.strings import convert_string_to_jnp_array
 
 
 class CalibState(TrainState):
@@ -23,6 +25,7 @@ class CalibState(TrainState):
     mutable: Optional[Mutable] = None
     calib_params: Optional[CalibParams] = None
     calib_mutable: Optional[CalibMutable] = None
+    encoded_name: jnp.ndarray = convert_string_to_jnp_array("CalibState")
 
     @classmethod
     def init(

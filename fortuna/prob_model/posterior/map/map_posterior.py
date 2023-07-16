@@ -104,6 +104,7 @@ class MAPPosterior(Posterior):
             state = self._restore_state_from_somewhere(
                 fit_config=fit_config,
                 allowed_states=(MAPState,),
+                partition_manager=self.partition_manager,
                 checkpoint_manager=checkpoint_restorer,
             )
             state = self._freeze_optimizer_in_state(state, fit_config)

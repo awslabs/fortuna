@@ -31,6 +31,7 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import SGMCMCPosterior
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
     SGMCMCPosteriorStateRepository,
 )
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.freeze import get_trainable_paths
@@ -38,6 +39,8 @@ from fortuna.utils.nested_dicts import (
     nested_get,
     nested_set,
 )
+from pathlib import Path
+from fortuna.utils.checkpoint import get_checkpoint_manager
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         self,
         joint: Joint,
         posterior_approximator: CyclicalSGLDPosteriorApproximator,
+        partition_manager: PartitionManager,
     ):
         """
         Cyclical Stochastic Gradient Langevin Dynamics (SGLD) approximate posterior class.
@@ -58,7 +62,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         posterior_approximator: CyclicalSGLDPosteriorApproximator
             A cyclical SGLD posterior approximator.
         """
-        super().__init__(joint=joint, posterior_approximator=posterior_approximator)
+        super().__init__(joint=joint, posterior_approximator=posterior_approximator, partition_manager=partition_manager)
 
     def __str__(self):
         return CYCLICAL_SGLD_NAME
@@ -88,6 +92,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         ) and super()._should_run_preliminary_map(fit_config, map_fit_config):
             map_state, status["map"] = run_preliminary_map(
                 joint=self.joint,
+                partition_manager=self.partition_manager,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
@@ -121,6 +126,11 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         )
         trainer = trainer_cls(
             predict_fn=self.joint.likelihood.prob_output_layer.predict,
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(
+                fit_config.checkpointer.save_checkpoint_dir,
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            ),
             save_checkpoint_dir=save_checkpoint_dir,
             save_every_n_steps=fit_config.checkpointer.save_every_n_steps,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -132,8 +142,20 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             freeze_fun=fit_config.optimizer.freeze_fun,
         )
 
+        checkpoint_restorer = (
+            get_checkpoint_manager(
+                str(
+                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            )
+            if fit_config.checkpointer.restore_checkpoint_dir is not None
+            else None
+        )
+
         if super()._is_state_available_somewhere(fit_config):
-            state = self._restore_state_from_somewhere(fit_config=fit_config)
+            state = self._restore_state_from_somewhere(fit_config=fit_config, checkpoint_manager=checkpoint_restorer, _do_reshard=False)
         else:
             state = self._init_map_state(map_state, train_data_loader, fit_config)
 
@@ -154,7 +176,14 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
 
         self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
-            checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(
+                str(
+                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            ) if fit_config.checkpointer.restore_checkpoint_dir is not None else None,
             which_params=which_params,
             all_params=state.params if which_params else None,
         )

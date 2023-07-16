@@ -39,6 +39,8 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import (
     JittedADVITrainer,
     MultiDeviceADVITrainer,
 )
+from pathlib import Path
+from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
 )
@@ -59,6 +61,7 @@ from fortuna.utils.nested_dicts import (
     nested_unpair,
 )
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
+from fortuna.utils.checkpoint import get_checkpoint_manager
 
 
 class ADVIPosterior(Posterior):
@@ -66,6 +69,7 @@ class ADVIPosterior(Posterior):
         self,
         joint: Joint,
         posterior_approximator: ADVIPosteriorApproximator,
+        partition_manager: PartitionManager,
     ):
         """
         Automatic Differentiation Variational Inference (ADVI) approximate posterior class.
@@ -77,7 +81,7 @@ class ADVIPosterior(Posterior):
         posterior_approximator: ADVI
             An ADVI posterior approximator.
         """
-        super().__init__(joint=joint, posterior_approximator=posterior_approximator)
+        super().__init__(joint=joint, posterior_approximator=posterior_approximator, partition_manager=partition_manager)
         self._base = None
         self._architecture = None
         self._unravel = None
@@ -98,20 +102,34 @@ class ADVIPosterior(Posterior):
 
         status = dict()
 
+        checkpoint_restorer = (
+            get_checkpoint_manager(
+                str(
+                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            )
+            if fit_config.checkpointer.restore_checkpoint_dir is not None
+            else None
+        )
+
         if super()._is_state_available_somewhere(fit_config):
             state = super()._restore_state_from_somewhere(
-                fit_config=fit_config, allowed_states=(MAPState, ADVIState)
+                fit_config=fit_config, allowed_states=(MAPState, ADVIState), checkpoint_manager=checkpoint_restorer, _do_reshard=False
             )
 
         elif super()._should_run_preliminary_map(fit_config, map_fit_config):
             state, status["map"] = run_preliminary_map(
                 joint=self.joint,
+                partition_manager=self.partition_manager,
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
                 map_fit_config=map_fit_config,
                 rng=self.rng,
                 **kwargs,
             )
+            self.partition_manager.shardings = None
         else:
             state = None
 
@@ -143,6 +161,10 @@ class ADVIPosterior(Posterior):
 
         trainer = trainer_cls(
             predict_fn=self.joint.likelihood.prob_output_layer.predict,
+            checkpoint_manager=get_checkpoint_manager(
+                fit_config.checkpointer.save_checkpoint_dir,
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            ),
             save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
             save_every_n_steps=fit_config.checkpointer.save_every_n_steps,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -189,11 +211,20 @@ class ADVIPosterior(Posterior):
         )
 
         self.state = PosteriorStateRepository(
-            fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.dump_state is True
-            else None
+            partition_manager=None,
+            checkpoint_manager=get_checkpoint_manager(
+                checkpoint_dir=str(
+                    Path(fit_config.checkpointer.save_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
+                ),
+                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
+            )
+            if fit_config.checkpointer.save_checkpoint_dir is not None
+            and fit_config.checkpointer.dump_state
+            else None,
         )
-        self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+        if self.state.checkpoint_manager is None:
+            self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
         return status
 
@@ -250,7 +281,7 @@ class ADVIPosterior(Posterior):
                     ravel_pytree(
                         nested_unpair(
                             d=state.params.unfreeze(),
-                            key_paths=which_params,
+                            key_paths=tuple(which_params),
                             labels=("mean", "log_std"),
                         )[1]
                     )[0]
@@ -260,7 +291,7 @@ class ADVIPosterior(Posterior):
                 FrozenDict(
                     nested_unpair(
                         d=state.params.unfreeze(),
-                        key_paths=which_params,
+                        key_paths=tuple(which_params),
                         labels=("mean", "log_std"),
                     )[0]
                     if which_params
@@ -298,7 +329,7 @@ class ADVIPosterior(Posterior):
             )
             means, log_stds = nested_unpair(
                 d=state.params.unfreeze(),
-                key_paths=which_params,
+                key_paths=tuple(which_params),
                 labels=("mean", "log_std"),
             )
             rav_params = {
@@ -338,7 +369,7 @@ class ADVIPosterior(Posterior):
                 )
                 means, log_stds = nested_unpair(
                     d=state.params.unfreeze(),
-                    key_paths=which_params,
+                    key_paths=tuple(which_params),
                     labels=("mean", "log_std"),
                 )
                 means, log_stds = FrozenDict(means), FrozenDict(log_stds)
@@ -412,7 +443,7 @@ class ADVIPosterior(Posterior):
                 return FrozenDict(
                     nested_set(
                         d=params.unfreeze(),
-                        key_paths=which_params,
+                        key_paths=tuple(which_params),
                         objs=sub_unravel(_rav),
                     )
                 )
@@ -421,7 +452,7 @@ class ADVIPosterior(Posterior):
                 rav_log_stds = ravel_pytree(
                     nested_set(
                         d={},
-                        key_paths=which_params,
+                        key_paths=tuple(which_params),
                         objs=tuple(
                             [nested_get(log_stds, path) for path in which_params]
                         ),

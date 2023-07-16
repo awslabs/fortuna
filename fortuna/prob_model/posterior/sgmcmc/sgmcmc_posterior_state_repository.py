@@ -22,17 +22,20 @@ from fortuna.utils.nested_dicts import (
     nested_get,
     nested_set,
 )
+from fortuna.partitioner.partition_manager.base import PartitionManager
+from orbax.checkpoint import CheckpointManager
 
 
 class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
     def __init__(
         self,
         size: int,
-        checkpoint_dir: Optional[Path] = None,
+        partition_manager: Optional[PartitionManager] = None,
+        checkpoint_manager: Optional[CheckpointManager] = None,
         all_params: Optional[Params] = None,
         which_params: Optional[Tuple[List[AnyKey], ...]] = None,
     ):
-        super().__init__(size=size, checkpoint_dir=checkpoint_dir)
+        super().__init__(size=size, checkpoint_manager=checkpoint_manager, partition_manager=partition_manager)
         self._all_params = all_params
         self._which_params = which_params
 
@@ -41,14 +44,12 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
         i: int = None,
         checkpoint_dir: Optional[Path] = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "",
         **kwargs,
     ) -> Union[List[PosteriorState], PosteriorState]:
         state = super().get(
             i=i,
             checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
-            prefix=prefix,
             **kwargs,
         )
         return self._update_state(state, modify="add")
@@ -59,7 +60,6 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
         i: int = None,
         checkpoint_dir: Optional[Path] = None,
         keep: int = 1,
-        prefix: str = "",
     ) -> None:
         state = self._update_state(state, modify="remove")
         return super().put(
@@ -67,7 +67,6 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
             i=i,
             checkpoint_dir=checkpoint_dir,
             keep=keep,
-            prefix=prefix,
         )
 
     def pull(
@@ -75,15 +74,11 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
         i: int = None,
         checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
-        prefix: str = "",
-        **kwargs,
     ) -> PosteriorState:
         state = super().pull(
             i=i,
             checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
-            prefix=prefix,
-            **kwargs,
         )
         return self._update_state(state, modify="add")
 
@@ -92,14 +87,11 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
         keys: List[str],
         i: int = None,
         checkpoint_dir: Optional[Path] = None,
-        prefix: str = "",
-        **kwargs,
     ) -> Union[Dict, List[Dict]]:
         def _extract(_i):
             state = self.get(
                 i=_i,
                 checkpoint_dir=checkpoint_dir,
-                prefix=prefix,
             )
             return {k: getattr(state, k) for k in keys}
 
@@ -119,7 +111,7 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
             return state
 
         if isinstance(state, list):
-            return [_update_state(_state, modify=modify) for _state in state]
+            return [self._update_state(_state, modify=modify) for _state in state]
 
         if modify == "add":
             state = state.replace(
@@ -154,6 +146,6 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
                 step=state.step,
             )
         else:
-            raise RuntimeError(f"Invalid update state method {method}.")
+            raise RuntimeError(f"Invalid update state method {modify}.")
 
         return state

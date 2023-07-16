@@ -100,7 +100,6 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
                 raise ValueError("If the transformer model is not initialized, you must externally pass the model "
                                  "parameters as attribute `_params` to `model`.")
 
-            # jit(self.model.init_weights, static_argnums=(1,), backend="cpu")(rng, (1,) + input_shape["input_ids"], self.model._params)
             self._params_shape_tree = eval_shape(lambda: self.model._params)
             self._required_params = set(flatten_dict(unfreeze(self._params_shape_tree)).keys())
             self.model._is_initialized = True

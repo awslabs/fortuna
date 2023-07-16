@@ -12,7 +12,6 @@ import jax.numpy as jnp
 
 from fortuna.typing import (
     InputData,
-    Mutable,
 )
 
 
