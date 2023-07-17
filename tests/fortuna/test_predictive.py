@@ -205,6 +205,16 @@ class TestPredictives(unittest.TestCase):
 
             assert (
                 len(
+                    self.prob_class.predictive.credible_set(
+                        inputs_loader=self.class_inputs_loader,
+                        n_posterior_samples=self.n_post_samples,
+                    )
+                )
+                == self.n_inputs
+            )
+
+            assert (
+                len(
                     self.prob_class.predictive.conformal_set(
                         train_data_loader=self.class_data_loader,
                         test_inputs_loader=self.class_inputs_loader,

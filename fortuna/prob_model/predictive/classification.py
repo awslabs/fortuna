@@ -431,6 +431,57 @@ class ClassificationPredictive(Predictive):
 
         return -jnp.sum(vmap(_entropy_term)(jnp.arange(n_classes)), 0)
 
+    def credible_set(
+        self,
+        inputs_loader: InputsLoader,
+        n_posterior_samples: int = 30,
+        error: float = 0.05,
+        rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
+    ) -> jnp.ndarray:
+        r"""
+        Estimate credible sets for the target variable. This is done by sorting the class probabilities in descending order
+        and including classes until the sum > 1-error.
+
+        Parameters
+        ----------
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        n_posterior_samples: int
+            Number of posterior samples to draw for each input.
+        error: float
+            The set error. This must be a number between 0 and 1, extremes included. For example,
+            `error=0.05` corresponds to a 95% level of credibility.
+        rng : Optional[PRNGKeyArray]
+            A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
+
+        Returns
+        -------
+        jnp.ndarray
+            A credibility set for each of the inputs.
+        """
+        p_classes = self.mean(
+            inputs_loader=inputs_loader,
+            n_posterior_samples=n_posterior_samples,
+            rng=rng,
+            distribute=distribute,
+        )
+        n_classes = jnp.shape(p_classes)[1]
+        labels = jnp.argsort(p_classes, axis=-1)[:, ::-1]
+        p_classes_sorted = jnp.sort(p_classes, axis=-1)[:, ::-1]
+        region_classes = jnp.cumsum(p_classes_sorted, axis=1) > (1 - error)
+
+        # Convert CB region into sets
+        index_true = jnp.argmax(region_classes, axis=1)  # first index where True
+        credible_set = np.zeros(len(index_true), dtype=object)
+        for s in np.arange(n_classes):
+            idx = np.where(index_true == s)[0]
+            credible_set[idx] = labels[idx, : s + 1].tolist()
+
+        return credible_set
+
     def conformal_set(
         self,
         train_data_loader: DataLoader,
@@ -438,6 +489,7 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples: int = 30,
         error: float = 0.05,
         rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
         return_ess: bool = False,
     ) -> jnp.ndarray:
         r"""
@@ -452,10 +504,12 @@ class ClassificationPredictive(Predictive):
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
         error: float
-            The interval error. This must be a number between 0 and 1, extremes included. For example,
+            The set error. This must be a number between 0 and 1, extremes included. For example,
             `error=0.05` corresponds to a 95% level of confidence.
         rng : Optional[PRNGKeyArray]
             A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
         return_ess: bool
             Whether to compute effective sample size of importance weights or not.
 
@@ -484,7 +538,10 @@ class ClassificationPredictive(Predictive):
 
         # returns n_posterior_samples x (n_classes*n_test +n)
         ensemble_train_test_log_probs = self.ensemble_log_prob(
-            data_loader=train_test_data_loader, n_posterior_samples=n_posterior_samples
+            data_loader=train_test_data_loader,
+            n_posterior_samples=n_posterior_samples,
+            rng=rng,
+            distribute=distribute,
         )
         # Split training log_probs
         ensemble_train_log_probs = ensemble_train_test_log_probs[
