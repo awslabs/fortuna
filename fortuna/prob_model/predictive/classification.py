@@ -2,6 +2,7 @@ from typing import Optional
 
 from jax import (
     jit,
+    lax,
     vmap,
 )
 from jax._src.prng import PRNGKeyArray
@@ -526,7 +527,7 @@ class ClassificationPredictive(Predictive):
 
         # Compute CB region for each test input
         conformal_region = np.array(
-            vmap(_compute_cb_region_importancesampling)(ensemble_testgrid_log_probs)
+            lax.map(_compute_cb_region_importancesampling, ensemble_testgrid_log_probs)
         )
 
         # Convert CB region into sets
@@ -559,8 +560,8 @@ class ClassificationPredictive(Predictive):
                 return ESS
 
             ###
-            ESS = vmap(_diagnose_importancesampling_weights)(
-                ensemble_testgrid_log_probs
+            ESS = lax.map(
+                _diagnose_importancesampling_weights, ensemble_testgrid_log_probs
             )
             return conformal_set, ESS
 
