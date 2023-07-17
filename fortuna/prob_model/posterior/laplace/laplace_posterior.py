@@ -329,7 +329,7 @@ class LaplacePosterior(Posterior):
             opt_prior_log_var = self.prior_log_variance_tuning(
                 val_data_loader=val_data_loader,
                 n_posterior_samples=5,
-                distribute=fit_config.processor.devices == -1,
+                shard=fit_config.processor.devices == -1,
             )
             state = state.replace(prior_log_var=opt_prior_log_var)
             self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
@@ -449,18 +449,15 @@ class LaplacePosterior(Posterior):
         prior_log_var: float,
         n_posterior_samples: int = 30,
         rng: Optional[PRNGKeyArray] = None,
-        distribute: bool = True,
+        shard: bool = True,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
-        import jax.random as random
-        import jax.scipy as jsp
-
         if rng is None:
             rng = self.rng.get()
         keys = random.split(rng, n_posterior_samples)
 
-        def _eval_batched_log_prob(params, mutable, calib_params, calib_mutable):
-            return self.joint.likelihood._batched_log_prob(
+        def _lik_log_batched_prob(params, mutable, calib_params, calib_mutable):
+            return self.likelihood._batched_log_prob(
                 params,
                 batch,
                 mutable=mutable,
@@ -469,18 +466,55 @@ class LaplacePosterior(Posterior):
                 **kwargs,
             )
 
-        if distribute:
-            _eval_batched_log_prob = pmap(_eval_batched_log_prob)
+        if shard and self.partition_manager.shardings is not None:
+            _lik_log_batched_prob = pjit(
+                _lik_log_batched_prob,
+                in_shardings=(
+                    self.partition_manager.shardings.mutable,
+                    self.partition_manager.shardings.calib_params,
+                    self.partition_manager.shardings.params,
+                    self.partition_manager.shardings.calib_mutable,
+                ),
+                out_shardings=PartitionSpec(("dp", "fsdp")),
+            )
         else:
-            _eval_batched_log_prob = jit(_eval_batched_log_prob)
+            _lik_log_batched_prob = jit(_lik_log_batched_prob)
 
-        def fun(key):
+        def _fun(key):
             sample = self.sample(inputs=batch[0], rng=key, prior_log_var=prior_log_var)
-            return _eval_batched_log_prob(sample.params, sample.mutable, sample.calib_params, sample.calib_mutable)
+            with self.partition_manager.partitioner.mesh:
+                return _lik_log_batched_prob(
+                    sample.params,
+                    sample.mutable,
+                    sample.calib_params,
+                    sample.calib_mutable,
+                )
 
         return jsp.special.logsumexp(
-            lax.map(fun, keys), axis=0
+            jnp.stack(list(map(_fun, keys))), axis=0
         ) - jnp.log(n_posterior_samples)
+
+    def _log_prob(
+        self,
+        data_loader: DataLoader,
+        prior_log_var: float,
+        n_posterior_samples: int = 30,
+        rng: Optional[PRNGKeyArray] = None,
+        shard: bool = True,
+        **kwargs,
+    ) -> jnp.ndarray:
+        if rng is None:
+            rng = self.rng.get()
+
+        if shard and self.partition_manager.shardings is not None:
+            data_loader = ShardedPrefetchedLoader(
+                loader=data_loader, partition_manager=self.partition_manager
+            )
+
+        def fun2(_data):
+            return self._batched_log_prob(_data, prior_log_var, n_posterior_samples, rng, shard, **kwargs)
+
+        return jnp.concatenate([fun2(data) for data in data_loader], 0)
 
     def prior_log_variance_tuning(
         self,
@@ -490,7 +524,7 @@ class LaplacePosterior(Posterior):
         min_prior_log_var: float = -3,
         max_prior_log_var: float = 3,
         grid_size: int = 20,
-        distribute: bool = False,
+        shard: bool = False,
     ) -> jnp.ndarray:
         if mode == "cv":
             return self._prior_log_variance_tuning_cv(
@@ -499,7 +533,7 @@ class LaplacePosterior(Posterior):
                 min_prior_log_var,
                 max_prior_log_var,
                 grid_size,
-                distribute,
+                shard,
             )
         elif mode == "marginal_lik":
             raise NotImplementedError(
@@ -515,23 +549,19 @@ class LaplacePosterior(Posterior):
         min_prior_log_var: float,
         max_prior_log_var: float,
         grid_size: int,
-        distribute: bool,
+        shard: bool,
     ) -> jnp.ndarray:
         best = None
         candidates = jnp.concatenate((jnp.linspace(min_prior_log_var, max_prior_log_var, grid_size), jnp.array([self.joint.prior.log_var])))
-        if distribute:
-            val_data_loader = DeviceDimensionAugmentedLoader(val_data_loader)
 
         for lpv in tqdm.tqdm(candidates, desc="Tuning prior log-var"):
             neg_log_prob = -jnp.sum(
-                jnp.concatenate(
-                    [
-                        self.joint.likelihood._unshard_array(
-                            self._batched_log_prob(batch, lpv, n_posterior_samples, self.rng.get())
-                        )
-                        for batch in val_data_loader
-                    ],
-                    0,
+                self._log_prob(
+                    data_loader=val_data_loader,
+                    prior_log_var=lpv,
+                    n_posterior_samples=n_posterior_samples,
+                    rng=self.rng.get(),
+                    shard=shard
                 )
             )
             if best is None or neg_log_prob < best[-1]:
@@ -539,3 +569,100 @@ class LaplacePosterior(Posterior):
 
         opt_prior_log_var = best[0].reshape()
         return opt_prior_log_var
+
+    # def _batched_log_prob(
+    #     self,
+    #     batch,
+    #     prior_log_var: float,
+    #     n_posterior_samples: int = 30,
+    #     rng: Optional[PRNGKeyArray] = None,
+    #     distribute: bool = True,
+    #     **kwargs,
+    # ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
+    #     import jax.random as random
+    #     import jax.scipy as jsp
+    #
+    #     if rng is None:
+    #         rng = self.rng.get()
+    #     keys = random.split(rng, n_posterior_samples)
+    #
+    #     def _eval_batched_log_prob(params, mutable, calib_params, calib_mutable):
+    #         return self.joint.likelihood._batched_log_prob(
+    #             params,
+    #             batch,
+    #             mutable=mutable,
+    #             calib_params=calib_params,
+    #             calib_mutable=calib_mutable,
+    #             **kwargs,
+    #         )
+    #
+    #     if distribute:
+    #         _eval_batched_log_prob = pmap(_eval_batched_log_prob)
+    #     else:
+    #         _eval_batched_log_prob = jit(_eval_batched_log_prob)
+    #
+    #     def fun(key):
+    #         sample = self.sample(inputs=batch[0], rng=key, prior_log_var=prior_log_var)
+    #         return _eval_batched_log_prob(sample.params, sample.mutable, sample.calib_params, sample.calib_mutable)
+    #
+    #     return jsp.special.logsumexp(
+    #         lax.map(fun, keys), axis=0
+    #     ) - jnp.log(n_posterior_samples)
+    #
+    # def prior_log_variance_tuning(
+    #     self,
+    #     val_data_loader: DataLoader,
+    #     n_posterior_samples: int = 10,
+    #     mode: str = "cv",
+    #     min_prior_log_var: float = -3,
+    #     max_prior_log_var: float = 3,
+    #     grid_size: int = 20,
+    #     distribute: bool = False,
+    # ) -> jnp.ndarray:
+    #     if mode == "cv":
+    #         return self._prior_log_variance_tuning_cv(
+    #             val_data_loader,
+    #             n_posterior_samples,
+    #             min_prior_log_var,
+    #             max_prior_log_var,
+    #             grid_size,
+    #             distribute,
+    #         )
+    #     elif mode == "marginal_lik":
+    #         raise NotImplementedError(
+    #             f"Optimizing the prior log variance via marginal likelihood maximization is not yet available."
+    #         )
+    #     else:
+    #         raise ValueError(f"Unrecognized mode={mode} for prior log variance tuning.")
+    #
+    # def _prior_log_variance_tuning_cv(
+    #     self,
+    #     val_data_loader: DataLoader,
+    #     n_posterior_samples: int,
+    #     min_prior_log_var: float,
+    #     max_prior_log_var: float,
+    #     grid_size: int,
+    #     distribute: bool,
+    # ) -> jnp.ndarray:
+    #     best = None
+    #     candidates = jnp.concatenate((jnp.linspace(min_prior_log_var, max_prior_log_var, grid_size), jnp.array([self.joint.prior.log_var])))
+    #     if distribute:
+    #         val_data_loader = DeviceDimensionAugmentedLoader(val_data_loader)
+    #
+    #     for lpv in tqdm.tqdm(candidates, desc="Tuning prior log-var"):
+    #         neg_log_prob = -jnp.sum(
+    #             jnp.concatenate(
+    #                 [
+    #                     self.joint.likelihood._unshard_array(
+    #                         self._batched_log_prob(batch, lpv, n_posterior_samples, self.rng.get())
+    #                     )
+    #                     for batch in val_data_loader
+    #                 ],
+    #                 0,
+    #             )
+    #         )
+    #         if best is None or neg_log_prob < best[-1]:
+    #             best = (lpv, neg_log_prob)
+    #
+    #     opt_prior_log_var = best[0].reshape()
+    #     return opt_prior_log_var
