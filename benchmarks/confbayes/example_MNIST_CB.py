@@ -3,15 +3,24 @@ import jax.numpy as jnp
 from jax.scipy.special import logsumexp
 import numpy as np
 import optax
-from sklearn.datasets import make_moons
+import tensorflow as tf
+import tensorflow_datasets as tfds
 
 from fortuna.conformal import AdaptivePredictionConformalClassifier
 from fortuna.data import (
     DataLoader,
     InputsLoader,
 )
-from fortuna.metric.classification import accuracy
-from fortuna.model import MLP
+from fortuna.metric.classification import (
+    accuracy,
+    brier_score,
+    expected_calibration_error,
+)
+from fortuna.model import (
+    MLP,
+    LeNet5,
+    cnn,
+)
 from fortuna.prob_model import (
     ADVIPosteriorApproximator,
     CalibConfig,
@@ -22,46 +31,62 @@ from fortuna.prob_model import (
     ProbClassifier,
 )
 
-# Approximate Conformal Bayes: 2 Moons Example
-## Simulate data
-n_train = 1000
-train_data = make_moons(n_samples=n_train, noise=0.2, random_state=0)
-n_test = 500
-test_data = make_moons(n_samples=n_test, noise=0.2, random_state=1)
-n_val = 500
-val_data = make_moons(n_samples=n_val, noise=0.2, random_state=2)
+
+# Approximate Conformal Bayes: MNIST Example
+## Download data
+def download(split_range, shuffle=False):
+    ds = tfds.load(
+        name="MNIST",
+        split=f"train[{split_range}]",
+        as_supervised=True,
+        shuffle_files=True,
+    ).map(lambda x, y: (tf.cast(x, tf.float32) / 255.0, y))
+    if shuffle:
+        ds = ds.shuffle(10, reshuffle_each_iteration=True)
+    return ds.batch(128).prefetch(1)
+
+
+train_data_loader, val_data_loader, test_data_loader = (
+    download(":10%", shuffle=True),
+    download("10%:20%"),
+    download("20%:30%"),
+)
 
 ## Initialize constants
 n_posterior_samples = 100
 
 ## Fit Flax models
 # Setup DataLoaders
-train_data_loader = DataLoader.from_array_data(
-    train_data, batch_size=128, shuffle=True, prefetch=True
-)
-
-test_inputs_loader = InputsLoader.from_array_inputs(
-    test_data[0], batch_size=128, prefetch=True
-)
-
-val_data_loader = DataLoader.from_array_data(val_data, batch_size=128, prefetch=True)
+train_data_loader = DataLoader.from_tensorflow_data_loader(train_data_loader)
+test_data_loader = DataLoader.from_tensorflow_data_loader(test_data_loader)
+test_inputs_loader = test_data_loader.to_inputs_loader()
+test_data = test_data_loader.to_array_data()
+val_data_loader = DataLoader.from_tensorflow_data_loader(val_data_loader)
 
 
-# Setup Flax Model
-output_dim = 2
+# # Setup Flax Model
+output_dim = 10
 prob_model = ProbClassifier(
-    model=MLP(output_dim=output_dim, activations=(nn.tanh, nn.tanh)),
+    model=LeNet5(output_dim=output_dim),
     posterior_approximator=ADVIPosteriorApproximator(),
 )
 
 # Train model
 status = prob_model.train(
-    train_data_loader=train_data_loader,  # Remove validation set to make it simpler
+    train_data_loader=train_data_loader,
     fit_config=FitConfig(
-        monitor=FitMonitor(metrics=(accuracy,), early_stopping_patience=10),
-        optimizer=FitOptimizer(method=optax.adam(1e-1)),
+        optimizer=FitOptimizer(
+            freeze_fun=lambda path, val: "trainable"
+            if "output_subnet" in path
+            else "frozen"
+        )
+    ),
+    map_fit_config=FitConfig(
+        monitor=FitMonitor(early_stopping_patience=2, metrics=(accuracy,)),
+        optimizer=FitOptimizer(),
     ),
 )
+
 
 ### Run Conformal Bayes
 error = 0.1
@@ -71,12 +96,12 @@ conformal_set, ESS = prob_model.predictive.conformal_set(
     error=error,
     n_posterior_samples=n_posterior_samples,
     return_ess=True,
-)
-
+)  # Note that we do not need val_data, so we could merge it with train_data
 
 ### Evaluate conformal Bayes
 # Evaluate conformal method
 y_test = test_data[1]  # test data points
+n_test = jnp.shape(y_test)[0]
 
 # Loop through test data points and compute coverage and length of conformal sets
 coverage = jnp.array([y_test[j] in conformal_set[j] for j in range(n_test)])
@@ -85,7 +110,6 @@ length = jnp.array([len(conformal_set[j]) for j in range(n_test)])
 print("Coverage for CB in test set = {}".format(jnp.mean(coverage)))
 print("Mean set length for CB = {}".format(jnp.mean(length)))
 print("Mean effective sample size for IS = {}".format(jnp.mean(ESS)))
-
 
 ### Bayesian credible sets
 # Naive Bayes predictive method and evaluation
