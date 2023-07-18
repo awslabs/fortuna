@@ -232,6 +232,7 @@ def dryrun_task(task, method):
         save_n_steps=None,
         freeze=None,
     )
+
     train_and_sample(
         task,
         method,
@@ -241,6 +242,7 @@ def dryrun_task(task, method):
         calib_data_loader,
         map_fit_config=map_fit_config,
     )
+
     train_and_sample(
         task,
         method,
@@ -271,6 +273,7 @@ def dryrun_task(task, method):
             save_n_steps=None,
             freeze=None,
         )
+
         train_and_sample(
             task,
             method,
@@ -282,6 +285,7 @@ def dryrun_task(task, method):
             save_dir=tmp_dir,
             dump_state=True,
         )
+
         train_and_sample(
             task,
             method,
@@ -309,16 +313,17 @@ def dryrun_task(task, method):
                 freeze=freeze_fun,
             )
 
-        train_and_sample(
-            task,
-            method,
-            prob_model,
-            train_data_loader,
-            val_data_loader,
-            calib_data_loader,
-            start_current=True,
-            freeze=freeze_fun,
-        )
+            train_and_sample(
+                task,
+                method,
+                prob_model,
+                train_data_loader,
+                val_data_loader,
+                calib_data_loader,
+                start_current=True,
+                freeze=freeze_fun,
+            )
+
         train_and_sample(
             task,
             method,
@@ -331,6 +336,7 @@ def dryrun_task(task, method):
             restore_dir=tmp_dir,
             freeze=freeze_fun,
         )
+
         train_and_sample(
             task,
             method,
@@ -343,6 +349,7 @@ def dryrun_task(task, method):
             restore_dir=tmp_dir + "2",
             freeze=freeze_fun,
         )
+
         train_and_sample(
             task,
             method,
@@ -363,6 +370,10 @@ def dryrun_task(task, method):
             dump_state=True,
             freeze=freeze_fun,
         )
+        prob_model = define_prob_model(task, method)
+        prob_model.load_state(tmp_dir + "4/last")
+        sample(method, prob_model, train_data_loader)
+        prob_model.predictive.log_prob(train_data_loader)
 
         train_and_sample(
             task,
@@ -376,10 +387,6 @@ def dryrun_task(task, method):
             save_n_steps=1,
             freeze=freeze_fun,
         )
-        prob_model = define_prob_model(task, method)
-        prob_model.load_state(tmp_dir + "5")
-        sample(method, prob_model, train_data_loader)
-        prob_model.predictive.log_prob(train_data_loader)
 
     prob_model = define_prob_model(task, method, model_editor=ModelEditor())
     train_and_sample(

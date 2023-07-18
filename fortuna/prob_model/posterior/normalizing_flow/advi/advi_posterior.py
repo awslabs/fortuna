@@ -14,7 +14,6 @@ from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
-import numpy as np
 
 from fortuna.data.loader import (
     DataLoader,
@@ -39,7 +38,7 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_trainer import (
     JittedADVITrainer,
     MultiDeviceADVITrainer,
 )
-from pathlib import Path
+import pathlib
 from fortuna.partitioner.partition_manager.base import PartitionManager
 from fortuna.prob_model.posterior.posterior_state_repository import (
     PosteriorStateRepository,
@@ -105,7 +104,7 @@ class ADVIPosterior(Posterior):
         checkpoint_restorer = (
             get_checkpoint_manager(
                 str(
-                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -214,7 +213,7 @@ class ADVIPosterior(Posterior):
             partition_manager=None,
             checkpoint_manager=get_checkpoint_manager(
                 checkpoint_dir=str(
-                    Path(fit_config.checkpointer.save_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,

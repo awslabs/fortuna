@@ -23,6 +23,7 @@ from fortuna.typing import (
     Batch,
     Path,
 )
+import pathlib
 from fortuna.partitioner.partition_manager.base import PartitionManager
 from orbax.checkpoint import CheckpointManager
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
@@ -114,7 +115,7 @@ class SWAGTrainer(MAPTrainer):
     def on_train_end(self, state: SWAGState) -> SWAGState:
         self.save_checkpoint(
             state,
-            save_checkpoint_dir=self.save_checkpoint_dir,
+            save_checkpoint_dir=str(pathlib.Path(self.save_checkpoint_dir) / "last"),
             keep=self.keep_top_n_checkpoints,
             force_save=True,
         )

@@ -8,12 +8,11 @@ from jax import random
 from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
-
+import pathlib
 from fortuna.data.loader import (
     DataLoader,
     InputsLoader,
 )
-from pathlib import Path
 from fortuna.utils.checkpoint import get_checkpoint_manager
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
@@ -105,7 +104,7 @@ class SWAGPosterior(Posterior):
         checkpoint_restorer = (
             get_checkpoint_manager(
                 str(
-                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
             )
@@ -200,7 +199,7 @@ class SWAGPosterior(Posterior):
             partition_manager=self.partition_manager,
             checkpoint_manager=get_checkpoint_manager(
                 checkpoint_dir=str(
-                    Path(fit_config.checkpointer.save_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,

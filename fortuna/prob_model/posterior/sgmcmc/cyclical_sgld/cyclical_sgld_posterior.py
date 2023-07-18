@@ -39,7 +39,6 @@ from fortuna.utils.nested_dicts import (
     nested_get,
     nested_set,
 )
-from pathlib import Path
 from fortuna.utils.checkpoint import get_checkpoint_manager
 
 logger = logging.getLogger(__name__)
@@ -145,7 +144,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         checkpoint_restorer = (
             get_checkpoint_manager(
                 str(
-                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -179,7 +178,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             partition_manager=self.partition_manager,
             checkpoint_manager=get_checkpoint_manager(
                 str(
-                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,

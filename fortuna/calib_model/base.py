@@ -30,7 +30,7 @@ from fortuna.typing import (
     Targets,
     Uncertainties,
 )
-from pathlib import Path as _Path
+import pathlib
 from jax._src.prng import PRNGKeyArray
 from orbax.checkpoint import CheckpointManager
 from fortuna.utils.checkpoint import get_checkpoint_manager
@@ -105,7 +105,7 @@ class CalibModel(abc.ABC):
         checkpoint_restorer = (
             get_checkpoint_manager(
                 str(
-                    _Path(config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(config.checkpointer.restore_checkpoint_dir)
                     / config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=config.checkpointer.keep_top_n_checkpoints,
@@ -163,7 +163,7 @@ class CalibModel(abc.ABC):
             partition_manager=self.partition_manager,
             checkpoint_manager=get_checkpoint_manager(
                 checkpoint_dir=str(
-                    _Path(config.checkpointer.save_checkpoint_dir)
+                    pathlib.Path(config.checkpointer.save_checkpoint_dir)
                     / config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=config.checkpointer.keep_top_n_checkpoints,

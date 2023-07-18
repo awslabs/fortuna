@@ -7,16 +7,9 @@ from typing import (
     Optional,
     Tuple,
     Union,
-    Any,
-    Callable
 )
 from fortuna.data.loader.base import ShardedPrefetchedLoader
 from flax.core import FrozenDict
-from flax.training.common_utils import (
-    shard,
-    shard_prng_key,
-)
-import jax
 from jax.sharding import PartitionSpec
 from jax.experimental.pjit import pjit
 from jax import (
@@ -34,7 +27,7 @@ from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 import tqdm
-
+import pathlib
 from fortuna.data.loader import (
     DataLoader,
     DeviceDimensionAugmentedLoader,
@@ -64,8 +57,8 @@ from fortuna.typing import (
     Mutable,
     Params,
     Status,
-    Array
 )
+import pathlib
 from fortuna.utils.checkpoint import get_checkpoint_manager
 from fortuna.utils.freeze import get_trainable_paths
 from fortuna.utils.nested_dicts import (
@@ -73,7 +66,6 @@ from fortuna.utils.nested_dicts import (
     nested_set,
     nested_unpair,
 )
-from pathlib import Path
 from fortuna.utils.random import generate_random_normal_like_tree
 from fortuna.utils.strings import decode_encoded_tuple_of_lists_of_strings_to_array
 from fortuna.partitioner.partition_manager.base import PartitionManager
@@ -248,7 +240,7 @@ class LaplacePosterior(Posterior):
         checkpoint_restorer = (
             get_checkpoint_manager(
                 str(
-                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -307,10 +299,10 @@ class LaplacePosterior(Posterior):
         )
 
         self.state = PosteriorStateRepository(
-            partition_manager=self.partition_manager,
+            partition_manager=None,
             checkpoint_manager=get_checkpoint_manager(
                 checkpoint_dir=str(
-                    Path(fit_config.checkpointer.save_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -319,7 +311,7 @@ class LaplacePosterior(Posterior):
             and fit_config.checkpointer.dump_state
             else None,
         )
-        self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+        self.state.replace(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
         logging.info("Fit completed.")
         if (
             val_data_loader is not None
@@ -332,7 +324,7 @@ class LaplacePosterior(Posterior):
                 shard=fit_config.processor.devices == -1,
             )
             state = state.replace(prior_log_var=opt_prior_log_var)
-            self.state.put(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
+            self.state.replace(state, keep=fit_config.checkpointer.keep_top_n_checkpoints)
             logging.info(f"Best prior log-variance found: {opt_prior_log_var}")
         return status
 
@@ -343,7 +335,7 @@ class LaplacePosterior(Posterior):
     ) -> JointState:
         if rng is None:
             rng = self.rng.get()
-        state: LaplaceState = self.state.get()
+        state = self.state.get()
         if kwargs.get("prior_log_var") is not None:
             state = state.replace(prior_log_var=kwargs.get("prior_log_var"))
 
@@ -352,9 +344,9 @@ class LaplacePosterior(Posterior):
                 state._encoded_which_params
             )
             mean, hess_lik_diag = nested_unpair(
-                state.params.unfreeze(),
-                which_params,
-                ("mean", "hess_lik_diag"),
+                d=state.params.unfreeze(),
+                key_paths=tuple(which_params),
+                labels=("mean", "hess_lik_diag"),
             )
             std = self._compute_std(
                 prior_log_var=state.prior_log_var, hess_lik_diag=hess_lik_diag
@@ -363,7 +355,7 @@ class LaplacePosterior(Posterior):
             noise = generate_random_normal_like_tree(rng, std)
             params = nested_set(
                 d=mean,
-                key_paths=which_params,
+                key_paths=tuple(which_params),
                 objs=tuple(
                     [
                         tree_map(
@@ -418,7 +410,7 @@ class LaplacePosterior(Posterior):
                     params=FrozenDict(
                         nested_unpair(
                             d=state.params.unfreeze(),
-                            key_paths=which_params,
+                            key_paths=tuple(which_params),
                             labels=("mean", "hess_lik_diag"),
                         )[0]
                     )
@@ -457,7 +449,7 @@ class LaplacePosterior(Posterior):
         keys = random.split(rng, n_posterior_samples)
 
         def _lik_log_batched_prob(params, mutable, calib_params, calib_mutable):
-            return self.likelihood._batched_log_prob(
+            return self.joint.likelihood._batched_log_prob(
                 params,
                 batch,
                 mutable=mutable,
@@ -470,9 +462,9 @@ class LaplacePosterior(Posterior):
             _lik_log_batched_prob = pjit(
                 _lik_log_batched_prob,
                 in_shardings=(
+                    self.partition_manager.shardings.params,
                     self.partition_manager.shardings.mutable,
                     self.partition_manager.shardings.calib_params,
-                    self.partition_manager.shardings.params,
                     self.partition_manager.shardings.calib_mutable,
                 ),
                 out_shardings=PartitionSpec(("dp", "fsdp")),

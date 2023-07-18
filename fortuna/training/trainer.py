@@ -2,7 +2,7 @@ import abc
 import collections
 from functools import partial
 import logging
-from pathlib import Path as _Path
+import pathlib
 from typing import (
     Any,
     Callable,
@@ -19,7 +19,6 @@ import jax
 from jax import (
     random,
     value_and_grad,
-    vmap,
 )
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
@@ -358,7 +357,7 @@ class TrainerABC(
         if improved and self.save_checkpoint_dir is not None:
             self.save_checkpoint(
                 state,
-                str(_Path(self.save_checkpoint_dir) / "best"),
+                str(pathlib.Path(self.save_checkpoint_dir) / "best"),
                 force_save=True,
                 prefix="",
             )
@@ -656,7 +655,7 @@ class TrainerABC(
     def on_train_end(self, state: TrainState) -> TrainState:
         self.save_checkpoint(
             state,
-            save_checkpoint_dir=str(_Path(self.save_checkpoint_dir) / "last")
+            save_checkpoint_dir=str(pathlib.Path(self.save_checkpoint_dir) / "last")
             if self.save_checkpoint_dir is not None
             else None,
             keep=self.keep_top_n_checkpoints,

@@ -28,7 +28,6 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import SGMCMCPosterior
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
     SGMCMCPosteriorStateRepository,
 )
-from pathlib import Path
 from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
 from fortuna.utils.freeze import get_trainable_paths
@@ -142,7 +141,7 @@ class SGHMCPosterior(SGMCMCPosterior):
         checkpoint_restorer = (
             get_checkpoint_manager(
                 str(
-                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
@@ -175,7 +174,7 @@ class SGHMCPosterior(SGMCMCPosterior):
             size=self.posterior_approximator.n_samples,
             checkpoint_manager=get_checkpoint_manager(
                 str(
-                    Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
                     / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,

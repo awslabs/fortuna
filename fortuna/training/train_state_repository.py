@@ -64,6 +64,18 @@ class TrainStateRepository(WithCheckpointingMixin):
         else:
             self._state = state
 
+    def remove(
+        self,
+        checkpoint_dir: Path = None,
+    ):
+        if checkpoint_dir or self.checkpoint_manager:
+            if checkpoint_dir is None:
+                step = self.checkpoint_manager.latest_step()
+                if step is not None:
+                    self.checkpoint_manager.delete(step)
+            else:
+                rmtree(checkpoint_dir)
+
     def pull(
         self,
         checkpoint_dir: Path = None,
@@ -73,12 +85,17 @@ class TrainStateRepository(WithCheckpointingMixin):
             checkpoint_dir=checkpoint_dir,
             optimizer=optimizer,
         )
-        if checkpoint_dir or self.checkpoint_manager:
-            if checkpoint_dir is None:
-                self.checkpoint_manager.delete(self.checkpoint_manager.latest_step())
-            else:
-                rmtree(checkpoint_dir)
+        self.remove(checkpoint_dir)
         return state
+
+    def replace(
+        self,
+        state: TrainState,
+        checkpoint_dir: Optional[Path] = None,
+        keep: int = 1,
+    ):
+        self.remove(checkpoint_dir)
+        self.put(state, checkpoint_dir, keep=keep)
 
     def update(
         self,
