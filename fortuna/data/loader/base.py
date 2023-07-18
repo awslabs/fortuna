@@ -207,7 +207,10 @@ class BaseDataLoaderABC(abc.ABC):
 
     @classmethod
     def from_inputs_loaders(
-        cls: Type[T], inputs_loaders: List[BaseInputsLoader], targets: List[int]
+        cls: Type[T],
+        inputs_loaders: List[BaseInputsLoader],
+        targets: List[int],
+        how: str = "interpose",
     ) -> T:
         """
         Transform a list of inputs loader into a concrete instance of a subclass of
@@ -220,6 +223,9 @@ class BaseDataLoaderABC(abc.ABC):
             A list of inputs loaders.
         targets: List[int]
             A target variable for each inputs loader.
+        how: str
+            How the input_loaders will be combined: 'interpose' will interpose the input_loaders based on their
+            batch sizes; 'concatenate' will ignore batch size and concatenate them.
 
         Returns
         -------
@@ -229,7 +235,7 @@ class BaseDataLoaderABC(abc.ABC):
         """
         return cls(
             iterable=IterableData.inputs_loaders_to_batch_iterable(
-                inputs_loaders=inputs_loaders, targets=targets
+                inputs_loaders=inputs_loaders, targets=targets, how=how
             )
         )
 
@@ -545,3 +551,15 @@ class DeviceDimensionAugmentedLoader:
         loader = map(lambda batch: tree_map(self._reshape_inputs, batch), self._loader)
         loader = jax_utils.prefetch_to_device(loader, 2)
         yield from loader
+
+
+class ConcatenatedLoader:
+    def __init__(
+        self,
+        loaders: List[Any],
+    ):
+        self._loaders = loaders
+
+    def __iter__(self, *args, **kwargs):
+        for loader in self._loaders:
+            yield from loader

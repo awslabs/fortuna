@@ -183,12 +183,12 @@ We offer a simple pipeline that allows you to run Fortuna on Amazon SageMaker wi
 3. Create an `S3 bucket <https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-bucket.html>`_.
    You will need this to dump the results from your training jobs on Amazon Sagemaker.
 
-3. Write a configuration `yaml` file. This will include your AWS details, the path to the entrypoint script that you want
+4. Write a configuration `yaml` file. This will include your AWS details, the path to the entrypoint script that you want
    to run on Amazon SageMaker, the arguments to pass to the script, the path to the S3 bucket where you want to dump
    the results, the metrics to monitor, and more.
-   See `here <https://github.com/awslabs/fortuna/tree/main/benchmarks/transformers/sagemaker_entrypoints/prob_model_text_classification_config/default.yaml>`_ for an example.
+   Check `this file <https://github.com/awslabs/fortuna/tree/main/benchmarks/transformers/sagemaker_entrypoints/prob_model_text_classification_config/default.yaml>`_ for an example.
 
-4. Finally, given :code:`config_dir`, that is the absolute path to the main configuration directory,
+5. Finally, given :code:`config_dir`, that is the absolute path to the main configuration directory,
    and :code:`config_filename`, that is the name of the main configuration file (without .yaml extension),
    enter Python and run the following:
 
