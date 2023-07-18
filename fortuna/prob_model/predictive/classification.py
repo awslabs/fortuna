@@ -2,13 +2,19 @@ from typing import Optional
 
 from jax import (
     jit,
+    lax,
     vmap,
 )
 from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
+import numpy as np
 
-from fortuna.data.loader import InputsLoader
+from fortuna.data.loader import (
+    ConcatenatedLoader,
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.prob_model.posterior.base import Posterior
 from fortuna.prob_model.predictive.base import Predictive
 
@@ -424,3 +430,197 @@ class ClassificationPredictive(Predictive):
             return jnp.exp(log_preds) * log_preds
 
         return -jnp.sum(vmap(_entropy_term)(jnp.arange(n_classes)), 0)
+
+    def credible_set(
+        self,
+        inputs_loader: InputsLoader,
+        n_posterior_samples: int = 30,
+        error: float = 0.05,
+        rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
+    ) -> jnp.ndarray:
+        r"""
+        Estimate credible sets for the target variable. This is done by sorting the class probabilities in descending order
+        and including classes until the sum > 1-error.
+
+        Parameters
+        ----------
+        inputs_loader : InputsLoader
+            A loader of input data points.
+        n_posterior_samples: int
+            Number of posterior samples to draw for each input.
+        error: float
+            The set error. This must be a number between 0 and 1, extremes included. For example,
+            `error=0.05` corresponds to a 95% level of credibility.
+        rng : Optional[PRNGKeyArray]
+            A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
+
+        Returns
+        -------
+        jnp.ndarray
+            A credibility set for each of the inputs.
+        """
+        p_classes = self.mean(
+            inputs_loader=inputs_loader,
+            n_posterior_samples=n_posterior_samples,
+            rng=rng,
+            distribute=distribute,
+        )
+        n_classes = jnp.shape(p_classes)[1]
+        labels = jnp.argsort(p_classes, axis=-1)[:, ::-1]
+        p_classes_sorted = jnp.sort(p_classes, axis=-1)[:, ::-1]
+        region_classes = jnp.cumsum(p_classes_sorted, axis=1) > (1 - error)
+
+        # Convert CB region into sets
+        index_true = jnp.argmax(region_classes, axis=1)  # first index where True
+        credible_set = np.zeros(len(index_true), dtype=object)
+        for s in np.arange(n_classes):
+            idx = np.where(index_true == s)[0]
+            credible_set[idx] = labels[idx, : s + 1].tolist()
+
+        return credible_set
+
+    def conformal_set(
+        self,
+        train_data_loader: DataLoader,
+        test_inputs_loader: InputsLoader,
+        n_posterior_samples: int = 30,
+        error: float = 0.05,
+        rng: Optional[PRNGKeyArray] = None,
+        distribute: bool = True,
+        return_ess: bool = False,
+    ) -> jnp.ndarray:
+        r"""
+        Estimate conformal sets for the target variable.
+
+        Parameters
+        ----------
+        train_data_loader : DataLoader
+            A training data loader.
+        test_inputs_loader : InputsLoader
+            A test inputs loader.
+        n_posterior_samples : int
+            Number of samples to draw from the posterior distribution for each input.
+        error: float
+            The set error. This must be a number between 0 and 1, extremes included. For example,
+            `error=0.05` corresponds to a 95% level of confidence.
+        rng : Optional[PRNGKeyArray]
+            A random number generator. If not passed, this will be taken from the attributes of this class.
+        distribute: bool
+            Whether to distribute computation over multiple devices, if available.
+        return_ess: bool
+            Whether to compute effective sample size of importance weights or not.
+
+        Returns
+        -------
+        List[List[int]]
+            A list of conformal sets for each test input.
+        """
+
+        # Extract training data
+        n_train = train_data_loader.size
+        n_classes = train_data_loader.num_unique_labels
+
+        # Extract test inputs and evaluate on each class (e.g. Y = 0, Y = 1)
+        n_test = test_inputs_loader.size
+        test_data_grid_loader = DataLoader.from_inputs_loaders(
+            inputs_loaders=[test_inputs_loader] * n_classes,
+            targets=jnp.arange(n_classes).tolist(),
+            how="concatenate",
+        )
+
+        # Combine training data and test data grid into single loader, so random posterior samples are the same rng
+        train_test_data_loader = ConcatenatedLoader(
+            loaders=[train_data_loader, test_data_grid_loader]
+        )
+
+        # returns n_posterior_samples x (n_classes*n_test +n)
+        ensemble_train_test_log_probs = self.ensemble_log_prob(
+            data_loader=train_test_data_loader,
+            n_posterior_samples=n_posterior_samples,
+            rng=rng,
+            distribute=distribute,
+        )
+        # Split training log_probs
+        ensemble_train_log_probs = ensemble_train_test_log_probs[
+            :, 0:n_train
+        ]  # training log likelihood
+
+        # test log prob for each test input, posterior sample, and class (shape =  n_test x  n_posterior_samples x n_classes)
+        ensemble_testgrid_log_probs = jnp.dstack(
+            jnp.vsplit(ensemble_train_test_log_probs[:, n_train:].T, n_classes)
+        )  # Split test log_probs for each class (in third axis)
+
+        @jit  # compute rank of nonconformity score (unnormalized by n+1)
+        def _compute_cb_region_importancesampling(
+            ensemble_testgrid_log_probs,
+        ):
+            # compute importance sampling weights and normalizing constant
+            importance_weights = jnp.exp(ensemble_testgrid_log_probs.T)
+            normalizing_constant = jnp.sum(importance_weights, axis=1).reshape(-1, 1)
+
+            # compute predictives for y_i,x_i and y_new,x_n+1
+            prob_train = jnp.dot(
+                importance_weights / normalizing_constant,
+                jnp.exp(ensemble_train_log_probs),
+            )
+            prob_test = (
+                jnp.sum(importance_weights**2, axis=1).reshape(-1, 1)
+                / normalizing_constant
+            )
+
+            # compute nonconformity score and sort
+            prob_train_test = jnp.concatenate((prob_train, prob_test), axis=1)
+            rank_test = jnp.sum(
+                prob_train_test <= prob_train_test[:, -1].reshape(-1, 1), axis=1
+            )
+
+            # Compute region of grid which is in confidence set
+            region_true = rank_test > error * (n_train + 1)
+
+            return region_true
+
+        # Compute CB region for each test input
+        conformal_region = np.array(
+            lax.map(_compute_cb_region_importancesampling, ensemble_testgrid_log_probs)
+        )
+
+        # Convert CB region into sets
+        sizes = (conformal_region.sum(axis=1)).astype("int32")
+        region_argsort = np.argsort(conformal_region, axis=1)[:, ::-1]
+        conformal_set = np.zeros(len(sizes), dtype=object)
+        for s in np.unique(sizes):
+            idx = np.where(sizes == s)[0]
+            conformal_set[idx] = region_argsort[idx, :s][:, ::-1].tolist()
+
+        if return_ess:
+            ## DIAGNOSE IMPORTANCE WEIGHTS ##
+            @jit  # compute Effective sample size
+            def _diagnose_importancesampling_weights(
+                ensemble_testgrid_log_probs,
+            ):
+                # compute importance sampling weights and normalizing
+                log_importance_weights = ensemble_testgrid_log_probs.T.reshape(
+                    jnp.shape(ensemble_testgrid_log_probs)[1], -1, 1
+                )
+                log_normalizing_constant = jsp.special.logsumexp(
+                    log_importance_weights, axis=1
+                )
+
+                # compute ESS
+                importance_weights = jnp.exp(
+                    log_importance_weights - log_normalizing_constant.reshape(-1, 1, 1)
+                )
+                ESS = 1 / jnp.sum(importance_weights**2, axis=1)
+                return ESS
+
+            ###
+            ESS = lax.map(
+                _diagnose_importancesampling_weights, ensemble_testgrid_log_probs
+            )
+            return conformal_set, ESS
+
+        else:
+            return conformal_set
