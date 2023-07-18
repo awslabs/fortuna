@@ -34,7 +34,7 @@ class FitCheckpointer:
         dump_state: bool
             Dump the fitted posterior state as a checkpoint in `save_checkpoint_dir`. Any future call to the state will
             internally involve restoring it from memory.
-        checkpoint type: str
+        checkpoint_type: str
             Which checkpoint type to pass to the state.
             There are two possible options:
 

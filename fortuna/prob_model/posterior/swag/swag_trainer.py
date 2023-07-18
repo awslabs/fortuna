@@ -115,7 +115,7 @@ class SWAGTrainer(MAPTrainer):
     def on_train_end(self, state: SWAGState) -> SWAGState:
         self.save_checkpoint(
             state,
-            save_checkpoint_dir=str(pathlib.Path(self.save_checkpoint_dir) / "last"),
+            save_checkpoint_dir=str(pathlib.Path(self.save_checkpoint_dir) / "last") if self.save_checkpoint_dir is not None else None,
             keep=self.keep_top_n_checkpoints,
             force_save=True,
         )

@@ -179,7 +179,12 @@ class CalibModel(abc.ABC):
             logging.info("Calibration completed.")
         return status
 
-    def load_state(self, checkpoint_dir: Path) -> None:
+    def load_state(
+            self,
+            checkpoint_dir: Path,
+            keep_top_n_checkpoints: int = 2,
+            checkpoint_type: str = "last"
+    ) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
         probabilistic model.
@@ -188,10 +193,20 @@ class CalibModel(abc.ABC):
         ----------
         checkpoint_dir : Path
             Path to a checkpoint file or directory to restore.
+        keep_top_n_checkpoints : int
+            Number of past checkpoint files to keep.
+        checkpoint_type: str
+            Which checkpoint type to pass to the state.
+            There are two possible options:
+
+            - "last": this is the state obtained at the end of training.
+            - "best": this is the best checkpoint with respect to the metric monitored by early stopping. Notice that
+              this might be available only if validation data is provided, and both checkpoint saving and early
+              stopping are enabled.
         """
         self.predictive.state = CalibStateRepository(
             partition_manager=self.partition_manager,
-            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
+            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=str(pathlib.Path(checkpoint_dir) / checkpoint_type), keep_top_n_checkpoints=keep_top_n_checkpoints)
         )
         self.partition_manager.shapes_dtypes = self.predictive.state.get_shapes_dtypes_checkpoint()
 
@@ -211,7 +226,7 @@ class CalibModel(abc.ABC):
                 """No state available. You must first either fit the posterior distribution, or load a
             saved checkpoint."""
             )
-        return self.predictive.state.put(
+        self.predictive.state.put(
             self.predictive.state.get(),
             checkpoint_dir=checkpoint_dir,
             keep=keep_top_n_checkpoints,

@@ -421,7 +421,7 @@ if __name__ == "__main__":
         ],
         prior=IsotropicGaussianPrior(log_var=args.prior_log_var),
         output_calibrator=None,
-        model_editor=model_editor,
+        model_editor=model_editor
     )
 
     fit_config = FitConfig(

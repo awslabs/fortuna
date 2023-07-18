@@ -236,7 +236,12 @@ class ProbModel(abc.ABC):
 
             return status
 
-    def load_state(self, checkpoint_dir: Path) -> None:
+    def load_state(
+            self,
+            checkpoint_dir: Path,
+            keep_top_n_checkpoints: int = 2,
+            checkpoint_type: str = "last"
+    ) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be compatible with the
         probabilistic model.
@@ -245,8 +250,18 @@ class ProbModel(abc.ABC):
         ----------
         checkpoint_dir : Path
             Path to a checkpoint file or directory to restore.
+        keep_top_n_checkpoints : int
+            Number of past checkpoint files to keep.
+        checkpoint_type: str
+            Which checkpoint type to pass to the state.
+            There are two possible options:
+
+            - "last": this is the state obtained at the end of training.
+            - "best": this is the best checkpoint with respect to the metric monitored by early stopping. Notice that
+              this might be available only if validation data is provided, and both checkpoint saving and early
+              stopping are enabled.
         """
-        return self.posterior.load_state(checkpoint_dir)
+        return self.posterior.load_state(checkpoint_dir, keep_top_n_checkpoints=keep_top_n_checkpoints, checkpoint_type=checkpoint_type)
 
     def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         """

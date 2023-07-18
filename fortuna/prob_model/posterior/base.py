@@ -1,5 +1,6 @@
 import abc
 import logging
+import pathlib
 from typing import (
     Any,
     Dict,
@@ -183,7 +184,12 @@ class Posterior(WithRNG):
         """
         pass
 
-    def load_state(self, checkpoint_dir: Path) -> None:
+    def load_state(
+            self,
+            checkpoint_dir: Path,
+            keep_top_n_checkpoints: int = 2,
+            checkpoint_type: str = "last"
+    ) -> None:
         """
         Load the state of the posterior distribution from a checkpoint path. The checkpoint must be
         compatible with the current probabilistic model.
@@ -192,12 +198,22 @@ class Posterior(WithRNG):
         ----------
         checkpoint_dir: Path
             Path to checkpoint file or directory to restore.
+        keep_top_n_checkpoints : int
+            Number of past checkpoint files to keep.
+        checkpoint_type: str
+            Which checkpoint type to pass to the state.
+            There are two possible options:
+
+            - "last": this is the state obtained at the end of training.
+            - "best": this is the best checkpoint with respect to the metric monitored by early stopping. Notice that
+              this might be available only if validation data is provided, and both checkpoint saving and early
+              stopping are enabled.
         """
         self.state = PosteriorStateRepository(
             partition_manager=self.partition_manager,
-            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
+            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=str(pathlib.Path(checkpoint_dir) / checkpoint_type), keep_top_n_checkpoints=keep_top_n_checkpoints)
         )
-        # currently, sharding is only supported when using MAP
+        # currently, sharding is only supported with MAPState
         if isinstance(self.state, MAPState):
             self.partition_manager.shapes_dtypes = self.state.get_shapes_dtypes_checkpoint()
 
@@ -217,7 +233,7 @@ class Posterior(WithRNG):
                 """No state available. You must first either fit the posterior distribution, or load a
             saved checkpoint."""
             )
-        return self.state.put(
+        self.state.put(
             self.state.get(),
             checkpoint_dir=checkpoint_dir,
             keep=keep_top_n_checkpoints,

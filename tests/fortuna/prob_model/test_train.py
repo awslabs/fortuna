@@ -297,7 +297,7 @@ def dryrun_task(task, method):
         )
 
         prob_model = define_prob_model(task, method)
-        prob_model.load_state(tmp_dir + "/last")
+        prob_model.load_state(tmp_dir)
         sample(method, prob_model, train_data_loader)
         prob_model.predictive.log_prob(train_data_loader)
 
@@ -371,7 +371,7 @@ def dryrun_task(task, method):
             freeze=freeze_fun,
         )
         prob_model = define_prob_model(task, method)
-        prob_model.load_state(tmp_dir + "4/last")
+        prob_model.load_state(tmp_dir + "4")
         sample(method, prob_model, train_data_loader)
         prob_model.predictive.log_prob(train_data_loader)
 

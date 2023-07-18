@@ -67,11 +67,15 @@ class SGMCMCPosterior(Posterior):
             partition_manager=self.partition_manager,
             checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
         )
-        self.partition_manager.shapes_dtypes = self.state.get_shapes_dtypes_checkpoint()
 
     def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
+        if self.state is None:
+            raise ValueError(
+                """No state available. You must first either fit the posterior distribution, or load a
+            saved checkpoint."""
+            )
         for i in range(self.posterior_approximator.n_samples):
-            self.state.put(state=self.state.get(i), i=i, keep=keep_top_n_checkpoints)
+            self.state.put(state=self.state.get(i), i=i, checkpoint_dir=checkpoint_dir, keep=keep_top_n_checkpoints)
 
     def _restore_state_from_somewhere(
             self,
@@ -83,7 +87,7 @@ class SGMCMCPosterior(Posterior):
     ) -> MAPState:
         if checkpoint_manager is not None:
             repo = PosteriorStateRepository(
-                partition_manager=partition_manager,
+                partition_manager=None,
                 checkpoint_manager=get_checkpoint_manager(
                     checkpoint_dir=str(pathlib.Path(checkpoint_manager.directory) / "c") if checkpoint_manager is not None else None,
                     keep_top_n_checkpoints=checkpoint_manager._options.max_to_keep if checkpoint_manager is not None else None

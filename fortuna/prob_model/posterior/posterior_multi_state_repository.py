@@ -15,6 +15,8 @@ from fortuna.typing import (
     Path,
 )
 from fortuna.partitioner.partition_manager.base import PartitionManager
+from fortuna.utils.checkpoint import get_checkpoint_manager
+import pathlib
 from orbax.checkpoint import CheckpointManager
 
 
@@ -24,15 +26,20 @@ class PosteriorMultiStateRepository:
             size: int,
             partition_manager: Optional[PartitionManager] = None,
             checkpoint_manager: Optional[CheckpointManager] = None,
+            checkpoint_type: str = "last"
     ):
         self.size = size
-        self.state = [
-            PosteriorStateRepository(
-                partition_manager=partition_manager,
-                checkpoint_manager=checkpoint_manager
+        self.state = []
+        for i in range(size):
+            self.state.append(
+                PosteriorStateRepository(
+                    partition_manager=partition_manager,
+                    checkpoint_manager=get_checkpoint_manager(
+                        checkpoint_dir=str(pathlib.Path(checkpoint_manager.directory) / str(i) / checkpoint_type) if checkpoint_manager is not None else None,
+                        keep_top_n_checkpoints=checkpoint_manager._options.max_to_keep if checkpoint_manager is not None else None
+                    )
+                )
             )
-            for i in range(size)
-        ]
 
     def get(
         self,

@@ -159,17 +159,33 @@ class IterableData:
         return cls(_inner)
 
     @classmethod
-    def inputs_loaders_to_batch_iterable(cls, inputs_loaders, targets) -> IterableData:
-        def _inner():
-            for all_inputs in zip_longest(*inputs_loaders):
-                _targets = [
-                    target * np.ones(inputs.shape[0], dtype="int32")
-                    for inputs, target in zip(all_inputs, targets)
-                    if inputs is not None
-                ]
-                all_inputs = [inputs for inputs in all_inputs if inputs is not None]
-                yield np.concatenate(all_inputs), np.concatenate(_targets)
+    def inputs_loaders_to_batch_iterable(
+        cls, inputs_loaders, targets, how
+    ) -> IterableData:
+        if how == "interpose":
 
+            def _inner():
+                for all_inputs in zip_longest(*inputs_loaders):
+                    _targets = [
+                        target * np.ones(inputs.shape[0], dtype="int32")
+                        for inputs, target in zip(all_inputs, targets)
+                        if inputs is not None
+                    ]
+                    all_inputs = [inputs for inputs in all_inputs if inputs is not None]
+                    yield np.concatenate(all_inputs), np.concatenate(_targets)
+
+        elif how == "concatenate":
+
+            def _inner():
+                for inputs_loader, target in zip(inputs_loaders, targets):
+                    for inputs in inputs_loader:
+                        yield inputs, target * np.ones(inputs.shape[0], dtype="int32")
+
+        else:
+            hows = ["interpose", "concatenate"]
+            raise ValueError(
+                f"`how={how} not recognized. Please choose among the following options: {hows}."
+            )
         return cls(_inner)
 
     @classmethod

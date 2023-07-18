@@ -14,9 +14,12 @@ from jax import (
     pure_callback,
     random,
 )
+from copy import deepcopy
 from orbax.checkpoint import CheckpointManager
 from jax._src.prng import PRNGKeyArray
 from fortuna.data.loader import DataLoader
+from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
+from fortuna.prob_model.posterior.map.map_approximator import MAPPosteriorApproximator
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
 from fortuna.prob_model.joint.state import JointState
@@ -79,107 +82,37 @@ class DeepEnsemblePosterior(Posterior):
         map_fit_config: Optional[FitConfig] = None,
         **kwargs,
     ) -> List[Status]:
-        super()._checks_on_fit_start(fit_config, map_fit_config)
-
-        status = dict()
-
-        map_state = None
-        if map_fit_config is not None and fit_config.optimizer.freeze_fun is None:
-            logging.warning(
-                "It appears that you are trying to configure `map_fit_config`. "
-                "However, a preliminary run with MAP is supported only if "
-                "`fit_config.optimizer.freeze_fun` is given. "
-                "Since the latter was not given, `map_fit_config` will be ignored."
+        def _fun(i: int):
+            fit_config_i = deepcopy(fit_config)
+            fit_config_i.checkpointer.save_checkpoint_dir = str(pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / str(i)) if fit_config.checkpointer.save_checkpoint_dir else None
+            fit_config_i.checkpointer.restore_checkpoint_dir = str(pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir) / str(i)) if fit_config.checkpointer.restore_checkpoint_dir else None
+            map_posterior = MAPPosterior(
+                self.joint, posterior_approximator=MAPPosteriorApproximator(), partition_manager=self.partition_manager
             )
-        elif not super()._is_state_available_somewhere(
-            fit_config
-        ) and super()._should_run_preliminary_map(fit_config, map_fit_config):
-            map_state, status["map"] = run_preliminary_map(
-                joint=self.joint,
-                partition_manager=self.partition_manager,
+            map_posterior.rng = self.rng
+            if self.state is not None:
+                map_posterior.state = self.state.state[i]
+
+            status = map_posterior.fit(
+                rng=map_posterior.rng.get(),
                 train_data_loader=train_data_loader,
                 val_data_loader=val_data_loader,
-                map_fit_config=map_fit_config,
-                rng=self.rng,
+                fit_config=fit_config_i,
                 **kwargs,
             )
+            return map_posterior.state, status
 
-        trainer_cls = ShardedMAPTrainer if not fit_config.processor.disable_jit else MAPTrainer
-
-        train_data_size = train_data_loader.size
-        val_data_size = val_data_loader.size if val_data_loader is not None else None
-
-        def _fit(i):
-            if self._is_state_available_somewhere(fit_config):
-                _state = self._restore_state_from_somewhere(
-                    i=i,
-                    fit_config=fit_config,
-                    allowed_states=(MAPState,),
-                    partition_manager=self.partition_manager
-                )
-            else:
-                _state = self._init_map_state(map_state, train_data_loader, fit_config)
-
-            _state = self._freeze_optimizer_in_state(_state, fit_config)
-
-            save_checkpoint_dir_i = (
-                str(pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / str(i))
-                if fit_config.checkpointer.save_checkpoint_dir
-                else None
-            )
-            trainer = trainer_cls(
-                predict_fn=self.joint.likelihood.prob_output_layer.predict,
-                partition_manager=self.partition_manager,
-                checkpoint_manager=get_checkpoint_manager(
-                    save_checkpoint_dir_i,
-                    keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-                ),
-                save_checkpoint_dir=save_checkpoint_dir_i,
-                save_every_n_steps=fit_config.checkpointer.save_every_n_steps,
-                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-                disable_training_metrics_computation=fit_config.monitor.disable_training_metrics_computation,
-                eval_every_n_epochs=fit_config.monitor.eval_every_n_epochs,
-                early_stopping_monitor=fit_config.monitor.early_stopping_monitor,
-                early_stopping_min_delta=fit_config.monitor.early_stopping_min_delta,
-                early_stopping_patience=fit_config.monitor.early_stopping_patience,
-                freeze_fun=fit_config.optimizer.freeze_fun,
-            )
-
-            return trainer.train(
-                rng=self.rng.get(),
-                state=_state,
-                loss_fun=self.joint._batched_negative_log_joint_prob,
-                training_data_loader=train_data_loader,
-                training_dataset_size=train_data_size,
-                n_epochs=fit_config.optimizer.n_epochs,
-                metrics=fit_config.monitor.metrics,
-                validation_data_loader=val_data_loader,
-                validation_dataset_size=val_data_size,
-                verbose=fit_config.monitor.verbose,
-                callbacks=fit_config.callbacks,
-                max_grad_norm=fit_config.hyperparameters.max_grad_norm,
-                gradient_accumulation_steps=fit_config.hyperparameters.gradient_accumulation_steps,
-            )
-
-        if isinstance(self.state, PosteriorMultiStateRepository):
-            for i in range(self.posterior_approximator.ensemble_size):
-                self.state.state[i].checkpoint_dir = (
-                    pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / str(i)
-                    if fit_config.checkpointer.save_checkpoint_dir is not None
-                    and fit_config.checkpointer.dump_state
-                    else None
-                )
-        else:
+        if self.state is None:
             self.state = PosteriorMultiStateRepository(
                 size=self.posterior_approximator.ensemble_size,
                 partition_manager=self.partition_manager,
                 checkpoint_manager=get_checkpoint_manager(
                     checkpoint_dir=str(
                         pathlib.Path(fit_config.checkpointer.save_checkpoint_dir)
-                        / fit_config.checkpointer.checkpoint_type
                     ) if fit_config.checkpointer.save_checkpoint_dir is not None else None,
                     keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-                )
+                ),
+                checkpoint_type=fit_config.checkpointer.checkpoint_type
             )
 
         status = []
@@ -187,10 +120,7 @@ class DeepEnsemblePosterior(Posterior):
             logging.info(
                 f"Run {i+1} out of {self.posterior_approximator.ensemble_size}."
             )
-            state, _status = _fit(i)
-            self.state.put(
-                state=state, i=i, keep=fit_config.checkpointer.keep_top_n_checkpoints
-            )
+            self.state.state[i], _status = _fun(i)
             status.append(_status)
         logging.info("Fit completed.")
         return status
@@ -210,21 +140,27 @@ class DeepEnsemblePosterior(Posterior):
             calib_mutable=state.calib_mutable,
         )
 
-    def load_state(self, checkpoint_dir: Path) -> None:
-        try:
-            self.restore_checkpoint(pathlib.Path(checkpoint_dir) / "0")
-        except ValueError:
-            raise ValueError(
-                f"No checkpoint was found in `checkpoint_dir={checkpoint_dir}`."
-            )
+    def load_state(
+            self,
+            checkpoint_dir: Path,
+            keep_top_n_checkpoints: int = 2,
+            checkpoint_type: str = "last"
+    ) -> None:
         self.state = PosteriorMultiStateRepository(
             size=self.posterior_approximator.ensemble_size,
-            checkpoint_dir=checkpoint_dir,
+            partition_manager=self.partition_manager,
+            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
+            checkpoint_type=checkpoint_type
         )
 
     def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
+        if self.state is None:
+            raise ValueError(
+                """No state available. You must first either fit the posterior distribution, or load a
+            saved checkpoint."""
+            )
         for i in range(self.posterior_approximator.ensemble_size):
-            self.state.put(state=self.state.get(i), i=i, keep=keep_top_n_checkpoints)
+            self.state.put(state=self.state.get(i), i=i, checkpoint_dir=checkpoint_dir, keep=keep_top_n_checkpoints)
 
     def _init_map_state(
         self, state: Optional[MAPState], data_loader: DataLoader, fit_config: FitConfig
@@ -278,7 +214,7 @@ class DeepEnsemblePosterior(Posterior):
             repo = PosteriorStateRepository(
                 partition_manager=partition_manager,
                 checkpoint_manager=get_checkpoint_manager(
-                    checkpoint_dir=str(pathlib.Path(getattr(checkpoint_manager, "directory")) / str(i)),
+                    checkpoint_dir=str(pathlib.Path(getattr(checkpoint_manager, "directory")) / fit_config.checkpointer.checkpoint_type / str(i)),
                     keep_top_n_checkpoints=checkpoint_manager._options.max_to_keep if checkpoint_manager is not None else None
                 ),
             )

@@ -105,6 +105,7 @@ class SWAGPosterior(Posterior):
             get_checkpoint_manager(
                 str(
                     pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
+                    / fit_config.checkpointer.checkpoint_type
                 ),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
             )
@@ -196,7 +197,7 @@ class SWAGPosterior(Posterior):
         )
 
         self.state = PosteriorStateRepository(
-            partition_manager=self.partition_manager,
+            partition_manager=None,
             checkpoint_manager=get_checkpoint_manager(
                 checkpoint_dir=str(
                     pathlib.Path(fit_config.checkpointer.save_checkpoint_dir)
@@ -281,7 +282,7 @@ class SWAGPosterior(Posterior):
                 params=FrozenDict(
                     nested_set(
                         d=state.params.unfreeze(),
-                        key_paths=which_params,
+                        key_paths=tuple(which_params),
                         objs=tuple(
                             self._get_sample(
                                 mean=state.mean,
