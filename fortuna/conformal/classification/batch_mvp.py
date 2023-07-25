@@ -10,7 +10,7 @@ from jax import vmap
 import jax.numpy as jnp
 import numpy as np
 
-from fortuna.conformal.batch_mvp import BatchMVPConformalMethod
+from fortuna.conformal.multivalid.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.classification.base import ConformalClassifier
 from fortuna.data.loader import (
     DataLoader,

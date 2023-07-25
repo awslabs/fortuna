@@ -6,6 +6,7 @@ from fortuna.conformal.classification.adaptive_prediction import (
     AdaptivePredictionConformalClassifier,
 )
 from fortuna.conformal.classification.batch_mvp import BatchMVPConformalClassifier
+from fortuna.conformal.classification.batch_mvmp import BatchMVMPBinaryClassifier
 from fortuna.conformal.classification.simple_prediction import (
     SimplePredictionConformalClassifier,
 )

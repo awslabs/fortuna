@@ -8,7 +8,7 @@ from typing import (
 
 import jax.numpy as jnp
 
-from fortuna.conformal.batch_mvp import BatchMVPConformalMethod
+from fortuna.conformal.multivalid.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.regression.base import ConformalRegressor
 from fortuna.data.loader import (
     DataLoader,

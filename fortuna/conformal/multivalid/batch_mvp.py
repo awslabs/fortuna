@@ -17,49 +17,7 @@ from fortuna.data.loader import (
     InputsLoader,
 )
 from fortuna.typing import Array
-
-
-class Group:
-    def __init__(self, group_fn: Callable[[Array], Array]):
-        self.group_fn = group_fn
-
-    def __call__(self, x):
-        g = self.group_fn(x)
-        if g.ndim > 1:
-            raise ValueError(
-                "Evaluations of the group function `group_fn` must be one-dimensional arrays."
-            )
-        if jnp.any((g != 0) * (g != 1)):
-            raise ValueError(
-                "The group function `threshold_fn` must take values in {0, 1}."
-            )
-        return g.astype(bool)
-
-
-class Normalizer:
-    def __init__(self, xmin: Array, xmax: Array):
-        self.xmin = xmin
-        self.xmax = xmax if xmax != xmin else xmin + 1
-
-    def normalize(self, x: Array) -> Array:
-        return (x - self.xmin) / (self.xmax - self.xmin)
-
-    def unnormalize(self, y: Array) -> Array:
-        return self.xmin + (self.xmax - self.xmin) * y
-
-
-class Score:
-    def __init__(self, score_fn: Callable[[Array, Array], Array]):
-        self.score_fn = score_fn
-
-    def __call__(self, x: Array, y: Array):
-        s = self.score_fn(x, y)
-        if s.ndim > 1:
-            raise ValueError(
-                "Evaluations of the score function `score_fn` must be one-dimensional arrays, "
-                f"but its shape was {s.shape}."
-            )
-        return s
+from fortuna.conformal.multivalid.base import Score, Normalizer, Group, _compute_utils_over_loader
 
 
 class BatchMVPConformalMethod(abc.ABC):
@@ -111,28 +69,8 @@ class BatchMVPConformalMethod(abc.ABC):
         """
         quantile = 1 - error
 
-        scores, thresholds, groups = [], [], []
-        for inputs, targets in val_data_loader:
-            scores.append(self.score_fn(inputs, targets))
-            thresholds.append(jnp.zeros(inputs.shape[0]))
-            groups.append(
-                jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=1)
-            )
-        scores, thresholds, groups = (
-            jnp.concatenate(scores),
-            jnp.concatenate(thresholds),
-            jnp.concatenate(groups, 0),
-        )
-
-        test_thresholds, test_groups = [], []
-        for inputs in test_inputs_loader:
-            test_thresholds.append(jnp.zeros(inputs.shape[0]))
-            test_groups.append(
-                jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=-1)
-            )
-        test_thresholds, test_groups = jnp.concatenate(
-            test_thresholds
-        ), jnp.concatenate(test_groups, 0)
+        thresholds, groups, scores = _compute_utils_over_loader(val_data_loader, self.group_fns, self.score_fn)
+        test_thresholds, test_groups = _compute_utils_over_loader(test_inputs_loader, self.group_fns)
 
         normalizer = Normalizer(jnp.min(scores), jnp.max(scores))
         scores = normalizer.normalize(scores)
@@ -140,22 +78,20 @@ class BatchMVPConformalMethod(abc.ABC):
         n_groups = groups.shape[1]
 
         def compute_probability_error(
-            v: Array, g: Array, delta: Union[Array, float] = 0.0
+            v: Array, g: Array, delta: Union[Array, float] = 0.0, return_prob_b: bool = False
         ):
             b = (jnp.abs(thresholds - v) < 0.5 / self.n_buckets) * groups[:, g]
-            filtered_scores = jnp.where(b, scores, -jnp.ones_like(scores))
-            conds = (filtered_scores <= v + delta) * (filtered_scores != -1)
+            conds = (scores <= v + delta) * b
             prob_b = jnp.mean(b)
             prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
-            return (quantile - prob) ** 2
+            prob_error = (quantile - prob) ** 2
+            if return_prob_b:
+                return prob_error, prob_b
+            return prob_error
 
         def calibration_error(v, g):
-            b = (jnp.abs(thresholds - v) < 0.5 / self.n_buckets) * groups[:, g]
-            filtered_scores = jnp.where(b, scores, -jnp.ones_like(scores))
-            conds = (filtered_scores <= v) * (filtered_scores != -1)
-            prob_b = jnp.mean(b)
-            prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
-            return prob_b * (quantile - prob) ** 2
+            prob_error, prob_b = compute_probability_error(v, g, return_prob_b=True)
+            return prob_b * prob_error
 
         max_calib_errors = None
         if return_max_calib_error:
