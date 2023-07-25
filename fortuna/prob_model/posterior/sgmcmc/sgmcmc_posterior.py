@@ -4,13 +4,14 @@ from typing import (
     Tuple,
     Type,
 )
-
+from flax.traverse_util import path_aware_map, flatten_dict
 from jax import (
     pure_callback,
     random,
 )
+from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
-
+import orbax
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.state import JointState
 from fortuna.prob_model.posterior.base import Posterior
@@ -61,12 +62,24 @@ class SGMCMCPosterior(Posterior):
             calib_mutable=state.calib_mutable,
         )
 
-    def load_state(self, checkpoint_dir: Path) -> None:
+    def load_state(
+            self,
+            checkpoint_dir: Path,
+            keep_top_n_checkpoints: int = 2,
+            checkpoint_type: str = "last"
+    ) -> None:
+        path = pathlib.Path(checkpoint_dir)
+        all_params_path = path / "all/0"
+        all_params_checkpointer = orbax.checkpoint.Checkpointer(orbax.checkpoint.PyTreeCheckpointHandler())
         self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
             partition_manager=self.partition_manager,
-            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=checkpoint_dir),
+            checkpoint_manager=get_checkpoint_manager(checkpoint_dir=str(path / "chain")),
+            checkpoint_type=None,
         )
+        if all_params_path.exists():
+            self.state._which_params = tuple([list(p) for p in flatten_dict(path_aware_map(lambda p, v: p, self.state.get(0).params)).keys()])
+            self.state._all_params = FrozenDict(all_params_checkpointer.restore(path / "all/0/default"))
 
     def save_state(self, checkpoint_dir: Path, keep_top_n_checkpoints: int = 1) -> None:
         if self.state is None:
@@ -89,11 +102,18 @@ class SGMCMCPosterior(Posterior):
             repo = PosteriorStateRepository(
                 partition_manager=None,
                 checkpoint_manager=get_checkpoint_manager(
-                    checkpoint_dir=str(pathlib.Path(checkpoint_manager.directory) / "c") if checkpoint_manager is not None else None,
-                    keep_top_n_checkpoints=checkpoint_manager._options.max_to_keep if checkpoint_manager is not None else None
+                    checkpoint_dir=str(pathlib.Path(checkpoint_manager.directory) / str(checkpoint_manager.latest_step())),
+                    keep_top_n_checkpoints=checkpoint_manager._options.max_to_keep
                 ),
             )
             state = repo.get(optimizer=fit_config.optimizer.method, _do_reshard=_do_reshard)
+
+            if fit_config.checkpointer.restore_checkpoint_dir is not None and fit_config.optimizer.freeze_fun is not None:
+                all_params_checkpointer = orbax.checkpoint.Checkpointer(orbax.checkpoint.PyTreeCheckpointHandler())
+                all_params_path = pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir) / "all/0/default"
+                if all_params_path.exists():
+                    state = state.replace(params=FrozenDict(all_params_checkpointer.restore(all_params_path)))
+
         elif fit_config.checkpointer.start_from_current_state:
             state = self.state.get(
                 i=self.state.size - 1,

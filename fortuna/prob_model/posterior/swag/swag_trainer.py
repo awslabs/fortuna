@@ -110,7 +110,7 @@ class SWAGTrainer(MAPTrainer):
         prefix: str = "",
     ) -> None:
         state = self._update_state_with_stats(state)
-        super().save_checkpoint(state, save_checkpoint_dir, keep, force_save, prefix)
+        super().save_checkpoint(state, save_checkpoint_dir, keep, force_save)
 
     def on_train_end(self, state: SWAGState) -> SWAGState:
         self.save_checkpoint(

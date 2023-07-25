@@ -52,7 +52,7 @@ class ADVITrainer(NormalizingFlowTrainer):
             frozen_params=FrozenDict(),
             _encoded_which_params=self._encoded_which_params,
         )
-        super().save_checkpoint(state, save_checkpoint_dir, keep, force_save, prefix)
+        super().save_checkpoint(state, save_checkpoint_dir, keep, force_save)
 
     def on_train_end(self, state: NormalizingFlowState) -> NormalizingFlowState:
         self.save_checkpoint(

@@ -13,6 +13,7 @@ from fortuna.prob_model.posterior.map.map_trainer import (
     MAPTrainer,
     MultiDeviceMAPTrainer,
 )
+import orbax
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_approximator import (
@@ -118,19 +119,11 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             disable_jit=fit_config.processor.disable_jit,
         )
 
-        save_checkpoint_dir = (
-            pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / "c"
-            if fit_config.checkpointer.save_checkpoint_dir
-            else None
-        )
         trainer = trainer_cls(
             predict_fn=self.joint.likelihood.prob_output_layer.predict,
             partition_manager=self.partition_manager,
-            checkpoint_manager=get_checkpoint_manager(
-                fit_config.checkpointer.save_checkpoint_dir,
-                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            ),
-            save_checkpoint_dir=save_checkpoint_dir,
+            checkpoint_manager=None,
+            save_checkpoint_dir=None,
             save_every_n_steps=fit_config.checkpointer.save_every_n_steps,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
             disable_training_metrics_computation=fit_config.monitor.disable_training_metrics_computation,
@@ -142,13 +135,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
         )
 
         checkpoint_restorer = (
-            get_checkpoint_manager(
-                str(
-                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
-                    / fit_config.checkpointer.checkpoint_type
-                ),
-                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            )
+            get_checkpoint_manager(str(pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir) / "chain"), keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints)
             if fit_config.checkpointer.restore_checkpoint_dir is not None
             else None
         )
@@ -175,17 +162,20 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
 
         self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
-            partition_manager=self.partition_manager,
             checkpoint_manager=get_checkpoint_manager(
-                str(
-                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
-                    / fit_config.checkpointer.checkpoint_type
-                ),
+                str(pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / "chain"),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            ) if fit_config.checkpointer.restore_checkpoint_dir is not None else None,
+            ) if fit_config.checkpointer.save_checkpoint_dir is not None else None,
+            checkpoint_type=None,
             which_params=which_params,
             all_params=state.params if which_params else None,
         )
+
+        if fit_config.checkpointer.save_checkpoint_dir is not None and fit_config.optimizer.freeze_fun is not None:
+            all_params_checkpointer = orbax.checkpoint.Checkpointer(orbax.checkpoint.PyTreeCheckpointHandler())
+            all_params_checkpointer.save(
+                str(pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / "all/0/default"), self.state._all_params
+            )
 
         cyclical_sampling_callback = CyclicalSGLDSamplingCallback(
             n_epochs=fit_config.optimizer.n_epochs,

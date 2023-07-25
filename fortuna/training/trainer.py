@@ -346,6 +346,7 @@ class TrainerABC(
         self,
         validation_losses_and_metrics_current_epoch: List[Dict[str, jnp.ndarray]],
         state: TrainState,
+        mark_checkpoint_as_best: bool = True
     ) -> Dict[str, float]:
         validation_losses_and_metrics_current_epoch = self._get_mean_losses_and_metrics(
             validation_losses_and_metrics_current_epoch
@@ -355,11 +356,13 @@ class TrainerABC(
             validation_losses_and_metrics_current_epoch
         )
         if improved and self.save_checkpoint_dir is not None:
+            path = self.save_checkpoint_dir
+            if mark_checkpoint_as_best:
+                str(pathlib.Path(path) / "best")
             self.save_checkpoint(
                 state,
-                str(pathlib.Path(self.save_checkpoint_dir) / "best"),
+                path,
                 force_save=True,
-                prefix="",
             )
         return validation_losses_and_metrics_current_epoch
 
@@ -652,15 +655,18 @@ class TrainerABC(
             )
         return state, data_loaders, rng
 
-    def on_train_end(self, state: TrainState) -> TrainState:
+    def on_train_end(self, state: TrainState, mark_checkpoint_as_last: bool = True) -> TrainState:
+        if self.save_checkpoint_dir is not None:
+            path = pathlib.Path(self.save_checkpoint_dir)
+            if mark_checkpoint_as_last:
+                path = str(path / "last")
+        else:
+            path = None
         self.save_checkpoint(
             state,
-            save_checkpoint_dir=str(pathlib.Path(self.save_checkpoint_dir) / "last")
-            if self.save_checkpoint_dir is not None
-            else None,
+            save_checkpoint_dir=path,
             keep=self.keep_top_n_checkpoints,
             force_save=True,
-            prefix="",
         )
 
         if self.freeze_fun is not None:
@@ -703,15 +709,16 @@ class TrainerABC(
         save_checkpoint_dir: Path,
         keep: int = 1,
         force_save: bool = False,
-        prefix: str = "",
     ) -> None:
         if self.freeze_fun is not None:
-            state = state.replace(
-                params=self._get_all_params(state), frozen_params=None
+            return super().save_checkpoint(
+                self._sync_state(
+                    state.replace(
+                        params=self._get_all_params(state), frozen_params=None
+                    )
+                ), save_checkpoint_dir, keep, force_save
             )
-        return super().save_checkpoint(
-            self._sync_state(state), save_checkpoint_dir, keep, force_save
-        )
+        return super().save_checkpoint(state, save_checkpoint_dir, keep, force_save)
 
     def _get_all_params(
         self, state: TrainState, trainable_params: Optional[Params] = None

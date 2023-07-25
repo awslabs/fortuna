@@ -2,18 +2,14 @@ import logging
 import pathlib
 from typing import Optional
 
+import orbax.checkpoint
 from flax.core import FrozenDict
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_trainer import SGMCMCTrainer, JittedSGMCMCTrainer, MultiDeviceSGMCMCTrainer
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.map.map_trainer import (
-    JittedMAPTrainer,
-    MAPTrainer,
-    MultiDeviceMAPTrainer,
-)
 from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
@@ -109,25 +105,17 @@ class SGHMCPosterior(SGMCMCPosterior):
 
         trainer_cls = select_trainer_given_devices(
             devices=fit_config.processor.devices,
-            base_trainer_cls=MAPTrainer,
-            jitted_trainer_cls=JittedMAPTrainer,
-            multi_device_trainer_cls=MultiDeviceMAPTrainer,
+            base_trainer_cls=SGMCMCTrainer,
+            jitted_trainer_cls=JittedSGMCMCTrainer,
+            multi_device_trainer_cls=MultiDeviceSGMCMCTrainer,
             disable_jit=fit_config.processor.disable_jit,
         )
 
-        save_checkpoint_dir = (
-            pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / "c"
-            if fit_config.checkpointer.save_checkpoint_dir
-            else None
-        )
         trainer = trainer_cls(
             predict_fn=self.joint.likelihood.prob_output_layer.predict,
             partition_manager=self.partition_manager,
-            checkpoint_manager=get_checkpoint_manager(
-                fit_config.checkpointer.save_checkpoint_dir,
-                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            ),
-            save_checkpoint_dir=save_checkpoint_dir,
+            checkpoint_manager=None,
+            save_checkpoint_dir=None,
             save_every_n_steps=fit_config.checkpointer.save_every_n_steps,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
             disable_training_metrics_computation=fit_config.monitor.disable_training_metrics_computation,
@@ -139,13 +127,7 @@ class SGHMCPosterior(SGMCMCPosterior):
         )
 
         checkpoint_restorer = (
-            get_checkpoint_manager(
-                str(
-                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
-                    / fit_config.checkpointer.checkpoint_type
-                ),
-                keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            )
+            get_checkpoint_manager(str(pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir) / "chain"), keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints)
             if fit_config.checkpointer.restore_checkpoint_dir is not None
             else None
         )
@@ -173,15 +155,19 @@ class SGHMCPosterior(SGMCMCPosterior):
         self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
             checkpoint_manager=get_checkpoint_manager(
-                str(
-                    pathlib.Path(fit_config.checkpointer.restore_checkpoint_dir)
-                    / fit_config.checkpointer.checkpoint_type
-                ),
+                str(pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / "chain"),
                 keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            ) if fit_config.checkpointer.restore_checkpoint_dir is not None else None,
+            ) if fit_config.checkpointer.save_checkpoint_dir is not None else None,
+            checkpoint_type=None,
             which_params=which_params,
             all_params=state.params if which_params else None,
         )
+
+        if fit_config.checkpointer.save_checkpoint_dir is not None and fit_config.optimizer.freeze_fun is not None:
+            all_params_checkpointer = orbax.checkpoint.Checkpointer(orbax.checkpoint.PyTreeCheckpointHandler())
+            all_params_checkpointer.save(
+                str(pathlib.Path(fit_config.checkpointer.save_checkpoint_dir) / "all/0/default"), self.state._all_params
+            )
 
         sghmc_sampling_callback = SGHMCSamplingCallback(
             n_epochs=fit_config.optimizer.n_epochs,

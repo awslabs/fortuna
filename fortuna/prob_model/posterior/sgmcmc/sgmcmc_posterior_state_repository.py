@@ -32,10 +32,11 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
         size: int,
         partition_manager: Optional[PartitionManager] = None,
         checkpoint_manager: Optional[CheckpointManager] = None,
+        checkpoint_type: Optional[str] = "last",
         all_params: Optional[Params] = None,
         which_params: Optional[Tuple[List[AnyKey], ...]] = None,
     ):
-        super().__init__(size=size, checkpoint_manager=checkpoint_manager, partition_manager=partition_manager)
+        super().__init__(size=size, checkpoint_manager=checkpoint_manager, partition_manager=partition_manager, checkpoint_type=checkpoint_type)
         self._all_params = all_params
         self._which_params = which_params
 

@@ -1,4 +1,5 @@
 from typing import Optional
+from fortuna.typing import Path
 
 from orbax.checkpoint import (
     Checkpointer,
@@ -9,7 +10,7 @@ from orbax.checkpoint import (
 
 
 def get_checkpoint_manager(
-    checkpoint_dir: str, keep_top_n_checkpoints: Optional[int] = None
+    checkpoint_dir: Path, keep_top_n_checkpoints: Optional[int] = None
 ):
     if checkpoint_dir is not None:
         options = CheckpointManagerOptions(

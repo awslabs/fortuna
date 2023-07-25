@@ -26,16 +26,23 @@ class PosteriorMultiStateRepository:
             size: int,
             partition_manager: Optional[PartitionManager] = None,
             checkpoint_manager: Optional[CheckpointManager] = None,
-            checkpoint_type: str = "last"
+            checkpoint_type: Optional[str] = "last"
     ):
         self.size = size
         self.state = []
         for i in range(size):
+            if checkpoint_manager is not None:
+                path = pathlib.Path(checkpoint_manager.directory) / str(i)
+                if checkpoint_type is not None:
+                    path = path / checkpoint_type
+                path = str(path)
+            else:
+                path = None
             self.state.append(
                 PosteriorStateRepository(
                     partition_manager=partition_manager,
                     checkpoint_manager=get_checkpoint_manager(
-                        checkpoint_dir=str(pathlib.Path(checkpoint_manager.directory) / str(i) / checkpoint_type) if checkpoint_manager is not None else None,
+                        checkpoint_dir=path,
                         keep_top_n_checkpoints=checkpoint_manager._options.max_to_keep if checkpoint_manager is not None else None
                     )
                 )
@@ -106,7 +113,6 @@ class PosteriorMultiStateRepository:
         checkpoint_dir: Path = None,
         optimizer: Optional[OptaxOptimizer] = None,
         keep: int = 1,
-        **kwargs,
     ):
         def _update(_i):
             self.state[_i].update(
@@ -114,7 +120,6 @@ class PosteriorMultiStateRepository:
                 checkpoint_dir=checkpoint_dir,
                 optimizer=optimizer,
                 keep=keep,
-                **kwargs,
             )
 
         if i is not None:

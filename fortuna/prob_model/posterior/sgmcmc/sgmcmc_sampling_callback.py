@@ -39,8 +39,10 @@ class SGMCMCSamplingCallback(Callback):
         self._current_step += 1
 
         if self._do_sample(self._current_step, self._samples_count):
+            state = self._trainer._sync_state(state)
+
             self._state_repository.put(
-                state=self._trainer._sync_state(state),
+                state=state,
                 i=self._samples_count,
                 keep=self._keep_top_n_checkpoints,
             )
