@@ -400,11 +400,17 @@ if __name__ == "__main__":
 
     model_editor = None
     if args.enable_probit_model_editor:
-        probit_freeze_fun = lambda p, v: True if "classifier" in p else False if args.probit_last_layer_only else None
+        probit_freeze_fun = (
+            lambda p, v: True
+            if "classifier" in p
+            else False
+            if args.probit_last_layer_only
+            else None
+        )
         model_editor = ProbitModelEditor(
             freeze_fun=probit_freeze_fun,
             init_log_var=args.probit_init_log_var,
-            stop_gradient=args.probit_stop_gradient
+            stop_gradient=args.probit_stop_gradient,
         )
 
     ### TRAINING
@@ -415,7 +421,7 @@ if __name__ == "__main__":
         ],
         prior=IsotropicGaussianPrior(log_var=args.prior_log_var),
         output_calibrator=None,
-        model_editor=model_editor
+        model_editor=model_editor,
     )
 
     fit_config = FitConfig(

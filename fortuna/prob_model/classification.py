@@ -205,8 +205,8 @@ class ProbClassifier(ProbModel):
             logging.warning(
                 "No module named 'transformer' is installed. "
                 "If you are not working with models from the `transformers` library ignore this warning, otherwise "
-                "please install the optional 'transformers' dependency of fortuna."
-                'Using poetry, you can achieve this by entering: `poetry install --extras "transformers"`'
+                "install the optional 'transformers' dependency of Fortuna using poetry. You can do so by entering: "
+                "`poetry install --extras 'transformers'`."
             )
             model_manager = model_manager_cls(
                 model=model,
