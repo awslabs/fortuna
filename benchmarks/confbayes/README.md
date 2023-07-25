@@ -21,7 +21,7 @@ for $t\in \{1,\ldots,T\}$. We then self-normalize the weights
  $$w^{(t)} = \frac{\widetilde{w}^{(t)}}{\sum_{t'=1}^T \widetilde{w}^{(t')}}\cdot$$
 
  The conformity scores can then be computed as
- 
+
 $$
 \sigma_i(y) = \sum_{t=1}^T w^{(t)} f_{\theta^{(t)}}(Y_i \mid X_i), \quad \sigma_{n+1}(y) = \sum_{t=1}^T w^{(t)} f_{\theta^{(t)}}(y \mid X_{n+1}).
 $$
