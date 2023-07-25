@@ -65,8 +65,6 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
             )
             if hasattr(_outputs, "logits"):
                 _outputs = _outputs.logits
-                if _outputs.ndim == 3:
-                    _outputs = _outputs[:, -1]
 
             if isinstance(_outputs, tuple) and not has_aux:
                 _outputs = _outputs[0]
@@ -99,9 +97,6 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
         if self.model_editor is not None:
             if rng is None:
                 rng = self.rng.get()
-            output_shape = jax.eval_shape(
-                self.model, **get_inputs_from_shape(input_shape)
-            ).logits.shape
             rng, params_key, dropout_key = random.split(rng, 3)
             rngs = {"params": params_key, "dropout": dropout_key}
 
@@ -109,8 +104,6 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
                 _outputs = self.model(**x, params=p)
                 if hasattr(_outputs, "logits"):
                     _outputs = _outputs.logits
-                    if _outputs.ndim == 3:
-                        _outputs = _outputs[:, -1]
                 return _outputs
 
             params.update(
