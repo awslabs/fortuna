@@ -1,5 +1,8 @@
+import abc
+import logging
 import jax.numpy as jnp
-from typing import Callable, Optional, Union, List
+from jax import vmap
+from typing import Callable, Optional, Union, List, Tuple
 from fortuna.typing import Array
 from fortuna.data.loader import DataLoader, InputsLoader
 
@@ -22,22 +25,22 @@ class Group:
 
 
 class Normalizer:
-    def __init__(self, xmin: Array, xmax: Array):
-        self.xmin = xmin
-        self.xmax = xmax if xmax != xmin else xmin + 1
+    def __init__(self, x_min: Array, x_max: Array):
+        self.x_min = x_min
+        self.x_max = x_max if x_max != x_min else x_min + 1
 
     def normalize(self, x: Array) -> Array:
-        return (x - self.xmin) / (self.xmax - self.xmin)
+        return (x - self.x_min) / (self.x_max - self.x_min)
 
     def unnormalize(self, y: Array) -> Array:
-        return self.xmin + (self.xmax - self.xmin) * y
+        return self.x_min + (self.x_max - self.x_min) * y
 
 
 class Score:
     def __init__(self, score_fn: Callable[[Array, Array], Array]):
         self.score_fn = score_fn
 
-    def __call__(self, x: Array, y: Array):
+    def __call__(self, x: Array, y: Array) -> Array:
         s = self.score_fn(x, y)
         if s.ndim > 1:
             raise ValueError(
@@ -45,6 +48,173 @@ class Score:
                 f"but its shape was {s.shape}."
             )
         return s
+
+
+class Model:
+    def __init__(self, model_fn: Callable[[Array], Array]):
+        self.model_fn = model_fn
+
+    def __call__(self, x: Array):
+        v = self.model_fn(x)
+        if v.ndim > 1:
+            raise ValueError(
+                "Evaluations of the model function `model_fn` must be one-dimensional arrays, "
+                f"but its shape was {v.shape}."
+            )
+        return v
+
+
+class MultivalidMethod:
+    def __init__(
+        self,
+        group_fns: List[Callable[[Array], Array]],
+        score_fn: Callable[[Array, Array], Array],
+        model_fn: Callable[[Array], Array]
+    ):
+        self.group_fns = [Group(g) for g in group_fns]
+        self.score_fn = Score(score_fn)
+        self.model_fn = Model(model_fn)
+
+        self._patch_fns = []
+
+    def calibrate(
+            self,
+            calib_data_loader: DataLoader,
+            test_inputs_loader: Optional[InputsLoader] = None,
+            tol: float = 1e-4,
+            n_rounds: int = 1000,
+    ) -> Union[List[Array], Tuple[Array, List[Array]]]:
+        if tol >= 1:
+            raise ValueError("`tol` must be smaller than 1.")
+        n_buckets = int(jnp.ceil(1 / tol)) + 1
+        buckets = jnp.linspace(0, 1, n_buckets)
+
+        scores, groups, values = self._eval_groups_and_scores_and_values_over_data_loader(calib_data_loader)
+        if test_inputs_loader is not None:
+            test_groups, test_groups = self._eval_groups_and_and_values_over_inputs_loader(test_inputs_loader)
+
+        score_normalizer = Normalizer(jnp.min(scores), jnp.max(scores))
+        value_normalizer = Normalizer(jnp.min(values), jnp.max(values))
+        scores = score_normalizer.normalize(scores)
+        values = value_normalizer.normalize(values)
+
+        n_groups = groups.shape[1]
+
+        max_calib_errors = []
+
+        for t in range(n_rounds):
+            calib_error_vg = vmap(
+                lambda g: vmap(lambda v: self.calibration_error(v, g, scores=scores, groups=groups, values=values, n_buckets=n_buckets))(
+                    buckets)
+            )(jnp.arange(n_groups))
+
+            max_calib_errors.append(calib_error_vg.sum(1).max())
+            if max_calib_errors[-1] <= tol:
+                logging.info(
+                    f"Tolerance satisfied after {t} rounds."
+                )
+                break
+
+            gt, vt = self._get_vt_and_gt(calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups)
+            self.patch(scores=scores, groups=groups, values=values, vt=vt, gt=gt, buckets=buckets)
+
+            self._patch_fns.append(
+                lambda _groups, _values: self.patch(scores=scores, groups=_groups, values=_values, vt=vt, gt=gt, buckets=buckets)
+            )
+            if test_inputs_loader is not None:
+                test_values = self._patch_fns[-1](test_groups, test_values)
+
+        if test_inputs_loader is not None:
+            test_values = value_normalizer.unnormalize(test_values)
+            return test_values, max_calib_errors
+        return max_calib_errors
+
+    def apply_patches(
+            self,
+            inputs_loader: InputsLoader,
+    ) -> Array:
+        if not len(self._patch_fns):
+            raise ValueError("No patch available. Please make sure to run `calibrate` first.")
+
+        groups, values = self._eval_groups_and_and_values_over_inputs_loader(inputs_loader)
+        for patch_fn in self._patch_fns:
+            values = patch_fn(groups, values)
+        return values
+
+    @abc.abstractmethod
+    def calibration_error(self, v: Array, g: Array, scores: Array, groups: Array, values: Array, n_buckets: int):
+        pass
+
+    @staticmethod
+    def _init_missing_group_fns():
+        return [Group(lambda x: jnp.ones(x.shape[0], dtype=bool))]
+
+    @staticmethod
+    def _init_missing_model_fn():
+        return Model(lambda x: jnp.zeros(x.shape[0]))
+
+    def _eval_scores_and_groups_and_values_over_data_loader(
+            self,
+            data_loader: DataLoader
+    ) -> Tuple[Array, Array, Array]:
+        scores, groups, values = [], [], []
+
+        for inputs, targets in data_loader:
+            scores.append(self.score_fn(inputs, targets))
+            groups.append(jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=1))
+            values.append(self.model_fn(inputs))
+
+        scores = jnp.concatenate(scores)
+        groups = jnp.concatenate(groups, 0)
+        values = jnp.concatenate(values)
+
+        return scores, groups, values
+
+    def _eval_groups_and_and_values_over_inputs_loader(
+            self,
+            inputs_loader: InputsLoader
+    ) -> Tuple[Array, Array]:
+        groups, values = [], []
+
+        for inputs in inputs_loader:
+            groups.append(jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=1))
+            values.append(self.model_fn(inputs))
+
+        groups = jnp.concatenate(groups, 0)
+        values = jnp.concatenate(values)
+
+        return groups, values
+
+    @staticmethod
+    def _get_vt_and_gt(calib_error_vg: Array, buckets: Array, n_groups: int) -> Tuple[Array, Array]:
+        n_buckets = len(buckets)
+        gt, idx_vt = jnp.unravel_index(
+            jnp.argmax(calib_error_vg), (n_groups, n_buckets)
+        )
+        vt = buckets[idx_vt]
+        return vt, gt
+
+    @staticmethod
+    def _get_bt(groups: Array, values: Array, vt: Array, gt: Array, n_buckets: int) -> Array:
+        return (jnp.abs(values - vt) < 0.5 / n_buckets) * groups[:, gt]
+
+    @abc.abstractmethod
+    def _get_patch(self, vt: Array, gt: Array, scores: Array, groups: Array, values: Array, buckets: Array) -> Array:
+        pass
+
+    @staticmethod
+    def _patch(values: Array, patch: Array, bt: Array) -> Array:
+        return values.at[bt].set(
+            jnp.minimum(
+                patch,
+                jnp.ones_like(values[bt]),
+            )
+        )
+
+    def patch(self, scores: Array, groups: Array, values: Array, vt: Array, gt: Array, buckets: Array) -> Array:
+        bt = self._get_bt(groups=groups, values=values, vt=vt, gt=gt, n_buckets=len(buckets))
+        patch = self._get_patch(vt=vt, gt=gt, scores=scores, groups=groups, values=values, buckets=buckets)
+        return self._patch(values=values, patch=patch, bt=bt)
 
 
 def _compute_utils_over_loader(
