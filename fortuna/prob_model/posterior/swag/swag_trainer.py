@@ -50,7 +50,9 @@ class SWAGTrainer(MAPTrainer):
                 dev=self._deviation_rav_params
                 if not self.multi_device
                 else self._deviation_rav_params[None],
-                _encoded_which_params=self._encoded_which_params,
+                _encoded_which_params=self._encoded_which_params
+                if not self.multi_device
+                else tree_map(lambda v: v[None], self._encoded_which_params),
             )
         )
 
