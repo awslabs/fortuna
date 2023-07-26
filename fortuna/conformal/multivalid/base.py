@@ -1,10 +1,21 @@
 import abc
 import logging
-import jax.numpy as jnp
+from typing import (
+    Callable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
+
 from jax import vmap
-from typing import Callable, Optional, Union, List, Tuple
+import jax.numpy as jnp
+
+from fortuna.data.loader import (
+    DataLoader,
+    InputsLoader,
+)
 from fortuna.typing import Array
-from fortuna.data.loader import DataLoader, InputsLoader
 
 
 class Group:
@@ -61,6 +72,8 @@ class Model:
                 "Evaluations of the model function `model_fn` must be one-dimensional arrays, "
                 f"but its shape was {v.shape}."
             )
+        if jnp.any(v < 0) or jnp.any(v > 1):
+            raise ValueError("The model function must take values within [0, 1].")
         return v
 
 
@@ -69,34 +82,40 @@ class MultivalidMethod:
         self,
         group_fns: List[Callable[[Array], Array]],
         score_fn: Callable[[Array, Array], Array],
-        model_fn: Callable[[Array], Array]
+        model_fn: Callable[[Array], Array],
     ):
         self.group_fns = [Group(g) for g in group_fns]
         self.score_fn = Score(score_fn)
         self.model_fn = Model(model_fn)
 
         self._patch_fns = []
+        self._normalizer = None
 
     def calibrate(
-            self,
-            calib_data_loader: DataLoader,
-            test_inputs_loader: Optional[InputsLoader] = None,
-            tol: float = 1e-4,
-            n_rounds: int = 1000,
+        self,
+        calib_data_loader: DataLoader,
+        test_inputs_loader: Optional[InputsLoader] = None,
+        tol: float = 1e-4,
+        n_rounds: int = 1000,
     ) -> Union[List[Array], Tuple[Array, List[Array]]]:
         if tol >= 1:
             raise ValueError("`tol` must be smaller than 1.")
         n_buckets = int(jnp.ceil(1 / tol)) + 1
         buckets = jnp.linspace(0, 1, n_buckets)
 
-        scores, groups, values = self._eval_groups_and_scores_and_values_over_data_loader(calib_data_loader)
+        (
+            scores,
+            groups,
+            values,
+        ) = self._eval_scores_and_groups_and_values_over_data_loader(calib_data_loader)
         if test_inputs_loader is not None:
-            test_groups, test_groups = self._eval_groups_and_and_values_over_inputs_loader(test_inputs_loader)
+            (
+                test_groups,
+                test_values,
+            ) = self._eval_groups_and_and_values_over_inputs_loader(test_inputs_loader)
 
-        score_normalizer = Normalizer(jnp.min(scores), jnp.max(scores))
-        value_normalizer = Normalizer(jnp.min(values), jnp.max(values))
-        scores = score_normalizer.normalize(scores)
-        values = value_normalizer.normalize(values)
+        self._normalizer = Normalizer(jnp.min(scores), jnp.max(scores))
+        scores = self._normalizer.normalize(scores)
 
         n_groups = groups.shape[1]
 
@@ -104,45 +123,80 @@ class MultivalidMethod:
 
         for t in range(n_rounds):
             calib_error_vg = vmap(
-                lambda g: vmap(lambda v: self.calibration_error(v, g, scores=scores, groups=groups, values=values, n_buckets=n_buckets))(
-                    buckets)
+                lambda g: vmap(
+                    lambda v: self.calibration_error(
+                        v,
+                        g,
+                        scores=scores,
+                        groups=groups,
+                        values=values,
+                        n_buckets=n_buckets,
+                    )
+                )(buckets)
             )(jnp.arange(n_groups))
 
             max_calib_errors.append(calib_error_vg.sum(1).max())
             if max_calib_errors[-1] <= tol:
-                logging.info(
-                    f"Tolerance satisfied after {t} rounds."
-                )
+                logging.info(f"Tolerance satisfied after {t} rounds.")
                 break
 
-            gt, vt = self._get_vt_and_gt(calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups)
-            self.patch(scores=scores, groups=groups, values=values, vt=vt, gt=gt, buckets=buckets)
+            gt, vt = self._get_gt_and_vt(
+                calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups
+            )
+            self.patch(
+                scores=scores,
+                groups=groups,
+                values=values,
+                vt=vt,
+                gt=gt,
+                buckets=buckets,
+            )
 
             self._patch_fns.append(
-                lambda _groups, _values: self.patch(scores=scores, groups=_groups, values=_values, vt=vt, gt=gt, buckets=buckets)
+                lambda _groups, _values: self.patch(
+                    scores=scores,
+                    groups=_groups,
+                    values=_values,
+                    vt=vt,
+                    gt=gt,
+                    buckets=buckets,
+                )
             )
             if test_inputs_loader is not None:
                 test_values = self._patch_fns[-1](test_groups, test_values)
 
         if test_inputs_loader is not None:
-            test_values = value_normalizer.unnormalize(test_values)
+            test_values = self._normalizer.unnormalize(test_values)
             return test_values, max_calib_errors
         return max_calib_errors
 
     def apply_patches(
-            self,
-            inputs_loader: InputsLoader,
+        self,
+        inputs_loader: InputsLoader,
     ) -> Array:
         if not len(self._patch_fns):
-            raise ValueError("No patch available. Please make sure to run `calibrate` first.")
+            raise ValueError(
+                "No patch available. Please make sure to run `calibrate` first."
+            )
 
-        groups, values = self._eval_groups_and_and_values_over_inputs_loader(inputs_loader)
+        groups, values = self._eval_groups_and_and_values_over_inputs_loader(
+            inputs_loader
+        )
         for patch_fn in self._patch_fns:
             values = patch_fn(groups, values)
+        values = self._normalizer.unnormalize(values)
         return values
 
     @abc.abstractmethod
-    def calibration_error(self, v: Array, g: Array, scores: Array, groups: Array, values: Array, n_buckets: int):
+    def calibration_error(
+        self,
+        v: Array,
+        g: Array,
+        scores: Array,
+        groups: Array,
+        values: Array,
+        n_buckets: int,
+    ):
         pass
 
     @staticmethod
@@ -154,14 +208,15 @@ class MultivalidMethod:
         return Model(lambda x: jnp.zeros(x.shape[0]))
 
     def _eval_scores_and_groups_and_values_over_data_loader(
-            self,
-            data_loader: DataLoader
+        self, data_loader: DataLoader
     ) -> Tuple[Array, Array, Array]:
         scores, groups, values = [], [], []
 
         for inputs, targets in data_loader:
             scores.append(self.score_fn(inputs, targets))
-            groups.append(jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=1))
+            groups.append(
+                jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=1)
+            )
             values.append(self.model_fn(inputs))
 
         scores = jnp.concatenate(scores)
@@ -171,13 +226,14 @@ class MultivalidMethod:
         return scores, groups, values
 
     def _eval_groups_and_and_values_over_inputs_loader(
-            self,
-            inputs_loader: InputsLoader
+        self, inputs_loader: InputsLoader
     ) -> Tuple[Array, Array]:
         groups, values = [], []
 
         for inputs in inputs_loader:
-            groups.append(jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=1))
+            groups.append(
+                jnp.concatenate([g(inputs)[:, None] for g in self.group_fns], axis=1)
+            )
             values.append(self.model_fn(inputs))
 
         groups = jnp.concatenate(groups, 0)
@@ -186,20 +242,31 @@ class MultivalidMethod:
         return groups, values
 
     @staticmethod
-    def _get_vt_and_gt(calib_error_vg: Array, buckets: Array, n_groups: int) -> Tuple[Array, Array]:
-        n_buckets = len(buckets)
+    def _get_gt_and_vt(
+        calib_error_vg: Array, buckets: Array, n_groups: int
+    ) -> Tuple[Array, Array]:
         gt, idx_vt = jnp.unravel_index(
-            jnp.argmax(calib_error_vg), (n_groups, n_buckets)
+            jnp.argmax(calib_error_vg), (n_groups, len(buckets))
         )
         vt = buckets[idx_vt]
-        return vt, gt
+        return gt, vt
 
     @staticmethod
-    def _get_bt(groups: Array, values: Array, vt: Array, gt: Array, n_buckets: int) -> Array:
+    def _get_bt(
+        groups: Array, values: Array, vt: Array, gt: Array, n_buckets: int
+    ) -> Array:
         return (jnp.abs(values - vt) < 0.5 / n_buckets) * groups[:, gt]
 
     @abc.abstractmethod
-    def _get_patch(self, vt: Array, gt: Array, scores: Array, groups: Array, values: Array, buckets: Array) -> Array:
+    def _get_patch(
+        self,
+        vt: Array,
+        gt: Array,
+        scores: Array,
+        groups: Array,
+        values: Array,
+        buckets: Array,
+    ) -> Array:
         pass
 
     @staticmethod
@@ -211,16 +278,28 @@ class MultivalidMethod:
             )
         )
 
-    def patch(self, scores: Array, groups: Array, values: Array, vt: Array, gt: Array, buckets: Array) -> Array:
-        bt = self._get_bt(groups=groups, values=values, vt=vt, gt=gt, n_buckets=len(buckets))
-        patch = self._get_patch(vt=vt, gt=gt, scores=scores, groups=groups, values=values, buckets=buckets)
+    def patch(
+        self,
+        scores: Array,
+        groups: Array,
+        values: Array,
+        vt: Array,
+        gt: Array,
+        buckets: Array,
+    ) -> Array:
+        bt = self._get_bt(
+            groups=groups, values=values, vt=vt, gt=gt, n_buckets=len(buckets)
+        )
+        patch = self._get_patch(
+            vt=vt, gt=gt, scores=scores, groups=groups, values=values, buckets=buckets
+        )
         return self._patch(values=values, patch=patch, bt=bt)
 
 
 def _compute_utils_over_loader(
-        loader: Union[DataLoader, InputsLoader],
-        group_fns: List[Group] = None,
-        score_fn: Optional[Score] = None
+    loader: Union[DataLoader, InputsLoader],
+    group_fns: List[Group] = None,
+    score_fn: Optional[Score] = None,
 ):
     thresholds, groups = [], []
     if score_fn:
@@ -233,9 +312,7 @@ def _compute_utils_over_loader(
         else:
             inputs = batch
         thresholds.append(jnp.zeros(inputs.shape[0]))
-        groups.append(
-            jnp.concatenate([g(inputs)[:, None] for g in group_fns], axis=1)
-        )
+        groups.append(jnp.concatenate([g(inputs)[:, None] for g in group_fns], axis=1))
     thresholds, groups = (
         jnp.concatenate(thresholds),
         jnp.concatenate(groups, 0),

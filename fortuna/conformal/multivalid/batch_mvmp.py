@@ -4,20 +4,24 @@ import logging
 from typing import (
     Callable,
     List,
-    Tuple,
     Optional,
+    Tuple,
     Union,
 )
 
 from jax import vmap
 import jax.numpy as jnp
 
+from fortuna.conformal.multivalid.base import (
+    Group,
+    MultivalidMethod,
+    Score,
+)
 from fortuna.data.loader import (
     DataLoader,
     InputsLoader,
 )
 from fortuna.typing import Array
-from fortuna.conformal.multivalid.base import Score, Group, MultivalidMethod
 
 #
 # class BatchMVMPMethod(MultivalidMethod):
@@ -165,16 +169,24 @@ class BatchMVMPMethod(MultivalidMethod):
         self,
         score_fn: Optional[Callable[[Array, Array], Array]] = None,
         group_fns: Optional[List[Callable[[Array], Array]]] = None,
-        model_fn: Optional[Callable[[Array], Array]] = None
+        model_fn: Optional[Callable[[Array], Array]] = None,
     ):
         super().__init__(
             group_fns=group_fns,
             score_fn=score_fn,
             model_fn=model_fn,
         )
-        self.score_fn = Score(score_fn) if score_fn is not None else self._init_missing_score_fn()
-        self.group_fns = [Group(g) for g in group_fns] if group_fns is not None else self._init_missing_group_fns()
-        self.model_fn = model_fn if model_fn is not None else self._init_missing_model_fn()
+        self.score_fn = (
+            Score(score_fn) if score_fn is not None else self._init_missing_score_fn()
+        )
+        self.group_fns = (
+            [Group(g) for g in group_fns]
+            if group_fns is not None
+            else self._init_missing_group_fns()
+        )
+        self.model_fn = (
+            model_fn if model_fn is not None else self._init_missing_model_fn()
+        )
 
         self._patch_list = []
 
@@ -182,22 +194,67 @@ class BatchMVMPMethod(MultivalidMethod):
     def _init_missing_score_fn():
         return Score(lambda x, y: y)
 
-    def calibration_error(self, v: Array, g: Array, scores: Array, groups: Array, values: Array, n_buckets: int):
-        expectation_error, prob_b = self._compute_expectation_error(v=v, g=g, scores=scores, groups=groups, values=values, n_buckets=n_buckets, return_prob_b=True)
+    def calibration_error(
+        self,
+        v: Array,
+        g: Array,
+        scores: Array,
+        groups: Array,
+        values: Array,
+        n_buckets: int,
+    ):
+        expectation_error, prob_b = self._compute_expectation_error(
+            v=v,
+            g=g,
+            scores=scores,
+            groups=groups,
+            values=values,
+            n_buckets=n_buckets,
+            return_prob_b=True,
+        )
         return prob_b * expectation_error
 
     def _compute_expectation_error(
-        self, v: Array, g: Array, scores: Array, groups: Array, values: Array, n_buckets: int, return_prob_b: bool = False
+        self,
+        v: Array,
+        g: Array,
+        scores: Array,
+        groups: Array,
+        values: Array,
+        n_buckets: int,
+        return_prob_b: bool = False,
     ):
         if return_prob_b:
-            mean, prob_b = self._compute_expectation(v=v, g=g, scores=scores, groups=groups, values=values,  n_buckets=n_buckets, return_prob_b=return_prob_b)
+            mean, prob_b = self._compute_expectation(
+                v=v,
+                g=g,
+                scores=scores,
+                groups=groups,
+                values=values,
+                n_buckets=n_buckets,
+                return_prob_b=return_prob_b,
+            )
             return (v - mean) ** 2, prob_b
-        mean = self._compute_expectation(v=v, g=g, scores=scores, groups=groups, values=values,  n_buckets=n_buckets, return_prob_b=return_prob_b)
+        mean = self._compute_expectation(
+            v=v,
+            g=g,
+            scores=scores,
+            groups=groups,
+            values=values,
+            n_buckets=n_buckets,
+            return_prob_b=return_prob_b,
+        )
         return (v - mean) ** 2
 
     @staticmethod
     def _compute_expectation(
-            v: Array, g: Array, scores: Array, groups: Array, values: Array, n_buckets: int, return_prob_b: bool = False
+        v: Array,
+        g: Array,
+        scores: Array,
+        groups: Array,
+        values: Array,
+        n_buckets: int,
+        return_prob_b: bool = False,
     ):
         b = (jnp.abs(values - v) < 0.5 / n_buckets) * groups[:, g]
         filtered_scores = scores * b
@@ -208,10 +265,21 @@ class BatchMVMPMethod(MultivalidMethod):
             return mean, prob_b
         return mean
 
-    def _get_patch(self, vt: Array, gt: Array, scores: Array, groups: Array, values: Array, buckets: Array) -> Array:
-        patch = self._compute_expectation(v=vt, g=gt, scores=scores, groups=groups, values=values, n_buckets=len(buckets))
+    def _get_patch(
+        self,
+        vt: Array,
+        gt: Array,
+        scores: Array,
+        groups: Array,
+        values: Array,
+        buckets: Array,
+    ) -> Array:
+        patch = self._compute_expectation(
+            v=vt,
+            g=gt,
+            scores=scores,
+            groups=groups,
+            values=values,
+            n_buckets=len(buckets),
+        )
         return buckets[jnp.argmin(jnp.abs(patch - buckets))]
-
-
-
-

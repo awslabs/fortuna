@@ -12,12 +12,17 @@ from typing import (
 from jax import vmap
 import jax.numpy as jnp
 
+from fortuna.conformal.multivalid.base import (
+    Group,
+    Normalizer,
+    Score,
+    _compute_utils_over_loader,
+)
 from fortuna.data.loader import (
     DataLoader,
     InputsLoader,
 )
 from fortuna.typing import Array
-from fortuna.conformal.multivalid.base import Score, Normalizer, Group, _compute_utils_over_loader
 
 
 class BatchMVPConformalMethod(abc.ABC):
@@ -69,8 +74,12 @@ class BatchMVPConformalMethod(abc.ABC):
         """
         quantile = 1 - error
 
-        thresholds, groups, scores = _compute_utils_over_loader(val_data_loader, self.group_fns, self.score_fn)
-        test_thresholds, test_groups = _compute_utils_over_loader(test_inputs_loader, self.group_fns)
+        thresholds, groups, scores = _compute_utils_over_loader(
+            val_data_loader, self.group_fns, self.score_fn
+        )
+        test_thresholds, test_groups = _compute_utils_over_loader(
+            test_inputs_loader, self.group_fns
+        )
 
         normalizer = Normalizer(jnp.min(scores), jnp.max(scores))
         scores = normalizer.normalize(scores)
@@ -78,7 +87,10 @@ class BatchMVPConformalMethod(abc.ABC):
         n_groups = groups.shape[1]
 
         def compute_probability_error(
-            v: Array, g: Array, delta: Union[Array, float] = 0.0, return_prob_b: bool = False
+            v: Array,
+            g: Array,
+            delta: Union[Array, float] = 0.0,
+            return_prob_b: bool = False,
         ):
             b = (jnp.abs(thresholds - v) < 0.5 / self.n_buckets) * groups[:, g]
             conds = (scores <= v + delta) * b
