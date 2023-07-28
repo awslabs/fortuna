@@ -24,6 +24,11 @@ from fortuna.typing import (
     Array,
     Batch,
 )
+from fortuna.utils.freeze import (
+    has_multiple_opt_state,
+    get_trainable_opt_state,
+    update_trainable_opt_state,
+)
 
 
 class HMCTrainer(MAPTrainer):
@@ -46,9 +51,12 @@ class HMCTrainer(MAPTrainer):
             unravel=unravel,
             **kwargs,
         )
-        state = state.replace(
-            opt_state=state.opt_state._replace(log_prob=aux["loss"]),
-        )
+        if has_multiple_opt_state(state):
+            opt_state = get_trainable_opt_state(state)._replace(log_prob=aux["loss"])
+            state = update_trainable_opt_state(state, opt_state)
+        else:
+            opt_state = state.opt_state._replace(log_prob=aux["loss"])
+            state = state.replace(opt_state=opt_state)
         return state, aux
 
     def __str__(self):

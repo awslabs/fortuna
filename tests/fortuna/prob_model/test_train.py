@@ -386,7 +386,7 @@ def dryrun_task(task, method):
     )
     state = (
         prob_model.posterior.state.get()
-        if method not in ["deep_ensemble", "sghmc", "cyclical_sgld"]
+        if method not in ["deep_ensemble", "sghmc", "cyclical_sgld", "hmc"]
         else prob_model.posterior.state.get(-1)
     )
     model_editor_params = state.params["model_editor"]["params"].unfreeze()
