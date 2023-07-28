@@ -62,8 +62,13 @@ For classification:
     sequential prediction framework (e.g. time series forecasting) when the distribution of the data shifts over time.
 
 - **BatchMVP** `[Jung C. et al., 2022] <https://arxiv.org/pdf/2209.15145.pdf>`_
-    a conformal prediction algorithm that satisfies coverage guarantees conditioned on group membership and
+    A conformal prediction algorithm that satisfies coverage guarantees conditioned on group membership and
     non-conformity thresholds.
+
+- **Multicalibrate** `[Hébert-Johnson Ú. et al., 2017] <https://arxiv.org/abs/1711.08513>`_, `[Roth A., Algorithm 15] <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_
+    Unlike standard conformal prediction methods, this algorithm returns scalar calibrated score values for each data point.
+    For example, in binary classification, it can return calibrated probabilities of predictions.
+    This method satisfies coverage guarantees conditioned on group membership and non-conformity thresholds.
 
 For regression:
 
@@ -79,11 +84,15 @@ For regression:
     satisfying minimal coverage properties.
 
 - **BatchMVP** `[Jung C. et al., 2022] <https://arxiv.org/pdf/2209.15145.pdf>`_
-    a conformal prediction algorithm that satisfies coverage guarantees conditioned on group membership and
+    A conformal prediction algorithm that satisfies coverage guarantees conditioned on group membership and
     non-conformity thresholds.
 
 - **EnbPI** `[Xu et al., 2021] <http://proceedings.mlr.press/v139/xu21h/xu21h.pdf>`_
     A conformal prediction method for time series regression based on data bootstrapping.
+
+- **Multicalibrate** `[Hébert-Johnson Ú. et al., 2017] <https://arxiv.org/abs/1711.08513>`_, `[Roth A., Algorithm 15] <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_
+    Unlike standard conformal prediction methods, this algorithm returns scalar calibrated score values for each data point.
+    This method satisfies coverage guarantees conditioned on group membership and non-conformity thresholds.
 
 - **Adaptive conformal inference** `[Gibbs et al., 2021] <https://proceedings.neurips.cc/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html>`_
     A method for conformal prediction that aims at correcting the coverage of conformal prediction methods in a
