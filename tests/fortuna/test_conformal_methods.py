@@ -376,6 +376,15 @@ class TestConformalMethods(unittest.TestCase):
         error = batchmvp.calibration_error(
             scores=test_scores, groups=test_groups, values=test_values
         )
+        status = batchmvp.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
 
     def test_batchmvp_classifier(self):
         size = 10
@@ -433,6 +442,15 @@ class TestConformalMethods(unittest.TestCase):
         test_values = batchmvp.apply_patches(test_groups, test_values)
         error = batchmvp.calibration_error(
             scores=test_scores, groups=test_groups, values=test_values
+        )
+        status = batchmvp.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
         )
 
         sets = batchmvp.conformal_set(
@@ -493,4 +511,13 @@ class TestConformalMethods(unittest.TestCase):
         test_values = mc.apply_patches(test_groups, test_values)
         error = mc.calibration_error(
             scores=test_scores, groups=test_groups, values=test_values
+        )
+        status = mc.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
         )
