@@ -119,6 +119,7 @@ class MultivalidMethod:
                 "If `values` and `test_groups` are provided, `test_values` must also be provided."
             )
 
+        groups = jnp.copy(groups)
         if values is None:
             values_init = jnp.zeros(groups.shape[0])
         else:
@@ -232,6 +233,9 @@ class MultivalidMethod:
             return values
         if values is None:
             values = jnp.zeros(groups.shape[0])
+        else:
+            values = jnp.copy(values)
+        groups = jnp.copy(groups)
 
         buckets = self._get_buckets(n_buckets=self.n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
