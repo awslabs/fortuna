@@ -1,22 +1,26 @@
-from sklearn.datasets import make_moons
-from fortuna.data import DataLoader
-import jax.numpy as jnp
-from fortuna.conformal import Multicalibrator
-from fortuna.prob_model import ProbClassifier, MAPPosteriorApproximator
-from fortuna.model.mlp import MLP
 import flax.linen as nn
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import numpy as np
+import optax
+from sklearn.datasets import make_moons
+
+from fortuna.conformal import Multicalibrator
+from fortuna.data import (
+    DataLoader,
+    InputsLoader,
+)
+from fortuna.metric.classification import accuracy
+from fortuna.model.mlp import MLP
 from fortuna.prob_model import (
+    CalibConfig,
+    CalibMonitor,
     FitConfig,
     FitMonitor,
     FitOptimizer,
-    CalibConfig,
-    CalibMonitor,
+    MAPPosteriorApproximator,
+    ProbClassifier,
 )
-from fortuna.metric.classification import accuracy
-import optax
-import matplotlib.pyplot as plt
-from fortuna.data import InputsLoader
-import numpy as np
 
 train_data = make_moons(n_samples=5000, noise=0.07, random_state=0)
 val_data = make_moons(n_samples=1000, noise=0.07, random_state=1)
@@ -85,7 +89,14 @@ groups = jnp.stack((val_means.argmax(1) == 0, val_means.argmax(1) == 1), axis=1)
 test_groups = jnp.stack((test_means.argmax(1) == 0, test_means.argmax(1) == 1), axis=1)
 values = val_means[:, 1]
 test_values = test_means[:, 1]
-calib_test_values, status = mc.calibrate(scores=scores, groups=groups, values=values, test_groups=test_groups, test_values=test_values, n_buckets=1000)
+calib_test_values, status = mc.calibrate(
+    scores=scores,
+    groups=groups,
+    values=values,
+    test_groups=test_groups,
+    test_values=test_values,
+    n_buckets=1000,
+)
 
 plt.figure(figsize=(10, 3))
 plt.suptitle("Multivalid calibration of probability that Y=1")
@@ -109,8 +120,31 @@ plt.title("Max calibration error decay during calibration")
 plt.semilogy(status["max_calib_errors"])
 plt.show()
 
-print("Per-group reweighted avg. squared calib. error before calibration: ", mc.calibration_error(scores=test_scores, groups=test_groups, values=test_means.max(1)))
-print("Per-group reweighted avg. squared calib. error after calibration: ", mc.calibration_error(scores=test_scores, groups=test_groups, values=calib_test_values))
+print(
+    "Per-group reweighted avg. squared calib. error before calibration: ",
+    mc.calibration_error(
+        scores=test_scores, groups=test_groups, values=test_means.max(1)
+    ),
+)
+print(
+    "Per-group reweighted avg. squared calib. error after calibration: ",
+    mc.calibration_error(
+        scores=test_scores, groups=test_groups, values=calib_test_values
+    ),
+)
 
-print("Mismatch between labels and probs before calibration: ", jnp.mean(jnp.maximum((1 - test_targets) * test_values, test_targets * (1 - test_values))))
-print("Mismatch between labels and probs after calibration: ", jnp.mean(jnp.maximum((1 - test_targets) * calib_test_values, test_targets * (1 - calib_test_values))))
+print(
+    "Mismatch between labels and probs before calibration: ",
+    jnp.mean(
+        jnp.maximum((1 - test_targets) * test_values, test_targets * (1 - test_values))
+    ),
+)
+print(
+    "Mismatch between labels and probs after calibration: ",
+    jnp.mean(
+        jnp.maximum(
+            (1 - test_targets) * calib_test_values,
+            test_targets * (1 - calib_test_values),
+        )
+    ),
+)

@@ -216,7 +216,9 @@ plot_intervals(xx, xx_means, xx_qcr_intervals, test_data, "CQR")
 from fortuna.conformal.regression.batch_mvp import BatchMVPConformalRegressor
 import jax.numpy as jnp
 
-qleft, qright = prob_model.predictive.quantile([0.05 / 2, 1 - 0.05 / 2], calib_inputs_loader)
+qleft, qright = prob_model.predictive.quantile(
+    [0.05 / 2, 1 - 0.05 / 2], calib_inputs_loader
+)
 scores = jnp.maximum(qleft - calib_targets, calib_targets - qright).squeeze(1)
 min_score, max_score = scores.min(), scores.max()
 scores = (scores - min_score) / (max_score - min_score)
@@ -224,7 +226,9 @@ groups = jnp.stack([g(calib_data[0]) for g in group_fns], axis=1)
 test_groups = jnp.stack([g(test_data[0]) for g in group_fns], axis=1)
 
 batchmvp = BatchMVPConformalRegressor()
-test_thresholds, status = batchmvp.calibrate(scores=scores, groups=groups, test_groups=test_groups)
+test_thresholds, status = batchmvp.calibrate(
+    scores=scores, groups=groups, test_groups=test_groups
+)
 test_thresholds = min_score + (max_score - min_score) * test_thresholds
 
 # %% [markdown]
@@ -241,9 +245,13 @@ plt.show()
 # Given the test thresholds, we can find the lower and upper bounds of the conformal intervals by inverting the score function $s(x, y)$ with respect to $y$. This gives $b(x, \tau) = [q_{\frac{\alpha}{2}}(x) - \tau, q_{1 - \frac{\alpha}{2}}(x) + \tau]$, where $\tau$ denotes the thresholds.
 
 # %%
-test_qleft, test_qright = prob_model.predictive.quantile([0.05 / 2, 1 - 0.05 / 2], test_inputs_loader)
+test_qleft, test_qright = prob_model.predictive.quantile(
+    [0.05 / 2, 1 - 0.05 / 2], test_inputs_loader
+)
 test_qleft, test_qright = test_qleft.squeeze(1), test_qright.squeeze(1)
-test_batchmvp_intervals = jnp.stack((test_qleft - test_thresholds, test_qright + test_thresholds), axis=1)
+test_batchmvp_intervals = jnp.stack(
+    (test_qleft - test_thresholds, test_qright + test_thresholds), axis=1
+)
 
 # %% [markdown]
 # We now compute coverage metrics. As expected, `BatchMVP` not only provides a good marginal coverage overall, but also improves coverage on both negative and positive inputs.
@@ -264,10 +272,14 @@ print(f"Estimated coverage of BatchMVP for positive inputs: {batchmvp_coverage_r
 # Once again, we visualize predictions and estimated intervals.
 
 # %%
-xx_qleft, xx_qright = prob_model.predictive.quantile([0.05 / 2, 1 - 0.05 / 2], InputsLoader.from_array_inputs(xx))
+xx_qleft, xx_qright = prob_model.predictive.quantile(
+    [0.05 / 2, 1 - 0.05 / 2], InputsLoader.from_array_inputs(xx)
+)
 xx_qleft, xx_qright = xx_qleft.squeeze(1), xx_qright.squeeze(1)
 xx_groups = jnp.stack([g(xx) for g in group_fns], axis=1)
 xx_thresholds = batchmvp.apply_patches(groups=xx_groups)
 xx_thresholds = min_score + (max_score - min_score) * xx_thresholds
-xx_batchmvp_intervals = jnp.stack((xx_qleft - xx_thresholds, xx_qright + xx_thresholds), axis=1)
+xx_batchmvp_intervals = jnp.stack(
+    (xx_qleft - xx_thresholds, xx_qright + xx_thresholds), axis=1
+)
 plot_intervals(xx, xx_means, xx_batchmvp_intervals, test_data, "BatchMVP")

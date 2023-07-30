@@ -23,7 +23,7 @@ class Multicalibrator(MultivalidMethod):
         groups: Array,
         values: Array,
         n_buckets: int,
-        **kwargs
+        **kwargs,
     ):
         expectation_error, prob_b = self._compute_expectation_error(
             v=v,
@@ -95,7 +95,7 @@ class Multicalibrator(MultivalidMethod):
         groups: Array,
         values: Array,
         buckets: Array,
-        **kwargs
+        **kwargs,
     ) -> Array:
         patch = self._compute_expectation(
             v=vt,

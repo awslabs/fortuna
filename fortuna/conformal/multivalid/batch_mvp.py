@@ -1,8 +1,8 @@
 from typing import (
+    Dict,
     Optional,
     Tuple,
     Union,
-    Dict
 )
 
 from jax import vmap
@@ -36,7 +36,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         tol: float = 1e-4,
         n_buckets: int = None,
         n_rounds: int = 1000,
-        coverage: float = 0.95
+        coverage: float = 0.95,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
         Calibrate the model by finding a list of patches to the model that bring the calibration error below a
@@ -89,7 +89,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             tol=tol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
-            coverage=coverage
+            coverage=coverage,
         )
 
     def calibration_error(
@@ -98,14 +98,14 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         groups: Array,
         values: Array,
         n_buckets: int = 10000,
-        **kwargs
+        **kwargs,
     ) -> Array:
         return super().calibration_error(
             scores=scores,
             groups=groups,
             values=values,
             n_buckets=n_buckets,
-            coverage=self._coverage
+            coverage=self._coverage,
         )
 
     def _calibration_error(
@@ -116,18 +116,18 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         groups: Array,
         values: Array,
         n_buckets: int,
-        coverage: float = None
+        coverage: float = None,
     ):
         prob_error, prob_b = self._compute_probability_error(
             v=v,
             g=g,
-            delta=0.,
+            delta=0.0,
             scores=scores,
             groups=groups,
             values=values,
             n_buckets=n_buckets,
             return_prob_b=True,
-            coverage=coverage
+            coverage=coverage,
         )
         return prob_b * prob_error
 
@@ -185,7 +185,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         groups: Array,
         values: Array,
         buckets: Array,
-        coverage: float = None
+        coverage: float = None,
     ) -> Array:
         return buckets[
             jnp.argmin(
@@ -198,13 +198,13 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
                         groups=groups,
                         values=values,
                         n_buckets=len(buckets),
-                        coverage=coverage
+                        coverage=coverage,
                     )
-                )(
-                    buckets
-                )
+                )(buckets)
             )
         ]
 
-    def _patch(self, values: Array, patch: Array, bt: Array, _shift: bool = True) -> Array:
+    def _patch(
+        self, values: Array, patch: Array, bt: Array, _shift: bool = True
+    ) -> Array:
         return super()._patch(values=values, patch=patch, bt=bt, _shift=_shift)

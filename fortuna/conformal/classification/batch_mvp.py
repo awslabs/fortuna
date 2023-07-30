@@ -1,6 +1,4 @@
-from typing import (
-    List,
-)
+from typing import List
 
 import jax.numpy as jnp
 import numpy as np
@@ -46,14 +44,18 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
             Conformal sets for each input data point.
         """
         if class_scores.ndim != 2:
-            raise ValueError("`class_scores` must bse a 2-dimensional array. "
-                             "The first dimension is over the different inputs. "
-                             "The second dimension is over all the possible classes.")
+            raise ValueError(
+                "`class_scores` must bse a 2-dimensional array. "
+                "The first dimension is over the different inputs. "
+                "The second dimension is over all the possible classes."
+            )
         if values.ndim != 1:
             raise ValueError("`values` must be a 1-dimensional array.")
         if class_scores.shape[0] != values.shape[0]:
-            raise ValueError("The first dimension of `class_scores` and `values` must be over the same input data "
-                             "points.")
+            raise ValueError(
+                "The first dimension of `class_scores` and `values` must be over the same input data "
+                "points."
+            )
         bools = class_scores <= values[:, None]
 
         sizes = np.sum(bools, 0)

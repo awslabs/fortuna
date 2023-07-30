@@ -2,11 +2,11 @@ import abc
 import logging
 from typing import (
     Callable,
+    Dict,
     List,
     Optional,
     Tuple,
     Union,
-    Dict
 )
 
 from jax import vmap
@@ -62,7 +62,7 @@ class MultivalidMethod:
         tol: float = 1e-4,
         n_buckets: int = None,
         n_rounds: int = 1000,
-        **kwargs
+        **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
         Calibrate the model by finding a list of patches to the model that bring the calibration error below a
@@ -104,14 +104,20 @@ class MultivalidMethod:
         if tol >= 1:
             raise ValueError("`tol` must be smaller than 1.")
         if n_rounds < 1:
-           raise ValueError("`n_rounds` must be at least 1.")
+            raise ValueError("`n_rounds` must be at least 1.")
 
         if test_groups is None and test_values is not None:
-            raise ValueError("If `test_values` is provided, `test_groups` must be also provided.")
+            raise ValueError(
+                "If `test_values` is provided, `test_groups` must be also provided."
+            )
         if test_values is not None and values is None:
-            raise ValueError("If `test_values is provided, `values` must also be provided.")
+            raise ValueError(
+                "If `test_values is provided, `values` must also be provided."
+            )
         if values is not None and test_groups is not None and test_values is None:
-            raise ValueError("If `values` and `test_groups` are provided, `test_values` must also be provided.")
+            raise ValueError(
+                "If `values` and `test_groups` are provided, `test_values` must also be provided."
+            )
 
         if values is None:
             values_init = jnp.zeros(groups.shape[0])
@@ -155,9 +161,13 @@ class MultivalidMethod:
                 max_calib_errors.append(calib_error_vg.sum(1).max())
                 if max_calib_errors[-1] <= tol:
                     tol_reached = True
-                    logging.info(f"Tolerance satisfied after {t} rounds with {n_buckets} buckets.")
+                    logging.info(
+                        f"Tolerance satisfied after {t} rounds with {n_buckets} buckets."
+                    )
                     break
-                if old_calib_errors_vg is not None and jnp.allclose(old_calib_errors_vg, calib_error_vg):
+                if old_calib_errors_vg is not None and jnp.allclose(
+                    old_calib_errors_vg, calib_error_vg
+                ):
                     break
                 old_calib_errors_vg = jnp.copy(calib_error_vg)
 
@@ -168,7 +178,13 @@ class MultivalidMethod:
                     groups=groups, values=values, v=vt, g=gt, n_buckets=len(buckets)
                 )
                 patch = self._get_patch(
-                    vt=vt, gt=gt, scores=scores, groups=groups, values=values, buckets=buckets, **kwargs
+                    vt=vt,
+                    gt=gt,
+                    scores=scores,
+                    groups=groups,
+                    values=values,
+                    buckets=buckets,
+                    **kwargs,
                 )
                 values = self._patch(values=values, patch=patch, bt=bt)
 
@@ -221,7 +237,9 @@ class MultivalidMethod:
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
         for gt, vt, patch in self._patches:
-            bt = self._get_b(groups=groups, values=values, v=vt, g=gt, n_buckets=self.n_buckets)
+            bt = self._get_b(
+                groups=groups, values=values, v=vt, g=gt, n_buckets=self.n_buckets
+            )
             values = self._patch(values=values, bt=bt, patch=patch)
         return values
 
@@ -231,7 +249,7 @@ class MultivalidMethod:
         groups: Array,
         values: Array,
         n_buckets: int = 10000,
-        **kwargs
+        **kwargs,
     ) -> Array:
         """
         The reweighted average squared calibration error :math:`\mu(g) K_2(f, g, \mathcal{D})`.
@@ -259,15 +277,21 @@ class MultivalidMethod:
         return vmap(
             lambda g: vmap(
                 lambda v: self._calibration_error(
-                    v=v, g=g, scores=scores, groups=groups, values=values, n_buckets=n_buckets, **kwargs
+                    v=v,
+                    g=g,
+                    scores=scores,
+                    groups=groups,
+                    values=values,
+                    n_buckets=n_buckets,
+                    **kwargs,
                 )
             )(buckets)
         )(jnp.arange(groups.shape[1])).sum(1)
-    
+
     @property
     def patches(self):
         return self._patches
-    
+
     @property
     def n_buckets(self):
         return self._n_buckets
@@ -285,7 +309,7 @@ class MultivalidMethod:
         groups: Array,
         values: Array,
         n_buckets: int,
-        **kwargs
+        **kwargs,
     ):
         pass
 
@@ -318,7 +342,7 @@ class MultivalidMethod:
         groups: Array,
         values: Array,
         buckets: Array,
-        **kwargs
+        **kwargs,
     ) -> Array:
         pass
 
@@ -345,5 +369,6 @@ class MultivalidMethod:
             if v is not None:
                 if v.min() < 0 or v.max() > 1:
                     raise ValueError(f"All elements in `{k}` must be between 0 and 1.")
+
         for k, v in d.items():
             _maybe_check(k, v)
