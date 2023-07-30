@@ -58,7 +58,7 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
             )
         bools = class_scores <= values[:, None]
 
-        sizes = np.sum(bools, 0)
+        sizes = np.sum(bools, 1)
         sets = np.zeros(bools.shape[0], dtype=object)
         for s in np.unique(sizes):
             idx = jnp.where(sizes == s)[0]
