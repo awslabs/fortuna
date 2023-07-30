@@ -376,9 +376,15 @@ class TestConformalMethods(unittest.TestCase):
         error = batchmvp.calibration_error(
             scores=test_scores, groups=test_groups, values=test_values
         )
-        status = batchmvp.calibrate(scores=np.array(scores), values=np.array(values), groups=np.array(groups),
-                                    test_groups=np.array(test_groups), test_values=np.array(test_values), n_rounds=3,
-                                    n_buckets=4)
+        status = batchmvp.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
 
     def test_batchmvp_classifier(self):
         size = 10
@@ -437,7 +443,15 @@ class TestConformalMethods(unittest.TestCase):
         error = batchmvp.calibration_error(
             scores=test_scores, groups=test_groups, values=test_values
         )
-        status = batchmvp.calibrate(scores=np.array(scores), values=np.array(values), groups=np.array(groups), test_groups=np.array(test_groups), test_values=np.array(test_values), n_rounds=3, n_buckets=4)
+        status = batchmvp.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
 
         sets = batchmvp.conformal_set(
             class_scores=jnp.stack((test_scores, test_scores), axis=1),
@@ -498,4 +512,12 @@ class TestConformalMethods(unittest.TestCase):
         error = mc.calibration_error(
             scores=test_scores, groups=test_groups, values=test_values
         )
-        status = mc.calibrate(scores=np.array(scores), values=np.array(values), groups=np.array(groups), test_groups=np.array(test_groups), test_values=np.array(test_values), n_rounds=3, n_buckets=4)
+        status = mc.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
