@@ -227,7 +227,7 @@ test_groups = jnp.stack([g(test_data[0]) for g in group_fns], axis=1)
 
 batchmvp = BatchMVPConformalRegressor()
 test_thresholds, status = batchmvp.calibrate(
-    scores=scores, groups=groups, test_groups=test_groups
+    scores=scores, groups=groups, test_groups=test_groups, n_buckets=300
 )
 test_thresholds = min_score + (max_score - min_score) * test_thresholds
 
@@ -283,3 +283,4 @@ xx_batchmvp_intervals = jnp.stack(
     (xx_qleft - xx_thresholds, xx_qright + xx_thresholds), axis=1
 )
 plot_intervals(xx, xx_means, xx_batchmvp_intervals, test_data, "BatchMVP")
+plt.show()

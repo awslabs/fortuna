@@ -95,7 +95,7 @@ calib_test_values, status = mc.calibrate(
     values=values,
     test_groups=test_groups,
     test_values=test_values,
-    n_buckets=1000,
+    n_buckets=100,
 )
 
 plt.figure(figsize=(10, 3))
@@ -130,21 +130,5 @@ print(
     "Per-group reweighted avg. squared calib. error after calibration: ",
     mc.calibration_error(
         scores=test_scores, groups=test_groups, values=calib_test_values
-    ),
-)
-
-print(
-    "Mismatch between labels and probs before calibration: ",
-    jnp.mean(
-        jnp.maximum((1 - test_targets) * test_values, test_targets * (1 - test_values))
-    ),
-)
-print(
-    "Mismatch between labels and probs after calibration: ",
-    jnp.mean(
-        jnp.maximum(
-            (1 - test_targets) * calib_test_values,
-            test_targets * (1 - calib_test_values),
-        )
     ),
 )
