@@ -34,7 +34,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         test_groups: Optional[Array] = None,
         test_values: Optional[Array] = None,
         tol: float = 1e-4,
-        n_buckets: int = None,
+        n_buckets: int = 100,
         n_rounds: int = 1000,
         coverage: float = 0.95,
     ) -> Union[Dict, Tuple[Array, Dict]]:
@@ -117,17 +117,18 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         values: Array,
         n_buckets: int,
         coverage: float = None,
+        threshold: Array = None,
     ):
         prob_error, prob_b = self._compute_probability_error(
             v=v,
             g=g,
-            delta=0.0,
             scores=scores,
             groups=groups,
             values=values,
             n_buckets=n_buckets,
             return_prob_b=True,
             coverage=coverage,
+            threshold=threshold,
         )
         return prob_b * prob_error
 
@@ -135,23 +136,23 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         self,
         v: Array,
         g: Array,
-        delta: Array,
         scores: Array,
         groups: Array,
         values: Array,
         n_buckets: int,
         return_prob_b: bool = False,
         coverage: float = None,
+        threshold: Array = None,
     ):
         prob = self._compute_probability(
             v=v,
             g=g,
-            delta=delta,
             scores=scores,
             groups=groups,
             values=values,
             n_buckets=n_buckets,
             return_prob_b=return_prob_b,
+            threshold=threshold,
         )
         if return_prob_b:
             prob, prob_b = prob
@@ -162,15 +163,15 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         self,
         v: Array,
         g: Array,
-        delta: Array,
         scores: Array,
         groups: Array,
         values: Array,
         n_buckets: int,
         return_prob_b: bool = False,
+        threshold: Array = None,
     ):
         b = self._get_b(groups=groups, values=values, v=v, g=g, n_buckets=n_buckets)
-        conds = (scores <= v + delta) * b
+        conds = (scores <= (v if threshold is None else threshold)) * b
         prob_b = jnp.mean(b)
         prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
         if return_prob_b:
@@ -190,21 +191,16 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         return buckets[
             jnp.argmin(
                 vmap(
-                    lambda delta: self._compute_probability_error(
+                    lambda v: self._compute_probability_error(
                         v=vt,
                         g=gt,
-                        delta=delta,
                         scores=scores,
                         groups=groups,
                         values=values,
                         n_buckets=len(buckets),
                         coverage=coverage,
+                        threshold=v,
                     )
                 )(buckets)
             )
         ]
-
-    def _patch(
-        self, values: Array, patch: Array, bt: Array, _shift: bool = True
-    ) -> Array:
-        return super()._patch(values=values, patch=patch, bt=bt, _shift=_shift)

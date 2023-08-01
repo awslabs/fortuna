@@ -3,7 +3,6 @@ import logging
 from typing import (
     Callable,
     Dict,
-    List,
     Optional,
     Tuple,
     Union,
@@ -12,39 +11,7 @@ from typing import (
 from jax import vmap
 import jax.numpy as jnp
 
-from fortuna.data.loader import (
-    DataLoader,
-    InputsLoader,
-)
 from fortuna.typing import Array
-
-
-class Normalizer:
-    def __init__(self, x_min: Union[float, Array], x_max: Union[float, Array]):
-        self.x_min = x_min
-        self.x_max = x_max if x_max != x_min else x_min + 1
-
-    def normalize(self, x: Array) -> Array:
-        return (x - self.x_min) / (self.x_max - self.x_min)
-
-    def unnormalize(self, y: Array) -> Array:
-        return self.x_min + (self.x_max - self.x_min) * y
-
-
-class Model:
-    def __init__(self, model_fn: Callable[[Array], Array]):
-        self.model_fn = model_fn
-
-    def __call__(self, x: Array):
-        v = self.model_fn(x)
-        if v.ndim > 1:
-            raise ValueError(
-                "Evaluations of the model function `model_fn` must be one-dimensional arrays, "
-                f"but its shape was {v.shape}."
-            )
-        if jnp.any(v < 0) or jnp.any(v > 1):
-            raise ValueError("The model function must take values within [0, 1].")
-        return v
 
 
 class MultivalidMethod:
@@ -60,7 +27,7 @@ class MultivalidMethod:
         test_groups: Optional[Array] = None,
         test_values: Optional[Array] = None,
         tol: float = 1e-4,
-        n_buckets: int = None,
+        n_buckets: int = 100,
         n_rounds: int = 1000,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
@@ -88,10 +55,7 @@ class MultivalidMethod:
         tol: float
             A tolerance on the reweighted average squared calibration error, i.e. :math:`\mu(g) K_2(f, g, \mathcal{D})`.
         n_buckets: int
-            The number of buckets used in the algorithm. The smaller the number of buckets, the simpler the model,
-            the better its generalization abilities. If not provided, We start from 2 buckets, and progressively double
-            the number of buckets until we find a value for which the calibration error falls below the given
-            tolerance. Such number of buckets is guaranteed to exist.
+            The number of buckets used in the algorithm.
         n_rounds: int
             The maximum number of rounds to run the method for.
         Returns
@@ -127,79 +91,71 @@ class MultivalidMethod:
 
         self._check_range(dict(scores=scores, values=values, test_values=test_values))
 
-        increase_n_buckets = False
-        if n_buckets is None:
-            n_buckets = 2
-            increase_n_buckets = True
-
         n_groups = groups.shape[1]
-        tol_reached = False
-
-        while True:
-            logging.info(f"Attempt reaching tolerance with {n_buckets} buckets.")
-            buckets = self._get_buckets(n_buckets)
-            values = vmap(lambda v: self._round_to_buckets(v, buckets))(values_init)
-
-            max_calib_errors = []
-            old_calib_errors_vg = None
-            self._patches = []
-
-            for t in range(n_rounds):
-                calib_error_vg = vmap(
-                    lambda g: vmap(
-                        lambda v: self._calibration_error(
-                            v,
-                            g,
-                            scores=scores,
-                            groups=groups,
-                            values=values,
-                            n_buckets=n_buckets,
-                            **kwargs,
-                        )
-                    )(buckets)
-                )(jnp.arange(n_groups))
-
-                max_calib_errors.append(calib_error_vg.sum(1).max())
-                if max_calib_errors[-1] <= tol:
-                    tol_reached = True
-                    logging.info(
-                        f"Tolerance satisfied after {t} rounds with {n_buckets} buckets."
-                    )
-                    break
-                if old_calib_errors_vg is not None and jnp.allclose(
-                    old_calib_errors_vg, calib_error_vg
-                ):
-                    break
-                old_calib_errors_vg = jnp.copy(calib_error_vg)
-
-                gt, vt = self._get_gt_and_vt(
-                    calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups
-                )
-                bt = self._get_b(
-                    groups=groups, values=values, v=vt, g=gt, n_buckets=len(buckets)
-                )
-                patch = self._get_patch(
-                    vt=vt,
-                    gt=gt,
-                    scores=scores,
-                    groups=groups,
-                    values=values,
-                    buckets=buckets,
-                    **kwargs,
-                )
-                values = self._patch(values=values, patch=patch, bt=bt)
-
-                self._patches.append((gt, vt, patch))
-
-            if tol_reached:
-                break
-            if increase_n_buckets:
-                n_buckets *= 2
-            else:
-                break
 
         self.n_buckets = n_buckets
-        status = dict(n_rounds=len(self.patches), max_calib_errors=max_calib_errors)
+        buckets = self._get_buckets(n_buckets)
+        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values_init)
+
+        max_calib_errors = []
+        old_calib_errors_vg = None
+        self._patches = []
+        converged = True
+
+        for t in range(n_rounds):
+            calib_error_vg = vmap(
+                lambda g: vmap(
+                    lambda v: self._calibration_error(
+                        v,
+                        g,
+                        scores=scores,
+                        groups=groups,
+                        values=values,
+                        n_buckets=n_buckets,
+                        **kwargs,
+                    )
+                )(buckets)
+            )(jnp.arange(n_groups))
+
+            max_calib_errors.append(calib_error_vg.sum(1).max())
+            if max_calib_errors[-1] <= tol:
+                logging.info(f"Tolerance satisfied after {t} rounds.")
+                break
+            if old_calib_errors_vg is not None and jnp.allclose(
+                old_calib_errors_vg, calib_error_vg
+            ):
+                converged = False
+                logging.warning(
+                    "The algorithm cannot achieve the desired tolerance. "
+                    "Please try increasing `n_buckets`."
+                )
+                break
+            old_calib_errors_vg = jnp.copy(calib_error_vg)
+
+            gt, vt = self._get_gt_and_vt(
+                calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups
+            )
+            bt = self._get_b(
+                groups=groups, values=values, v=vt, g=gt, n_buckets=len(buckets)
+            )
+            patch = self._get_patch(
+                vt=vt,
+                gt=gt,
+                scores=scores,
+                groups=groups,
+                values=values,
+                buckets=buckets,
+                **kwargs,
+            )
+            values = self._patch(values=values, patch=patch, bt=bt)
+
+            self._patches.append((gt, vt, patch))
+
+        status = dict(
+            n_rounds=len(self.patches),
+            max_calib_errors=max_calib_errors,
+            converged=converged,
+        )
 
         if test_groups is not None:
             test_values = self.apply_patches(test_groups, test_values)
