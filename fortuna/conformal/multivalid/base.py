@@ -1,7 +1,6 @@
 import abc
 import logging
 from typing import (
-    Callable,
     Dict,
     Optional,
     Tuple,
@@ -82,6 +81,10 @@ class MultivalidMethod:
             raise ValueError(
                 "If `values` and `test_groups` are provided, `test_values` must also be provided."
             )
+        if groups.dtype != bool:
+            raise ValueError("`groups.dtype` must be a bool.")
+        if test_groups is not None and test_groups.dtype != bool:
+            raise ValueError("`test_groups.dtype` must be a bool.")
 
         groups = jnp.copy(groups)
         if values is None:

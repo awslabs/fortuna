@@ -322,11 +322,12 @@ class TestConformalMethods(unittest.TestCase):
         size = 10
         test_size = 20
         scores = random.uniform(random.PRNGKey(0), shape=(size,))
-        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3))
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
         test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3))
-        test_values = jnp.zeros(test_size)
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
+        )
         batchmvp = BatchMVPConformalRegressor()
         status = batchmvp.calibrate(
             scores=scores, groups=groups, n_rounds=3, n_buckets=4
@@ -385,15 +386,32 @@ class TestConformalMethods(unittest.TestCase):
             n_rounds=3,
             n_buckets=4,
         )
+        with self.assertRaises(ValueError):
+            test_values, status = batchmvp.calibrate(
+                scores=scores,
+                groups=groups,
+                test_groups=jnp.ones(test_size)[:, None],
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            status = batchmvp.calibrate(
+                scores=scores,
+                groups=jnp.ones(size)[:, None],
+                n_rounds=3,
+                n_buckets=4,
+            )
 
     def test_batchmvp_classifier(self):
         size = 10
         test_size = 20
         scores = random.uniform(random.PRNGKey(0), shape=(size,))
-        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3))
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
         test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3))
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
+        )
         batchmvp = BatchMVPConformalClassifier()
         status = batchmvp.calibrate(
             scores=scores, groups=groups, n_rounds=3, n_buckets=4
@@ -463,10 +481,12 @@ class TestConformalMethods(unittest.TestCase):
         size = 10
         test_size = 20
         scores = random.uniform(random.PRNGKey(0), shape=(size,))
-        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3))
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
         test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3))
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
+        )
         mc = Multicalibrator()
         status = mc.calibrate(scores=scores, groups=groups, n_rounds=3, n_buckets=4)
         status = mc.calibrate(
@@ -521,3 +541,18 @@ class TestConformalMethods(unittest.TestCase):
             n_rounds=3,
             n_buckets=4,
         )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                scores=scores,
+                groups=groups,
+                test_groups=jnp.ones(test_size)[:, None],
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            status = mc.calibrate(
+                scores=scores,
+                groups=jnp.ones(size)[:, None],
+                n_rounds=3,
+                n_buckets=4,
+            )
