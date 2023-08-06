@@ -112,6 +112,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         self,
         v: Array,
         g: Array,
+        c: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -170,7 +171,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         return_prob_b: bool = False,
         threshold: Array = None,
     ):
-        b = self._get_b(groups=groups, values=values, v=v, g=g, n_buckets=n_buckets)
+        b = self._get_b(groups=groups, values=values, v=v, g=g, c=None, n_buckets=n_buckets)
         conds = (scores <= (v if threshold is None else threshold)) * b
         prob_b = jnp.mean(b)
         prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
@@ -182,6 +183,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         self,
         vt: Array,
         gt: Array,
+        ct: Array,
         scores: Array,
         groups: Array,
         values: Array,

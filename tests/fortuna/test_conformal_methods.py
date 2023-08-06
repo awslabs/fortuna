@@ -10,6 +10,7 @@ from fortuna.conformal import (
     AdaptivePredictionConformalClassifier,
     BatchMVPConformalClassifier,
     BatchMVPConformalRegressor,
+    BinaryClassificationMulticalibrator,
     CVPlusConformalRegressor,
     EnbPI,
     JackknifeMinmaxConformalRegressor,
@@ -19,10 +20,6 @@ from fortuna.conformal import (
     SimplePredictionConformalClassifier,
 )
 from fortuna.conformal.multivalid.multicalibrator import Multicalibrator
-from fortuna.data.loader import (
-    DataLoader,
-    InputsLoader,
-)
 
 
 class TestConformalMethods(unittest.TestCase):
@@ -518,6 +515,69 @@ class TestConformalMethods(unittest.TestCase):
             groups=np.array(groups),
             test_groups=np.array(test_groups),
             test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
+
+    def test_binary_multicalibrator(self):
+        size = 10
+        test_size = 20
+        scores = random.uniform(random.PRNGKey(0), shape=(size,))
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3))
+        values = jnp.zeros(size)
+        test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3))
+        mc = BinaryClassificationMulticalibrator()
+        status = mc.calibrate(targets=scores, groups=groups, n_rounds=3, n_buckets=4)
+        status = mc.calibrate(
+            targets=scores, groups=groups, values=values, n_rounds=3, n_buckets=4
+        )
+        test_values, status = mc.calibrate(
+            targets=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                probs=values,
+                test_groups=test_groups,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                probs=values,
+                test_values=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                test_groups=test_groups,
+                test_probs=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        status = mc.calibrate(targets=scores, groups=groups, n_rounds=3, n_buckets=4)
+        test_values = mc.apply_patches(test_groups)
+        test_values = mc.apply_patches(test_groups, test_values)
+        error = mc.calibration_error(
+            targets=test_scores, groups=test_groups, probs=test_values
+        )
+        status = mc.calibrate(
+            targets=np.array(scores),
+            probs=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_probs=np.array(test_values),
             n_rounds=3,
             n_buckets=4,
         )

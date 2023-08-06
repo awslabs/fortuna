@@ -82,20 +82,22 @@ class MultivalidMethod:
             raise ValueError(
                 "If `values` and `test_groups` are provided, `test_values` must also be provided."
             )
+        self._check_groups(groups, test_groups)
 
         groups = jnp.copy(groups)
         if values is None:
-            values_init = jnp.zeros(groups.shape[0])
+            values = jnp.zeros(groups.shape[0])
         else:
-            values_init = jnp.copy(values)
+            values = jnp.copy(values)
 
         self._check_range(dict(scores=scores, values=values, test_values=test_values))
 
         n_groups = groups.shape[1]
+        n_dims = scores.shape[1] if scores.ndim > 1 else 1
 
         self.n_buckets = n_buckets
         buckets = self._get_buckets(n_buckets)
-        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values_init)
+        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
         max_calib_errors = []
         old_calib_errors_vg = None
@@ -105,19 +107,22 @@ class MultivalidMethod:
         for t in range(n_rounds):
             calib_error_vg = vmap(
                 lambda g: vmap(
-                    lambda v: self._calibration_error(
-                        v,
-                        g,
-                        scores=scores,
-                        groups=groups,
-                        values=values,
-                        n_buckets=n_buckets,
-                        **kwargs,
-                    )
-                )(buckets)
-            )(jnp.arange(n_groups))
+                    lambda v: vmap(
+                        lambda c: self._calibration_error(
+                            v=v,
+                            g=g,
+                            c=c,
+                            scores=scores,
+                            groups=groups,
+                            values=values,
+                            n_buckets=n_buckets,
+                            **kwargs,
+                        )(jnp.arange(n_dims))
+                    )(buckets)
+                )(jnp.arange(n_groups))
+            )
 
-            max_calib_errors.append(calib_error_vg.sum(1).max())
+            max_calib_errors.append(calib_error_vg.sum((1, 2)).max())
             if max_calib_errors[-1] <= tol:
                 logging.info(f"Tolerance satisfied after {t} rounds.")
                 break
@@ -132,15 +137,16 @@ class MultivalidMethod:
                 break
             old_calib_errors_vg = jnp.copy(calib_error_vg)
 
-            gt, vt = self._get_gt_and_vt(
-                calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups
+            gt, vt, ct = self._get_gt_and_vt_and_ct(
+                calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups, n_dims=n_dims
             )
             bt = self._get_b(
-                groups=groups, values=values, v=vt, g=gt, n_buckets=len(buckets)
+                groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=len(buckets)
             )
             patch = self._get_patch(
                 vt=vt,
                 gt=gt,
+                ct=ct,
                 scores=scores,
                 groups=groups,
                 values=values,
@@ -149,7 +155,7 @@ class MultivalidMethod:
             )
             values = self._patch(values=values, patch=patch, bt=bt)
 
-            self._patches.append((gt, vt, patch))
+            self._patches.append((gt, vt, ct, patch))
 
         status = dict(
             n_rounds=len(self.patches),
@@ -196,9 +202,9 @@ class MultivalidMethod:
         buckets = self._get_buckets(n_buckets=self.n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
-        for gt, vt, patch in self._patches:
+        for gt, vt, ct, patch in self._patches:
             bt = self._get_b(
-                groups=groups, values=values, v=vt, g=gt, n_buckets=self.n_buckets
+                groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=self.n_buckets
             )
             values = self._patch(values=values, bt=bt, patch=patch)
         return values
@@ -233,18 +239,21 @@ class MultivalidMethod:
         """
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
+        n_dims = scores.shape[1] if scores.ndim > 1 else 1
 
         return vmap(
             lambda g: vmap(
-                lambda v: self._calibration_error(
-                    v=v,
-                    g=g,
-                    scores=scores,
-                    groups=groups,
-                    values=values,
-                    n_buckets=n_buckets,
-                    **kwargs,
-                )
+                lambda v: vmap(
+                    lambda c: self._calibration_error(
+                        v=v,
+                        g=g,
+                        scores=scores,
+                        groups=groups,
+                        values=values,
+                        n_buckets=n_buckets,
+                        **kwargs,
+                    )
+                )(n_dims)
             )(buckets)
         )(jnp.arange(groups.shape[1])).sum(1)
 
@@ -263,8 +272,9 @@ class MultivalidMethod:
     @abc.abstractmethod
     def _calibration_error(
         self,
-        v: float,
+        v: Array,
         g: Array,
+        c: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
@@ -274,22 +284,18 @@ class MultivalidMethod:
         pass
 
     @staticmethod
-    def _init_missing_model_fn():
-        return Model(lambda x: jnp.zeros(x.shape[0]))
-
-    @staticmethod
     def _get_gt_and_vt(
-        calib_error_vg: Array, buckets: Array, n_groups: int
+        calib_error_vg: Array, buckets: Array, n_groups: int, n_dims: int
     ) -> Tuple[Array, Array]:
-        gt, idx_vt = jnp.unravel_index(
-            jnp.argmax(calib_error_vg), (n_groups, len(buckets))
+        gt, idx_vt, ct = jnp.unravel_index(
+            jnp.argmax(calib_error_vg), (n_groups, len(buckets), n_dims)
         )
         vt = buckets[idx_vt]
         return gt, vt
 
     @staticmethod
     def _get_b(
-        groups: Array, values: Array, v: Array, g: Array, n_buckets: int
+        groups: Array, values: Array, v: Array, g: Array, c: Optional[Array], n_buckets: int
     ) -> Array:
         return (jnp.abs(values - v) < 0.5 / n_buckets) * groups[:, g]
 
@@ -298,6 +304,7 @@ class MultivalidMethod:
         self,
         vt: Array,
         gt: Array,
+        ct: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -332,3 +339,14 @@ class MultivalidMethod:
 
         for k, v in d.items():
             _maybe_check(k, v)
+
+    @staticmethod
+    def _check_groups(groups: Array, test_groups: Optional[Array]):
+        if groups.ndim != 2:
+            raise ValueError("`groups` must be a 2-dimensional array.")
+        if test_groups is not None and test_groups.ndim != 2:
+            raise ValueError("`groups` must be a 2-dimensional array.")
+        if groups.dtype != bool:
+            raise ValueError("All elements in `groups` must be a bool.")
+        if test_groups is not None and test_groups.dtype != bool:
+            raise ValueError("All elements in `test_groups` must be a bool.")
