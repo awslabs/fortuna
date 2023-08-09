@@ -1,7 +1,14 @@
+from typing import (
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
+
+import jax.numpy as jnp
+
 from fortuna.conformal.multivalid.multicalibrator import Multicalibrator
 from fortuna.typing import Array
-from typing import Optional, Dict, Tuple, Union
-import jax.numpy as jnp
 
 
 class BinaryClassificationMulticalibrator(Multicalibrator):
@@ -26,7 +33,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             tol=tol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
-            **kwargs
+            **kwargs,
         )
 
     def apply_patches(
@@ -34,10 +41,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
         groups: Optional[Array] = None,
         probs: Optional[Array] = None,
     ) -> Array:
-        return super().apply_patches(
-            groups=groups,
-            values=probs
-        )
+        return super().apply_patches(groups=groups, values=probs)
 
     def calibration_error(
         self,
@@ -67,23 +71,31 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             raise ValueError("All elements in `targets` must be integers")
 
     @staticmethod
-    def _maybe_check_values(values: Optional[Array], test_values: Optional[Array] = None):
+    def _maybe_check_values(
+        values: Optional[Array], test_values: Optional[Array] = None
+    ):
         if values is not None:
             if values.ndim != 1:
-                raise ValueError("`probs` must be a 1-dimensional array representing the probability that the "
-                                 "target variable is 1.")
+                raise ValueError(
+                    "`probs` must be a 1-dimensional array representing the probability that the "
+                    "target variable is 1."
+                )
             if jnp.any(values < 0) or jnp.any(values > 1):
                 raise ValueError("All elements in `values` must be within [0, 1].")
         if test_values is not None:
             if test_values.ndim != 1:
-                raise ValueError("`test_probs` must be a 1-dimensional array representing the probability that the "
-                                 "target variable is 1.")
+                raise ValueError(
+                    "`test_probs` must be a 1-dimensional array representing the probability that the "
+                    "target variable is 1."
+                )
             if jnp.any(test_values < 0) or jnp.any(test_values > 1):
                 raise ValueError("All elements in `test_values` must be within [0, 1].")
 
     def _maybe_init_values(self, values: Optional[Array], size: Optional[int] = None):
         if values is None:
             if size is None:
-                raise ValueError("If `values` is not provided, `size` must be provided.")
+                raise ValueError(
+                    "If `values` is not provided, `size` must be provided."
+                )
             return 0.5 * jnp.ones(size)
         return jnp.copy(values)

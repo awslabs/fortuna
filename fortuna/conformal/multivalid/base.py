@@ -141,7 +141,10 @@ class MultivalidMethod:
             old_calib_errors_gvc = jnp.copy(calib_error_gvc)
 
             gt, vt, ct = self._get_gt_and_vt_and_ct(
-                calib_error_gvc=calib_error_gvc, buckets=buckets, n_groups=n_groups, n_dims=n_dims
+                calib_error_gvc=calib_error_gvc,
+                buckets=buckets,
+                n_groups=n_groups,
+                n_dims=n_dims,
             )
             bt = self._get_b(
                 groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=len(buckets)
@@ -168,7 +171,9 @@ class MultivalidMethod:
         )
 
         if t == n_rounds - 1 and not converged:
-            logging.warning("Maximum number of rounds reached without convergence. Consider increasing `n_rounds`.")
+            logging.warning(
+                "Maximum number of rounds reached without convergence. Consider increasing `n_rounds`."
+            )
 
         if test_groups is not None or test_values is not None:
             test_values = self.apply_patches(test_groups, test_values)
@@ -198,11 +203,15 @@ class MultivalidMethod:
             The calibrated values.
         """
         if groups is None and values is None:
-            raise ValueError("At least one between `groups` and `values` must be provided.")
+            raise ValueError(
+                "At least one between `groups` and `values` must be provided."
+            )
         if not len(self._patches):
             logging.warning("No patches available.")
             return values
-        values = self._maybe_init_values(values, groups.shape[0] if groups is not None else None)
+        values = self._maybe_init_values(
+            values, groups.shape[0] if groups is not None else None
+        )
         self._maybe_check_values(values)
 
         groups = self._init_groups(groups, values.shape[0])
@@ -314,7 +323,9 @@ class MultivalidMethod:
     def _maybe_init_values(self, values: Optional[Array], size: Optional[int] = None):
         if values is None:
             if size is None:
-                raise ValueError("If `values` is not provided, `size` must be provided.")
+                raise ValueError(
+                    "If `values` is not provided, `size` must be provided."
+                )
             return jnp.zeros(size)
         return jnp.copy(values)
 
@@ -344,7 +355,12 @@ class MultivalidMethod:
 
     @staticmethod
     def _get_b(
-        groups: Array, values: Array, v: Array, g: Array, c: Optional[Array], n_buckets: int
+        groups: Array,
+        values: Array,
+        v: Array,
+        g: Array,
+        c: Optional[Array],
+        n_buckets: int,
     ) -> Array:
         return (jnp.abs(values - v) < 0.5 / n_buckets) * groups[:, g]
 
@@ -363,7 +379,9 @@ class MultivalidMethod:
         pass
 
     @staticmethod
-    def _patch(values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False) -> Array:
+    def _patch(
+        values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False
+    ) -> Array:
         if values.ndim == 1:
             return values.at[bt].set(
                 jnp.minimum(
@@ -387,7 +405,9 @@ class MultivalidMethod:
         return buckets[jnp.argmin(jnp.abs(v - buckets))]
 
     @staticmethod
-    def _maybe_check_values(values: Optional[Array], test_values: Optional[Array] = None):
+    def _maybe_check_values(
+        values: Optional[Array], test_values: Optional[Array] = None
+    ):
         if values is not None:
             if values.ndim != 1:
                 raise ValueError("`values` must be a 1-dimensional array.")

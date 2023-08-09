@@ -75,7 +75,9 @@ class Multicalibrator(MultivalidMethod):
         n_buckets: int,
         return_prob_b: bool = False,
     ):
-        b = self._get_b(groups=groups, values=values, v=v, g=g, c=c, n_buckets=n_buckets)
+        b = self._get_b(
+            groups=groups, values=values, v=v, g=g, c=c, n_buckets=n_buckets
+        )
         filtered_scores = scores * b
         prob_b = jnp.mean(b)
         mean = jnp.where(prob_b > 0, jnp.mean(filtered_scores) / prob_b, 0.0)

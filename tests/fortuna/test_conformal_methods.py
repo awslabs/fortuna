@@ -15,11 +15,11 @@ from fortuna.conformal import (
     EnbPI,
     JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
+    Multicalibrator,
     OneDimensionalUncertaintyConformalRegressor,
     QuantileConformalRegressor,
     SimplePredictionConformalClassifier,
-    Multicalibrator,
-    TopLabelMulticalibrator
+    TopLabelMulticalibrator,
 )
 
 
@@ -323,11 +323,11 @@ class TestConformalMethods(unittest.TestCase):
         groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
         test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype("bool")
-        batchmvp = BatchMVPConformalRegressor()
-        status = batchmvp.calibrate(
-            scores=scores, n_rounds=3, n_buckets=4
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
         )
+        batchmvp = BatchMVPConformalRegressor()
+        status = batchmvp.calibrate(scores=scores, n_rounds=3, n_buckets=4)
         status = batchmvp.calibrate(
             scores=scores, groups=groups, thresholds=values, n_rounds=3, n_buckets=4
         )
@@ -390,11 +390,11 @@ class TestConformalMethods(unittest.TestCase):
         groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
         test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype("bool")
-        batchmvp = BatchMVPConformalClassifier()
-        status = batchmvp.calibrate(
-            scores=scores, n_rounds=3, n_buckets=4
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
         )
+        batchmvp = BatchMVPConformalClassifier()
+        status = batchmvp.calibrate(scores=scores, n_rounds=3, n_buckets=4)
         status = batchmvp.calibrate(
             scores=scores, groups=groups, thresholds=values, n_rounds=3, n_buckets=4
         )
@@ -463,7 +463,9 @@ class TestConformalMethods(unittest.TestCase):
         groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
         test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype("bool")
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
+        )
         mc = Multicalibrator()
         status = mc.calibrate(scores=scores, n_rounds=3, n_buckets=4)
         status = mc.calibrate(
@@ -525,10 +527,14 @@ class TestConformalMethods(unittest.TestCase):
         scores = random.choice(random.PRNGKey(0), 2, shape=(size,)).astype("int")
         groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
-        test_scores = random.choice(random.PRNGKey(1), 2, shape=(test_size,)).astype("int")
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype("bool")
+        test_scores = random.choice(random.PRNGKey(1), 2, shape=(test_size,)).astype(
+            "int"
+        )
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
+        )
         mc = BinaryClassificationMulticalibrator()
-        status = mc.calibrate(targets=scores,  n_rounds=3, n_buckets=4)
+        status = mc.calibrate(targets=scores, n_rounds=3, n_buckets=4)
         status = mc.calibrate(
             targets=scores, groups=groups, probs=values, n_rounds=3, n_buckets=4
         )
@@ -587,11 +593,19 @@ class TestConformalMethods(unittest.TestCase):
         test_size = 20
         n_classes = 3
         n_groups = 2
-        scores = random.choice(random.PRNGKey(0), n_classes, shape=(size,)).astype("int")
-        groups = random.choice(random.PRNGKey(0), 2, shape=(size, n_groups)).astype("bool")
+        scores = random.choice(random.PRNGKey(0), n_classes, shape=(size,)).astype(
+            "int"
+        )
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, n_groups)).astype(
+            "bool"
+        )
         values = jnp.zeros((size, n_classes))
-        test_scores = random.choice(random.PRNGKey(1), n_classes, shape=(test_size,)).astype("int")
-        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, n_groups)).astype("bool")
+        test_scores = random.choice(
+            random.PRNGKey(1), n_classes, shape=(test_size,)
+        ).astype("int")
+        test_groups = random.choice(
+            random.PRNGKey(1), 2, shape=(test_size, n_groups)
+        ).astype("bool")
         mc = TopLabelMulticalibrator(n_classes=n_classes)
         status = mc.calibrate(targets=scores, n_rounds=3, n_buckets=4)
         status = mc.calibrate(

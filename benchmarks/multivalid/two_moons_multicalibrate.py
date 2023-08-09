@@ -120,9 +120,7 @@ plt.show()
 
 print(
     "Per-group reweighted avg. squared calib. error before calibration: ",
-    mc.calibration_error(
-        targets=test_targets, groups=test_groups, probs=test_probs
-    ),
+    mc.calibration_error(targets=test_targets, groups=test_groups, probs=test_probs),
 )
 print(
     "Per-group reweighted avg. squared calib. error after calibration: ",

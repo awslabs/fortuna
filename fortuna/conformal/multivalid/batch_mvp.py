@@ -96,10 +96,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         groups: Optional[Array] = None,
         thresholds: Optional[Array] = None,
     ) -> Array:
-        return super().apply_patches(
-            groups=groups,
-            values=thresholds
-        )
+        return super().apply_patches(groups=groups, values=thresholds)
 
     def calibration_error(
         self,
@@ -184,7 +181,9 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         return_prob_b: bool = False,
         threshold: Array = None,
     ):
-        b = self._get_b(groups=groups, values=values, v=v, g=g, c=None, n_buckets=n_buckets)
+        b = self._get_b(
+            groups=groups, values=values, v=v, g=g, c=None, n_buckets=n_buckets
+        )
         conds = (scores <= (v if threshold is None else threshold)) * b
         prob_b = jnp.mean(b)
         prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
@@ -221,7 +220,9 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         ]
 
     @staticmethod
-    def _maybe_check_values(values: Optional[Array], test_values: Optional[Array] = None):
+    def _maybe_check_values(
+        values: Optional[Array], test_values: Optional[Array] = None
+    ):
         if jnp.any(values < 0) or jnp.any(values > 1):
             raise ValueError("All elements in `thresholds` must be within [0, 1].")
 

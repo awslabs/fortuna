@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+from typing import (
+    Dict,
+    Optional,
+    Tuple,
+    Union,
+)
+
+from jax import (
+    random,
+    vmap,
+)
 import jax.numpy as jnp
 
 from fortuna.conformal.multivalid.multicalibrator import Multicalibrator
 from fortuna.typing import Array
-from typing import Optional, Dict, Union, Tuple
-from jax import vmap, random
 
 
 class TopLabelMulticalibrator(Multicalibrator):
@@ -44,7 +53,7 @@ class TopLabelMulticalibrator(Multicalibrator):
             tol=tol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
-            **kwargs
+            **kwargs,
         )
 
     def apply_patches(
@@ -52,10 +61,7 @@ class TopLabelMulticalibrator(Multicalibrator):
         groups: Optional[Array] = None,
         probs: Optional[Array] = None,
     ) -> Array:
-        return super().apply_patches(
-            groups=groups,
-            values=probs
-        )
+        return super().apply_patches(groups=groups, values=probs)
 
     def calibration_error(
         self,
@@ -72,48 +78,60 @@ class TopLabelMulticalibrator(Multicalibrator):
         )
 
     def mean_squared_error(self, probs: Array, targets: Array) -> Array:
-        return super().mean_squared_error(values=probs, scores=self._get_scores(targets))
+        return super().mean_squared_error(
+            values=probs, scores=self._get_scores(targets)
+        )
 
     @staticmethod
     def _get_b(
         groups: Array, values: Array, v: Array, g: Array, c: Array, n_buckets: int
     ) -> Array:
-        return (jnp.abs(values[:, c] - v) < 0.5 / n_buckets) * (values.argmax(1) == c) * groups[:, g]
-
-    def _patch(self, values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False) -> Array:
-        if jnp.any(jnp.isnan(values)) or jnp.any(values.sum(1, keepdims=True) == 0.):
-            values /= values.sum(1, keepdims=True)
-        return super()._patch(
-            values=values,
-            patch=patch,
-            bt=bt,
-            ct=ct,
-            _shift=_shift
+        return (
+            (jnp.abs(values[:, c] - v) < 0.5 / n_buckets)
+            * (values.argmax(1) == c)
+            * groups[:, g]
         )
+
+    def _patch(
+        self, values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False
+    ) -> Array:
+        if jnp.any(jnp.isnan(values)) or jnp.any(values.sum(1, keepdims=True) == 0.0):
+            values /= values.sum(1, keepdims=True)
+        return super()._patch(values=values, patch=patch, bt=bt, ct=ct, _shift=_shift)
 
     @staticmethod
     def _check_scores(scores: Array):
         pass
 
     @staticmethod
-    def _maybe_check_values(values: Optional[Array], test_values: Optional[Array] = None):
+    def _maybe_check_values(
+        values: Optional[Array], test_values: Optional[Array] = None
+    ):
         if values is not None:
             if values.ndim != 2:
-                raise ValueError("`probs` must be a 2-dimensional array representing the probabilities for each input "
-                                 "and each class.")
+                raise ValueError(
+                    "`probs` must be a 2-dimensional array representing the probabilities for each input "
+                    "and each class."
+                )
             if jnp.any(values < 0) or jnp.any(values > 1):
                 raise ValueError("All elements in `values` must be within [0, 1].")
         if test_values is not None:
             if test_values.ndim != 2:
-                raise ValueError("`test_probs` must be a 2-dimensional array representing the probabilities for each "
-                                 "input and each class.")
+                raise ValueError(
+                    "`test_probs` must be a 2-dimensional array representing the probabilities for each "
+                    "input and each class."
+                )
             if jnp.any(test_values < 0) or jnp.any(test_values > 1):
                 raise ValueError("All elements in `test_values` must be within [0, 1].")
 
-    def _maybe_init_values(self, values: Optional[Array], size: Optional[int] = None) -> Array:
+    def _maybe_init_values(
+        self, values: Optional[Array], size: Optional[int] = None
+    ) -> Array:
         if values is None:
             if size is None:
-                raise ValueError("If `values` is not provided, `size` must be provided.")
+                raise ValueError(
+                    "If `values` is not provided, `size` must be provided."
+                )
             values = 1 / self.n_classes * jnp.ones((size, self.n_classes))
             values += 0.01 * random.normal(random.PRNGKey(0), shape=values.shape)
             values = jnp.abs(values)
