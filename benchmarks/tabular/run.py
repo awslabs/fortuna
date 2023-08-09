@@ -172,13 +172,11 @@ for task in TASKS:
             val_means = prob_model.predictive.mean(inputs_loader=val_inputs_loader, n_posterior_samples=1)
 
             time_init = time()
-            mc_conf = Multicalibrator()
+            mc_conf = TopLabelMulticalibrator()
             test_mc_conf, mc_status = mc_conf.calibrate(
-                scores=val_modes == val_targets,
-                groups=np.ones_like(val_targets).astype("bool")[:, None],
-                values=val_means.max(1),
-                test_groups=(test_modes == test_targets)[:, None],
-                test_values=test_means.max(1),
+                targets=val_targets,
+                probs=val_means,
+                test_values=test_means,
             )
             all_metrics[task][dataset_name]["mc_conf"]["time"] = time() - time_init
 
@@ -188,16 +186,16 @@ for task in TASKS:
             if output_dim == 2:
                 time_init = time()
                 mc_prob = Multicalibrator()
-                test_mc_prob, mc_status = mc_conf.calibrate(
-                    scores=val_targets,
-                    groups=np.ones_like(val_targets).astype("bool")[:, None],
-                    values=val_means[:, 1],
-                    test_groups=test_targets[:, None],
-                    test_values=test_means[:, 1],
+                test_mc_prob, mc_status = mc_prob.calibrate(
+                    targets=val_targets,
+                    probs=val_means[:, 1],
+                    test_probs=test_means[:, 1],
                 )
+                conf = np.stack([1 - test_mc_prob, test_mc_prob])
                 all_metrics[task][dataset_name]["mc_prob"]["time"] = time() - time_init
 
                 all_metrics[task][dataset_name]["mc_prob"]["brier_score"] = float(brier_score(probs=test_mc_prob, targets=test_targets))
+                all_metrics[task][dataset_name]["mc_conf"]["ece"] = float(expected_calibration_error(preds=conf.argmax(1), probs=conf, targets=test_targets))
                 all_metrics[task][dataset_name]["mc_prob"]["rocauc"] = roc_auc_score(y_true=test_targets, y_score=test_mc_prob)
                 all_metrics[task][dataset_name]["mc_prob"]["prauc"] = average_precision_score(y_true=test_targets, y_score=test_mc_prob)
 
