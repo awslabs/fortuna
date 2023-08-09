@@ -5,7 +5,7 @@ import numpy as np
 import optax
 from sklearn.datasets import make_moons
 
-from fortuna.conformal import Multicalibrator
+from fortuna.conformal import BinaryClassificationMulticalibrator
 from fortuna.data import (
     DataLoader,
     InputsLoader,
@@ -82,19 +82,17 @@ test_targets = test_data_loader.to_array_targets()
 val_means = prob_model.predictive.mean(val_inputs_loader)
 test_means = prob_model.predictive.mean(val_inputs_loader)
 
-mc = Multicalibrator()
-scores = val_targets
-test_scores = test_targets
+mc = BinaryClassificationMulticalibrator()
 groups = jnp.stack((val_means.argmax(1) == 0, val_means.argmax(1) == 1), axis=1)
 test_groups = jnp.stack((test_means.argmax(1) == 0, test_means.argmax(1) == 1), axis=1)
-values = val_means[:, 1]
-test_values = test_means[:, 1]
-calib_test_values, status = mc.calibrate(
-    scores=scores,
+probs = val_means[:, 1]
+test_probs = test_means[:, 1]
+calib_test_probs, status = mc.calibrate(
+    targets=val_targets,
     groups=groups,
-    values=values,
+    probs=probs,
     test_groups=test_groups,
-    test_values=test_values,
+    test_probs=test_probs,
     n_buckets=100,
 )
 
@@ -102,16 +100,16 @@ plt.figure(figsize=(10, 3))
 plt.suptitle("Multivalid calibration of probability that Y=1")
 plt.subplot(1, 3, 1)
 plt.title("all test inputs")
-plt.hist([test_values, calib_test_values])[-1]
+plt.hist([test_probs, calib_test_probs])[-1]
 plt.legend(["before calibration", "after calibration"])
 plt.xlabel("prob")
 plt.subplot(1, 3, 2)
 plt.title("inputs for which we predict 0")
-plt.hist([test_values[test_groups[:, 0]], calib_test_values[test_groups[:, 0]]])[-1]
+plt.hist([test_probs[test_groups[:, 0]], calib_test_probs[test_groups[:, 0]]])[-1]
 plt.xlabel("prob")
 plt.subplot(1, 3, 3)
 plt.title("inputs for which we predict 1")
-plt.hist([test_values[test_groups[:, 1]], calib_test_values[test_groups[:, 1]]])[-1]
+plt.hist([test_probs[test_groups[:, 1]], calib_test_probs[test_groups[:, 1]]])[-1]
 plt.xlabel("prob")
 plt.tight_layout()
 plt.show()
@@ -122,13 +120,11 @@ plt.show()
 
 print(
     "Per-group reweighted avg. squared calib. error before calibration: ",
-    mc.calibration_error(
-        scores=test_scores, groups=test_groups, values=test_means.max(1)
-    ),
+    mc.calibration_error(targets=test_targets, groups=test_groups, probs=test_probs),
 )
 print(
     "Per-group reweighted avg. squared calib. error after calibration: ",
     mc.calibration_error(
-        scores=test_scores, groups=test_groups, values=calib_test_values
+        targets=test_targets, groups=test_groups, probs=calib_test_probs
     ),
 )
