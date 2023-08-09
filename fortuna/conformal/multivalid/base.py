@@ -1,7 +1,6 @@
 import abc
 import logging
 from typing import (
-    Callable,
     Dict,
     Optional,
     Tuple,
@@ -22,7 +21,7 @@ class MultivalidMethod:
     def calibrate(
         self,
         scores: Array,
-        groups: Array,
+        groups: Optional[Array] = None,
         values: Optional[Array] = None,
         test_groups: Optional[Array] = None,
         test_values: Optional[Array] = None,
@@ -70,10 +69,6 @@ class MultivalidMethod:
         if n_rounds < 1:
             raise ValueError("`n_rounds` must be at least 1.")
 
-        if test_groups is None and test_values is not None:
-            raise ValueError(
-                "If `test_values` is provided, `test_groups` must be also provided."
-            )
         if test_values is not None and values is None:
             raise ValueError(
                 "If `test_values is provided, `values` must also be provided."
@@ -82,63 +77,71 @@ class MultivalidMethod:
             raise ValueError(
                 "If `values` and `test_groups` are provided, `test_values` must also be provided."
             )
-        self._check_groups(groups, test_groups)
+        if test_groups is not None and groups is None:
+            raise ValueError(
+                "If `test_groups` is provided, `groups` must also be provided."
+            )
+        if groups is not None and test_values is not None and test_groups is None:
+            raise ValueError(
+                "If `groups` and `test_values` are provided, `test_groups` must also be provided."
+            )
+        self._check_scores(scores)
+        scores = self._process_scores(scores)
+        n_dims = scores.shape[1]
 
-        groups = jnp.copy(groups)
-        if values is None:
-            values = jnp.zeros(groups.shape[0])
-        else:
-            values = jnp.copy(values)
-
-        self._check_range(dict(scores=scores, values=values, test_values=test_values))
-
+        groups = self._init_groups(groups, scores.shape[0])
+        self._maybe_check_groups(groups, test_groups)
         n_groups = groups.shape[1]
-        n_dims = scores.shape[1] if scores.ndim > 1 else 1
+
+        values = self._maybe_init_values(values, groups.shape[0])
+        self._maybe_check_values(values, test_values)
 
         self.n_buckets = n_buckets
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
         max_calib_errors = []
-        old_calib_errors_vg = None
+        mean_squared_errors = []
+        old_calib_errors_gvc = None
         self._patches = []
-        converged = True
+        converged = False
 
         for t in range(n_rounds):
-            calib_error_vg = vmap(
+            calib_error_gvc = vmap(
                 lambda g: vmap(
                     lambda v: vmap(
                         lambda c: self._calibration_error(
                             v=v,
                             g=g,
                             c=c,
-                            scores=scores,
+                            scores=scores[:, c],
                             groups=groups,
                             values=values,
                             n_buckets=n_buckets,
                             **kwargs,
-                        )(jnp.arange(n_dims))
-                    )(buckets)
-                )(jnp.arange(n_groups))
-            )
+                        )
+                    )(jnp.arange(n_dims))
+                )(buckets)
+            )(jnp.arange(n_groups))
 
-            max_calib_errors.append(calib_error_vg.sum((1, 2)).max())
+            max_calib_errors.append(float(calib_error_gvc.sum(1).max()))
+            mean_squared_errors.append(float(self._mean_squared_error(values, scores)))
             if max_calib_errors[-1] <= tol:
                 logging.info(f"Tolerance satisfied after {t} rounds.")
+                converged = True
                 break
-            if old_calib_errors_vg is not None and jnp.allclose(
-                old_calib_errors_vg, calib_error_vg
+            if old_calib_errors_gvc is not None and jnp.allclose(
+                old_calib_errors_gvc, calib_error_gvc
             ):
-                converged = False
                 logging.warning(
                     "The algorithm cannot achieve the desired tolerance. "
                     "Please try increasing `n_buckets`."
                 )
                 break
-            old_calib_errors_vg = jnp.copy(calib_error_vg)
+            old_calib_errors_gvc = jnp.copy(calib_error_gvc)
 
             gt, vt, ct = self._get_gt_and_vt_and_ct(
-                calib_error_vg=calib_error_vg, buckets=buckets, n_groups=n_groups, n_dims=n_dims
+                calib_error_gvc=calib_error_gvc, buckets=buckets, n_groups=n_groups, n_dims=n_dims
             )
             bt = self._get_b(
                 groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=len(buckets)
@@ -147,30 +150,34 @@ class MultivalidMethod:
                 vt=vt,
                 gt=gt,
                 ct=ct,
-                scores=scores,
+                scores=scores[:, ct],
                 groups=groups,
                 values=values,
                 buckets=buckets,
                 **kwargs,
             )
-            values = self._patch(values=values, patch=patch, bt=bt)
+            values = self._patch(values=values, patch=patch, bt=bt, ct=ct)
 
             self._patches.append((gt, vt, ct, patch))
 
         status = dict(
             n_rounds=len(self.patches),
             max_calib_errors=max_calib_errors,
+            mean_squared_errors=mean_squared_errors,
             converged=converged,
         )
 
-        if test_groups is not None:
+        if t == n_rounds - 1 and not converged:
+            logging.warning("Maximum number of rounds reached without convergence. Consider increasing `n_rounds`.")
+
+        if test_groups is not None or test_values is not None:
             test_values = self.apply_patches(test_groups, test_values)
             return test_values, status
         return status
 
     def apply_patches(
         self,
-        groups: Array,
+        groups: Optional[Array] = None,
         values: Optional[Array] = None,
     ) -> Array:
         """
@@ -190,14 +197,16 @@ class MultivalidMethod:
         Array
             The calibrated values.
         """
+        if groups is None and values is None:
+            raise ValueError("At least one between `groups` and `values` must be provided.")
         if not len(self._patches):
             logging.warning("No patches available.")
             return values
-        if values is None:
-            values = jnp.zeros(groups.shape[0])
-        else:
-            values = jnp.copy(values)
-        groups = jnp.copy(groups)
+        values = self._maybe_init_values(values, groups.shape[0] if groups is not None else None)
+        self._maybe_check_values(values)
+
+        groups = self._init_groups(groups, values.shape[0])
+        self._maybe_check_groups(groups)
 
         buckets = self._get_buckets(n_buckets=self.n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
@@ -206,14 +215,14 @@ class MultivalidMethod:
             bt = self._get_b(
                 groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=self.n_buckets
             )
-            values = self._patch(values=values, bt=bt, patch=patch)
+            values = self._patch(values=values, patch=patch, bt=bt, ct=ct)
         return values
 
     def calibration_error(
         self,
         scores: Array,
-        groups: Array,
-        values: Array,
+        groups: Optional[Array] = None,
+        values: Optional[Array] = None,
         n_buckets: int = 10000,
         **kwargs,
     ) -> Array:
@@ -237,9 +246,18 @@ class MultivalidMethod:
         Array
             The computed calibration error for each group
         """
+        self._check_scores(scores)
+        scores = self._process_scores(scores)
+        n_dims = scores.shape[1]
+
+        self._maybe_check_groups(groups)
+        self._maybe_check_values(values)
+
+        groups = self._init_groups(groups, scores.shape[0])
+        values = self._maybe_init_values(values, scores.shape[0])
+
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
-        n_dims = scores.shape[1] if scores.ndim > 1 else 1
 
         return vmap(
             lambda g: vmap(
@@ -247,15 +265,39 @@ class MultivalidMethod:
                     lambda c: self._calibration_error(
                         v=v,
                         g=g,
-                        scores=scores,
+                        c=c,
+                        scores=scores[:, c],
                         groups=groups,
                         values=values,
                         n_buckets=n_buckets,
                         **kwargs,
                     )
-                )(n_dims)
+                )(jnp.arange(n_dims))
             )(buckets)
         )(jnp.arange(groups.shape[1])).sum(1)
+
+    def mean_squared_error(self, values: Array, scores: Array) -> Array:
+        """
+        The mean squared error between the model evaluations and the scores.
+        This is supposed to decrease at every round of the algorithm.
+
+        Parameters
+        ----------
+        values: Array
+            The model evaluations.
+        scores: Array
+            The scores.
+
+        Returns
+        -------
+        Array
+            The mean-squared error.
+        """
+        return self._mean_squared_error(values, scores)
+
+    @staticmethod
+    def _mean_squared_error(values: Array, scores: Array) -> Array:
+        return jnp.mean((values - scores) ** 2)
 
     @property
     def patches(self):
@@ -268,6 +310,13 @@ class MultivalidMethod:
     @n_buckets.setter
     def n_buckets(self, n_buckets):
         self._n_buckets = n_buckets
+
+    def _maybe_init_values(self, values: Optional[Array], size: Optional[int] = None):
+        if values is None:
+            if size is None:
+                raise ValueError("If `values` is not provided, `size` must be provided.")
+            return jnp.zeros(size)
+        return jnp.copy(values)
 
     @abc.abstractmethod
     def _calibration_error(
@@ -284,14 +333,14 @@ class MultivalidMethod:
         pass
 
     @staticmethod
-    def _get_gt_and_vt(
-        calib_error_vg: Array, buckets: Array, n_groups: int, n_dims: int
-    ) -> Tuple[Array, Array]:
+    def _get_gt_and_vt_and_ct(
+        calib_error_gvc: Array, buckets: Array, n_groups: int, n_dims: int
+    ) -> Tuple[Array, Array, Array]:
         gt, idx_vt, ct = jnp.unravel_index(
-            jnp.argmax(calib_error_vg), (n_groups, len(buckets), n_dims)
+            jnp.argmax(calib_error_gvc), (n_groups, len(buckets), n_dims)
         )
         vt = buckets[idx_vt]
-        return gt, vt
+        return gt, vt, ct
 
     @staticmethod
     def _get_b(
@@ -314,11 +363,18 @@ class MultivalidMethod:
         pass
 
     @staticmethod
-    def _patch(values: Array, patch: Array, bt: Array, _shift: bool = False) -> Array:
-        return values.at[bt].set(
+    def _patch(values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False) -> Array:
+        if values.ndim == 1:
+            return values.at[bt].set(
+                jnp.minimum(
+                    patch if not _shift else values[bt] + patch,
+                    jnp.ones_like(values[bt]),
+                )
+            )
+        return values.at[bt, ct].set(
             jnp.minimum(
-                patch if not _shift else values[bt] + patch,
-                jnp.ones_like(values[bt]),
+                patch if not _shift else values[bt, ct] + patch,
+                jnp.ones_like(values[bt, ct]),
             )
         )
 
@@ -331,22 +387,43 @@ class MultivalidMethod:
         return buckets[jnp.argmin(jnp.abs(v - buckets))]
 
     @staticmethod
-    def _check_range(d):
-        def _maybe_check(k, v):
-            if v is not None:
-                if v.min() < 0 or v.max() > 1:
-                    raise ValueError(f"All elements in `{k}` must be between 0 and 1.")
-
-        for k, v in d.items():
-            _maybe_check(k, v)
+    def _maybe_check_values(values: Optional[Array], test_values: Optional[Array] = None):
+        if values is not None:
+            if values.ndim != 1:
+                raise ValueError("`values` must be a 1-dimensional array.")
+            if values is not None and jnp.any(values < 0) or jnp.any(values > 1):
+                raise ValueError("All elements in `values` must be within [0, 1].")
+        if test_values is not None:
+            if jnp.any(test_values < 0) or jnp.any(test_values > 1):
+                raise ValueError("All elements in `test_values` must be within [0, 1].")
 
     @staticmethod
-    def _check_groups(groups: Array, test_groups: Optional[Array]):
-        if groups.ndim != 2:
+    def _check_scores(scores: Array):
+        if scores.ndim != 1:
+            raise ValueError("`scores` must be a 1-dimensional array.")
+        if jnp.any(scores < 0) or jnp.any(scores > 1):
+            raise ValueError("All elements in `scores` must be within [0, 1].")
+
+    @staticmethod
+    def _maybe_check_groups(groups: Array, test_groups: Optional[Array] = None):
+        if groups is not None and groups.ndim != 2:
             raise ValueError("`groups` must be a 2-dimensional array.")
         if test_groups is not None and test_groups.ndim != 2:
             raise ValueError("`groups` must be a 2-dimensional array.")
-        if groups.dtype != bool:
+        if groups is not None and groups.dtype != bool:
             raise ValueError("All elements in `groups` must be a bool.")
         if test_groups is not None and test_groups.dtype != bool:
             raise ValueError("All elements in `test_groups` must be a bool.")
+
+    @staticmethod
+    def _process_scores(scores: Array):
+        scores = jnp.copy(scores)
+        if scores.ndim == 1:
+            scores = jnp.copy(scores[:, None])
+        return scores
+
+    @staticmethod
+    def _init_groups(groups: Optional[Array], size: int) -> Array:
+        if groups is None:
+            return jnp.ones((size, 1), dtype=bool)
+        return jnp.copy(groups)

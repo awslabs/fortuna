@@ -23,7 +23,7 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
     def conformal_set(
         self,
         class_scores: Array,
-        values: Array,
+        thresholds: Array,
     ) -> List[List[int]]:
         """
         Compute a conformal set for each input.
@@ -34,8 +34,8 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
             A two-dimensional array of scores. The first dimension is over the different inputs.
             The second dimension is over all the possible classes. For example, if there are 10 classes,
             the first row of `class_scores` show be :math:`[s(x_1, 0), \dots, s(x_1, 9)]`.
-        values: Array
-            A one-dimensional array of values over the different inputs. This should be obtained from the `calibrate`
+        thresholds: Array
+            A one-dimensional array of thresholds over the different inputs. This should be obtained from the `calibrate`
             method.
 
         Returns
@@ -49,14 +49,14 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
                 "The first dimension is over the different inputs. "
                 "The second dimension is over all the possible classes."
             )
-        if values.ndim != 1:
-            raise ValueError("`values` must be a 1-dimensional array.")
-        if class_scores.shape[0] != values.shape[0]:
+        if thresholds.ndim != 1:
+            raise ValueError("`thresholds` must be a 1-dimensional array.")
+        if class_scores.shape[0] != thresholds.shape[0]:
             raise ValueError(
-                "The first dimension of `class_scores` and `values` must be over the same input data "
+                "The first dimension of `class_scores` and `thresholds` must be over the same input data "
                 "points."
             )
-        bools = class_scores <= values[:, None]
+        bools = class_scores <= thresholds[:, None]
 
         sizes = np.sum(bools, 1)
         sets = np.zeros(bools.shape[0], dtype=object)

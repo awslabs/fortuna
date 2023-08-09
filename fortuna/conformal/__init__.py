@@ -11,6 +11,7 @@ from fortuna.conformal.classification.simple_prediction import (
 )
 from fortuna.conformal.multivalid.multicalibrator import Multicalibrator
 from fortuna.conformal.classification.binary_multicalibrator import BinaryClassificationMulticalibrator
+from fortuna.conformal.classification.top_label_multicalibrator import TopLabelMulticalibrator
 from fortuna.conformal.regression.adaptive_conformal_regressor import (
     AdaptiveConformalRegressor,
 )
