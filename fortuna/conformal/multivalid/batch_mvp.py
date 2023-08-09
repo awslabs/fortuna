@@ -29,10 +29,10 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
     def calibrate(
         self,
         scores: Array,
-        groups: Array,
-        values: Optional[Array] = None,
+        groups: Optional[Array] = None,
+        thresholds: Optional[Array] = None,
         test_groups: Optional[Array] = None,
-        test_values: Optional[Array] = None,
+        test_thresholds: Optional[Array] = None,
         tol: float = 1e-4,
         n_buckets: int = 100,
         n_rounds: int = 1000,
@@ -51,13 +51,13 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             A list of groups :math:`g(x)` computed on the calibration data.
             This should be a two-dimensional array of bool elements.
             The first dimension is over the data points, the second dimension is over the number of groups.
-        values: Optional[Array]
+        thresholds: Optional[Array]
             The initial model evalutions :math:`f(x)` on the calibration data. If not provided, these are set to 0.
         test_groups: Optional[Array]
             A list of groups :math:`g(x)` computed on the test data.
             This should be a two-dimensional array of bool elements.
             The first dimension is over the data points, the second dimension is over the number of groups.
-        test_values: Optional[Array]
+        test_thresholds: Optional[Array]
             The initial model evaluations :math:`f(x)` on the test data. If not provided, these are set to 0.
         tol: float
             A tolerance on the reweighted average squared calibration error, i.e. :math:`\mu(g) K_2(f, g, \mathcal{D})`.
@@ -74,44 +74,55 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         -------
         Union[Dict, Tuple[Array, Dict]]
             A status including the number of rounds taken to reach convergence and the calibration errors computed
-            during the training procedure. if `test_values` and `test_groups` are provided, the list of patches will
-            be applied to `test_values`, and the calibrated test values will be returned together with the status.
+            during the training procedure. if `test_thresholds` and `test_groups` are provided, the list of patches will
+            be applied to `test_thresholds`, and the calibrated test thresholds will be returned together with the status.
         """
-        if coverage < 0 or coverage > 1:
-            raise ValueError("`coverage` must be a float between 0 and 1.")
+        self._check_coverage(coverage)
         self._coverage = coverage
         return super().calibrate(
             scores=scores,
             groups=groups,
-            values=values,
+            values=thresholds,
             test_groups=test_groups,
-            test_values=test_values,
+            test_values=test_thresholds,
             tol=tol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             coverage=coverage,
         )
 
+    def apply_patches(
+        self,
+        groups: Optional[Array] = None,
+        thresholds: Optional[Array] = None,
+    ) -> Array:
+        return super().apply_patches(groups=groups, values=thresholds)
+
     def calibration_error(
         self,
         scores: Array,
-        groups: Array,
-        values: Array,
+        groups: Optional[Array] = None,
+        thresholds: Optional[Array] = None,
         n_buckets: int = 10000,
         **kwargs,
     ) -> Array:
         return super().calibration_error(
             scores=scores,
             groups=groups,
-            values=values,
+            values=thresholds,
             n_buckets=n_buckets,
             coverage=self._coverage,
         )
+
+    @staticmethod
+    def mean_squared_error(thresholds: Array, scores: Array) -> Array:
+        return super().mean_squared_error(values=thresholds, scores=scores)
 
     def _calibration_error(
         self,
         v: Array,
         g: Array,
+        c: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -170,7 +181,9 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         return_prob_b: bool = False,
         threshold: Array = None,
     ):
-        b = self._get_b(groups=groups, values=values, v=v, g=g, n_buckets=n_buckets)
+        b = self._get_b(
+            groups=groups, values=values, v=v, g=g, c=None, n_buckets=n_buckets
+        )
         conds = (scores <= (v if threshold is None else threshold)) * b
         prob_b = jnp.mean(b)
         prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
@@ -182,6 +195,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         self,
         vt: Array,
         gt: Array,
+        ct: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -204,3 +218,15 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
                 )(buckets)
             )
         ]
+
+    @staticmethod
+    def _maybe_check_values(
+        values: Optional[Array], test_values: Optional[Array] = None
+    ):
+        if jnp.any(values < 0) or jnp.any(values > 1):
+            raise ValueError("All elements in `thresholds` must be within [0, 1].")
+
+    @staticmethod
+    def _check_coverage(coverage: float):
+        if coverage < 0 or coverage > 1:
+            raise ValueError("`coverage` must be a float between 0 and 1.")
