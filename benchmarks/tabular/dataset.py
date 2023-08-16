@@ -4,19 +4,23 @@ https://github.com/hughsalimbeni/bayesian_benchmarks/blob/master/bayesian_benchm
 """
 
 import abc
+from datetime import datetime
 import logging
 import os
 import tarfile
-import zipfile
-from datetime import datetime
-from typing import List, Tuple
+from typing import (
+    List,
+    Tuple,
+)
 from urllib.request import urlopen
+import zipfile
 
 import numpy as np
 import pandas as pd
-from fortuna.data.loader import DataLoader
 from scipy.io import loadmat
 from scipy.io.arff import loadarff
+
+from fortuna.data.loader import DataLoader
 
 SUPPORTED_TASKS = ["regression", "classification"]
 
@@ -575,7 +579,7 @@ class NYTaxiBase(Dataset, abc.ABC):
             filename = os.path.join(self.dir, "nyc-taxi-trip-duration.zip")
             if not os.path.isfile(filename):
                 raise FileNotFoundError(
-                    """In order to use this datasets, you need to manually download it from 
+                    """In order to use this datasets, you need to manually download it from
                 `<{}>`_. Then you need to store it in {}/nyc-taxi-trip-duration.zip`.""".format(
                         self.url, self.dir
                     )
@@ -651,7 +655,7 @@ class NYTaxiBase(Dataset, abc.ABC):
         ind[early_stop] = False
         logging.info(
             "Discarding {} trip less than {} gp dist.".format(
-                np.sum(early_stop.astype(int)), self.too_close_radius ** 0.5
+                np.sum(early_stop.astype(int)), self.too_close_radius**0.5
             )
         )
 
