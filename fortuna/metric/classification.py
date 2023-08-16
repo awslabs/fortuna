@@ -71,10 +71,9 @@ def compute_counts_confs_accs(
     Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
         Number of inputs per bin, average confidence score per bin and average accuracy per bin.
     """
-    if probs.ndim != 2:
-        raise ValueError("""`probs` must be a two-dimensional array.""")
-    thresholds = jnp.linspace(1 / probs.shape[1], 1, 10)
-    probs = probs.max(1)
+    if probs.ndim == 2:
+        probs = probs.max(-1)
+    thresholds = jnp.linspace(1 / len(probs), 1, 10)
     probs = jnp.array(probs)
     indices = [jnp.where(probs <= thresholds[0])[0]]
     indices += [
@@ -202,7 +201,7 @@ def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> jnp.ndarr
     Parameters
     ----------
     probs: Array
-        A two-dimensional array of class probabilities for each data point.
+        A one- or two-dimensional array of class probabilities for each data point.
     targets: Array
         A one-dimensional array of target variables.
 
@@ -211,12 +210,11 @@ def brier_score(probs: Array, targets: Union[TargetsLoader, Array]) -> jnp.ndarr
     jnp.ndarray
         The Brier score.
     """
-    if probs.ndim != 2:
-        raise ValueError(
-            """`probs` must be a two-dimensional array of probabilities for each class and each data
-        point."""
-        )
+    if probs.ndim > 2:
+        raise ValueError("`probs` can be at most 2 dimensional.")
     if type(targets) == TargetsLoader:
         targets = targets.to_array_targets()
-    targets = jax.nn.one_hot(targets, probs.shape[1])
-    return jnp.mean(jnp.sum((probs - targets) ** 2, axis=1))
+    if probs.ndim > 1:
+        targets = jax.nn.one_hot(targets, probs.shape[-1])
+        return jnp.mean(jnp.sum((probs - targets) ** 2, axis=-1))
+    return jnp.mean((probs - targets) ** 2)

@@ -1,12 +1,8 @@
-from fortuna.prob_model.posterior.sgmcmc.base import (
-    SGMCMCPosteriorApproximator,
-)
+from fortuna.prob_model.posterior.sgmcmc.base import SGMCMCPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     Preconditioner,
     identity_preconditioner,
-)
-from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import (
-    CYCLICAL_SGLD_NAME,
 )
 
 
@@ -22,6 +18,17 @@ class CyclicalSGLDPosteriorApproximator(SGMCMCPosteriorApproximator):
     ) -> None:
         """
         Cyclical SGLD posterior approximator. It is responsible to define how the posterior distribution is approximated.
+
+        The total number of available posterior samples depends on the number of training steps, `burnin_length` and
+        `n_thinning` parameters, as well as `cycle_length` and `exploration_ratio`. In case if the number of training
+        steps divides evenly by the cycle length, it can be calculated as follows:
+
+        `n_cycles` = `n_training_steps` % `cycle_length`
+        `n_sampling_steps` = (`n_cycles` * `cycle_length`) * (1 - `exploration_ratio`)
+        `n_available_samples` = `n_sampling_steps` % `n_thinning`
+
+        Setting the desired number of samples `n_samples` larger than `n_available_samples` will result in an
+        exception.
 
         Parameters
         ----------

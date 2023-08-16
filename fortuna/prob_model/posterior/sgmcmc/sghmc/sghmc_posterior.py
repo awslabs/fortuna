@@ -1,30 +1,20 @@
 import logging
-from typing import Optional
-from itertools import cycle
 import pathlib
+from typing import Optional
+
 from flax.core import FrozenDict
 
-from fortuna.utils.freeze import get_trainable_paths
-from fortuna.utils.nested_dicts import nested_set, nested_get
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.prob_model.posterior.map.map_trainer import (
-    MAPTrainer,
-    JittedMAPTrainer,
-    MultiDeviceMAPTrainer,
-)
-from fortuna.prob_model.posterior.run_preliminary_map import (
-    run_preliminary_map,
-)
 from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
-from fortuna.prob_model.posterior.posterior_multi_state_repository import (
-    PosteriorMultiStateRepository,
+from fortuna.prob_model.posterior.map.map_trainer import (
+    JittedMAPTrainer,
+    MAPTrainer,
+    MultiDeviceMAPTrainer,
 )
-from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import (
-    SGMCMCPosterior,
-)
+from fortuna.prob_model.posterior.run_preliminary_map import run_preliminary_map
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
     SGHMCPosteriorApproximator,
@@ -32,12 +22,19 @@ from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator import (
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_callback import (
     SGHMCSamplingCallback,
 )
-from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import (
-    sghmc_integrator,
-)
+from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_integrator import sghmc_integrator
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_state import SGHMCState
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior import SGMCMCPosterior
+from fortuna.prob_model.posterior.sgmcmc.sgmcmc_posterior_state_repository import (
+    SGMCMCPosteriorStateRepository,
+)
 from fortuna.typing import Status
 from fortuna.utils.device import select_trainer_given_devices
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +126,7 @@ class SGHMCPosterior(SGMCMCPosterior):
             early_stopping_monitor=fit_config.monitor.early_stopping_monitor,
             early_stopping_min_delta=fit_config.monitor.early_stopping_min_delta,
             early_stopping_patience=fit_config.monitor.early_stopping_patience,
+            freeze_fun=fit_config.optimizer.freeze_fun,
         )
 
         if super()._is_state_available_somewhere(fit_config):
@@ -136,18 +134,26 @@ class SGHMCPosterior(SGMCMCPosterior):
         else:
             state = self._init_map_state(map_state, train_data_loader, fit_config)
 
+        if fit_config.optimizer.freeze_fun is not None:
+            which_params = get_trainable_paths(
+                params=state.params, freeze_fun=fit_config.optimizer.freeze_fun
+            )
+        else:
+            which_params = None
+
         state = SGHMCState.convert_from_map_state(
             map_state=state,
             optimizer=fit_config.optimizer.method,
+            which_params=which_params,
         )
 
         state = super()._freeze_optimizer_in_state(state, fit_config)
 
-        self.state = PosteriorMultiStateRepository(
+        self.state = SGMCMCPosteriorStateRepository(
             size=self.posterior_approximator.n_samples,
-            checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
-            if fit_config.checkpointer.dump_state is True
-            else None,
+            checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
+            which_params=which_params,
+            all_params=state.params if which_params else None,
         )
 
         sghmc_sampling_callback = SGHMCSamplingCallback(
@@ -159,7 +165,6 @@ class SGHMCPosterior(SGMCMCPosterior):
             trainer=trainer,
             state_repository=self.state,
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
-            save_checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir,
         )
 
         logging.info(f"Run SGHMC.")

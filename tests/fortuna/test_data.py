@@ -68,7 +68,9 @@ class TestDataLoaders(unittest.TestCase):
             InputsLoader.from_array_inputs(inputs2, batch_size=4),
         ]
         targets = [0, 1]
-        data_loader = DataLoader.from_inputs_loaders(inputs_loaders, targets)
+        data_loader = DataLoader.from_inputs_loaders(
+            inputs_loaders, targets, how="interpose"
+        )
         for i, (x, y) in enumerate(data_loader):
             assert (
                 x.shape == (7,)
@@ -81,6 +83,29 @@ class TestDataLoaders(unittest.TestCase):
             )
             assert all(y[:3] == 0)
             assert all(y[3:] == 1)
+            assert len(x) == len(y)
+
+        data_loader = DataLoader.from_inputs_loaders(
+            inputs_loaders, targets, how="concatenate"
+        )
+        for i, (x, y) in enumerate(data_loader):
+            assert (
+                x.shape == (3,)
+                if i == 0
+                else (3,)
+                if i == 1
+                else (3,)
+                if i == 2
+                else (1,)
+                if i == 3
+                else (4,)
+                if i == 4
+                else (3,)
+            )
+            if i <= 3:
+                assert all(y == 0)
+            elif i > 3:
+                assert all(y == 1)
             assert len(x) == len(y)
 
     def test_inputs_loader_to_transformed_inputs_loader(self):

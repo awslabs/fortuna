@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 
+import flax.linen as nn
 import jax.numpy as jnp
 import numpy as np
 
@@ -35,6 +36,19 @@ def brier(dummy, p, y):
 
 def scaled_mse(m, v, y):
     return jnp.mean((m - y) ** 2 / v)
+
+
+class ModelEditor(nn.Module):
+    @nn.compact
+    def __call__(self, apply_fn, model_params, x, has_aux: bool):
+        log_temp = self.param("log_temp", nn.initializers.zeros, (1,))
+        f = apply_fn(model_params, x)
+        if has_aux:
+            f, aux = f
+        f += log_temp
+        if has_aux:
+            return f, aux
+        return f
 
 
 class TestCalibCalibrate(unittest.TestCase):
@@ -208,6 +222,26 @@ class TestCalibCalibrate(unittest.TestCase):
             # save state
             calib_reg.save_state(checkpoint_path=tmp_dir)
 
+            # model_editor
+            calib_reg = CalibRegressor(
+                model=model,
+                likelihood_log_variance_model=lik_model,
+                model_editor=ModelEditor(),
+            )
+
+            status = calib_reg.calibrate(
+                calib_data_loader=self.reg_calib_data_loader,
+                val_data_loader=self.reg_val_data_loader,
+                config=self.reg_config_nodir_nodump,
+            )
+
+            assert not jnp.allclose(
+                calib_reg.predictive.state.get().params["model_editor"]["params"][
+                    "log_temp"
+                ],
+                jnp.array([0.0]),
+            )
+
     def test_dryrun_class(self):
         model = MLP(self.class_output_dim)
 
@@ -274,6 +308,22 @@ class TestCalibCalibrate(unittest.TestCase):
 
             # save state
             calib_class.save_state(checkpoint_path=tmp_dir)
+
+            # model_editor
+            calib_class = CalibClassifier(model=model, model_editor=ModelEditor())
+
+            status = calib_class.calibrate(
+                calib_data_loader=self.class_calib_data_loader,
+                val_data_loader=self.class_val_data_loader,
+                config=self.class_config_nodir_nodump,
+            )
+
+            assert not jnp.allclose(
+                calib_class.predictive.state.get().params["model_editor"]["params"][
+                    "log_temp"
+                ],
+                jnp.array([0.0]),
+            )
 
     def test_error_when_empty_data_loader(self):
         calib_class_map = CalibClassifier(

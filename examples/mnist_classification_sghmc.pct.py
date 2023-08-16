@@ -69,8 +69,9 @@ from fortuna.model import MLP
 output_dim = 10
 prob_model = ProbClassifier(
     model=MLP(output_dim=output_dim, activations=(nn.tanh, nn.tanh)),
-    posterior_approximator=SGHMCPosteriorApproximator(burnin_length=300,
-                                                      step_schedule=4e-6),
+    posterior_approximator=SGHMCPosteriorApproximator(
+        burnin_length=300, step_schedule=4e-6
+    ),
 )
 
 
@@ -178,22 +179,19 @@ from matplotlib import pyplot as plt
 N_EXAMPLES = 10
 images = test_data_loader.to_array_inputs()
 
+
 def visualize_examples(indices, n_examples=N_EXAMPLES):
     n_rows = min(len(indices), n_examples)
     _, axs = plt.subplots(1, n_rows, figsize=(10, 2))
     axs = axs.flatten()
     for i, ax in enumerate(axs):
-        ax.imshow(images[indices[i]], cmap='gray')
+        ax.imshow(images[indices[i]], cmap="gray")
         ax.axis("off")
     plt.show()
 
+
 # %%
-indices = np.argsort(
-    [
-        len(s)
-        for s in np.array(conformal_sets, dtype="object")
-    ]
-)
+indices = np.argsort([len(s) for s in np.array(conformal_sets, dtype="object")])
 
 # %%
 print("Examples with the smallest conformal sets:")

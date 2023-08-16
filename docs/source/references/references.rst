@@ -17,4 +17,5 @@ API References
    metric
    utils
    plot
+   sagemaker
    typing

@@ -28,6 +28,7 @@ Please find their references below.
    posterior/posterior
    joint
    prior
+   model_editor
    fit_config
    prob_calib_config
    callbacks

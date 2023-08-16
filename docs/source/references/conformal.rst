@@ -16,6 +16,8 @@ and :ref:`regression <conformal_regression>`.
 
 .. automodule:: fortuna.conformal.classification.batch_mvp
 
+.. automodule:: fortuna.conformal.classification.multicalibrator
+
 .. _conformal_regression:
 
 .. automodule:: fortuna.conformal.regression.quantile
@@ -33,3 +35,5 @@ and :ref:`regression <conformal_regression>`.
 .. automodule:: fortuna.conformal.regression.adaptive_conformal_regressor
 
 .. automodule:: fortuna.conformal.regression.batch_mvp
+
+.. automodule:: fortuna.conformal.regression.multicalibrator

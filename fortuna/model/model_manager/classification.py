@@ -23,13 +23,14 @@ from fortuna.typing import (
     Mutable,
     Params,
 )
+from fortuna.utils.data import get_inputs_from_shape
 from fortuna.utils.nested_dicts import nested_update
 
 logger = logging.getLogger(__name__)
 
 
 class ClassificationModelManager(ModelManager):
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module, model_editor: Optional[nn.Module] = None):
         r"""
         Classification model manager class. It orchestrates the forward pass of the model in the probabilistic model.
 
@@ -41,7 +42,7 @@ class ClassificationModelManager(ModelManager):
             Let :math:`x` be input variables and :math:`w` the random model parameters. Then the model is described by
             a function :math:`f(w, x)`, where each component of :math:`f` corresponds to one of the classes.
         """
-        super(ClassificationModelManager, self).__init__(model)
+        super(ClassificationModelManager, self).__init__(model, model_editor)
 
     def apply(
         self,
@@ -51,8 +52,6 @@ class ClassificationModelManager(ModelManager):
         train: bool = False,
         rng: Optional[PRNGKeyArray] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
-        if mutable is None:
-            mutable = False
         variables = params["model"].unfreeze()
 
         # setup dropout key
@@ -62,19 +61,40 @@ class ClassificationModelManager(ModelManager):
         else:
             rngs = None
 
-        if mutable:
+        if mutable is not None:
             mutable_variables = mutable["model"].unfreeze()
             variables.update(mutable_variables)
             mutable = list(mutable_variables.keys())
-        if train and mutable:
-            outputs, mutable = self.model.apply(
-                variables, inputs, mutable=mutable, train=train, rngs=rngs
+
+        def apply_fn(v, x):
+            _outputs = self.model.apply(
+                v,
+                x,
+                mutable=mutable if mutable is not None else False,
+                train=train,
+                rngs=rngs,
             )
-            return outputs, {"mutable": FrozenDict({"model": mutable})}
+            if isinstance(_outputs, tuple) and not has_aux:
+                _outputs = _outputs[0]
+            return _outputs
+
+        has_aux = train and mutable is not None
+
+        if self.model_editor is not None:
+            outputs = self.model_editor.apply(
+                params["model_editor"],
+                apply_fn=apply_fn,
+                model_params=variables,
+                x=inputs,
+                has_aux=has_aux,
+            )
         else:
-            return self.model.apply(
-                variables, inputs, train=train, mutable=False, rngs=rngs
-            )
+            outputs = apply_fn(variables, inputs)
+
+        if has_aux:
+            outputs, mutable = outputs
+            return outputs, {"mutable": FrozenDict({"model": mutable})}
+        return outputs
 
     def init(
         self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
@@ -83,9 +103,26 @@ class ClassificationModelManager(ModelManager):
             rng = self.rng.get()
         rng, params_key, dropout_key = random.split(rng, 3)
         rngs = {"params": params_key, "dropout": dropout_key}
-        return dict(
+        params = dict(
             model=self.model.init(rngs, jnp.zeros((1,) + input_shape), **kwargs)
         )
+        if self.model_editor is not None:
+            if rng is None:
+                rng = self.rng
+            rng, params_key, dropout_key = random.split(rng, 3)
+            rngs = {"params": params_key, "dropout": dropout_key}
+            params.update(
+                dict(
+                    model_editor=self.model_editor.init(
+                        rngs,
+                        apply_fn=self.model.apply,
+                        model_params=params["model"],
+                        x=get_inputs_from_shape(input_shape),
+                        has_aux=False,
+                    )
+                )
+            )
+        return params
 
 
 class SNGPClassificationModelManagerMixin:
@@ -220,20 +257,37 @@ class SNGPClassificationModelManagerMixin:
             }
         else:
             deep_feature_extractor_mutable = mutable
-        deep_feature_extractor_outputs = super(
-            SNGPClassificationModelManagerMixin, self
-        ).apply(params, inputs, deep_feature_extractor_mutable, train, rng)
+
+        has_aux = mutable is not None and train
+
+        def apply_fn(p, x):
+            return super(SNGPClassificationModelManagerMixin, self).apply(
+                p, x, deep_feature_extractor_mutable, train, rng
+            )
+
+        if self.model_editor is not None:
+            deep_feature_extractor_outputs = self.model_editor.apply(
+                params["model_editor"],
+                apply_fn=apply_fn,
+                model_params=params,
+                x=inputs,
+                has_aux=has_aux,
+            )
+        else:
+            deep_feature_extractor_outputs = apply_fn(params, inputs)
 
         variables = params["model"].unfreeze()
-        if mutable:
-            mutable_variables = gp_model_mutable
-            variables.update(mutable_variables)
-            mutable = list(mutable_variables.keys())
-        if train and mutable:
+        if mutable is not None:
+            variables.update(gp_model_mutable)
+            mutable = list(gp_model_mutable.keys())
+
+        if has_aux:
             (
                 deep_feature_extractor_outputs,
                 deep_feature_extractor_mutable,
             ) = deep_feature_extractor_outputs
+
+        if has_aux:
             outputs, gp_mutable = self._gp_output_model.apply(
                 variables, deep_feature_extractor_outputs, mutable=mutable
             )
@@ -290,5 +344,24 @@ class SNGPClassificationModelManager(
                 f"(batch_size, n_features)."
             )
         gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
-        params = nested_update(model_params.unfreeze(), gp_params.unfreeze())
-        return dict(model=FrozenDict(params))
+        params = dict(
+            model=FrozenDict(
+                nested_update(model_params.unfreeze(), gp_params.unfreeze())
+            )
+        )
+
+        if self.model_editor is not None:
+            rng, params_key, dropout_key = random.split(rng, 3)
+            rngs = {"params": params_key, "dropout": dropout_key}
+            params.update(
+                dict(
+                    model_editor=self.model_editor.init(
+                        rngs,
+                        apply_fn=self.model.apply,
+                        model_params=params["model"],
+                        x=get_inputs_from_shape(input_shape),
+                        has_aux=False,
+                    )
+                )
+            )
+        return params
