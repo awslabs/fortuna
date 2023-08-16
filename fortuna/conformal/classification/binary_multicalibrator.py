@@ -57,8 +57,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             values=probs,
         )
 
-    @staticmethod
-    def mean_squared_error(probs: Array, targets: Array) -> Array:
+    def mean_squared_error(self, probs: Array, targets: Array) -> Array:
         return super().mean_squared_error(values=probs, scores=targets)
 
     @staticmethod

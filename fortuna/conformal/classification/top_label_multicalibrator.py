@@ -95,7 +95,7 @@ class TopLabelMulticalibrator(Multicalibrator):
     def _patch(
         self, values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False
     ) -> Array:
-        if jnp.any(jnp.isnan(values)) or jnp.any(values.sum(1, keepdims=True) == 0.0):
+        if jnp.all(~jnp.isnan(values)) and jnp.all(values.sum(1, keepdims=True) != 0.0):
             values /= values.sum(1, keepdims=True)
         return super()._patch(values=values, patch=patch, bt=bt, ct=ct, _shift=_shift)
 

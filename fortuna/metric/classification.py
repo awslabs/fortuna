@@ -71,10 +71,9 @@ def compute_counts_confs_accs(
     Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
         Number of inputs per bin, average confidence score per bin and average accuracy per bin.
     """
-    if probs.ndim != 2:
-        raise ValueError("""`probs` must be a two-dimensional array.""")
-    thresholds = jnp.linspace(1 / probs.shape[1], 1, 10)
-    probs = probs.max(1)
+    if probs.ndim == 2:
+        probs = probs.max(-1)
+    thresholds = jnp.linspace(1 / len(probs), 1, 10)
     probs = jnp.array(probs)
     indices = [jnp.where(probs <= thresholds[0])[0]]
     indices += [
