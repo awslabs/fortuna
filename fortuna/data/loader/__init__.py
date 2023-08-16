@@ -6,5 +6,6 @@ from fortuna.data.loader.array_loaders import (
 from fortuna.data.loader.base import (
     BaseInputsLoader,
     BaseTargetsLoader,
+    ConcatenatedLoader,
     DeviceDimensionAugmentedLoader,
 )

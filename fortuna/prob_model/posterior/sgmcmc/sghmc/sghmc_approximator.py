@@ -1,8 +1,7 @@
 from typing import Union
 
-from fortuna.prob_model.posterior.sgmcmc.base import (
-    SGMCMCPosteriorApproximator,
-)
+from fortuna.prob_model.posterior.sgmcmc.base import SGMCMCPosteriorApproximator
+from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
     Preconditioner,
     identity_preconditioner,
@@ -11,7 +10,6 @@ from fortuna.prob_model.posterior.sgmcmc.sgmcmc_step_schedule import (
     StepSchedule,
     constant_schedule,
 )
-from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 
 
 class SGHMCPosteriorApproximator(SGMCMCPosteriorApproximator):
@@ -26,6 +24,14 @@ class SGHMCPosteriorApproximator(SGMCMCPosteriorApproximator):
     ) -> None:
         """
         SGHMC posterior approximator. It is responsible to define how the posterior distribution is approximated.
+
+        The total number of available posterior samples depends on the number of training steps, `burnin_length`,
+        and `n_thinning` parameters:
+
+        `n_available_samples` = (`n_training_steps` - `burnin_length`) % `n_thinning`
+
+        Setting the desired number of samples `n_samples` larger than `n_available_samples` will result in an
+        exception.
 
         Parameters
         ----------

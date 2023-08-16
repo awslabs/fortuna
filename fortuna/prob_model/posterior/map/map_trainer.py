@@ -81,7 +81,7 @@ class MAPTrainer(PosteriorTrainerABC):
         kwargs: FrozenDict[str, Any] = FrozenDict(),
     ) -> Dict[str, jnp.ndarray]:
         loss, aux = loss_fun(
-            state.params,
+            self._get_all_params(state),
             batch,
             n_data=n_data,
             mutable=state.mutable,

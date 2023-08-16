@@ -1,5 +1,6 @@
 import unittest
 
+from jax import random
 import jax.numpy as jnp
 import numpy as np
 
@@ -9,17 +10,16 @@ from fortuna.conformal import (
     AdaptivePredictionConformalClassifier,
     BatchMVPConformalClassifier,
     BatchMVPConformalRegressor,
+    BinaryClassificationMulticalibrator,
     CVPlusConformalRegressor,
     EnbPI,
     JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
+    Multicalibrator,
     OneDimensionalUncertaintyConformalRegressor,
     QuantileConformalRegressor,
     SimplePredictionConformalClassifier,
-)
-from fortuna.data.loader import (
-    DataLoader,
-    InputsLoader,
+    TopLabelMulticalibrator,
 )
 
 
@@ -317,41 +317,346 @@ class TestConformalMethods(unittest.TestCase):
         )
 
     def test_batchmvp_regressor(self):
-        batchmvp = BatchMVPConformalRegressor(
-            score_fn=lambda x, y: jnp.abs(y - x) / 15,
-            group_fns=[lambda x: x > 0.1, lambda x: x < 0.2, lambda x: x > 0.3],
-            bounds_fn=lambda x, t: (x - t, x + t),
+        size = 10
+        test_size = 20
+        scores = random.uniform(random.PRNGKey(0), shape=(size,))
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
+        values = jnp.zeros(size)
+        test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
         )
-        val_data_loader = DataLoader.from_array_data(
-            (self._rng.normal(size=(50,)), self._rng.normal(size=(50,))),
-            batch_size=32,
+        batchmvp = BatchMVPConformalRegressor()
+        status = batchmvp.calibrate(scores=scores, n_rounds=3, n_buckets=4)
+        status = batchmvp.calibrate(
+            scores=scores, groups=groups, thresholds=values, n_rounds=3, n_buckets=4
         )
-        test_inputs_loader = InputsLoader.from_array_inputs(
-            self._rng.normal(size=(150,)),
-            batch_size=32,
+        test_values, status = batchmvp.calibrate(
+            scores=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
         )
-
-        intervals = batchmvp.conformal_interval(val_data_loader, test_inputs_loader)
-        assert intervals.shape == (150, 2)
+        with self.assertRaises(ValueError):
+            test_values, status = batchmvp.calibrate(
+                scores=scores,
+                groups=groups,
+                thresholds=values,
+                test_groups=test_groups,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = batchmvp.calibrate(
+                scores=scores,
+                groups=groups,
+                thresholds=values,
+                test_thresholds=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_thresholds, status = batchmvp.calibrate(
+                scores=scores,
+                groups=groups,
+                test_groups=test_groups,
+                test_thresholds=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        status = batchmvp.calibrate(
+            scores=scores, groups=groups, n_rounds=3, n_buckets=4
+        )
+        test_values = batchmvp.apply_patches(test_groups)
+        test_values = batchmvp.apply_patches(test_groups, test_values)
+        error = batchmvp.calibration_error(
+            scores=test_scores, groups=test_groups, thresholds=test_values
+        )
+        status = batchmvp.calibrate(
+            scores=np.array(scores),
+            thresholds=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_thresholds=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
 
     def test_batchmvp_classifier(self):
-        batchmvp = BatchMVPConformalClassifier(
-            score_fn=lambda x, y: 1 - jnp.mean(x, 0)[y],
-            group_fns=[
-                lambda x: x[:, 0] > 0.1,
-                lambda x: x[:, 0] < 0.2,
-                lambda x: x[:, 0] > 0.3,
-            ],
-            n_classes=2,
+        size = 10
+        test_size = 20
+        scores = random.uniform(random.PRNGKey(0), shape=(size,))
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
+        values = jnp.zeros(size)
+        test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
         )
-        val_data_loader = DataLoader.from_array_data(
-            (self._rng.normal(size=(50, 1)), self._rng.choice(2, 50)),
-            batch_size=32,
+        batchmvp = BatchMVPConformalClassifier()
+        status = batchmvp.calibrate(scores=scores, n_rounds=3, n_buckets=4)
+        status = batchmvp.calibrate(
+            scores=scores, groups=groups, thresholds=values, n_rounds=3, n_buckets=4
         )
-        test_inputs_loader = InputsLoader.from_array_inputs(
-            self._rng.normal(size=(150, 1)),
-            batch_size=32,
+        test_values, status = batchmvp.calibrate(
+            scores=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values, status = batchmvp.calibrate(
+                scores=scores,
+                groups=groups,
+                thresholds=values,
+                test_groups=test_groups,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = batchmvp.calibrate(
+                scores=scores,
+                groups=groups,
+                thresholds=values,
+                test_thresholds=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = batchmvp.calibrate(
+                scores=scores,
+                groups=groups,
+                test_groups=test_groups,
+                test_thresholds=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        status = batchmvp.calibrate(
+            scores=scores, groups=groups, n_rounds=3, n_buckets=4
+        )
+        test_values = batchmvp.apply_patches(test_groups)
+        test_values = batchmvp.apply_patches(test_groups, test_values)
+        error = batchmvp.calibration_error(
+            scores=test_scores, groups=test_groups, thresholds=test_values
+        )
+        status = batchmvp.calibrate(
+            scores=np.array(scores),
+            thresholds=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_thresholds=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
         )
 
-        sets = batchmvp.conformal_set(val_data_loader, test_inputs_loader)
-        assert len(sets) == 150
+        sets = batchmvp.conformal_set(
+            class_scores=jnp.stack((test_scores, test_scores), axis=1),
+            thresholds=test_values,
+        )
+        assert len(sets) == test_size
+
+    def test_multicalibrator(self):
+        size = 10
+        test_size = 20
+        scores = random.uniform(random.PRNGKey(0), shape=(size,))
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
+        values = jnp.zeros(size)
+        test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
+        )
+        mc = Multicalibrator()
+        status = mc.calibrate(scores=scores, n_rounds=3, n_buckets=4)
+        status = mc.calibrate(
+            scores=scores, groups=groups, values=values, n_rounds=3, n_buckets=4
+        )
+        test_values, status = mc.calibrate(
+            scores=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                scores=scores,
+                groups=groups,
+                values=values,
+                test_groups=test_groups,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                scores=scores,
+                groups=groups,
+                values=values,
+                test_values=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                scores=scores,
+                groups=groups,
+                test_groups=test_groups,
+                test_values=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        status = mc.calibrate(scores=scores, groups=groups, n_rounds=3, n_buckets=4)
+        test_values = mc.apply_patches(test_groups)
+        test_values = mc.apply_patches(test_groups, test_values)
+        error = mc.calibration_error(
+            scores=test_scores, groups=test_groups, values=test_values
+        )
+        status = mc.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_values=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
+
+    def test_binary_multicalibrator(self):
+        size = 10
+        test_size = 20
+        scores = random.choice(random.PRNGKey(0), 2, shape=(size,)).astype("int")
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
+        values = jnp.zeros(size)
+        test_scores = random.choice(random.PRNGKey(1), 2, shape=(test_size,)).astype(
+            "int"
+        )
+        test_groups = random.choice(random.PRNGKey(1), 2, shape=(test_size, 3)).astype(
+            "bool"
+        )
+        mc = BinaryClassificationMulticalibrator()
+        status = mc.calibrate(targets=scores, n_rounds=3, n_buckets=4)
+        status = mc.calibrate(
+            targets=scores, groups=groups, probs=values, n_rounds=3, n_buckets=4
+        )
+        test_values, status = mc.calibrate(
+            targets=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                probs=values,
+                test_groups=test_groups,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                probs=values,
+                test_probs=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                test_groups=test_groups,
+                test_probs=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        status = mc.calibrate(targets=scores, groups=groups, n_rounds=3, n_buckets=4)
+        test_values = mc.apply_patches(test_groups)
+        test_values = mc.apply_patches(test_groups, test_values)
+        error = mc.calibration_error(
+            targets=test_scores, groups=test_groups, probs=test_values
+        )
+        status = mc.calibrate(
+            targets=np.array(scores),
+            probs=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_probs=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )
+
+    def test_top_label_classification_multicalibrator(self):
+        size = 30
+        test_size = 20
+        n_classes = 3
+        n_groups = 2
+        scores = random.choice(random.PRNGKey(0), n_classes, shape=(size,)).astype(
+            "int"
+        )
+        groups = random.choice(random.PRNGKey(0), 2, shape=(size, n_groups)).astype(
+            "bool"
+        )
+        values = jnp.zeros((size, n_classes))
+        test_scores = random.choice(
+            random.PRNGKey(1), n_classes, shape=(test_size,)
+        ).astype("int")
+        test_groups = random.choice(
+            random.PRNGKey(1), 2, shape=(test_size, n_groups)
+        ).astype("bool")
+        mc = TopLabelMulticalibrator(n_classes=n_classes)
+        status = mc.calibrate(targets=scores, n_rounds=3, n_buckets=4)
+        status = mc.calibrate(
+            targets=scores, groups=groups, probs=values, n_rounds=3, n_buckets=4
+        )
+        test_values, status = mc.calibrate(
+            targets=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                probs=values,
+                test_groups=test_groups,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                probs=values,
+                test_probs=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        with self.assertRaises(ValueError):
+            test_values, status = mc.calibrate(
+                targets=scores,
+                groups=groups,
+                test_groups=test_groups,
+                test_probs=test_values,
+                n_rounds=3,
+                n_buckets=4,
+            )
+        status = mc.calibrate(targets=scores, groups=groups, n_rounds=3, n_buckets=4)
+        test_values = mc.apply_patches(test_groups)
+        test_values = mc.apply_patches(test_groups, test_values)
+        error = mc.calibration_error(
+            targets=test_scores, groups=test_groups, probs=test_values
+        )
+        status = mc.calibrate(
+            targets=np.array(scores),
+            probs=np.array(values),
+            groups=np.array(groups),
+            test_groups=np.array(test_groups),
+            test_probs=np.array(test_values),
+            n_rounds=3,
+            n_buckets=4,
+        )

@@ -17,6 +17,7 @@ from fortuna.model.model_manager.classification import (
 from fortuna.model.model_manager.name_to_model_manager import (
     ClassificationModelManagers,
 )
+from fortuna.model_editor.base import ModelEditor
 from fortuna.output_calibrator.classification import ClassificationTemperatureScaler
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
 from fortuna.prob_model.base import ProbModel
@@ -51,6 +52,7 @@ class ProbClassifier(ProbModel):
         prior: Prior = IsotropicGaussianPrior(),
         posterior_approximator: PosteriorApproximator = SWAGPosteriorApproximator(),
         output_calibrator: Optional[nn.Module] = ClassificationTemperatureScaler(),
+        model_editor: Optional[ModelEditor] = None,
         seed: int = 0,
     ):
         r"""
@@ -73,6 +75,8 @@ class ProbClassifier(ProbModel):
             logits with a scalar temperature parameter. Given outputs :math:`o` of the model manager, the output
             calibrator is described by a function :math:`g(\phi, o)`, where `phi` are deterministic
             calibration parameters.
+        model_editor : ModelEditor
+            A model_editor objects. It takes the forward pass and transforms the outputs.
         seed: int
             A random seed.
 
@@ -119,7 +123,7 @@ class ProbClassifier(ProbModel):
             ClassificationModelManagers, posterior_approximator.__str__()
         ).value
         self.model_manager = self._get_model_manager(
-            model, model_manager_cls, posterior_approximator
+            model, model_editor, model_manager_cls, posterior_approximator
         )
 
         self.likelihood = ClassificationLikelihood(
@@ -157,6 +161,7 @@ class ProbClassifier(ProbModel):
     def _get_model_manager(
         self,
         model: nn.Module,
+        model_editor: ModelEditor,
         model_manager_cls: Type,
         posterior_approximator: PosteriorApproximator,
     ) -> ClassificationModelManager:
@@ -182,23 +187,31 @@ class ProbClassifier(ProbModel):
                 and model_manager_cls == SNGPClassificationModelManager
             ):
                 model_manager = SNGPHuggingFaceClassificationModelManager(
-                    model=model, **posterior_approximator.posterior_method_kwargs
+                    model=model,
+                    model_editor=model_editor,
+                    **posterior_approximator.posterior_method_kwargs,
                 )
             elif isinstance(model, FlaxPreTrainedModel):
-                model_manager = HuggingFaceClassificationModelManager(model)
+                model_manager = HuggingFaceClassificationModelManager(
+                    model, model_editor=model_editor
+                )
             else:
                 model_manager = model_manager_cls(
-                    model=model, **posterior_approximator.posterior_method_kwargs
+                    model=model,
+                    model_editor=model_editor,
+                    **posterior_approximator.posterior_method_kwargs,
                 )
         except ModuleNotFoundError as e:
             logging.warning(
                 "No module named 'transformer' is installed. "
                 "If you are not working with models from the `transformers` library ignore this warning, otherwise "
-                "please install the optional 'transformers' dependency of fortuna."
-                'Using poetry, you can achieve this by entering: `poetry install --extras "transformers"`'
+                "install the optional 'transformers' dependency of Fortuna using poetry. You can do so by entering: "
+                "`poetry install --extras 'transformers'`."
             )
             model_manager = model_manager_cls(
-                model=model, **posterior_approximator.posterior_method_kwargs
+                model=model,
+                model_editor=model_editor,
+                **posterior_approximator.posterior_method_kwargs,
             )
         return model_manager
 

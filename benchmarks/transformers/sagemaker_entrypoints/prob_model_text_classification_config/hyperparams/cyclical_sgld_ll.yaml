@@ -1,0 +1,32 @@
+model:
+  hparams:
+    sghmc_momentum_decay: 0
+
+sagemaker:
+  tuner:
+    hyperparameter_ranges:
+      sgmcmc_preconditioner:
+        _target_: sagemaker.tuner.CategoricalParameter
+        values:
+          - true
+          - false
+      sgmcmc_step_schedule:
+        _target_: sagemaker.tuner.CategoricalParameter
+        values:
+          - constant
+          - cosine
+      sgmcmc_init_step_size:
+        _target_: sagemaker.tuner.ContinuousParameter
+        min_value: 5e-6
+        max_value: 0.1
+        scaling_type: Logarithmic
+      sgmcmc_n_thinning:
+        _target_: sagemaker.tuner.IntegerParameter
+        min_value: 100
+        max_value: 500
+        scaling_type: Auto
+    objective_metric_name: ind_ece
+    objective_type: Minimize
+    max_parallel_jobs: 2
+    max_jobs: 50
+    early_stopping_type: Auto

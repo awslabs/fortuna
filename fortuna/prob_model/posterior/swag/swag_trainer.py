@@ -23,10 +23,8 @@ from fortuna.training.trainer import (
 from fortuna.typing import (
     Array,
     Batch,
-    Params,
     Path,
 )
-from fortuna.utils.nested_dicts import nested_get
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
 
@@ -36,7 +34,6 @@ class SWAGTrainer(MAPTrainer):
         self._mean_rav_params = None
         self._mean_squared_rav_params = None
         self._deviation_rav_params = None
-        self._which_params = which_params
         self._encoded_which_params = encode_tuple_of_lists_of_strings_to_numpy(
             which_params
         )
@@ -46,10 +43,16 @@ class SWAGTrainer(MAPTrainer):
         var = jnp.maximum(var, 0.0)
         return state.update(
             dict(
-                mean=self._mean_rav_params,
-                std=jnp.sqrt(var),
-                dev=self._deviation_rav_params,
-                _encoded_which_params=self._encoded_which_params,
+                mean=self._mean_rav_params
+                if not self.multi_device
+                else self._mean_rav_params[None],
+                std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
+                dev=self._deviation_rav_params
+                if not self.multi_device
+                else self._deviation_rav_params[None],
+                _encoded_which_params=self._encoded_which_params
+                if not self.multi_device
+                else tree_map(lambda v: v[None], self._encoded_which_params),
             )
         )
 
@@ -68,9 +71,9 @@ class SWAGTrainer(MAPTrainer):
                 """`rank` must be available in `kwargs` during training."""
             )
         rav_params = ravel_pytree(
-            tree_map(lambda x: x[0], self._get_params_to_ravel(state.params))
+            tree_map(lambda x: x[0], state.params)
             if self.multi_device
-            else self._get_params_to_ravel(state.params)
+            else state.params
         )[0]
         if self._mean_rav_params is None:
             self._mean_rav_params = rav_params
@@ -113,12 +116,12 @@ class SWAGTrainer(MAPTrainer):
             keep=self.keep_top_n_checkpoints,
             force_save=True,
         )
-        return self._update_state_with_stats(state)
 
-    def _get_params_to_ravel(self, params: Params):
-        if self._which_params is not None:
-            return [nested_get(params, path) for path in self._which_params]
-        return params
+        if self.freeze_fun is not None:
+            state = state.replace(
+                params=self._get_all_params(state), frozen_params=None
+            )
+        return self._update_state_with_stats(state)
 
 
 class SWAGJittedMixin(JittedMixin):

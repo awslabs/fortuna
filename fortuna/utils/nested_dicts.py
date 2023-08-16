@@ -35,7 +35,10 @@ def nested_get(
 
 
 def nested_set(
-    d: Dict[AnyKey, Any], key_paths: Tuple[List[AnyKey], ...], objs: Tuple[Any]
+    d: Dict[AnyKey, Any],
+    key_paths: Tuple[List[AnyKey], ...],
+    objs: Tuple[Any],
+    allow_nonexistent: bool = False,
 ) -> Dict[AnyKey, Any]:
     """
     Set the values of a nested dictionary for the specified sequences of keys.
@@ -49,13 +52,15 @@ def nested_set(
     :param objs: Tuple
         Each element of the tuple is an object that will be assigned to the item specified by the corresponding
         sequence of keys.
+    :param allow_nonexistent: bool
+        Whether to create sequence of keys that are not found in the input dictionary or throw an exception.
     """
     if type(key_paths) != tuple:
         raise TypeError("`key_paths` must be a tuple.")
     if type(objs) != tuple:
-        raise TypeError("`values` must be a tuple.")
+        raise TypeError("`objs` must be a tuple.")
     if len(key_paths) != len(objs):
-        raise ValueError("`key_paths` and `values` must have the same length.")
+        raise ValueError("`key_paths` and `objs` must have the same length.")
 
     d0 = deepcopy(d)
 
@@ -65,9 +70,12 @@ def nested_set(
         for key in keys[:-1]:
             if key in d2:
                 d2 = d2[key]
+            elif allow_nonexistent:
+                d2[key] = {}
+                d2 = d2[key]
             else:
                 raise KeyError(error_msg)
-        if keys[-1] in d2:
+        if keys[-1] in d2 or allow_nonexistent:
             d2[keys[-1]] = o
         else:
             raise KeyError(error_msg)

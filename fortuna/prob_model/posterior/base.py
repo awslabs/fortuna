@@ -8,6 +8,7 @@ from typing import (
     Type,
 )
 
+from flax.core import FrozenDict
 from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import DataLoader
@@ -23,7 +24,11 @@ from fortuna.typing import (
     Path,
     Status,
 )
-from fortuna.utils.freeze import freeze_optimizer
+from fortuna.utils.freeze import get_trainable_paths
+from fortuna.utils.nested_dicts import (
+    nested_get,
+    nested_set,
+)
 from fortuna.utils.random import WithRNG
 
 
@@ -90,13 +95,25 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         state: PosteriorState, fit_config: FitConfig
     ) -> PosteriorState:
         if fit_config.optimizer.freeze_fun is not None:
-            frozen_optimizer = freeze_optimizer(
-                params=state.params,
-                optimizer=fit_config.optimizer.method,
-                freeze_fun=fit_config.optimizer.freeze_fun,
+            trainable_paths = get_trainable_paths(
+                state.params, fit_config.optimizer.freeze_fun
             )
             state = state.replace(
-                tx=frozen_optimizer, opt_state=frozen_optimizer.init(state.params)
+                opt_state=fit_config.optimizer.method.init(
+                    FrozenDict(
+                        nested_set(
+                            d={},
+                            key_paths=trainable_paths,
+                            objs=tuple(
+                                [
+                                    nested_get(state.params.unfreeze(), path)
+                                    for path in trainable_paths
+                                ]
+                            ),
+                            allow_nonexistent=True,
+                        )
+                    )
+                )
             )
         return state
 

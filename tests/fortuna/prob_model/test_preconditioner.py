@@ -3,18 +3,22 @@ import unittest
 import jax.numpy as jnp
 
 from fortuna.prob_model.posterior.sgmcmc.sgmcmc_preconditioner import (
-    rmsprop_preconditioner,
     identity_preconditioner,
+    rmsprop_preconditioner,
 )
 
 
 class TestPreconditioner(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.params = {"p1": jnp.zeros([1, 2], jnp.float32),
-                       "p2": jnp.zeros([2, 1], jnp.float32)}
-        self.grad = {"p1": jnp.ones([1, 2], jnp.float32),
-                     "p2": jnp.ones([2, 1], jnp.float32)}
+        self.params = {
+            "p1": jnp.zeros([1, 2], jnp.float32),
+            "p2": jnp.zeros([2, 1], jnp.float32),
+        }
+        self.grad = {
+            "p1": jnp.ones([1, 2], jnp.float32),
+            "p2": jnp.ones([2, 1], jnp.float32),
+        }
 
     def test_rmsprop(self):
         preconditioner = rmsprop_preconditioner()
