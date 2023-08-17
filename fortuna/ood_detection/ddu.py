@@ -107,7 +107,7 @@ def _get_logpdf_fn(
     return gmm_logprob_fn
 
 
-class DeepDeterministicUncertaintyABC(OutOfDistributionClassifierABC):
+class DeepDeterministicUncertaintyOODClassifier(OutOfDistributionClassifierABC):
     """
     A Gaussian Mixture Model :math:`q(\mathbf{x}, z)` with a single Gaussian mixture component per class :math:`k \in {1,...,K}`
     is fit after training.
@@ -121,46 +121,29 @@ class DeepDeterministicUncertaintyABC(OutOfDistributionClassifierABC):
     """
 
     def __init__(self, *args, **kwargs):
-        super(DeepDeterministicUncertaintyABC, self).__init__(*args, **kwargs)
+        super(DeepDeterministicUncertaintyOODClassifier, self).__init__(*args, **kwargs)
         self._gmm_logpdf_fn = None
 
-    def fit(
-        self,
-        state: PosteriorState,
-        train_data_loader: BaseDataLoaderABC,
-        num_classes: int,
-    ) -> None:
+    def fit(self, embeddings: Array, targets: Array) -> None:
         """
         Fits a Multivariate Gaussian to the training data using class-specific means and covariance matrix.
 
         Parameters
         ----------
-        state: PosteriorState
-            the posterior state ob a pre-trained model
-        train_data_loader: BaseDataLoaderABC
-            the training data loader (covariates and target)
-        num_classes: int
-            the number of classes for the training task
+        embeddings: Array
+            The embeddings of shape `(n, d)` where `n` is the number of training samples and `d` is the embbeding's size.
+        targets: Array
+            An array of length `n` containing, for each input sample, its ground-truth label.
         """
-        train_labels = []
-        train_embeddings = []
-        for x, y in tqdm(train_data_loader, desc="Computing embeddings for DDU: "):
-            train_embeddings.append(
-                self.apply(inputs=x, params=state.params, mutable=state.mutable)
-            )
-            train_labels.append(y)
-        train_embeddings = jnp.concatenate(train_embeddings, 0)
-        train_labels = jnp.concatenate(train_labels)
-
         (
             classwise_mean_features,
             classwise_cov_features,
-        ) = compute_classwise_mean_and_cov(train_embeddings, train_labels, num_classes)
+        ) = compute_classwise_mean_and_cov(embeddings, targets, self.num_classes)
         self._gmm_logpdf_fn = _get_logpdf_fn(
             classwise_mean_features, classwise_cov_features
         )
 
-    def score(self, state: PosteriorState, inputs_loader: BaseInputsLoader) -> Array:
+    def score(self, embeddings: Array) -> Array:
         """
         The confidence score :math:`M(\mathbf{x})` for a new test sample :math:`\mathbf{x}` is obtained computing
         the negative marginal likelihood of the feature representation
@@ -170,24 +153,15 @@ class DeepDeterministicUncertaintyABC(OutOfDistributionClassifierABC):
 
         Parameters
         ----------
-        state: PosteriorState
-            The posterior state of a pre-trained model
-        inputs_loader:  BaseInputsLoader
-            The inputs loader (data only, no labels)
+        embeddings: Array
+            The embeddings of shape `(n, d)` where `n` is the number of test samples and `d` is the embbeding's size.
 
         Returns
         -------
         Array
-            An array with scores for each sample in `inputs_loader`.
+            An array of scores with length `n`.
         """
         if self._gmm_logpdf_fn is None:
             raise NotFittedError("You have to call fit before calling score.")
-        embeddings = jnp.concatenate(
-            [
-                self.apply(inputs=x, params=state.params, mutable=state.mutable)
-                for x in inputs_loader
-            ],
-            0,
-        )
         loglik = self._gmm_logpdf_fn(embeddings)
         return -jsp.special.logsumexp(jnp.nan_to_num(loglik, 0.0), axis=1)

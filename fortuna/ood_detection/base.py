@@ -15,7 +15,7 @@ from fortuna.data.loader.base import (
     BaseInputsLoader,
 )
 from fortuna.prob_model.posterior.state import PosteriorState
-from fortuna.typing import InputData, Params, Mutable
+from fortuna.typing import InputData, Params, Mutable, Array
 
 
 class NotFittedError(ValueError, AttributeError):
@@ -29,40 +29,19 @@ class OutOfDistributionClassifierABC:
     (i.e, it is in-distribution) or not (i.e., it is out of distribution).
     """
 
-    def __init__(self, feature_extractor_subnet: nn.Module):
+    def __init__(self, num_classes: int):
         """
         Parameters
         ----------
-        feature_extractor_subnet: nn.Module
-            The model (or a part of it) used to obtain the embeddings of any given input.
+        num_classes: int
+            The number of classes for the in-distribution classification task.
         """
-        self.feature_extractor_subnet = feature_extractor_subnet
+        self.num_classes = num_classes
 
     @abc.abstractmethod
-    def apply(
-        self,
-        inputs: InputData,
-        params: Params,
-        mutable: Mutable,
-        **kwargs,
-    ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
-        """
-        Transform an input :math:`\mathbf{x}` into an embedding :math:`f(\mathbf{x})`.
-        """
-        pass
-        # return self.feature_extractor_subnet(**inputs, train=False)[1]
-
-    @abc.abstractmethod
-    def fit(
-        self,
-        state: PosteriorState,
-        train_data_loader: BaseDataLoaderABC,
-        num_classes: int,
-    ) -> None:
+    def fit(self, embeddings: Array, targets: Array) -> None:
         pass
 
     @abc.abstractmethod
-    def score(
-        self, state: PosteriorState, inputs_loader: BaseInputsLoader
-    ) -> jnp.ndarray:
+    def score(self, embeddings: Array) -> Array:
         pass

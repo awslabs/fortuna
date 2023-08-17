@@ -12,6 +12,7 @@ from fortuna.ood_detection.base import (
     OutOfDistributionClassifierABC,
 )
 from fortuna.prob_model.posterior.state import PosteriorState
+from fortuna.typing import Array
 
 
 @jax.jit
@@ -97,7 +98,7 @@ def compute_mahalanobis_distance(
     return out
 
 
-class MalahanobisClassifierABC(OutOfDistributionClassifierABC):
+class MalahanobisOODClassifier(OutOfDistributionClassifierABC):
     """
     The pre-trained features of a softmax neural classifier :math:`f(\mathbf{x})` are assumed to follow a
     class-conditional gaussian distribution with a tied covariance matrix :math:`\mathbf{\Sigma}`:
@@ -114,56 +115,35 @@ class MalahanobisClassifierABC(OutOfDistributionClassifierABC):
     """
 
     def __init__(self, *args, **kwargs):
-        super(MalahanobisClassifierABC, self).__init__(*args, **kwargs)
+        super(MalahanobisOODClassifier, self).__init__(*args, **kwargs)
         self._maha_dist_all_classes_fn = None
 
-    def fit(
-        self,
-        state: PosteriorState,
-        train_data_loader: BaseDataLoaderABC,
-        num_classes: int,
-    ) -> None:
+    def fit(self, embeddings: Array, targets: Array) -> None:
         """
         Fits a Multivariate Gaussian to the training data using class-specific means and a shared covariance matrix.
 
         Parameters
         ----------
-        state: PosteriorState
-            the posterior state ob a pre-trained model
-        train_data_loader: BaseDataLoaderABC
-            the training data loader (covariates and target)
-        num_classes: int
-            the number of classes for the training task
+        embeddings: Array
+            The embeddings of shape `(n, d)` where `n` is the number of training samples and `d` is the embbeding's size.
+        targets: Array
+            An array of length `n` containing, for each input sample, its ground-truth label.
         """
-        train_labels = []
-        train_embeddings = []
-        for x, y in tqdm.tqdm(
-            train_data_loader, desc="Computing embeddings for Malhanbis Classifier: "
-        ):
-            train_embeddings.append(
-                self.apply(inputs=x, params=state.params, mutable=state.mutable)
-            )
-            train_labels.append(y)
-        train_embeddings = jnp.concatenate(train_embeddings, 0)
-        train_labels = jnp.concatenate(train_labels)
-
-        n_labels_observed = len(jnp.unique(train_labels))
-        if n_labels_observed != num_classes:
+        n_labels_observed = len(jnp.unique(targets))
+        if n_labels_observed != self.num_classes:
             logging.warning(
-                f"{num_classes} labels were expected but found {n_labels_observed} in the train set. "
+                f"{self.num_classes} labels were expected but found {n_labels_observed} in the provided train set. "
                 f"Will proceed but performance may be hurt by this."
             )
 
         means, cov = compute_mean_and_joint_cov(
-            train_embeddings, train_labels, jnp.arange(num_classes)
+            embeddings, targets, jnp.arange(self.num_classes)
         )
         self._maha_dist_all_classes_fn = lambda x: compute_mahalanobis_distance(
             x, means, cov
         )
 
-    def score(
-        self, state: PosteriorState, inputs_loader: BaseInputsLoader
-    ) -> jnp.ndarray:
+    def score(self, embeddings: Array) -> Array:
         """
         The confidence score :math:`M(\mathbf{x})` for a new test sample :math:`\mathbf{x}` is obtained computing
         the max (squared) Mahalanobis distance between :math:`f(\mathbf{x})` and the fitted class-wise guassians.
@@ -172,23 +152,14 @@ class MalahanobisClassifierABC(OutOfDistributionClassifierABC):
 
         Parameters
         ----------
-        state: PosteriorState
-            The posterior state of a pre-trained model
-        inputs_loader:  BaseInputsLoader
-            The inputs loader (data only, no labels)
+        embeddings: Array
+            The embeddings of shape `(n, d)` where `n` is the number of test samples and `d` is the embbeding's size.
 
         Returns
         -------
-        jnp.ndarray
-            An array with scores for each sample in `inputs_loader`.
+        Array
+            An array of scores with length `n`.
         """
         if self._maha_dist_all_classes_fn is None:
             raise NotFittedError("You have to call fit before calling score.")
-        embeddings = jnp.concatenate(
-            [
-                self.apply(inputs=x, params=state.params, mutable=state.mutable)
-                for x in inputs_loader
-            ],
-            0,
-        )
         return self._maha_dist_all_classes_fn(embeddings).min(axis=1)

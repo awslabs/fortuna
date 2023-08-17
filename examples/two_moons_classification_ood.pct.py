@@ -27,8 +27,6 @@
 # Let us first download the two-moons data from [scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html).
 
 # %%
-from matplotlib import colors
-
 TRAIN_DATA_SIZE = 500
 
 from sklearn.datasets import make_moons
@@ -160,50 +158,84 @@ plt.show()
 # [Lee, Kimin, et al](https://proceedings.neurips.cc/paper/2018/file/abdeb6f575ac5c6676b747bca8d09cc2-Paper.pdf)
 
 # %%
-from fortuna.ood_detection.mahalanobis import MalahanobisClassifierABC
+from fortuna.ood_detection.mahalanobis import MalahanobisOODClassifier
 from fortuna.model.mlp import DeepResidualFeatureExtractorSubNet
-from functools import partial
 import jax
 
 
-class MalahanobisClassifier(MalahanobisClassifierABC):
-    @partial(jax.jit, static_argnums=(0,))
-    def apply(self, inputs, params, mutable, **kwargs):
-        variables = {'params': params["model"]['params']['dfe_subnet'].unfreeze()}
-        if mutable is not None:
-            mutable_variables = {k: v['dfe_subnet'].unfreeze() for k, v in mutable["model"].items()}
-            variables.update(mutable_variables)
-        return self.feature_extractor_subnet.apply(
-                variables, inputs, train=False, mutable=False,
-            )
+feature_extractor_subnet=DeepResidualFeatureExtractorSubNet(
+        dense=model.dense,
+        widths=model.widths,
+        activations=model.activations,
+        dropout=model.dropout,
+        dropout_rate=model.dropout_rate,
+    )
 
-ood_classifier = MalahanobisClassifier(
-    feature_extractor_subnet=DeepResidualFeatureExtractorSubNet(
-            dense=model.dense,
-            widths=model.widths,
-            activations=model.activations,
-            dropout=model.dropout,
-            dropout_rate=model.dropout_rate,
-        )
-)
+@jax.jit
+def _apply(inputs, params, mutable):
+    variables = {'params': params["model"]['params']['dfe_subnet'].unfreeze()}
+    if mutable is not None:
+        mutable_variables = {k: v['dfe_subnet'].unfreeze() for k, v in mutable["model"].items()}
+        variables.update(mutable_variables)
+    return feature_extractor_subnet.apply(variables, inputs, train=False, mutable=False)
+
+ood_classifier = MalahanobisOODClassifier(num_classes=2)
 
 # %% [markdown]
-# In the code block above we first define a `MalahanobisClassifier` starting from the `MalahanobisClassifierABC`
-# provided by Fortuna. The only thing we need to do here is to implement the `apply` method that allow one to transform
-# an input vector into an embedding vector.
-# Once this is done, we can initialize our classifier by providing the `feature_extractor_subnet`. In the example,
-# this is our original model (`DeepResidualNet`) without the output layer.
+# In the code block above we initialize our classifier (`MalahanobisOODClassifier`) and we also define a
+# `feature_extractor_subnet`, which is a sub-network of our previously trained model
+# that allow one to transform an input vector into an embedding vector. In the example, this is our original model
+# (`DeepResidualNet`) without the output layer.
 # We are now ready to fit the classifier using our training data and verify whether the model's overconfidence has been
 # (at least partially) fixed:
 
 # %%
+from typing import Tuple
+
+import tqdm
+
+from fortuna.data.loader.base import BaseDataLoaderABC, BaseInputsLoader
+from fortuna.prob_model.posterior.state import PosteriorState
+from fortuna.typing import Array
+
+# define some util functions
+
+
+def get_embeddings_and_targets(state: PosteriorState, train_data_loader: BaseDataLoaderABC) -> Tuple[Array, Array]:
+    train_labels = []
+    train_embeddings = []
+    for x, y in tqdm.tqdm(
+        train_data_loader, desc="Computing embeddings for Malhanbis Classifier: "
+    ):
+        train_embeddings.append(
+            _apply(inputs=x, params=state.params, mutable=state.mutable)
+        )
+        train_labels.append(y)
+    train_embeddings = jnp.concatenate(train_embeddings, 0)
+    train_labels = jnp.concatenate(train_labels)
+    return train_embeddings, train_labels
+
+
+def get_embeddings(state: PosteriorState, inputs_loader: BaseInputsLoader):
+    return jnp.concatenate(
+        [
+            _apply(inputs=x, params=state.params, mutable=state.mutable)
+            for x in inputs_loader
+        ],
+        0,
+    )
+
+# %%
 state = prob_model.posterior.state.get()
-ood_classifier.fit(state=state, train_data_loader=train_data_loader, num_classes=2)
+train_embeddings, train_labels = get_embeddings_and_targets(state=state, train_data_loader=train_data_loader)
+ood_classifier.fit(embeddings=train_embeddings, targets=train_labels)
 grid, grid_inputs_loader = get_grid_inputs_loader(grid_size=100)
-grid_scores = ood_classifier.score(state=state, inputs_loader=grid_inputs_loader)
+grid_embeddings = get_embeddings(state=state, inputs_loader=grid_inputs_loader)
+grid_scores = ood_classifier.score(embeddings=grid_embeddings)
 # for the sake of plotting we set a threshold on the OOD classifier scores using the max score
 # obtained from a known in-distribution source
-ind_scores = ood_classifier.score(state=state, inputs_loader=val_data_loader.to_inputs_loader())
+ind_embeddings = get_embeddings(state=state, inputs_loader=val_data_loader.to_inputs_loader())
+ind_scores = ood_classifier.score(embeddings=ind_embeddings)
 threshold = ind_scores.max()*2
 grid_scores = jnp.where(grid_scores < threshold, grid_scores, threshold)
 plot_uncertainty_over_grid(grid=grid, scores=grid_scores, test_modes=test_modes, title="OOD scores")
