@@ -8,10 +8,10 @@ from typing import (
 )
 
 import jax
+from jax import numpy as jnp
 import jax.scipy as jsp
 import jax.scipy.stats as jsp_stats
 import numpy as np
-from jax import numpy as jnp
 
 from fortuna.ood_detection.base import (
     NotFittedError,
