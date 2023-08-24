@@ -135,7 +135,7 @@ class MalahanobisOODClassifier(OutOfDistributionClassifierABC):
         Array
             The shared covariance matrix with shape `(d, d)`, where `d` is the embedding size.
         """
-        return self.cov
+        return self._cov
 
     def fit(self, embeddings: Array, targets: Array) -> None:
         """

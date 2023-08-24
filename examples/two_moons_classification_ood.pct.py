@@ -7,13 +7,13 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: python3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
 
 # %% [markdown]
-
+#
 # # Two-moons Classification: Improved uncertainty quantification
 
 # %% [markdown]
@@ -60,8 +60,8 @@ import jax.numpy as jnp
 
 
 def get_grid_inputs_loader(grid_size: int = 100):
-    xx = np.linspace(-4, 4, grid_size)
-    yy = np.linspace(-4, 4, grid_size)
+    xx = np.linspace(-3, 4, grid_size)
+    yy = np.linspace(-1.5, 2, grid_size)
     grid = np.array([[_xx, _yy] for _xx in xx for _yy in yy])
     grid_inputs_loader = InputsLoader.from_array_inputs(grid)
     grid = grid.reshape(grid_size, grid_size, 2)
@@ -78,27 +78,27 @@ def compute_test_modes(
     )
 
 def plot_uncertainty_over_grid(
-        grid: jnp.ndarray, scores: jnp.ndarray, test_modes: jnp.ndarray, title: str = "Predictive uncertainty"
+        grid: jnp.ndarray, scores: jnp.ndarray, test_modes: jnp.ndarray, title: str, ax=None
 ):
     scores = scores.reshape(grid.shape[0], grid.shape[1])
-
-    _, ax = plt.subplots(figsize=(7, 5.5))
-    plt.title(title, fontsize=12)
+    if ax is None:
+        fig, ax = plt.subplots()
+    ax.set_title(title, fontsize=12)
     pcm = ax.imshow(
         scores.T,
         origin="lower",
-        extent=(-4., 4., -4., 4.),
+        extent=(grid[0][0][0], grid[-1][0][0], grid[0][0][1], grid[0][-1][1]),
         interpolation='bicubic',
         aspect='auto')
 
     # Plot training data.
-    plt.scatter(
+    im = ax.scatter(
         test_data[0][:, 0],
         test_data[0][:, 1],
-        s=1,
+        s=3,
         c=["C0" if i == 1 else "C1" for i in test_modes],
     )
-    plt.colorbar()
+    plt.colorbar(im, ax=ax.ravel().tolist() if hasattr(ax, "ravel") else ax)
 
 
 # %% [markdown]
@@ -143,27 +143,35 @@ status = prob_model.train(
 test_modes = compute_test_modes(prob_model, test_data_loader)
 grid, grid_inputs_loader = get_grid_inputs_loader(grid_size=100)
 grid_entropies = prob_model.predictive.entropy(grid_inputs_loader)
-plot_uncertainty_over_grid(grid=grid, scores=grid_entropies, test_modes=test_modes)
+plot_uncertainty_over_grid(grid=grid, scores=grid_entropies, test_modes=test_modes, title="Predictive uncertainty with MAP")
 plt.show()
 
 # %% [markdown]
 # Clearly, the model is overconfident on inputs that are far away from the training data.
-# This behaviour is not what one would expect, as we rather the model being less confident on out-of-distributin inputs.
+# This behaviour is not what one would expect, as we rather the model being less confident on out-of-distribution inputs.
 
 # %% [markdown]
 # ### Fit an OOD classifier to distinguish between in-distribution and out-of-distribution inputs
 # Given the trained model from above, we can now use one of the models provided by Fortuna to actually improve
 # the model's confidence on the out-of-distribution inputs.
-# In the example below we will use the Malahanobis-based classifier introduced in
-# [Lee, Kimin, et al](https://proceedings.neurips.cc/paper/2018/file/abdeb6f575ac5c6676b747bca8d09cc2-Paper.pdf)
+# In the example below we will use two methods:
+#
+# - A classifier based on the **Malahanobis distance**, introduced in
+# [[Lee et al., 2018]](https://proceedings.neurips.cc/paper/2018/file/abdeb6f575ac5c6676b747bca8d09cc2-Paper.pdf)
+# - **Deep Deterministic Uncertainty (DDU)** [[Mukhoti et al., 2022]](https://arxiv.org/abs/2102.11582).
+
+# %% [markdown]
+# In the code block below, we define a
+# `feature_extractor_subnet`, a sub-network of our previously trained model
+# that transforms an input vector into an embedding vector. In this example, the feature extractor is taken as our original model
+# (`DeepResidualNet`) without the output layer.
 
 # %%
-from fortuna.ood_detection.mahalanobis import MalahanobisOODClassifier
 from fortuna.model.mlp import DeepResidualFeatureExtractorSubNet
 import jax
 
 
-feature_extractor_subnet=DeepResidualFeatureExtractorSubNet(
+feature_extractor_subnet = DeepResidualFeatureExtractorSubNet(
         dense=model.dense,
         widths=model.widths,
         activations=model.activations,
@@ -179,15 +187,9 @@ def _apply(inputs, params, mutable):
         variables.update(mutable_variables)
     return feature_extractor_subnet.apply(variables, inputs, train=False, mutable=False)
 
-ood_classifier = MalahanobisOODClassifier(num_classes=2)
 
 # %% [markdown]
-# In the code block above we initialize our classifier (`MalahanobisOODClassifier`) and we also define a
-# `feature_extractor_subnet`, which is a sub-network of our previously trained model
-# that allow one to transform an input vector into an embedding vector. In the example, this is our original model
-# (`DeepResidualNet`) without the output layer.
-# We are now ready to fit the classifier using our training data and verify whether the model's overconfidence has been
-# (at least partially) fixed:
+# Let's use the feature extractor to get the embeddings of the training and OOD inputs.
 
 # %%
 from typing import Tuple
@@ -198,14 +200,12 @@ from fortuna.data.loader.base import BaseDataLoaderABC, BaseInputsLoader
 from fortuna.prob_model.posterior.state import PosteriorState
 from fortuna.typing import Array
 
-# define some util functions
-
 
 def get_embeddings_and_targets(state: PosteriorState, train_data_loader: BaseDataLoaderABC) -> Tuple[Array, Array]:
     train_labels = []
     train_embeddings = []
     for x, y in tqdm.tqdm(
-        train_data_loader, desc="Computing embeddings for Malhanbis Classifier: "
+        train_data_loader, desc="Computing embeddings: "
     ):
         train_embeddings.append(
             _apply(inputs=x, params=state.params, mutable=state.mutable)
@@ -225,37 +225,57 @@ def get_embeddings(state: PosteriorState, inputs_loader: BaseInputsLoader):
         0,
     )
 
-# %%
 state = prob_model.posterior.state.get()
 train_embeddings, train_labels = get_embeddings_and_targets(state=state, train_data_loader=train_data_loader)
-ood_classifier.fit(embeddings=train_embeddings, targets=train_labels)
+
+# %%
+from fortuna.ood_detection import MalahanobisOODClassifier, DeepDeterministicUncertaintyOODClassifier
+
+maha_classifier = MalahanobisOODClassifier(num_classes=2)
+maha_classifier.fit(embeddings=train_embeddings, targets=train_labels)
+
+ddu_classifier = DeepDeterministicUncertaintyOODClassifier(num_classes=2)
+ddu_classifier.fit(embeddings=train_embeddings, targets=train_labels)
+
+# %% [markdown]
+# Let's plot the results! For the sake of visualization, we set a threshold on the OOD classifiers scores using the maximum score obtained from a known in-distribution source.
+
+# %%
 grid, grid_inputs_loader = get_grid_inputs_loader(grid_size=100)
 grid_embeddings = get_embeddings(state=state, inputs_loader=grid_inputs_loader)
-grid_scores = ood_classifier.score(embeddings=grid_embeddings)
-# for the sake of plotting we set a threshold on the OOD classifier scores using the max score
-# obtained from a known in-distribution source
+
 ind_embeddings = get_embeddings(state=state, inputs_loader=val_data_loader.to_inputs_loader())
-ind_scores = ood_classifier.score(embeddings=ind_embeddings)
-threshold = ind_scores.max()*2
-grid_scores = jnp.where(grid_scores < threshold, grid_scores, threshold)
-plot_uncertainty_over_grid(grid=grid, scores=grid_scores, test_modes=test_modes, title="OOD scores")
+
+ind_maha_scores = maha_classifier.score(embeddings=ind_embeddings)
+grid_maha_scores = maha_classifier.score(embeddings=grid_embeddings)
+maha_threshold = 2 * ind_maha_scores.max()
+grid_maha_scores = jnp.where(grid_maha_scores < maha_threshold, grid_maha_scores, maha_threshold)
+
+ind_ddu_scores = maha_classifier.score(embeddings=ind_embeddings)
+grid_ddu_scores = ddu_classifier.score(embeddings=grid_embeddings)
+ddu_threshold = 2 * ind_ddu_scores.max()
+grid_ddu_scores = jnp.where(grid_ddu_scores < ddu_threshold, grid_ddu_scores, ddu_threshold)
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+plot_uncertainty_over_grid(grid=grid, scores=grid_maha_scores, test_modes=test_modes, title="Mahalanobis OOD scores", ax=axes[0])
+plot_uncertainty_over_grid(grid=grid, scores=grid_ddu_scores, test_modes=test_modes, title="DDU OOD scores", ax=axes[1])
+plt.tight_layout()
 plt.show()
 
+# %% [markdown]
+# Both methods improve oveconfidence out-of-distribution! While the Mahalanobis distance is not able to remedy overconfidence closeby and between the moons, DDU manages to remedy this too. 
+
 
 # %% [markdown]
-# We will now see a different way of obtaining improved uncertainty estimation
-# (for out-of-distribution inputs): [SNGP](https://arxiv.org/abs/2006.10108).
-# Unlike before, we now have to retrain the model as the architecture will slighly change.
-# The reason for this will be clear from the model definition below.
-
-# %% [markdown]
-# ### Define the SNGP model
-# Compared to the deterministic model obtained in the first part of this notebook, SNGP has two crucial differences:
+# ### The SNGP model
+# We will now explore a different method designed to remedy overconfidence OOD, namely **Spectral Normalization Gaussian Process (SNGP)** [[Liu et al., 2020]](https://arxiv.org/abs/2006.10108).
 #
-#   1. [Spectral Normalization](https://arxiv.org/abs/1802.05957) is applied to all Dense (or Convolutional) layers.
+# SNGP is characterized by two main features:
+#
+#   1. A spectral normalization is applied to all Dense (or Convolutional) layers of the deep learning model.
 #   2. The Dense output layer is replaced with a Gaussian Process layer.
 #
-# Let's see how to do it in Fortuna:
+# Let's see how use SNGP in Fortuna.
 
 # %% [markdown]
 # In order to add Spectral Normalization to a deterministic network we just need to define a new deep feature extractor,
@@ -306,13 +326,11 @@ prob_model = ProbClassifier(
 )
 
 # %% [markdown]
-# Notice that the only required argument when initializing `SNGPPosteriorApproximator` is
-# `output_dim`, which should be set to the number of classes in the classification task.
-# `SNGPPosteriorApproximator` has more optional parameters that you can play with, to gain a better understanding of those you can
-# check out the documentation and/or the [original paper](https://arxiv.org/abs/2006.10108).
+# The only required argument when initializing `SNGPPosteriorApproximator` is
+# `output_dim`, which should be set to the number of classes in the classification task. Other hyperparameters can be set to further improve performance - for a better understanding of these, check [[Liu et al., 2020]](https://arxiv.org/abs/2006.10108).
 
 # %% [markdown]
-# We are now ready to train the model as we usually do:
+# We are now ready to train the model as usual:
 
 # %%
 status = prob_model.train(
@@ -326,12 +344,25 @@ status = prob_model.train(
 )
 
 # %%
-test_modes = compute_test_modes(prob_model, test_data_loader)
+test_sngp_modes = compute_test_modes(prob_model, test_data_loader)
 grid, grid_inputs_loader = get_grid_inputs_loader(grid_size=100)
-grid_entropies = prob_model.predictive.entropy(grid_inputs_loader)
-plot_uncertainty_over_grid(grid=grid, scores=grid_entropies, test_modes=test_modes)
+grid_sngp_entropies = prob_model.predictive.entropy(grid_inputs_loader)
+plot_uncertainty_over_grid(grid=grid, scores=grid_sngp_entropies, test_modes=test_sngp_modes, title="Predictive uncertainty with SNGP")
 plt.show()
 
 # %% [markdown]
+# Similarly to the Mahalanobis and DDU methods above, SNGP also manages to remedy overconfidence. The uncertainty provided by SNGP appears similarly good to the scores obtain from DDU above, but smoother and less prone to overfitting.
 
-# We can clearly see that the SNGP model provides much better uncertainty estimates compared to the deterministic one.
+# %% [markdown]
+# The following figure compares all the figures obtained above in one place.
+
+# %%
+fig, axes = plt.subplots(1, 4, figsize=(20, 5))
+plot_uncertainty_over_grid(grid=grid, scores=grid_entropies, test_modes=test_modes, title="Predictive uncertainty with MAP", ax=axes[0])
+plot_uncertainty_over_grid(grid=grid, scores=grid_maha_scores, test_modes=test_modes, title="Mahalanobis OOD scores", ax=axes[1])
+plot_uncertainty_over_grid(grid=grid, scores=grid_ddu_scores, test_modes=test_modes, title="DDU OOD scores", ax=axes[2])
+plot_uncertainty_over_grid(grid=grid, scores=grid_sngp_entropies, test_modes=test_sngp_modes, title="Predictive uncertainty with SNGP", ax=axes[3])
+plt.tight_layout()
+plt.show()
+
+# %%
