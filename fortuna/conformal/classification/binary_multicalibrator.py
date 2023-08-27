@@ -5,8 +5,8 @@ from typing import (
     Union,
 )
 
-import jax.numpy as jnp
 from jax import random
+import jax.numpy as jnp
 
 from fortuna.conformal.multivalid.multicalibrator import Multicalibrator
 from fortuna.typing import Array
