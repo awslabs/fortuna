@@ -6,6 +6,7 @@ from typing import (
 )
 
 import jax.numpy as jnp
+from jax import random
 
 from fortuna.conformal.multivalid.multicalibrator import Multicalibrator
 from fortuna.typing import Array
@@ -60,6 +61,22 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
     def mean_squared_error(self, probs: Array, targets: Array) -> Array:
         return super().mean_squared_error(values=probs, scores=targets)
 
+    def init_probs(self, size: int) -> Array:
+        """
+        Initialize probabilities.
+
+        Parameters
+        ----------
+        size: int
+            Number of data points.
+
+        Returns
+        -------
+        Array
+            A probability for each data point.
+        """
+        return self._maybe_init_values(values=None, size=size)
+
     @staticmethod
     def _check_scores(scores: Array):
         if scores.ndim != 1:
@@ -96,5 +113,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
                 raise ValueError(
                     "If `values` is not provided, `size` must be provided."
                 )
-            return 0.5 * jnp.ones(size)
+            values = 0.5 * jnp.ones(size)
+            values += 0.01 * random.normal(random.PRNGKey(0), shape=values.shape)
+
         return jnp.copy(values)
