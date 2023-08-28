@@ -306,6 +306,8 @@ class MultivalidMethod:
 
     @staticmethod
     def _mean_squared_error(values: Array, scores: Array) -> Array:
+        if scores.ndim == 2 and values.ndim == 1:
+            scores = scores[:, 0]
         return jnp.mean((values - scores) ** 2)
 
     @property
