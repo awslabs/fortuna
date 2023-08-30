@@ -97,3 +97,13 @@ For regression:
 - **Adaptive conformal inference** `[Gibbs et al., 2021] <https://proceedings.neurips.cc/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html>`_
     A method for conformal prediction that aims at correcting the coverage of conformal prediction methods in a
     sequential prediction framework (e.g. time series forecasting) when the distribution of the data shifts over time.
+
+Out-of-distribution (OOD) detection
+-----------------------------------
+We support the following methods for OOD detection in classification:
+
+- **Mahalanobis distance classifier** `[Lee et al., 2018] <https://proceedings.neurips.cc/paper/2018/file/abdeb6f575ac5c6676b747bca8d09cc2-Paper.pdf>`_
+    A classifier based on the Mahalanobis distance. It estimates an OOD score for each input.
+
+- **Deep Deterministic Uncertainty (DDU)** `[Mukhoti et al., 2022] <https://arxiv.org/abs/2102.11582>`_
+    Similar to the Mahalanobis distance classifier, it fits a Gaussian for each label and estimates an OOD score for each input.
