@@ -42,6 +42,7 @@ class TopLabelMulticalibrator(Multicalibrator):
         tol: float = 1e-4,
         n_buckets: int = 100,
         n_rounds: int = 1000,
+        eta: float = 1.0,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         return super().calibrate(
@@ -53,6 +54,7 @@ class TopLabelMulticalibrator(Multicalibrator):
             tol=tol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
+            eta=eta,
             **kwargs,
         )
 
@@ -93,11 +95,11 @@ class TopLabelMulticalibrator(Multicalibrator):
         )
 
     def _patch(
-        self, values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False
+        self, values: Array, patch: Array, bt: Array, ct: Array, eta: float
     ) -> Array:
         if jnp.all(~jnp.isnan(values)) and jnp.all(values.sum(1, keepdims=True) != 0.0):
             values /= values.sum(1, keepdims=True)
-        return super()._patch(values=values, patch=patch, bt=bt, ct=ct, _shift=_shift)
+        return super()._patch(values=values, patch=patch, bt=bt, ct=ct, eta=eta)
 
     @staticmethod
     def _check_scores(scores: Array):

@@ -36,6 +36,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         tol: float = 1e-4,
         n_buckets: int = 100,
         n_rounds: int = 1000,
+        eta: float = 1.0,
         coverage: float = 0.95,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -68,6 +69,8 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             tolerance. Such number of buckets is guaranteed to exist.
         n_rounds: int
             The maximum number of rounds to run the method for.
+        eta: float
+            Step size. By default, this is set to 1.
         coverage: float
             The desired level of coverage. This must be a scalar between 0 and 1.
         Returns
@@ -88,6 +91,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             tol=tol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
+            eta=eta,
             coverage=coverage,
         )
 
