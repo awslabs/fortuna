@@ -17,6 +17,7 @@ class MultivalidMethod:
     def __init__(self):
         self._patches = []
         self._n_buckets = None
+        self._eta = None
 
     def calibrate(
         self,
@@ -28,6 +29,7 @@ class MultivalidMethod:
         tol: float = 1e-4,
         n_buckets: int = 100,
         n_rounds: int = 1000,
+        eta: float = 1.0,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -57,6 +59,9 @@ class MultivalidMethod:
             The number of buckets used in the algorithm.
         n_rounds: int
             The maximum number of rounds to run the method for.
+        eta: float
+            Step size. By default, this is set to 1.
+
         Returns
         -------
         Union[Dict, Tuple[Array, Dict]]
@@ -85,6 +90,10 @@ class MultivalidMethod:
             raise ValueError(
                 "If `groups` and `test_values` are provided, `test_groups` must also be provided."
             )
+        if eta < 0 or eta > 1:
+            raise ValueError(
+                "`eta` must be a float between 0 and 1, extremes included."
+            )
         self._check_scores(scores)
         scores = self._process_scores(scores)
         n_dims = scores.shape[1]
@@ -99,6 +108,8 @@ class MultivalidMethod:
         self.n_buckets = n_buckets
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
+
+        self._eta = eta
 
         max_calib_errors = []
         mean_squared_errors = []
@@ -159,7 +170,7 @@ class MultivalidMethod:
                 buckets=buckets,
                 **kwargs,
             )
-            values = self._patch(values=values, patch=patch, bt=bt, ct=ct)
+            values = self._patch(values=values, patch=patch, bt=bt, ct=ct, eta=eta)
 
             self._patches.append((gt, vt, ct, patch))
 
@@ -224,7 +235,7 @@ class MultivalidMethod:
             bt = self._get_b(
                 groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=self.n_buckets
             )
-            values = self._patch(values=values, patch=patch, bt=bt, ct=ct)
+            values = self._patch(values=values, patch=patch, bt=bt, ct=ct, eta=self.eta)
         return values
 
     def calibration_error(
@@ -240,7 +251,8 @@ class MultivalidMethod:
 
         Parameters
         ----------
-        scores
+        scores: Array
+            A score for each data point.
         groups: Array
             A list of groups :math:`g(x)` evaluated over some inputs.
             This should be a two-dimensional array of bool elements.
@@ -322,6 +334,14 @@ class MultivalidMethod:
     def n_buckets(self, n_buckets):
         self._n_buckets = n_buckets
 
+    @property
+    def eta(self):
+        return self._eta
+
+    @eta.setter
+    def eta(self, eta):
+        self._eta = eta
+
     def _maybe_init_values(self, values: Optional[Array], size: Optional[int] = None):
         if values is None:
             if size is None:
@@ -381,19 +401,17 @@ class MultivalidMethod:
         pass
 
     @staticmethod
-    def _patch(
-        values: Array, patch: Array, bt: Array, ct: Array, _shift: bool = False
-    ) -> Array:
+    def _patch(values: Array, patch: Array, bt: Array, ct: Array, eta: float) -> Array:
         if values.ndim == 1:
             return values.at[bt].set(
                 jnp.minimum(
-                    patch if not _shift else values[bt] + patch,
+                    (1 - eta) * values[bt] + eta * patch,
                     jnp.ones_like(values[bt]),
                 )
             )
         return values.at[bt, ct].set(
             jnp.minimum(
-                patch if not _shift else values[bt, ct] + patch,
+                (1 - eta) * values[bt, ct] + eta * patch,
                 jnp.ones_like(values[bt, ct]),
             )
         )

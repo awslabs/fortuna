@@ -23,6 +23,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
         tol: float = 1e-4,
         n_buckets: int = 100,
         n_rounds: int = 1000,
+        eta: float = 1.0,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         return super().calibrate(
@@ -34,6 +35,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             tol=tol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
+            eta=eta,
             **kwargs,
         )
 
