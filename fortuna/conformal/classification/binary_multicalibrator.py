@@ -20,10 +20,12 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
         probs: Optional[Array] = None,
         test_groups: Optional[Array] = None,
         test_probs: Optional[Array] = None,
-        tol: float = 1e-4,
+        atol: float = 1e-4,
+        rtol: float = 1e-6,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1.0,
+        eta: float = 0.1,
+        split: float = 0.8,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         return super().calibrate(
@@ -32,10 +34,12 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             values=probs,
             test_groups=test_groups,
             test_values=test_probs,
-            tol=tol,
+            atol=atol,
+            rtol=rtol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             eta=eta,
+            split=split,
             **kwargs,
         )
 
@@ -116,6 +120,8 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
                     "If `values` is not provided, `size` must be provided."
                 )
             values = 0.5 * jnp.ones(size)
-            values += 0.01 * random.normal(random.PRNGKey(0), shape=values.shape)
+            values += 0.01 * random.normal(
+                random.PRNGKey(self._seed), shape=values.shape
+            )
 
         return jnp.copy(values)

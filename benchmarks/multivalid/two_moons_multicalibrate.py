@@ -114,17 +114,26 @@ plt.xlabel("prob")
 plt.tight_layout()
 plt.show()
 
-plt.title("Max calibration error decay during calibration")
-plt.semilogy(status["max_calib_errors"])
+plt.title("Mean-squared error decay during calibration")
+plt.semilogy(status["mean_squared_errors"])
 plt.show()
 
 print(
-    "Per-group reweighted avg. squared calib. error before calibration: ",
+    "Per-group reweighted avg. squared calib. error before calibration on test data: ",
     mc.calibration_error(targets=test_targets, groups=test_groups, probs=test_probs),
 )
 print(
-    "Per-group reweighted avg. squared calib. error after calibration: ",
+    "Per-group reweighted avg. squared calib. error after calibration on test data: ",
     mc.calibration_error(
         targets=test_targets, groups=test_groups, probs=calib_test_probs
     ),
+)
+
+print(
+    "Mean-squared error before calibration on test data: ",
+    mc.mean_squared_error(probs=test_probs, targets=test_targets),
+)
+print(
+    "Mean-squared error after calibration on test data: ",
+    mc.mean_squared_error(probs=calib_test_probs, targets=test_targets),
 )

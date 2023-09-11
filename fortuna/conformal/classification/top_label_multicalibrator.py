@@ -18,7 +18,7 @@ from fortuna.typing import Array
 
 
 class TopLabelMulticalibrator(Multicalibrator):
-    def __init__(self, n_classes: int):
+    def __init__(self, n_classes: int, seed: int = 0):
         """
         A multicalibration method that provides multivalid coverage guarantees. See Algorithm 15 in `Aaron Roth's notes
         <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_.
@@ -27,8 +27,10 @@ class TopLabelMulticalibrator(Multicalibrator):
         ----------
         n_classes: int
             Number of classes.
+        seed: int
+            Random seed.
         """
-        super().__init__()
+        super().__init__(seed=seed)
         self._patch_list = []
         self.n_classes = n_classes
 
@@ -39,10 +41,12 @@ class TopLabelMulticalibrator(Multicalibrator):
         probs: Optional[Array] = None,
         test_groups: Optional[Array] = None,
         test_probs: Optional[Array] = None,
-        tol: float = 1e-4,
+        atol: float = 1e-4,
+        rtol: float = 1e-6,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1.0,
+        eta: float = 0.1,
+        split: float = 0.8,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         return super().calibrate(
@@ -51,10 +55,12 @@ class TopLabelMulticalibrator(Multicalibrator):
             values=probs,
             test_groups=test_groups,
             test_values=test_probs,
-            tol=tol,
+            atol=atol,
+            rtol=rtol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             eta=eta,
+            split=split,
             **kwargs,
         )
 
@@ -135,7 +141,9 @@ class TopLabelMulticalibrator(Multicalibrator):
                     "If `values` is not provided, `size` must be provided."
                 )
             values = 1 / self.n_classes * jnp.ones((size, self.n_classes))
-            values += 0.01 * random.normal(random.PRNGKey(0), shape=values.shape)
+            values += 0.01 * random.normal(
+                random.PRNGKey(self._seed), shape=values.shape
+            )
             values = jnp.abs(values)
             values -= 2 * jnp.maximum(0, values - 1)
             values /= values.sum(1, keepdims=True)
