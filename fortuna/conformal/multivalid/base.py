@@ -7,17 +7,28 @@ from typing import (
     Union,
 )
 
-from jax import vmap
+from jax import (
+    random,
+    vmap,
+)
 import jax.numpy as jnp
 
 from fortuna.typing import Array
 
 
 class MultivalidMethod:
-    def __init__(self):
+    def __init__(self, seed: int = 0):
+        """
+        A base multivalid method.
+        Parameters
+        ----------
+        seed: int
+            Random seed.
+        """
         self._patches = []
         self._n_buckets = None
         self._eta = None
+        self._seed = seed
 
     def calibrate(
         self,
@@ -26,10 +37,12 @@ class MultivalidMethod:
         values: Optional[Array] = None,
         test_groups: Optional[Array] = None,
         test_values: Optional[Array] = None,
-        tol: float = 1e-4,
+        atol: float = 1e-4,
+        rtol: float = 1e-6,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1.0,
+        eta: float = 0.1,
+        split: float = 0.8,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -53,14 +66,19 @@ class MultivalidMethod:
             The first dimension is over the data points, the second dimension is over the number of groups.
         test_values: Optional[Array]
             The initial model evaluations :math:`f(x)` on the test data. If not provided, these are set to 0.
-        tol: float
-            A tolerance on the reweighted average squared calibration error, i.e. :math:`\mu(g) K_2(f, g, \mathcal{D})`.
+        atol: float
+            Absolute tolerance on the mean squared error.
+        rtol: float
+            Relative tolerance on the mean squared error.
         n_buckets: int
             The number of buckets used in the algorithm.
         n_rounds: int
             The maximum number of rounds to run the method for.
         eta: float
             Step size. By default, this is set to 1.
+        split: float
+            Split the calibration data into calibration and validation, according to the given proportion.
+            The validation data will be used for early stopping.
 
         Returns
         -------
@@ -69,8 +87,6 @@ class MultivalidMethod:
             during the training procedure. if `test_values` and `test_groups` are provided, the list of patches will
             be applied to `test_values`, and the calibrated test values will be returned together with the status.
         """
-        if tol >= 1:
-            raise ValueError("`tol` must be smaller than 1.")
         if n_rounds < 1:
             raise ValueError("`n_rounds` must be at least 1.")
 
@@ -90,9 +106,13 @@ class MultivalidMethod:
             raise ValueError(
                 "If `groups` and `test_values` are provided, `test_groups` must also be provided."
             )
-        if eta < 0 or eta > 1:
+        if eta <= 0 or eta > 1:
             raise ValueError(
-                "`eta` must be a float between 0 and 1, extremes included."
+                "`eta` must be a float greater than 0 and less or equal than 1."
+            )
+        if split <= 0 or split > 1:
+            raise ValueError(
+                "`split` must be a float greater than 0 and less or equal than 1."
             )
         self._check_scores(scores)
         scores = self._process_scores(scores)
@@ -111,13 +131,43 @@ class MultivalidMethod:
 
         self._eta = eta
 
-        max_calib_errors = []
-        mean_squared_errors = []
-        old_calib_errors_gvc = None
+        size = len(scores)
+        calib_size = int(jnp.ceil(split * size))
+        perm = random.choice(
+            random.PRNGKey(self._seed), size, shape=(size,), replace=False
+        )
+        scores, val_scores = scores[perm[:calib_size]], scores[perm[calib_size:]]
+        values, val_values = values[perm[:calib_size]], values[perm[calib_size:]]
+        groups, val_groups = groups[perm[:calib_size]], groups[perm[calib_size:]]
+
+        mses = []
+        old_mse, old_val_mse = jnp.inf, jnp.inf
         self._patches = []
         converged = False
 
         for t in range(n_rounds):
+            mses.append(float(self._mean_squared_error(values, scores)))
+            val_mse = float(self._mean_squared_error(val_values, val_scores))
+            if mses[-1] > old_mse:
+                logging.warning(
+                    "The algorithm cannot achieve the desired tolerance. "
+                    "Please try increasing `n_buckets`."
+                )
+                break
+            if mses[-1] <= atol:
+                logging.info(f"Absolute tolerance satisfied after {t} rounds.")
+                converged = True
+                break
+            if (old_mse - mses[-1]) / old_mse <= rtol:
+                logging.info(f"Relative tolerance satisfied after {t} rounds.")
+                converged = True
+                break
+            if val_mse > old_val_mse:
+                logging.info(f"Early stoping triggered after {t} rounds.")
+                break
+            old_mse = jnp.copy(mses[-1])
+            old_val_mse = jnp.copy(val_mse)
+
             calib_error_gvc = vmap(
                 lambda g: vmap(
                     lambda v: vmap(
@@ -134,22 +184,6 @@ class MultivalidMethod:
                     )(jnp.arange(n_dims))
                 )(buckets)
             )(jnp.arange(n_groups))
-
-            max_calib_errors.append(float(calib_error_gvc.sum(1).max()))
-            mean_squared_errors.append(float(self._mean_squared_error(values, scores)))
-            if max_calib_errors[-1] <= tol:
-                logging.info(f"Tolerance satisfied after {t} rounds.")
-                converged = True
-                break
-            if old_calib_errors_gvc is not None and jnp.allclose(
-                old_calib_errors_gvc, calib_error_gvc
-            ):
-                logging.warning(
-                    "The algorithm cannot achieve the desired tolerance. "
-                    "Please try increasing `n_buckets`."
-                )
-                break
-            old_calib_errors_gvc = jnp.copy(calib_error_gvc)
 
             gt, vt, ct = self._get_gt_and_vt_and_ct(
                 calib_error_gvc=calib_error_gvc,
@@ -174,10 +208,21 @@ class MultivalidMethod:
 
             self._patches.append((gt, vt, ct, patch))
 
+            val_bt = self._get_b(
+                groups=val_groups,
+                values=val_values,
+                v=vt,
+                g=gt,
+                c=ct,
+                n_buckets=self.n_buckets,
+            )
+            val_values = self._patch(
+                values=val_values, patch=patch, bt=val_bt, ct=ct, eta=self.eta
+            )
+
         status = dict(
             n_rounds=len(self.patches),
-            max_calib_errors=max_calib_errors,
-            mean_squared_errors=mean_squared_errors,
+            mean_squared_errors=mses,
             converged=converged,
         )
 

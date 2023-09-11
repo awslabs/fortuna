@@ -26,17 +26,18 @@
 import numpy as np
 
 
-def generate_data(n_data: int, sigma1=0.03, sigma2=0.5):
+def generate_data(n_data: int, sigma1=0.03, sigma2=0.5, seed: int = 43):
+    rng = np.random.default_rng(seed=seed)
     x = np.concatenate(
         [
-            np.random.normal(loc=-1, scale=0.3, size=(n_data // 2, 1)),
-            np.random.normal(loc=1, scale=0.3, size=(n_data - n_data // 2, 1)),
+            rng.normal(loc=-1, scale=0.3, size=(n_data // 2, 1)),
+            rng.normal(loc=1, scale=0.3, size=(n_data - n_data // 2, 1)),
         ]
     )
     y = np.cos(x) + np.concatenate(
         [
-            np.random.normal(scale=sigma1, size=(n_data // 2, 1)),
-            np.random.normal(scale=sigma2, size=(n_data - n_data // 2, 1)),
+            rng.normal(scale=sigma1, size=(n_data // 2, 1)),
+            rng.normal(scale=sigma2, size=(n_data - n_data // 2, 1)),
         ]
     )
     return x, y
@@ -227,7 +228,7 @@ test_groups = jnp.stack([g(test_data[0]) for g in group_fns], axis=1)
 
 batchmvp = BatchMVPConformalRegressor()
 test_thresholds, status = batchmvp.calibrate(
-    scores=scores, groups=groups, test_groups=test_groups, n_buckets=300
+    scores=scores, groups=groups, test_groups=test_groups, n_buckets=100, eta=1
 )
 test_thresholds = min_score + (max_score - min_score) * test_thresholds
 
@@ -236,7 +237,7 @@ test_thresholds = min_score + (max_score - min_score) * test_thresholds
 
 # %%
 plt.figure(figsize=(6, 3))
-plt.plot(status["max_calib_errors"], label="maximum calibration error decay")
+plt.plot(status["mean_squared_errors"], label="mean squared error decay")
 plt.xlabel("rounds")
 plt.legend()
 plt.show()
