@@ -7,12 +7,17 @@ from fortuna.typing import Array
 
 
 class Multicalibrator(MultivalidMethod):
-    def __init__(self):
+    def __init__(self, seed: int = 0):
         """
         A multicalibration method that provides multivalid coverage guarantees. See Algorithm 15 in `Aaron Roth's notes
         <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_.
+
+        Parameters
+        ----------
+        seed: int
+            Random seed.
         """
-        super().__init__()
+        super().__init__(seed=seed)
         self._patch_list = []
 
     def _calibration_error(

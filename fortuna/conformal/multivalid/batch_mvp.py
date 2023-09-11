@@ -16,14 +16,20 @@ from fortuna.typing import Array
 class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
     def __init__(
         self,
+        seed: int = 0
     ):
         """
         This class implements a classification version of BatchMVP
         `[Jung et al., 2022] <https://arxiv.org/abs/2209.15145>`_,
         a multivalid conformal prediction method that satisfies coverage guarantees conditioned on group membership
         and non-conformity threshold.
+
+        Parameters
+        ----------
+        seed: int
+            Random seed.
         """
-        super().__init__()
+        super().__init__(seed=seed)
         self._coverage = None
 
     def calibrate(
@@ -33,7 +39,8 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         thresholds: Optional[Array] = None,
         test_groups: Optional[Array] = None,
         test_thresholds: Optional[Array] = None,
-        tol: float = 1e-4,
+        atol: float = 1e-4,
+        rtol: float = 1e-6,
         n_buckets: int = 100,
         n_rounds: int = 1000,
         eta: float = 1.0,
@@ -60,8 +67,10 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             The first dimension is over the data points, the second dimension is over the number of groups.
         test_thresholds: Optional[Array]
             The initial model evaluations :math:`f(x)` on the test data. If not provided, these are set to 0.
-        tol: float
-            A tolerance on the reweighted average squared calibration error, i.e. :math:`\mu(g) K_2(f, g, \mathcal{D})`.
+        atol: float
+            Absolute tolerance on the mean squared error.
+        rtol: float
+            Relative tolerance on the mean squared error.
         n_buckets: int
             The number of buckets used in the algorithm. The smaller the number of buckets, the simpler the model,
             the better its generalization abilities. If not provided, We start from 2 buckets, and progressively double
@@ -88,7 +97,8 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             values=thresholds,
             test_groups=test_groups,
             test_values=test_thresholds,
-            tol=tol,
+            atol=atol,
+            rtol=rtol,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             eta=eta,
