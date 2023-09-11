@@ -40,7 +40,8 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         rtol: float = 1e-6,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1.0,
+        eta: float = 0.1,
+        split: float = 0.8,
         coverage: float = 0.95,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -77,6 +78,9 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             The maximum number of rounds to run the method for.
         eta: float
             Step size. By default, this is set to 1.
+        split: float
+            Split the calibration data into calibration and validation, according to the given proportion.
+            The validation data will be used for early stopping.
         coverage: float
             The desired level of coverage. This must be a scalar between 0 and 1.
         Returns
@@ -99,6 +103,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             eta=eta,
+            split=split,
             coverage=coverage,
         )
 

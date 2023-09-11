@@ -41,7 +41,7 @@ class MultivalidMethod:
         rtol: float = 1e-6,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1.0,
+        eta: float = 0.1,
         split: float = 0.8,
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
@@ -106,12 +106,14 @@ class MultivalidMethod:
             raise ValueError(
                 "If `groups` and `test_values` are provided, `test_groups` must also be provided."
             )
-        if eta < 0 or eta > 1:
+        if eta <= 0 or eta > 1:
             raise ValueError(
-                "`eta` must be a float between 0 and 1, extremes included."
+                "`eta` must be a float greater than 0 and less or equal than 1."
             )
         if split <= 0 or split > 1:
-            raise ValueError("`split` must be greater than 0 and less or equal than 1.")
+            raise ValueError(
+                "`split` must be a float greater than 0 and less or equal than 1."
+            )
         self._check_scores(scores)
         scores = self._process_scores(scores)
         n_dims = scores.shape[1]
