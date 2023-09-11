@@ -14,10 +14,7 @@ from fortuna.typing import Array
 
 
 class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
-    def __init__(
-        self,
-        seed: int = 0
-    ):
+    def __init__(self, seed: int = 0):
         """
         This class implements a classification version of BatchMVP
         `[Jung et al., 2022] <https://arxiv.org/abs/2209.15145>`_,

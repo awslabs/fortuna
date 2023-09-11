@@ -7,7 +7,10 @@ from typing import (
     Union,
 )
 
-from jax import vmap, random
+from jax import (
+    random,
+    vmap,
+)
 import jax.numpy as jnp
 
 from fortuna.typing import Array
@@ -108,9 +111,7 @@ class MultivalidMethod:
                 "`eta` must be a float between 0 and 1, extremes included."
             )
         if split <= 0 or split > 1:
-            raise ValueError(
-                "`split` must be greater than 0 and less or equal than 1."
-            )
+            raise ValueError("`split` must be greater than 0 and less or equal than 1.")
         self._check_scores(scores)
         scores = self._process_scores(scores)
         n_dims = scores.shape[1]
@@ -130,7 +131,9 @@ class MultivalidMethod:
 
         size = len(scores)
         calib_size = int(jnp.ceil(split * size))
-        perm = random.choice(random.PRNGKey(self._seed), size, shape=(size,), replace=False)
+        perm = random.choice(
+            random.PRNGKey(self._seed), size, shape=(size,), replace=False
+        )
         scores, val_scores = scores[perm[:calib_size]], scores[perm[calib_size:]]
         values, val_values = values[perm[:calib_size]], values[perm[calib_size:]]
         groups, val_groups = groups[perm[:calib_size]], groups[perm[calib_size:]]
@@ -204,9 +207,16 @@ class MultivalidMethod:
             self._patches.append((gt, vt, ct, patch))
 
             val_bt = self._get_b(
-                groups=val_groups, values=val_values, v=vt, g=gt, c=ct, n_buckets=self.n_buckets
+                groups=val_groups,
+                values=val_values,
+                v=vt,
+                g=gt,
+                c=ct,
+                n_buckets=self.n_buckets,
             )
-            val_values = self._patch(values=val_values, patch=patch, bt=val_bt, ct=ct, eta=self.eta)
+            val_values = self._patch(
+                values=val_values, patch=patch, bt=val_bt, ct=ct, eta=self.eta
+            )
 
         status = dict(
             n_rounds=len(self.patches),

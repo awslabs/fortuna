@@ -118,6 +118,8 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
                     "If `values` is not provided, `size` must be provided."
                 )
             values = 0.5 * jnp.ones(size)
-            values += 0.01 * random.normal(random.PRNGKey(self._seed), shape=values.shape)
+            values += 0.01 * random.normal(
+                random.PRNGKey(self._seed), shape=values.shape
+            )
 
         return jnp.copy(values)

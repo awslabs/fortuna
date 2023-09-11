@@ -139,7 +139,9 @@ class TopLabelMulticalibrator(Multicalibrator):
                     "If `values` is not provided, `size` must be provided."
                 )
             values = 1 / self.n_classes * jnp.ones((size, self.n_classes))
-            values += 0.01 * random.normal(random.PRNGKey(self._seed), shape=values.shape)
+            values += 0.01 * random.normal(
+                random.PRNGKey(self._seed), shape=values.shape
+            )
             values = jnp.abs(values)
             values -= 2 * jnp.maximum(0, values - 1)
             values /= values.sum(1, keepdims=True)
