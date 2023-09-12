@@ -282,13 +282,14 @@ class MultivalidMethod:
             raise ValueError(
                 "At least one between `groups` and `values` must be provided."
             )
-        if not len(self._patches):
-            logging.warning("No patches available.")
-            return values
         values = self._maybe_init_values(
             values, groups.shape[0] if groups is not None else None
         )
         self._maybe_check_values(values)
+
+        if not len(self._patches):
+            logging.warning("No patches available.")
+            return values
 
         groups = self._init_groups(groups, values.shape[0])
         self._maybe_check_groups(groups)
@@ -345,7 +346,7 @@ class MultivalidMethod:
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
-        return vmap(
+        error, b = vmap(
             lambda g: vmap(
                 lambda v: vmap(
                     lambda c: self._calibration_error(
@@ -360,7 +361,8 @@ class MultivalidMethod:
                     )
                 )(jnp.arange(n_dims))
             )(buckets)
-        )(jnp.arange(groups.shape[1])).sum(1)
+        )(jnp.arange(groups.shape[1]))
+        return error.sum(1)
 
     def mean_squared_error(self, values: Array, scores: Array) -> Array:
         """
