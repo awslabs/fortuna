@@ -12,6 +12,7 @@ from jax import (
     vmap,
 )
 import jax.numpy as jnp
+import numpy as np
 
 from fortuna.typing import Array
 
@@ -39,6 +40,7 @@ class MultivalidMethod:
         test_values: Optional[Array] = None,
         atol: float = 1e-4,
         rtol: float = 1e-6,
+        min_b_size: Union[float, int] = 0.1,
         n_buckets: int = 100,
         n_rounds: int = 1000,
         eta: float = 0.1,
@@ -70,6 +72,9 @@ class MultivalidMethod:
             Absolute tolerance on the mean squared error.
         rtol: float
             Relative tolerance on the mean squared error.
+        min_b_size: Union[float, int]
+            Minimum number of data points affected by a patch, for the patch itself to be applied. It can be expressed
+            as an integer or as a proportion of the calibration data.
         n_buckets: int
             The number of buckets used in the algorithm.
         n_rounds: int
@@ -108,12 +113,22 @@ class MultivalidMethod:
             )
         if eta <= 0 or eta > 1:
             raise ValueError(
-                "`eta` must be a float greater than 0 and less or equal than 1."
+                "`eta` must be a float greater than 0 and less than or equal to 1."
             )
-        if split <= 0 or split > 1:
+        if split <= 0 or split >= 1:
+            raise ValueError("`split` must be a float greater than 0 and less than 1.")
+        if isinstance(min_b_size, float) and (min_b_size < 0 or min_b_size > 1):
             raise ValueError(
-                "`split` must be a float greater than 0 and less or equal than 1."
+                "`min_b_size`, expressed as a proportion of the calibration data, must be greater than or "
+                "equal to zero and less than or equal to 1."
             )
+        elif isinstance(min_b_size, int) and min_b_size < 1:
+            raise ValueError("`min_b_size` should be at least 1.")
+        elif not isinstance(min_b_size, int) and not isinstance(min_b_size, float):
+            raise ValueError(
+                "`min_b_size` must be an integer or a float between 0 and 1."
+            )
+
         self._check_scores(scores)
         scores = self._process_scores(scores)
         n_dims = scores.shape[1]
@@ -133,6 +148,10 @@ class MultivalidMethod:
 
         size = len(scores)
         calib_size = int(jnp.ceil(split * size))
+
+        if isinstance(min_b_size, float):
+            min_b_size = int(calib_size * min_b_size)
+
         perm = random.choice(
             random.PRNGKey(self._seed), size, shape=(size,), replace=False
         )
@@ -140,35 +159,13 @@ class MultivalidMethod:
         values, val_values = values[perm[:calib_size]], values[perm[calib_size:]]
         groups, val_groups = groups[perm[:calib_size]], groups[perm[calib_size:]]
 
-        mses = []
-        old_mse, old_val_mse = jnp.inf, jnp.inf
+        val_mses = [float(self._mean_squared_error(val_values, val_scores))]
+        old_mse = float(self._mean_squared_error(values, scores))
         self._patches = []
         converged = False
 
         for t in range(n_rounds):
-            mses.append(float(self._mean_squared_error(values, scores)))
-            val_mse = float(self._mean_squared_error(val_values, val_scores))
-            if mses[-1] > old_mse:
-                logging.warning(
-                    "The algorithm cannot achieve the desired tolerance. "
-                    "Please try increasing `n_buckets`."
-                )
-                break
-            if mses[-1] <= atol:
-                logging.info(f"Absolute tolerance satisfied after {t} rounds.")
-                converged = True
-                break
-            if (old_mse - mses[-1]) / old_mse <= rtol:
-                logging.info(f"Relative tolerance satisfied after {t} rounds.")
-                converged = True
-                break
-            if val_mse > old_val_mse:
-                logging.info(f"Early stoping triggered after {t} rounds.")
-                break
-            old_mse = jnp.copy(mses[-1])
-            old_val_mse = jnp.copy(val_mse)
-
-            calib_error_gvc = vmap(
+            calib_error_gvc, b = vmap(
                 lambda g: vmap(
                     lambda v: vmap(
                         lambda c: self._calibration_error(
@@ -185,19 +182,20 @@ class MultivalidMethod:
                 )(buckets)
             )(jnp.arange(n_groups))
 
-            gt, vt, ct = self._get_gt_and_vt_and_ct(
+            gt, vt, ct, bt = self._get_gt_and_vt_and_ct_and_bt(
                 calib_error_gvc=calib_error_gvc,
                 buckets=buckets,
                 n_groups=n_groups,
                 n_dims=n_dims,
+                b=b,
+                min_b_size=min_b_size,
             )
-            bt = self._get_b(
-                groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=len(buckets)
-            )
+
             patch = self._get_patch(
                 vt=vt,
                 gt=gt,
                 ct=ct,
+                bt=bt,
                 scores=scores[:, ct],
                 groups=groups,
                 values=values,
@@ -205,8 +203,6 @@ class MultivalidMethod:
                 **kwargs,
             )
             values = self._patch(values=values, patch=patch, bt=bt, ct=ct, eta=eta)
-
-            self._patches.append((gt, vt, ct, patch))
 
             val_bt = self._get_b(
                 groups=val_groups,
@@ -220,15 +216,39 @@ class MultivalidMethod:
                 values=val_values, patch=patch, bt=val_bt, ct=ct, eta=self.eta
             )
 
+            mse = float(self._mean_squared_error(values, scores))
+            val_mses.append(float(self._mean_squared_error(val_values, val_scores)))
+            if mse > old_mse:
+                logging.warning(
+                    "The algorithm cannot achieve the desired tolerance. "
+                    "Please try increasing `n_buckets`."
+                )
+                break
+            if val_mses[-1] <= atol:
+                logging.info(f"Absolute tolerance satisfied after {t} rounds.")
+                converged = True
+                break
+            if val_mses[-1] > val_mses[-2]:
+                logging.info(f"Early stoping triggered after {t} rounds.")
+                break
+            if jnp.any(val_bt) and (val_mses[-2] - val_mses[-1]) / val_mses[-2] <= rtol:
+                logging.info(f"Relative tolerance satisfied after {t} rounds.")
+                converged = True
+                break
+            old_mse = jnp.copy(mse)
+
+            self._patches.append((gt, vt, ct, patch))
+
         status = dict(
             n_rounds=len(self.patches),
-            mean_squared_errors=mses,
+            mean_squared_errors=val_mses,
             converged=converged,
         )
 
         if t == n_rounds - 1 and not converged:
             logging.warning(
-                "Maximum number of rounds reached without convergence. Consider increasing `n_rounds`."
+                "Maximum number of rounds reached without convergence. "
+                "Consider adjusting the hyperparameters, such as `n_buckets` and `min_b_size`."
             )
 
         if test_groups is not None or test_values is not None:
@@ -262,13 +282,14 @@ class MultivalidMethod:
             raise ValueError(
                 "At least one between `groups` and `values` must be provided."
             )
-        if not len(self._patches):
-            logging.warning("No patches available.")
-            return values
         values = self._maybe_init_values(
             values, groups.shape[0] if groups is not None else None
         )
         self._maybe_check_values(values)
+
+        if not len(self._patches):
+            logging.warning("No patches available.")
+            return values
 
         groups = self._init_groups(groups, values.shape[0])
         self._maybe_check_groups(groups)
@@ -325,7 +346,7 @@ class MultivalidMethod:
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
-        return vmap(
+        error, b = vmap(
             lambda g: vmap(
                 lambda v: vmap(
                     lambda c: self._calibration_error(
@@ -340,7 +361,8 @@ class MultivalidMethod:
                     )
                 )(jnp.arange(n_dims))
             )(buckets)
-        )(jnp.arange(groups.shape[1])).sum(1)
+        )(jnp.arange(groups.shape[1]))
+        return error.sum(1)
 
     def mean_squared_error(self, values: Array, scores: Array) -> Array:
         """
@@ -411,14 +433,21 @@ class MultivalidMethod:
         pass
 
     @staticmethod
-    def _get_gt_and_vt_and_ct(
-        calib_error_gvc: Array, buckets: Array, n_groups: int, n_dims: int
+    def _get_gt_and_vt_and_ct_and_bt(
+        calib_error_gvc: Array,
+        buckets: Array,
+        n_groups: int,
+        n_dims: int,
+        b: Array,
+        min_b_size: int,
     ) -> Tuple[Array, Array, Array]:
+        calib_error_gvc *= jnp.sum(b, axis=-1) >= min_b_size
+
         gt, idx_vt, ct = jnp.unravel_index(
             jnp.argmax(calib_error_gvc), (n_groups, len(buckets), n_dims)
         )
         vt = buckets[idx_vt]
-        return gt, vt, ct
+        return gt, vt, ct, b[gt, idx_vt, ct]
 
     @staticmethod
     def _get_b(
