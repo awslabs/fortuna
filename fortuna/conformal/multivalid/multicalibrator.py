@@ -31,7 +31,7 @@ class Multicalibrator(MultivalidMethod):
         n_buckets: int,
         **kwargs,
     ):
-        expectation_error, prob_b = self._compute_expectation_error(
+        expectation_error, b, prob_b = self._compute_expectation_error(
             v=v,
             g=g,
             c=c,
@@ -41,7 +41,7 @@ class Multicalibrator(MultivalidMethod):
             n_buckets=n_buckets,
             return_prob_b=True,
         )
-        return prob_b * expectation_error
+        return prob_b * expectation_error, b
 
     def _compute_expectation_error(
         self,
@@ -53,6 +53,7 @@ class Multicalibrator(MultivalidMethod):
         values: Array,
         n_buckets: int,
         return_prob_b: bool = False,
+        b: Optional[Array] = None,
     ):
         mean = self._compute_expectation(
             v=v,
@@ -63,11 +64,13 @@ class Multicalibrator(MultivalidMethod):
             values=values,
             n_buckets=n_buckets,
             return_prob_b=return_prob_b,
+            b=b,
         )
         if return_prob_b:
-            mean, prob_b = mean
-            return (v - mean) ** 2, prob_b
-        return (v - mean) ** 2
+            mean, b, prob_b = mean
+            return (v - mean) ** 2, b, prob_b
+        mean, b = mean
+        return (v - mean) ** 2, b
 
     def _compute_expectation(
         self,
@@ -79,33 +82,37 @@ class Multicalibrator(MultivalidMethod):
         values: Array,
         n_buckets: int,
         return_prob_b: bool = False,
+        b: Optional[Array] = None,
     ):
-        b = self._get_b(
-            groups=groups, values=values, v=v, g=g, c=c, n_buckets=n_buckets
-        )
+        if b is None:
+            b = self._get_b(
+                groups=groups, values=values, v=v, g=g, c=c, n_buckets=n_buckets
+            )
         filtered_scores = scores * b
         prob_b = jnp.mean(b)
         mean = jnp.where(prob_b > 0, jnp.mean(filtered_scores) / prob_b, 0.0)
 
         if return_prob_b:
-            return mean, prob_b
-        return mean
+            return mean, b, prob_b
+        return mean, b
 
     def _get_patch(
         self,
         vt: Array,
         gt: Array,
         ct: Array,
+        bt: Array,
         scores: Array,
         groups: Array,
         values: Array,
         buckets: Array,
         **kwargs,
     ) -> Array:
-        patch = self._compute_expectation(
+        patch, bt = self._compute_expectation(
             v=vt,
             g=gt,
             c=ct,
+            b=bt,
             scores=scores,
             groups=groups,
             values=values,
