@@ -38,6 +38,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         test_thresholds: Optional[Array] = None,
         atol: float = 1e-4,
         rtol: float = 1e-6,
+        min_b_size: Union[float, int] = 0.1,
         n_buckets: int = 100,
         n_rounds: int = 1000,
         eta: float = 0.1,
@@ -100,6 +101,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             test_values=test_thresholds,
             atol=atol,
             rtol=rtol,
+            min_b_size=min_b_size,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             eta=eta,
@@ -146,7 +148,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         coverage: float = None,
         threshold: Array = None,
     ):
-        prob_error, prob_b = self._compute_probability_error(
+        prob_error, b, prob_b = self._compute_probability_error(
             v=v,
             g=g,
             scores=scores,
@@ -157,7 +159,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             coverage=coverage,
             threshold=threshold,
         )
-        return prob_b * prob_error
+        return prob_b * prob_error, b
 
     def _compute_probability_error(
         self,
@@ -170,6 +172,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         return_prob_b: bool = False,
         coverage: float = None,
         threshold: Array = None,
+        b: Optional[Array] = None,
     ):
         prob = self._compute_probability(
             v=v,
@@ -180,11 +183,13 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             n_buckets=n_buckets,
             return_prob_b=return_prob_b,
             threshold=threshold,
+            b=b,
         )
         if return_prob_b:
-            prob, prob_b = prob
-            return (coverage - prob) ** 2, prob_b
-        return (coverage - prob) ** 2
+            prob, b, prob_b = prob
+            return (coverage - prob) ** 2, b, prob_b
+        prob, b = prob
+        return (coverage - prob) ** 2, b
 
     def _compute_probability(
         self,
@@ -196,44 +201,45 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         n_buckets: int,
         return_prob_b: bool = False,
         threshold: Array = None,
+        b: Optional[Array] = None,
     ):
-        b = self._get_b(
-            groups=groups, values=values, v=v, g=g, c=None, n_buckets=n_buckets
-        )
+        if b is None:
+            b = self._get_b(
+                groups=groups, values=values, v=v, g=g, c=None, n_buckets=n_buckets
+            )
         conds = (scores <= (v if threshold is None else threshold)) * b
         prob_b = jnp.mean(b)
         prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
         if return_prob_b:
-            return prob, prob_b
-        return prob
+            return prob, b, prob_b
+        return prob, b
 
     def _get_patch(
         self,
         vt: Array,
         gt: Array,
         ct: Array,
+        bt: Array,
         scores: Array,
         groups: Array,
         values: Array,
         buckets: Array,
         coverage: float = None,
     ) -> Array:
-        return buckets[
-            jnp.argmin(
-                vmap(
-                    lambda v: self._compute_probability_error(
-                        v=vt,
-                        g=gt,
-                        scores=scores,
-                        groups=groups,
-                        values=values,
-                        n_buckets=len(buckets),
-                        coverage=coverage,
-                        threshold=v,
-                    )
-                )(buckets)
+        patch, bt = vmap(
+            lambda v: self._compute_probability_error(
+                v=vt,
+                g=gt,
+                scores=scores,
+                groups=groups,
+                values=values,
+                n_buckets=len(buckets),
+                coverage=coverage,
+                threshold=v,
+                b=bt,
             )
-        ]
+        )(buckets)
+        return buckets[jnp.argmin(patch)]
 
     @staticmethod
     def _maybe_check_values(
