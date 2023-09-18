@@ -17,6 +17,9 @@ from fortuna.conformal import (
     JackknifePlusConformalRegressor,
     Multicalibrator,
     OneDimensionalUncertaintyConformalRegressor,
+    OneShotBinaryClassificationMulticalibrator,
+    OneShotMulticalibrator,
+    OneShotTopLabelMulticalibrator,
     QuantileConformalRegressor,
     SimplePredictionConformalClassifier,
     TopLabelMulticalibrator,
@@ -599,7 +602,8 @@ class TestConformalMethods(unittest.TestCase):
         groups = random.choice(random.PRNGKey(0), 2, shape=(size, n_groups)).astype(
             "bool"
         )
-        values = jnp.zeros((size, n_classes))
+        values = jnp.ones((size, n_classes))
+        test_values = jnp.ones((test_size, n_classes))
         test_scores = random.choice(
             random.PRNGKey(1), n_classes, shape=(test_size,)
         ).astype("int")
@@ -611,15 +615,15 @@ class TestConformalMethods(unittest.TestCase):
         status = mc.calibrate(
             targets=scores, groups=groups, probs=values, n_rounds=3, n_buckets=4
         )
-        test_values, status = mc.calibrate(
+        calib_test_values, status = mc.calibrate(
             targets=scores,
             groups=groups,
             test_groups=test_groups,
             n_rounds=3,
-            n_buckets=4,
+            n_buckets=10,
         )
         with self.assertRaises(ValueError):
-            test_values, status = mc.calibrate(
+            calib_test_values, status = mc.calibrate(
                 targets=scores,
                 groups=groups,
                 probs=values,
@@ -628,7 +632,7 @@ class TestConformalMethods(unittest.TestCase):
                 n_buckets=4,
             )
         with self.assertRaises(ValueError):
-            test_values, status = mc.calibrate(
+            calib_test_values, status = mc.calibrate(
                 targets=scores,
                 groups=groups,
                 probs=values,
@@ -637,7 +641,7 @@ class TestConformalMethods(unittest.TestCase):
                 n_buckets=4,
             )
         with self.assertRaises(ValueError):
-            test_values, status = mc.calibrate(
+            calib_test_values, status = mc.calibrate(
                 targets=scores,
                 groups=groups,
                 test_groups=test_groups,
@@ -646,8 +650,8 @@ class TestConformalMethods(unittest.TestCase):
                 n_buckets=4,
             )
         status = mc.calibrate(targets=scores, groups=groups, n_rounds=3, n_buckets=4)
-        test_values = mc.apply_patches(test_groups)
-        test_values = mc.apply_patches(test_groups, test_values)
+        calib_test_values = mc.apply_patches(test_groups)
+        calib_test_values = mc.apply_patches(test_groups, test_values)
         error = mc.calibration_error(
             targets=test_scores, groups=test_groups, probs=test_values
         )
@@ -656,7 +660,125 @@ class TestConformalMethods(unittest.TestCase):
             probs=np.array(values),
             groups=np.array(groups),
             test_groups=np.array(test_groups),
-            test_probs=np.array(test_values),
+            test_probs=np.array(test_values) if test_values is not None else None,
             n_rounds=3,
+            n_buckets=4,
+        )
+
+    def test_one_shot_multicalibrator(self):
+        size = 10
+        test_size = 20
+        scores = random.uniform(random.PRNGKey(0), shape=(size,))
+        values = jnp.zeros(size)
+        test_scores = random.uniform(random.PRNGKey(0), shape=(test_size,))
+        test_values = jnp.zeros(test_size)
+        mc = OneShotMulticalibrator()
+        mc.calibrate(
+            scores=scores,
+            values=values,
+            n_buckets=4,
+        )
+        test_values = mc.calibrate(
+            scores=scores,
+            values=values,
+            test_values=test_values,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values = mc.calibrate(
+                scores=scores,
+                test_values=test_values,
+                n_buckets=4,
+            )
+        test_values = mc.apply_patches(test_values)
+        error = mc.mean_squared_error(
+            values=test_values,
+            scores=test_scores,
+        )
+        mc.calibrate(
+            scores=np.array(scores),
+            values=np.array(values),
+            test_values=np.array(test_values),
+            n_buckets=4,
+        )
+
+    def test_binary_one_shot_multicalibrator(self):
+        size = 10
+        test_size = 20
+        scores = random.choice(random.PRNGKey(0), 2, shape=(size,)).astype("int")
+        values = jnp.zeros(size)
+        test_scores = random.choice(random.PRNGKey(1), 2, shape=(test_size,)).astype(
+            "int"
+        )
+        test_values = jnp.zeros(test_size)
+        mc = OneShotBinaryClassificationMulticalibrator()
+        mc.calibrate(
+            targets=scores,
+            probs=values,
+            n_buckets=4,
+        )
+        test_values = mc.calibrate(
+            targets=scores,
+            probs=values,
+            test_probs=test_values,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values = mc.calibrate(
+                targets=scores,
+                test_probs=test_values,
+                n_buckets=4,
+            )
+        test_values = mc.apply_patches(test_values)
+        error = mc.mean_squared_error(
+            probs=test_values,
+            targets=test_scores,
+        )
+        mc.calibrate(
+            targets=np.array(scores),
+            probs=np.array(values),
+            test_probs=np.array(test_values),
+            n_buckets=4,
+        )
+
+    def test_one_shot_top_label_multicalibrator(self):
+        size = 30
+        test_size = 20
+        n_classes = 3
+        scores = random.choice(random.PRNGKey(0), n_classes, shape=(size,)).astype(
+            "int"
+        )
+        values = jnp.zeros((size, n_classes))
+        test_values = jnp.zeros((test_size, n_classes))
+        test_scores = random.choice(
+            random.PRNGKey(1), n_classes, shape=(test_size,)
+        ).astype("int")
+        mc = OneShotTopLabelMulticalibrator(n_classes=n_classes)
+        mc.calibrate(
+            targets=scores,
+            probs=values,
+            n_buckets=4,
+        )
+        test_values = mc.calibrate(
+            targets=scores,
+            probs=values,
+            test_probs=test_values,
+            n_buckets=4,
+        )
+        with self.assertRaises(ValueError):
+            test_values = mc.calibrate(
+                targets=scores,
+                test_probs=test_values,
+                n_buckets=4,
+            )
+        test_values = mc.apply_patches(test_values)
+        error = mc.mean_squared_error(
+            probs=test_values,
+            targets=test_scores,
+        )
+        mc.calibrate(
+            targets=np.array(scores),
+            probs=np.array(values),
+            test_probs=np.array(test_values),
             n_buckets=4,
         )

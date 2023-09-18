@@ -1,4 +1,4 @@
-from fortuna.conformal.multivalid.batch_mvp import BatchMVPConformalMethod
+from fortuna.conformal.multivalid.iterative.batch_mvp import BatchMVPConformalMethod
 from fortuna.conformal.regression.base import ConformalRegressor
 
 
