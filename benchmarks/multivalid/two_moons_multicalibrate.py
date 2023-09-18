@@ -94,6 +94,7 @@ calib_test_probs, status = mc.calibrate(
     test_groups=test_groups,
     test_probs=test_probs,
     n_buckets=100,
+    min_prob_b=0.0,
 )
 
 plt.figure(figsize=(10, 3))

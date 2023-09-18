@@ -6,7 +6,7 @@ import numpy as np
 with open("tabular_results.json", "r") as j:
     metrics = json.loads(j.read())
 
-TOL =  1e-4
+TOL = 1e-4
 
 # ~~~REGRESSION~~~
 
@@ -15,7 +15,8 @@ map_nlls = [
     metrics["regression"][k]["map"]["nll"] for k in metrics["regression"].keys()
 ]
 map_picp_errors = [
-    np.abs(metrics["regression"][k]["map"]["picp"] - 0.95) for k in metrics["regression"].keys()
+    np.abs(metrics["regression"][k]["map"]["picp"] - 0.95)
+    for k in metrics["regression"].keys()
 ]
 
 map_times = [
@@ -34,16 +35,24 @@ temp_scaling_picp_errors = [
     np.abs(metrics["regression"][k]["temp_scaling"]["picp"] - 0.95)
     for k in metrics["regression"].keys()
 ]
-win_temp_scaling_picp_errors = np.array(temp_scaling_picp_errors) < np.array(map_picp_errors) - TOL
-lose_temp_scaling_picp_errors = np.array(temp_scaling_picp_errors) > np.array(map_picp_errors) + TOL
+win_temp_scaling_picp_errors = (
+    np.array(temp_scaling_picp_errors) < np.array(map_picp_errors) - TOL
+)
+lose_temp_scaling_picp_errors = (
+    np.array(temp_scaling_picp_errors) > np.array(map_picp_errors) + TOL
+)
 
 temp_scaling_times = [
     metrics["regression"][k]["temp_scaling"]["time"]
     for k in metrics["regression"].keys()
 ]
 
-temp_scaling_best_win = np.max(np.array(map_picp_errors) - np.array(temp_scaling_picp_errors))
-temp_scaling_worst_loss = np.min(np.array(map_picp_errors) - np.array(temp_scaling_picp_errors))
+temp_scaling_best_win = np.max(
+    np.array(map_picp_errors) - np.array(temp_scaling_picp_errors)
+)
+temp_scaling_worst_loss = np.min(
+    np.array(map_picp_errors) - np.array(temp_scaling_picp_errors)
+)
 
 # CQR
 cqr_picp_errors = [
@@ -54,8 +63,7 @@ win_cqr_picp_errors = np.array(cqr_picp_errors) < np.array(map_picp_errors) - TO
 lose_cqr_picp_errors = np.array(cqr_picp_errors) > np.array(map_picp_errors) + TOL
 
 cqr_times = [
-    metrics["regression"][k]["cqr"]["time"]
-    for k in metrics["regression"].keys()
+    metrics["regression"][k]["cqr"]["time"] for k in metrics["regression"].keys()
 ]
 
 cqr_best_win = np.max(np.array(map_picp_errors) - np.array(cqr_picp_errors))
@@ -70,9 +78,19 @@ plt.title("PICP errors")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("temp scaling")
-_min, _max = min(np.array(map_picp_errors).min(), np.array(temp_scaling_picp_errors).min()), max(np.array(map_picp_errors).max(), np.array(temp_scaling_picp_errors).max())
+_min, _max = min(
+    np.array(map_picp_errors).min(), np.array(temp_scaling_picp_errors).min()
+), max(np.array(map_picp_errors).max(), np.array(temp_scaling_picp_errors).max())
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_picp_errors, temp_scaling_picp_errors, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_temp_scaling_picp_errors, lose_temp_scaling_picp_errors)])
+plt.scatter(
+    map_picp_errors,
+    temp_scaling_picp_errors,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_temp_scaling_picp_errors, lose_temp_scaling_picp_errors)
+    ],
+)
 plt.xscale("log")
 plt.yscale("log")
 
@@ -81,9 +99,19 @@ plt.title("PICP errors")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("CQR")
-_min, _max = min(np.array(map_picp_errors).min(), np.array(cqr_picp_errors).min()), max(np.array(map_picp_errors).max(), np.array(cqr_picp_errors).max())
+_min, _max = min(np.array(map_picp_errors).min(), np.array(cqr_picp_errors).min()), max(
+    np.array(map_picp_errors).max(), np.array(cqr_picp_errors).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_picp_errors, cqr_picp_errors, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_cqr_picp_errors, lose_cqr_picp_errors)])
+plt.scatter(
+    map_picp_errors,
+    cqr_picp_errors,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_cqr_picp_errors, lose_cqr_picp_errors)
+    ],
+)
 plt.xscale("log")
 plt.yscale("log")
 
@@ -96,9 +124,19 @@ plt.title("NLL")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("temp scaling")
-_min, _max = min(np.array(map_nlls).min(), np.array(temp_scaling_nlls).min()), max(np.array(map_nlls).max(), np.array(temp_scaling_nlls).max())
+_min, _max = min(np.array(map_nlls).min(), np.array(temp_scaling_nlls).min()), max(
+    np.array(map_nlls).max(), np.array(temp_scaling_nlls).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_nlls, temp_scaling_nlls, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_temp_scaling_nlls, lose_temp_scaling_nlls)])
+plt.scatter(
+    map_nlls,
+    temp_scaling_nlls,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_temp_scaling_nlls, lose_temp_scaling_nlls)
+    ],
+)
 plt.xscale("log")
 plt.yscale("log")
 
@@ -235,18 +273,38 @@ plt.title("MSE")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("temp scaling")
-_min, _max = min(np.array(map_mse).min(), np.array(temp_scaling_mse).min()), max(np.array(map_mse).max(), np.array(temp_scaling_mse).max())
+_min, _max = min(np.array(map_mse).min(), np.array(temp_scaling_mse).min()), max(
+    np.array(map_mse).max(), np.array(temp_scaling_mse).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_mse, temp_scaling_mse, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_temp_scaling_mse, lose_temp_scaling_mse)])
+plt.scatter(
+    map_mse,
+    temp_scaling_mse,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_temp_scaling_mse, lose_temp_scaling_mse)
+    ],
+)
 
 plt.subplot(1, 2, 2)
 plt.title("MSE")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("TLMC")
-_min, _max = min(np.array(map_mse).min(), np.array(mc_conf_mse).min()), max(np.array(map_mse).max(), np.array(mc_conf_mse).max())
+_min, _max = min(np.array(map_mse).min(), np.array(mc_conf_mse).min()), max(
+    np.array(map_mse).max(), np.array(mc_conf_mse).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_mse, mc_conf_mse, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_mc_conf_mse, lose_mc_conf_mse)])
+plt.scatter(
+    map_mse,
+    mc_conf_mse,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_mc_conf_mse, lose_mc_conf_mse)
+    ],
+)
 
 plt.tight_layout()
 plt.show()
@@ -258,9 +316,19 @@ plt.title("NLL")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("temp scaling")
-_min, _max = min(np.array(map_nlls).min(), np.array(temp_scaling_nlls).min()), max(np.array(map_nlls).max(), np.array(temp_scaling_nlls).max())
+_min, _max = min(np.array(map_nlls).min(), np.array(temp_scaling_nlls).min()), max(
+    np.array(map_nlls).max(), np.array(temp_scaling_nlls).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_nlls, temp_scaling_nlls, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_temp_scaling_nlls, lose_temp_scaling_nlls)])
+plt.scatter(
+    map_nlls,
+    temp_scaling_nlls,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_temp_scaling_nlls, lose_temp_scaling_nlls)
+    ],
+)
 plt.xscale("log")
 plt.yscale("log")
 
@@ -269,9 +337,19 @@ plt.title("NLL")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("TLMC")
-_min, _max = min(np.array(map_nlls).min(), np.array(mc_conf_nlls).min()), max(np.array(map_nlls).max(), np.array(mc_conf_nlls).max())
+_min, _max = min(np.array(map_nlls).min(), np.array(mc_conf_nlls).min()), max(
+    np.array(map_nlls).max(), np.array(mc_conf_nlls).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_nlls, mc_conf_nlls, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_mc_conf_nlls, lose_mc_conf_nlls)])
+plt.scatter(
+    map_nlls,
+    mc_conf_nlls,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_mc_conf_nlls, lose_mc_conf_nlls)
+    ],
+)
 plt.xscale("log")
 plt.yscale("log")
 
@@ -280,36 +358,76 @@ plt.title("ROCAUC")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("temp scaling")
-_min, _max = min(np.array(map_rocauc).min(), np.array(temp_scaling_rocauc).min()), max(np.array(map_rocauc).max(), np.array(temp_scaling_rocauc).max())
+_min, _max = min(np.array(map_rocauc).min(), np.array(temp_scaling_rocauc).min()), max(
+    np.array(map_rocauc).max(), np.array(temp_scaling_rocauc).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_rocauc, temp_scaling_rocauc, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_temp_scaling_rocauc, lose_temp_scaling_rocauc)])
+plt.scatter(
+    map_rocauc,
+    temp_scaling_rocauc,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_temp_scaling_rocauc, lose_temp_scaling_rocauc)
+    ],
+)
 
 plt.subplot(3, 2, 4)
 plt.title("ROCAUC")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("TLMC")
-_min, _max = min(np.array(map_rocauc).min(), np.array(mc_conf_rocauc).min()), max(np.array(map_rocauc).max(), np.array(mc_conf_rocauc).max())
+_min, _max = min(np.array(map_rocauc).min(), np.array(mc_conf_rocauc).min()), max(
+    np.array(map_rocauc).max(), np.array(mc_conf_rocauc).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_rocauc, mc_conf_rocauc, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_mc_conf_rocauc, lose_mc_conf_rocauc)])
+plt.scatter(
+    map_rocauc,
+    mc_conf_rocauc,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_mc_conf_rocauc, lose_mc_conf_rocauc)
+    ],
+)
 
 plt.subplot(3, 2, 5)
 plt.title("PRAUC")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("temp scaling")
-_min, _max = min(np.array(map_prauc).min(), np.array(temp_scaling_prauc).min()), max(np.array(map_prauc).max(), np.array(temp_scaling_prauc).max())
+_min, _max = min(np.array(map_prauc).min(), np.array(temp_scaling_prauc).min()), max(
+    np.array(map_prauc).max(), np.array(temp_scaling_prauc).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_prauc, temp_scaling_prauc, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_temp_scaling_prauc, lose_temp_scaling_prauc)])
+plt.scatter(
+    map_prauc,
+    temp_scaling_prauc,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_temp_scaling_prauc, lose_temp_scaling_prauc)
+    ],
+)
 
 plt.subplot(3, 2, 6)
 plt.title("PRAUC")
 plt.grid()
 plt.xlabel("MAP")
 plt.ylabel("TLMC")
-_min, _max = min(np.array(map_prauc).min(), np.array(mc_conf_prauc).min()), max(np.array(map_prauc).max(), np.array(mc_conf_prauc).max())
+_min, _max = min(np.array(map_prauc).min(), np.array(mc_conf_prauc).min()), max(
+    np.array(map_prauc).max(), np.array(mc_conf_prauc).max()
+)
 plt.plot([_min, _max], [_min, _max], color="gray", linestyle="--", alpha=0.2)
-plt.scatter(map_prauc, mc_conf_prauc, s=3, color=["C2" if w else "C3" if l else "grey" for w, l in zip(win_mc_conf_prauc, lose_mc_conf_prauc)])
+plt.scatter(
+    map_prauc,
+    mc_conf_prauc,
+    s=3,
+    color=[
+        "C2" if w else "C3" if l else "grey"
+        for w, l in zip(win_mc_conf_prauc, lose_mc_conf_prauc)
+    ],
+)
 
 plt.tight_layout()
 plt.show()
