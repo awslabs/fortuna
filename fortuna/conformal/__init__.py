@@ -1,4 +1,3 @@
-# conformal classification
 from fortuna.conformal.classification.adaptive_conformal_classifier import (
     AdaptiveConformalClassifier,
 )
@@ -24,6 +23,7 @@ from fortuna.conformal.multivalid.one_shot.classification.binary_multicalibrator
 from fortuna.conformal.multivalid.one_shot.classification.top_label_multicalibrator import (
     OneShotTopLabelMulticalibrator,
 )
+from fortuna.conformal.multivalid.one_shot.multicalibrator import OneShotMulticalibrator
 from fortuna.conformal.regression.adaptive_conformal_regressor import (
     AdaptiveConformalRegressor,
 )
@@ -34,8 +34,6 @@ from fortuna.conformal.regression.jackknife_minmax import (
     JackknifeMinmaxConformalRegressor,
 )
 from fortuna.conformal.regression.jackknifeplus import JackknifePlusConformalRegressor
-
-# conformal regression
 from fortuna.conformal.regression.onedim_uncertainty import (
     OneDimensionalUncertaintyConformalRegressor,
 )

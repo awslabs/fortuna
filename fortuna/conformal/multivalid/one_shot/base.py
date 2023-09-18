@@ -31,7 +31,7 @@ class OneShotMultivalidMethod(MultivalidMethod):
     def calibrate(
         self,
         scores: Array,
-        values: Optional[Array] = None,
+        values: Array = None,
         test_values: Optional[Array] = None,
         n_buckets: int = 100,
         min_prob_b: Union[float, str] = "auto",
@@ -70,6 +70,8 @@ class OneShotMultivalidMethod(MultivalidMethod):
             raise ValueError(
                 "`min_prob_b` must be greater than or equal to 0 and less than or equal to 1."
             )
+        if values is None:
+            raise ValueError("`values` must be provided.")
 
         self._check_scores(scores)
         scores = self._process_scores(scores)
@@ -80,6 +82,7 @@ class OneShotMultivalidMethod(MultivalidMethod):
         )
 
         self._maybe_check_values(values, test_values)
+        values, test_values = self._maybe_process_values(values, test_values)
 
         self.n_buckets = n_buckets
         buckets = self._get_buckets(n_buckets)

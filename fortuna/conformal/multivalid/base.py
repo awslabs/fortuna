@@ -101,3 +101,13 @@ class MultivalidMethod:
         if min_prob_b == "auto":
             return 1 / (n_buckets * n_dims)
         return min_prob_b
+
+    @staticmethod
+    def _maybe_process_values(
+        values: Optional[Array], test_values: Optional[Array]
+    ) -> Optional[Array]:
+        if values is not None:
+            values = jnp.copy(values)
+        if test_values is not None:
+            test_values = jnp.copy(test_values)
+        return values, test_values
