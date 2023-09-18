@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from typing import Optional
+
 import jax.numpy as jnp
 
-from fortuna.conformal.multivalid.base import MultivalidMethod
+from fortuna.conformal.multivalid.iterative.base import IterativeMultivalidMethod
 from fortuna.typing import Array
 
 
-class Multicalibrator(MultivalidMethod):
+class Multicalibrator(IterativeMultivalidMethod):
     def __init__(self, seed: int = 0):
         """
         A multicalibration method that provides multivalid coverage guarantees. See Algorithm 15 in `Aaron Roth's notes

@@ -4,7 +4,7 @@ import jax.numpy as jnp
 import numpy as np
 
 from fortuna.conformal.classification.base import ConformalClassifier
-from fortuna.conformal.multivalid.batch_mvp import BatchMVPConformalMethod
+from fortuna.conformal.multivalid.iterative.batch_mvp import BatchMVPConformalMethod
 from fortuna.typing import Array
 
 

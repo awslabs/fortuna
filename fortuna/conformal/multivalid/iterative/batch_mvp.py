@@ -9,11 +9,11 @@ from jax import vmap
 import jax.numpy as jnp
 
 from fortuna.conformal.classification.base import ConformalClassifier
-from fortuna.conformal.multivalid.base import MultivalidMethod
+from fortuna.conformal.multivalid.iterative.base import IterativeMultivalidMethod
 from fortuna.typing import Array
 
 
-class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
+class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
     def __init__(self, seed: int = 0):
         """
         This class implements a classification version of BatchMVP
@@ -38,7 +38,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
         test_thresholds: Optional[Array] = None,
         atol: float = 1e-4,
         rtol: float = 1e-6,
-        min_b_size: Union[float, int] = 0.1,
+        min_prob_b: float = 0.1,
         n_buckets: int = 100,
         n_rounds: int = 1000,
         eta: float = 0.1,
@@ -70,6 +70,8 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             Absolute tolerance on the mean squared error.
         rtol: float
             Relative tolerance on the mean squared error.
+        min_prob_b: float
+            Minimum probability of the conditioning set :math:`B_t` for the patch to be applied.
         n_buckets: int
             The number of buckets used in the algorithm. The smaller the number of buckets, the simpler the model,
             the better its generalization abilities. If not provided, We start from 2 buckets, and progressively double
@@ -101,7 +103,7 @@ class BatchMVPConformalMethod(MultivalidMethod, ConformalClassifier):
             test_values=test_thresholds,
             atol=atol,
             rtol=rtol,
-            min_b_size=min_b_size,
+            min_prob_b=min_prob_b,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             eta=eta,

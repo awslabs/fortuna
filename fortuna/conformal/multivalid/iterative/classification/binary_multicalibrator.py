@@ -8,11 +8,16 @@ from typing import (
 from jax import random
 import jax.numpy as jnp
 
-from fortuna.conformal.multivalid.multicalibrator import Multicalibrator
+from fortuna.conformal.multivalid.iterative.multicalibrator import Multicalibrator
+from fortuna.conformal.multivalid.mixins.classification.binary_multicalibrator import (
+    BinaryClassificationMulticalibratorMixin,
+)
 from fortuna.typing import Array
 
 
-class BinaryClassificationMulticalibrator(Multicalibrator):
+class BinaryClassificationMulticalibrator(
+    BinaryClassificationMulticalibratorMixin, Multicalibrator
+):
     def calibrate(
         self,
         targets: Array,
@@ -22,7 +27,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
         test_probs: Optional[Array] = None,
         atol: float = 1e-4,
         rtol: float = 1e-6,
-        min_b_size: Union[float, int] = 0.1,
+        min_prob_b: float = 0.1,
         n_buckets: int = 100,
         n_rounds: int = 1000,
         eta: float = 0.1,
@@ -37,7 +42,7 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             test_values=test_probs,
             atol=atol,
             rtol=rtol,
-            min_b_size=min_b_size,
+            min_prob_b=min_prob_b,
             n_buckets=n_buckets,
             n_rounds=n_rounds,
             eta=eta,
@@ -66,9 +71,6 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             values=probs,
         )
 
-    def mean_squared_error(self, probs: Array, targets: Array) -> Array:
-        return super().mean_squared_error(values=probs, scores=targets)
-
     def init_probs(self, size: int) -> Array:
         """
         Initialize probabilities.
@@ -84,36 +86,6 @@ class BinaryClassificationMulticalibrator(Multicalibrator):
             A probability for each data point.
         """
         return self._maybe_init_values(values=None, size=size)
-
-    @staticmethod
-    def _check_scores(scores: Array):
-        if scores.ndim != 1:
-            raise ValueError("`targets` must be a 1-dimensional array of integers.")
-        if set(jnp.unique(scores).tolist()) != {0, 1}:
-            raise ValueError("All values in `targets` must be 0 or 1.")
-        if scores.dtype not in ["int32", "int64"]:
-            raise ValueError("All elements in `targets` must be integers")
-
-    @staticmethod
-    def _maybe_check_values(
-        values: Optional[Array], test_values: Optional[Array] = None
-    ):
-        if values is not None:
-            if values.ndim != 1:
-                raise ValueError(
-                    "`probs` must be a 1-dimensional array representing the probability that the "
-                    "target variable is 1."
-                )
-            if jnp.any(values < 0) or jnp.any(values > 1):
-                raise ValueError("All elements in `values` must be within [0, 1].")
-        if test_values is not None:
-            if test_values.ndim != 1:
-                raise ValueError(
-                    "`test_probs` must be a 1-dimensional array representing the probability that the "
-                    "target variable is 1."
-                )
-            if jnp.any(test_values < 0) or jnp.any(test_values > 1):
-                raise ValueError("All elements in `test_values` must be within [0, 1].")
 
     def _maybe_init_values(self, values: Optional[Array], size: Optional[int] = None):
         if values is None:

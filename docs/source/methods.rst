@@ -37,6 +37,10 @@ Posterior approximation methods
     Cyclical SGLD adapts the cyclical cosine step size schedule, and alternates between *exploration* and *sampling* stages to better
     explore the multimodal posteriors for deep neural networks.
 
+- **Spectral-normalized Neural Gaussian Process (SNGP)** `[Liu et al., 2020] <https://arxiv.org/pdf/2006.10108.pdf>`_
+    A Deep Kernel Learning (DKL; see `[Wilson et al., 2015] <https://arxiv.org/abs/1511.02222>`_) approach with spectral
+    normalization and random features. It is useful to improve epistemic uncertainty out-of-distribution.
+
 Parametric calibration methods
 ------------------------------
 Fortuna supports parametric calibration by adding an output calibration model on top of the outputs of the model used for
@@ -68,7 +72,11 @@ For classification:
 - **Multicalibrate** `[Hébert-Johnson Ú. et al., 2017] <https://arxiv.org/abs/1711.08513>`_, `[Roth A., Algorithm 15] <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_
     Unlike standard conformal prediction methods, this algorithm returns scalar calibrated score values for each data point.
     For example, in binary classification, it can return calibrated probabilities of predictions.
-    This method satisfies coverage guarantees conditioned on group membership and non-conformity thresholds.
+    This method satisfies coverage guarantees conditioned on group membership and model values.
+
+- **One-Shot Multicalibrate** `[Roth A., Algorithm 15] <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_
+    Unlike standard conformal prediction methods, this algorithm returns scalar calibrated score values for each data point.
+    This method satisfies coverage guarantees conditioned on model values.
 
 For regression:
 
@@ -92,7 +100,11 @@ For regression:
 
 - **Multicalibrate** `[Hébert-Johnson Ú. et al., 2017] <https://arxiv.org/abs/1711.08513>`_, `[Roth A., Algorithm 15] <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_
     Unlike standard conformal prediction methods, this algorithm returns scalar calibrated score values for each data point.
-    This method satisfies coverage guarantees conditioned on group membership and non-conformity thresholds.
+    This method satisfies coverage guarantees conditioned on group membership and model values.
+
+- **One-Shot Multicalibrate** `[Roth A., Algorithm 15] <https://www.cis.upenn.edu/~aaroth/uncertainty-notes.pdf>`_
+    Unlike standard conformal prediction methods, this algorithm returns scalar calibrated score values for each data point.
+    This method satisfies coverage guarantees conditioned on model values.
 
 - **Adaptive conformal inference** `[Gibbs et al., 2021] <https://proceedings.neurips.cc/paper/2021/hash/0d441de75945e5acbc865406fc9a2559-Abstract.html>`_
     A method for conformal prediction that aims at correcting the coverage of conformal prediction methods in a
