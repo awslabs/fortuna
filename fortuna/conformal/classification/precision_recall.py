@@ -1,7 +1,8 @@
-import abc
+import itertools
 import logging
 from typing import (
     Dict,
+    List,
     Optional,
     Tuple,
     Union,
@@ -12,8 +13,9 @@ from jax import (
     vmap,
 )
 import jax.numpy as jnp
+from jax import random
+import numpy as np
 
-from fortuna.conformal.multivalid.base import MultivalidMethod
 from fortuna.typing import Array
 
 
@@ -27,104 +29,101 @@ class MaxCoverageFixedPrecisionBinaryClassificationCalibrator:
         seed: int
             Random seed.
         """
-        super().__init__(seed=seed)
         self._patches = []
         self._eta = None
+        self._positive_threshold = None
+        self._negative_threshold = None
 
     def calibrate(
         self,
         targets: Array,
         probs: Array,
+        positive_threshold: float = 0.99,
+        negative_threshold: float = 0.01,
         test_probs: Optional[Array] = None,
-        n_buckets: int = 100,
-        **kwargs,
-    ) -> Union[Dict, Tuple[Array, Dict]]:
-        """
-        Calibrate the model by finding a list of patches to the model that bring the calibration error below a
-        certain threshold.
+        min_prob_b: float = 0.1,
+        n_shifts: int = 10,
+        max_shift: float = 0.1
+    ) -> Union[None, Array]:
+        if positive_threshold <= negative_threshold:
+            raise ValueError("`negative_threshold` must be strictly smaller than `positive_threshold`.")
+        self._positive_threshold = positive_threshold
+        self._negative_threshold = negative_threshold
+        probs = jnp.copy(probs)
+        targets = jnp.copy(targets)
 
-        Parameters
-        ----------
-        targets: Array
-            Binary target variables.
-        probs: Optional[Array]
-            Probability that the target is 1 for each input of the calibration set.
-        test_probs: Optional[Array]
-            Probability that the target is 1 for each input of the test set.
-        n_buckets: int
-            The number of buckets used in the algorithm.
+        bs = self._get_bs(probs, positive_threshold=positive_threshold, negative_threshold=negative_threshold)
 
-        Returns
-        -------
-        Union[Dict, Tuple[Array, Dict]]
-            A status including the number of rounds taken to reach convergence and the calibration errors computed
-            during the training procedure. if `test_values` and `test_groups` are provided, the list of patches will
-            be applied to `test_values`, and the calibrated test values will be returned together with the status.
-        """
+        shifts_idx = np.zeros_like(probs, dtype=int)
+        for i, b in enumerate(bs):
+            shifts_idx[b] = i
 
+        def _objective_fn(s: Array):
+            calib_probs = probs + s[shifts_idx]
+
+            b_pos_prec = calib_probs >= positive_threshold
+            b_neg_prec = calib_probs <= negative_threshold
+
+            prob_b_pos_prec = jnp.mean(b_pos_prec)
+            prob_b_neg_prec = jnp.mean(b_neg_prec)
+
+            pos_prec = jnp.mean(targets[b_pos_prec] * b_pos_prec) / prob_b_pos_prec
+            neg_prec = jnp.mean(targets[b_neg_prec] * b_neg_prec) / prob_b_neg_prec
+
+            pos_cond = jnp.where(prob_b_pos_prec > min_prob_b, pos_prec >= positive_threshold, 0)
+            neg_cond = jnp.where(prob_b_neg_prec > min_prob_b, neg_prec <= negative_threshold, 0)
+
+            pos_cov = jnp.mean(calib_probs >= positive_threshold) * pos_cond
+            neg_cov = jnp.mean(calib_probs <= negative_threshold) * neg_cond
+
+            return pos_cov + neg_cov
+
+        buckets = jnp.linspace(0, max_shift, n_shifts)
+        all_shifts = jnp.array(list(itertools.combinations(buckets, len(bs))))
+        self._patches = all_shifts[jnp.argmax(vmap(_objective_fn)(all_shifts))]
+
+        if test_probs is not None:
+            return self.apply_patches(test_probs)
 
     def apply_patches(
         self,
-        groups: Optional[Array] = None,
-        values: Optional[Array] = None,
+        probs: Array
     ) -> Array:
-        """
-        Apply the patches to the model evaluations.
-
-        Parameters
-        ----------
-        groups: Array
-            A list of groups :math:`g(x)` evaluated over some inputs.
-            This should be a two-dimensional array of bool elements.
-            The first dimension is over the data points, the second dimension is over the number of groups.
-        values: Optional[Array]
-            The initial model evaluations :math:`f(x)` evaluated over some inputs. If not provided, these are set to 0.
-
-        Returns
-        -------
-        Array
-            The calibrated values.
-        """
-        if groups is None and values is None:
-            raise ValueError(
-                "At least one between `groups` and `values` must be provided."
-            )
         if not len(self._patches):
             logging.warning("No patches available.")
-            return values
+            return probs
 
-        values = self._maybe_init_values(
-            values, groups.shape[0] if groups is not None else None
+        bs = self._get_bs(
+            probs=probs,
+            positive_threshold=self._positive_threshold,
+            negative_threshold=self._negative_threshold
         )
-        self._maybe_check_values(values)
 
-        groups = self._init_groups(groups, values.shape[0])
-        self._maybe_check_groups(groups)
+        probs = jnp.copy(probs)
+        for b, patch in zip(bs, self._patches):
+            probs = probs.at[b].set(probs[b] + patch)
+        return probs
 
-        buckets = self._get_buckets(n_buckets=self.n_buckets)
-        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
-
-        for gt, vt, ct, patch in self._patches:
-            bt = self._get_b(
-                groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=self.n_buckets
-            )
-            values = self._patch(values=values, patch=patch, bt=bt, ct=ct, eta=self.eta)
-        return values
-
-    def objective_fn(self, probs: Array, targets: Array, positive_threshold: float, negative_threshold: float):
-        bs = {
-            "low": probs <= negative_threshold,
-            "midlow": (probs > negative_threshold) * (probs < 0.5),
-            "midhigh": (probs >= 0.5) * (probs < positive_threshold),
-            "high": probs >= positive_threshold
-        }
-        buckets = jnp.linspace(0, 1, self.n_buckets)
-        vmap(lambda b: vmap(lambda s: jnp.mean((probs[b] + s) * targets[b]) / jnp.mean(b))(buckets)
-
-        def _get_precisions(b: Array, s: Array):
-            probs[b]
+    def _get_bs(self, probs: Array, positive_threshold: float, negative_threshold: float) -> List[Array]:
+        return [
+            probs <= negative_threshold,
+            (probs > negative_threshold) * (probs < 0.5),
+            (probs >= 0.5) * (probs < positive_threshold),
+            probs >= positive_threshold
+        ]
 
 
-    def _get_precisions(self, bs: Dict, probs: Array, targets: Array, positive_threshold: float, negative_threshold: float):
-            bs[""]
-
+if __name__ == "__main__":
+    calibrator = MaxCoverageFixedPrecisionBinaryClassificationCalibrator()
+    probs = jnp.abs(random.normal(random.PRNGKey(0), shape=(1000,)))
+    probs /= probs.max()
+    targets = random.choice(random.PRNGKey(2), 2, shape=(1000,))
+    test_probs = random.normal(random.PRNGKey(1), shape=(1000,))
+    test_probs /= test_probs.max()
+    calib_test_probs = calibrator.calibrate(
+        probs=probs,
+        test_probs=test_probs,
+        targets=targets,
+        positive_threshold=0.99,
+        negative_threshold=0.01
+    )
