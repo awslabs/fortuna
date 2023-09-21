@@ -30,11 +30,16 @@ class MaxCoverageFixedPrecisionBinaryClassificationCalibrator:
         false_negative_precision_threshold: float,
         test_probs: Optional[Array] = None,
         n_taus: int = 100,
-        margin: float = 0.
+        margin: float = 0.0,
     ) -> Union[None, Array]:
-        if false_negative_precision_threshold <= 0.5 or true_positive_precision_threshold <= 0.5:
-            raise ValueError("Both `false_negative_precision_threshold` and"
-                             " `true_positive_precision_threshold` must be greater than 0.5.")
+        if (
+            false_negative_precision_threshold <= 0.5
+            or true_positive_precision_threshold <= 0.5
+        ):
+            raise ValueError(
+                "Both `false_negative_precision_threshold` and"
+                " `true_positive_precision_threshold` must be greater than 0.5."
+            )
         probs = jnp.copy(probs)
         targets = jnp.copy(targets)
 
@@ -55,7 +60,9 @@ class MaxCoverageFixedPrecisionBinaryClassificationCalibrator:
             return prob_b_neg_prec * neg_cond
 
         taus_pos = jnp.linspace(1, 2 * true_positive_precision_threshold, n_taus)
-        taus_neg = jnp.linspace(2 * (1 - false_negative_precision_threshold), 1, n_taus)[::-1]
+        taus_neg = jnp.linspace(
+            2 * (1 - false_negative_precision_threshold), 1, n_taus
+        )[::-1]
 
         values_pos = vmap(_true_positive_objective_fn)(taus_pos)
 
@@ -73,16 +80,15 @@ class MaxCoverageFixedPrecisionBinaryClassificationCalibrator:
         if test_probs is not None:
             return self.apply_patches(test_probs)
 
-    def apply_patches(
-        self,
-        probs: Array
-    ) -> Array:
+    def apply_patches(self, probs: Array) -> Array:
         if not len(self._patches):
             logging.warning("No patches available.")
             return probs
 
         probs = jnp.copy(probs)
-        probs = probs.at[probs > 0.5].set(jnp.clip(self._patches["tau_pos"] * probs[probs > 0.5], a_max=1))
+        probs = probs.at[probs > 0.5].set(
+            jnp.clip(self._patches["tau_pos"] * probs[probs > 0.5], a_max=1)
+        )
         probs = probs.at[probs < 0.5].set(self._patches["tau_neg"] * probs[probs < 0.5])
         return probs
 
