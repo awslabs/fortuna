@@ -20,6 +20,9 @@ from fortuna.conformal.multivalid.iterative.regression.batch_mvp import (
 from fortuna.conformal.multivalid.one_shot.classification.binary_multicalibrator import (
     OneShotBinaryClassificationMulticalibrator,
 )
+from fortuna.conformal.classification.maxcovfixprec_binary_classfication import (
+    MaxCoverageFixedPrecisionBinaryClassificationCalibrator
+)
 from fortuna.conformal.multivalid.one_shot.classification.top_label_multicalibrator import (
     OneShotTopLabelMulticalibrator,
 )

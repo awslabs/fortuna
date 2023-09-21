@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aws-fortuna"
-version = "0.1.31"
+version = "0.1.32"
 description = "A Library for Uncertainty Quantification."
 authors = ["Gianluca Detommaso <gianluca.detommaso@gmail.com>", "Alberto Gasparin <albgas@amazon.de>"]
 license = "Apache-2.0"
@@ -9,7 +9,7 @@ documentation = "https://aws-fortuna.readthedocs.io/en/latest/"
 packages = [{include = "fortuna"}]
 
 [tool.poetry.dependencies]
-python = ">=3.8"
+python = ">=3.8,<3.11"
 flax = "^0.6.2"
 optax = "^0.1.3"
 matplotlib = "^3.6.2"

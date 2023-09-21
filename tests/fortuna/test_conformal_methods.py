@@ -15,6 +15,7 @@ from fortuna.conformal import (
     EnbPI,
     JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
+    MaxCoverageFixedPrecisionBinaryClassificationCalibrator,
     Multicalibrator,
     OneDimensionalUncertaintyConformalRegressor,
     OneShotBinaryClassificationMulticalibrator,
@@ -781,4 +782,25 @@ class TestConformalMethods(unittest.TestCase):
             probs=np.array(values),
             test_probs=np.array(test_values),
             n_buckets=4,
+        )
+
+    def test_max_coverage_fixed_precision_binary_classification_calibrator(self):
+        size = 30
+        test_size = 20
+        targets = random.choice(random.PRNGKey(0), 2, shape=(size,)).astype("int")
+        probs = jnp.zeros(size)
+        test_probs = jnp.zeros(test_size)
+        calib = MaxCoverageFixedPrecisionBinaryClassificationCalibrator()
+        calib.calibrate(
+            targets=targets,
+            probs=probs,
+            true_positive_precision_threshold=0.99,
+            false_negative_precision_threshold=0.99
+        )
+        test_values = calib.calibrate(
+            targets=targets,
+            probs=probs,
+            test_probs=test_probs,
+            true_positive_precision_threshold=0.99,
+            false_negative_precision_threshold=0.99
         )
