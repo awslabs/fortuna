@@ -4,6 +4,9 @@ from fortuna.conformal.classification.adaptive_conformal_classifier import (
 from fortuna.conformal.classification.adaptive_prediction import (
     AdaptivePredictionConformalClassifier,
 )
+from fortuna.conformal.classification.maxcovfixprec_binary_classfication import (
+    MaxCoverageFixedPrecisionBinaryClassificationCalibrator,
+)
 from fortuna.conformal.classification.simple_prediction import (
     SimplePredictionConformalClassifier,
 )
