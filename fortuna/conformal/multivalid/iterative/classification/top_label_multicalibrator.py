@@ -47,8 +47,9 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         min_prob_b: float = 0.1,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 0.1,
+        eta: float = 1,
         split: float = 0.8,
+        bucket_types: Tuple[str, ...] = ("<=", ">="),
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         return super().calibrate(
@@ -64,6 +65,7 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
             n_rounds=n_rounds,
             eta=eta,
             split=split,
+            bucket_types=bucket_types,
             **kwargs,
         )
 
@@ -88,15 +90,27 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
             values=probs,
         )
 
-    @staticmethod
     def _get_b(
-        groups: Array, values: Array, v: Array, g: Array, c: Array, n_buckets: int
+        self,
+        groups: Array,
+        values: Array,
+        v: Array,
+        g: Array,
+        c: Array,
+        tau: Array,
+        n_buckets: int,
     ) -> Array:
-        return (
-            (jnp.abs(values[:, c] - v) < 0.5 / n_buckets)
-            * (values.argmax(1) == c)
-            * groups[:, g]
+        b = super()._get_b(
+            groups=groups,
+            values=values[:, c],
+            v=v,
+            g=g,
+            c=c,
+            tau=tau,
+            n_buckets=n_buckets,
         )
+        b *= values.argmax(1) == c
+        return b
 
     def _patch(
         self, values: Array, patch: Array, bt: Array, ct: Array, eta: float

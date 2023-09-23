@@ -93,8 +93,6 @@ calib_test_probs, status = mc.calibrate(
     probs=probs,
     test_groups=test_groups,
     test_probs=test_probs,
-    n_buckets=100,
-    min_prob_b=0.0,
 )
 
 plt.figure(figsize=(10, 3))
@@ -116,7 +114,7 @@ plt.tight_layout()
 plt.show()
 
 plt.title("Mean-squared error decay during calibration")
-plt.semilogy(status["mean_squared_errors"])
+plt.semilogy(status["losses"])
 plt.show()
 
 print(

@@ -23,8 +23,8 @@ class BatchMVPConformalClassifier(BatchMVPConformalMethod, ConformalClassifier):
         """
         super().__init__(seed=seed)
 
+    @staticmethod
     def conformal_set(
-        self,
         class_scores: Array,
         thresholds: Array,
     ) -> List[List[int]]:
