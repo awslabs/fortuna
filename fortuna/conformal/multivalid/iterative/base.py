@@ -2,12 +2,14 @@ import abc
 import logging
 from typing import (
     Dict,
+    List,
     Optional,
     Tuple,
     Union,
 )
 
 from jax import (
+    lax,
     random,
     vmap,
 )
@@ -30,6 +32,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         super().__init__(seed=seed)
         self._patches = []
         self._eta = None
+        self._bucket_types = None
 
     def calibrate(
         self,
@@ -43,8 +46,9 @@ class IterativeMultivalidMethod(MultivalidMethod):
         min_prob_b: float = 0.1,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 0.1,
+        eta: float = 1,
         split: float = 0.8,
+        bucket_types: Tuple[str, ...] = ("<=", ">="),
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -61,7 +65,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
             This should be a two-dimensional array of bool elements.
             The first dimension is over the data points, the second dimension is over the number of groups.
         values: Optional[Array]
-            The initial model evalutions :math:`f(x)` on the calibration data. If not provided, these are set to 0.
+            The initial model evaluations :math:`f(x)` on the calibration data. If not provided, these are set to 0.
         test_groups: Optional[Array]
             A list of groups :math:`g(x)` computed on the test data.
             This should be a two-dimensional array of bool elements.
@@ -69,9 +73,9 @@ class IterativeMultivalidMethod(MultivalidMethod):
         test_values: Optional[Array]
             The initial model evaluations :math:`f(x)` on the test data. If not provided, these are set to 0.
         atol: float
-            Absolute tolerance on the mean squared error.
+            Absolute tolerance on the loss.
         rtol: float
-            Relative tolerance on the mean squared error.
+            Relative tolerance on the loss.
         min_prob_b: Union[float, str]
             Minimum probability of the conditioning set :math:`B_t` for the patch to be applied.
             If "auto", it will be chosen based on the number of buckets and dimension of the scores.
@@ -84,6 +88,12 @@ class IterativeMultivalidMethod(MultivalidMethod):
         split: float
             Split the calibration data into calibration and validation, according to the given proportion.
             The validation data will be used for early stopping.
+        bucket_types: Tuple[str, ...]
+            Types of buckets. The following types are currently supported:
+
+            - "=", corresponding of buckets like :math:`\{f(x) = v\}`;
+            - ">=", corresponding of buckets like :math:`\{f(x) \ge v\}`;
+            - "<=", corresponding of buckets like :math:`\{f(x) \le v\}`.
 
         Returns
         -------
@@ -141,6 +151,11 @@ class IterativeMultivalidMethod(MultivalidMethod):
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
+        self._check_bucket_types(bucket_types)
+        taus = self._get_bucket_type_indices(bucket_types)
+        self._bucket_types = bucket_types
+        n_bucket_types = len(bucket_types)
+
         self._eta = eta
 
         size = len(scores)
@@ -153,37 +168,42 @@ class IterativeMultivalidMethod(MultivalidMethod):
         values, val_values = values[perm[:calib_size]], values[perm[calib_size:]]
         groups, val_groups = groups[perm[:calib_size]], groups[perm[calib_size:]]
 
-        val_mses = [float(self._mean_squared_error(val_values, val_scores))]
-        old_mse = float(self._mean_squared_error(values, scores))
+        val_losses = [float(self._loss_fn(val_values, val_scores))]
+        old_losses = float(self._loss_fn(values, scores))
         self._patches = []
         converged = False
 
         for t in range(n_rounds):
             calib_error_gvc, b = vmap(
-                lambda g: vmap(
-                    lambda v: vmap(
-                        lambda c: self._calibration_error(
-                            v=v,
-                            g=g,
-                            c=c,
-                            scores=scores[:, c],
-                            groups=groups,
-                            values=values,
-                            n_buckets=n_buckets,
-                            **kwargs,
-                        )
-                    )(jnp.arange(n_dims))
-                )(buckets)
-            )(jnp.arange(n_groups))
+                lambda tau: vmap(
+                    lambda g: vmap(
+                        lambda v: vmap(
+                            lambda c: self._calibration_error(
+                                v=v,
+                                g=g,
+                                c=c,
+                                tau=tau,
+                                scores=scores[:, c],
+                                groups=groups,
+                                values=values,
+                                n_buckets=n_buckets,
+                                **kwargs,
+                            )
+                        )(jnp.arange(n_dims))
+                    )(buckets)
+                )(jnp.arange(n_groups))
+            )(taus)
 
             calib_error_gvc *= jnp.mean(b, axis=-1) >= min_prob_b
 
-            gt, vt, ct, bt = self._get_gt_and_vt_and_ct_and_bt(
+            taut, gt, vt, ct, bt = self._get_taut_and_gt_and_vt_and_ct_and_bt(
                 calib_error_gvc=calib_error_gvc,
                 buckets=buckets,
                 n_groups=n_groups,
                 n_dims=n_dims,
                 b=b,
+                n_bucket_types=n_bucket_types,
+                taus=taus,
             )
 
             patch = self._get_patch(
@@ -205,38 +225,42 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 v=vt,
                 g=gt,
                 c=ct,
+                tau=taut,
                 n_buckets=self.n_buckets,
             )
             val_values = self._patch(
                 values=val_values, patch=patch, bt=val_bt, ct=ct, eta=self.eta
             )
 
-            mse = float(self._mean_squared_error(values, scores))
-            val_mses.append(float(self._mean_squared_error(val_values, val_scores)))
-            if mse > old_mse:
+            losses = float(self._loss_fn(values, scores))
+            val_losses.append(float(self._loss_fn(val_values, val_scores)))
+            if losses > old_losses:
                 logging.warning(
                     "The algorithm cannot achieve the desired tolerance. "
                     "Please try increasing `n_buckets`, or decreasing `min_prob_b`."
                 )
                 break
-            if val_mses[-1] <= atol:
+            if val_losses[-1] <= atol:
                 logging.info(f"Absolute tolerance satisfied after {t} rounds.")
                 converged = True
                 break
-            if val_mses[-1] > val_mses[-2]:
+            if val_losses[-1] > val_losses[-2]:
                 logging.warning(f"Early stopping triggered after {t} rounds.")
                 break
-            if jnp.any(val_bt) and (val_mses[-2] - val_mses[-1]) / val_mses[-2] <= rtol:
+            if (
+                jnp.any(val_bt)
+                and (val_losses[-2] - val_losses[-1]) / val_losses[-2] <= rtol
+            ):
                 logging.info(f"Relative tolerance satisfied after {t} rounds.")
                 converged = True
                 break
-            old_mse = jnp.copy(mse)
+            old_losses = jnp.copy(losses)
 
-            self._patches.append((gt, vt, ct, patch))
+            self._patches.append((taut, gt, vt, ct, patch))
 
         status = dict(
             n_rounds=len(self.patches),
-            mean_squared_errors=val_mses,
+            losses=val_losses,
             converged=converged,
         )
 
@@ -294,9 +318,15 @@ class IterativeMultivalidMethod(MultivalidMethod):
         buckets = self._get_buckets(n_buckets=self.n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
-        for gt, vt, ct, patch in self._patches:
+        for taut, gt, vt, ct, patch in self._patches:
             bt = self._get_b(
-                groups=groups, values=values, v=vt, g=gt, c=ct, n_buckets=self.n_buckets
+                groups=groups,
+                values=values,
+                v=vt,
+                g=gt,
+                c=ct,
+                tau=taut,
+                n_buckets=self.n_buckets,
             )
             values = self._patch(values=values, patch=patch, bt=bt, ct=ct, eta=self.eta)
         return values
@@ -343,23 +373,28 @@ class IterativeMultivalidMethod(MultivalidMethod):
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
+        taus = self._get_bucket_type_indices(self.bucket_types)
+
         error, b = vmap(
-            lambda g: vmap(
-                lambda v: vmap(
-                    lambda c: self._calibration_error(
-                        v=v,
-                        g=g,
-                        c=c,
-                        scores=scores[:, c],
-                        groups=groups,
-                        values=values,
-                        n_buckets=n_buckets,
-                        **kwargs,
-                    )
-                )(jnp.arange(n_dims))
-            )(buckets)
-        )(jnp.arange(groups.shape[1]))
-        return error.sum(1)
+            lambda tau: vmap(
+                lambda g: vmap(
+                    lambda v: vmap(
+                        lambda c: self._calibration_error(
+                            v=v,
+                            g=g,
+                            c=c,
+                            tau=tau,
+                            scores=scores[:, c],
+                            groups=groups,
+                            values=values,
+                            n_buckets=n_buckets,
+                            **kwargs,
+                        )
+                    )(jnp.arange(n_dims))
+                )(buckets)
+            )(jnp.arange(groups.shape[1]))
+        )(taus)
+        return error.sum(2)
 
     @property
     def eta(self):
@@ -384,6 +419,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         v: Array,
         g: Array,
         c: Optional[Array],
+        tau: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -393,18 +429,22 @@ class IterativeMultivalidMethod(MultivalidMethod):
         pass
 
     @staticmethod
-    def _get_gt_and_vt_and_ct_and_bt(
+    def _get_taut_and_gt_and_vt_and_ct_and_bt(
         calib_error_gvc: Array,
         buckets: Array,
         n_groups: int,
         n_dims: int,
+        n_bucket_types: int,
         b: Array,
-    ) -> Tuple[Array, Array, Array, Array]:
-        gt, idx_vt, ct = jnp.unravel_index(
-            jnp.argmax(calib_error_gvc), (n_groups, len(buckets), n_dims)
+        taus: Array,
+    ) -> Tuple[Array, Array, Array, Array, Array]:
+        idx_taut, gt, idx_vt, ct = jnp.unravel_index(
+            jnp.argmax(calib_error_gvc),
+            (n_bucket_types, n_groups, len(buckets), n_dims),
         )
         vt = buckets[idx_vt]
-        return gt, vt, ct, b[gt, idx_vt, ct]
+        taut = taus[idx_taut]
+        return taut, gt, vt, ct, b[idx_taut, gt, idx_vt, ct]
 
     @staticmethod
     def _get_b(
@@ -413,9 +453,18 @@ class IterativeMultivalidMethod(MultivalidMethod):
         v: Array,
         g: Array,
         c: Optional[Array],
+        tau: Array,
         n_buckets: int,
     ) -> Array:
-        return (jnp.abs(values - v) < 0.5 / n_buckets) * groups[:, g]
+        b = lax.select(
+            tau == 0,
+            jnp.abs(values - v) < 0.5 / n_buckets,
+            lax.select(
+                tau == 1, values + 0.5 / n_buckets >= v, values - 0.5 / n_buckets <= v
+            ),
+        )
+        b *= groups[:, g]
+        return b
 
     @abc.abstractmethod
     def _get_patch(
@@ -423,6 +472,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         vt: Array,
         gt: Array,
         ct: Array,
+        bt: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -436,16 +486,21 @@ class IterativeMultivalidMethod(MultivalidMethod):
         if values.ndim == 1:
             return values.at[bt].set(
                 jnp.minimum(
-                    (1 - eta) * values[bt] + eta * patch,
+                    values[bt] + eta * patch,  # (1 - eta) * values[bt] + eta * patch,
                     jnp.ones_like(values[bt]),
                 )
             )
         return values.at[bt, ct].set(
             jnp.minimum(
-                (1 - eta) * values[bt, ct] + eta * patch,
+                values[bt, ct]
+                + eta * patch,  # (1 - eta) * values[bt, ct] + eta * patch,
                 jnp.ones_like(values[bt, ct]),
             )
         )
+
+    @staticmethod
+    def _loss_fn(values: Array, scores: Array) -> Array:
+        pass
 
     @staticmethod
     def _maybe_check_groups(groups: Array, test_groups: Optional[Array] = None):
@@ -463,3 +518,25 @@ class IterativeMultivalidMethod(MultivalidMethod):
         if groups is None:
             return jnp.ones((size, 1), dtype=bool)
         return jnp.copy(groups)
+
+    @property
+    def bucket_types(self) -> Tuple[str]:
+        return self._bucket_types
+
+    @staticmethod
+    def _get_bucket_type_indices(bucket_types: Tuple[str]) -> Array:
+        taus = []
+        if "=" in bucket_types:
+            taus.append(0)
+        if ">=" in bucket_types:
+            taus.append(1)
+        if "<=" in bucket_types:
+            taus.append(2)
+        return jnp.array(taus)
+
+    @staticmethod
+    def _check_bucket_types(bucket_types: Tuple[str]):
+        supported_bucket_types = ["=", ">=", "<="]
+        for bucket_type in bucket_types:
+            if bucket_type not in supported_bucket_types:
+                raise ValueError(f"`bucket_type={bucket_type}` not recognized.")

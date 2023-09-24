@@ -5,10 +5,11 @@ from typing import Optional
 import jax.numpy as jnp
 
 from fortuna.conformal.multivalid.iterative.base import IterativeMultivalidMethod
+from fortuna.conformal.multivalid.mixins.multicalibrator import MulticalibratorMixin
 from fortuna.typing import Array
 
 
-class Multicalibrator(IterativeMultivalidMethod):
+class Multicalibrator(MulticalibratorMixin, IterativeMultivalidMethod):
     def __init__(self, seed: int = 0):
         """
         A multicalibration method that provides multivalid coverage guarantees. See Algorithm 15 in `Aaron Roth's notes
@@ -27,6 +28,7 @@ class Multicalibrator(IterativeMultivalidMethod):
         v: Array,
         g: Array,
         c: Array,
+        tau: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -37,6 +39,7 @@ class Multicalibrator(IterativeMultivalidMethod):
             v=v,
             g=g,
             c=c,
+            tau=tau,
             scores=scores,
             groups=groups,
             values=values,
@@ -50,6 +53,7 @@ class Multicalibrator(IterativeMultivalidMethod):
         v: Array,
         g: Array,
         c: Array,
+        tau: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -61,6 +65,7 @@ class Multicalibrator(IterativeMultivalidMethod):
             v=v,
             g=g,
             c=c,
+            tau=tau,
             scores=scores,
             groups=groups,
             values=values,
@@ -79,6 +84,7 @@ class Multicalibrator(IterativeMultivalidMethod):
         v: Array,
         g: Array,
         c: Array,
+        tau: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
@@ -88,7 +94,13 @@ class Multicalibrator(IterativeMultivalidMethod):
     ):
         if b is None:
             b = self._get_b(
-                groups=groups, values=values, v=v, g=g, c=c, n_buckets=n_buckets
+                groups=groups,
+                values=values,
+                v=v,
+                g=g,
+                c=c,
+                tau=tau,
+                n_buckets=n_buckets,
             )
         filtered_scores = scores * b
         prob_b = jnp.mean(b)
@@ -110,14 +122,16 @@ class Multicalibrator(IterativeMultivalidMethod):
         buckets: Array,
         **kwargs,
     ) -> Array:
-        patch, bt = self._compute_expectation(
+        ey, bt = self._compute_expectation(
             v=vt,
             g=gt,
             c=ct,
             b=bt,
+            tau=None,
             scores=scores,
             groups=groups,
             values=values,
             n_buckets=len(buckets),
         )
-        return self._round_to_buckets(patch, buckets)
+
+        return ey - jnp.mean(values[bt])

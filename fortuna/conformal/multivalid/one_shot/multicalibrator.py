@@ -1,10 +1,11 @@
 import jax.numpy as jnp
 
+from fortuna.conformal.multivalid.mixins.multicalibrator import MulticalibratorMixin
 from fortuna.conformal.multivalid.one_shot.base import OneShotMultivalidMethod
 from fortuna.typing import Array
 
 
-class OneShotMulticalibrator(OneShotMultivalidMethod):
+class OneShotMulticalibrator(MulticalibratorMixin, OneShotMultivalidMethod):
     def __init__(self, seed: int = 0):
         super().__init__(seed=seed)
 

@@ -2,10 +2,11 @@ from typing import Optional
 
 import jax.numpy as jnp
 
+from fortuna.conformal.multivalid.mixins.multicalibrator import MulticalibratorMixin
 from fortuna.typing import Array
 
 
-class BinaryClassificationMulticalibratorMixin:
+class BinaryClassificationMulticalibratorMixin(MulticalibratorMixin):
     def mean_squared_error(self, probs: Array, targets: Array) -> Array:
         return super().mean_squared_error(values=probs, scores=targets)
 

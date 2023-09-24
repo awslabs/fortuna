@@ -3,10 +3,11 @@ from typing import Optional
 from jax import vmap
 import jax.numpy as jnp
 
+from fortuna.conformal.multivalid.mixins.multicalibrator import MulticalibratorMixin
 from fortuna.typing import Array
 
 
-class TopLabelMulticalibratorMixin:
+class TopLabelMulticalibratorMixin(MulticalibratorMixin):
     def __init__(self, n_classes: int, seed: int = 0):
         """
         A multicalibration method that provides multivalid coverage guarantees. See Algorithm 15 in `Aaron Roth's notes
