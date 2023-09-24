@@ -10,10 +10,13 @@ import jax.numpy as jnp
 
 from fortuna.conformal.classification.base import ConformalClassifier
 from fortuna.conformal.multivalid.iterative.base import IterativeMultivalidMethod
+from fortuna.conformal.multivalid.mixins.batchmvp import BatchMVPMixin
 from fortuna.typing import Array
 
 
-class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
+class BatchMVPConformalMethod(
+    BatchMVPMixin, IterativeMultivalidMethod, ConformalClassifier
+):
     def __init__(self, seed: int = 0):
         """
         This class implements a classification version of BatchMVP
@@ -41,8 +44,9 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         min_prob_b: float = 0.1,
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 0.1,
+        eta: float = 1,
         split: float = 0.8,
+        bucket_types: Tuple[str, ...] = (">=", "<="),
         coverage: float = 0.95,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -84,6 +88,12 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         split: float
             Split the calibration data into calibration and validation, according to the given proportion.
             The validation data will be used for early stopping.
+        bucket_types: Tuple[str, ...]
+            Types of buckets. The following types are currently supported:
+
+            - "=", corresponding of buckets like :math:`\{f(x) = v\}`;
+            - ">=", corresponding of buckets like :math:`\{f(x) \ge v\}`;
+            - "<=", corresponding of buckets like :math:`\{f(x) \le v\}`.
         coverage: float
             The desired level of coverage. This must be a scalar between 0 and 1.
         Returns
@@ -108,6 +118,7 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
             n_rounds=n_rounds,
             eta=eta,
             split=split,
+            bucket_types=bucket_types,
             coverage=coverage,
         )
 
@@ -143,6 +154,7 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         v: Array,
         g: Array,
         c: Array,
+        tau: Array,
         scores: Array,
         groups: Array,
         values: Array,
@@ -153,6 +165,7 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         prob_error, b, prob_b = self._compute_probability_error(
             v=v,
             g=g,
+            tau=tau,
             scores=scores,
             groups=groups,
             values=values,
@@ -167,6 +180,7 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         self,
         v: Array,
         g: Array,
+        tau: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
@@ -179,6 +193,7 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         prob = self._compute_probability(
             v=v,
             g=g,
+            tau=tau,
             scores=scores,
             groups=groups,
             values=values,
@@ -197,6 +212,7 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         self,
         v: Array,
         g: Array,
+        tau: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
@@ -207,9 +223,15 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
     ):
         if b is None:
             b = self._get_b(
-                groups=groups, values=values, v=v, g=g, c=None, n_buckets=n_buckets
+                groups=groups,
+                values=values,
+                v=v,
+                g=g,
+                tau=tau,
+                c=None,
+                n_buckets=n_buckets,
             )
-        conds = (scores <= (v if threshold is None else threshold)) * b
+        conds = (scores <= (values if threshold is None else threshold)) * b
         prob_b = jnp.mean(b)
         prob = jnp.where(prob_b > 0, jnp.mean(conds) / prob_b, 0.0)
         if return_prob_b:
@@ -228,16 +250,19 @@ class BatchMVPConformalMethod(IterativeMultivalidMethod, ConformalClassifier):
         buckets: Array,
         coverage: float = None,
     ) -> Array:
+        n_buckets = len(buckets)
+        buckets = jnp.concatenate((-buckets[::-1][:-1], buckets))
         patch, bt = vmap(
-            lambda v: self._compute_probability_error(
+            lambda delta: self._compute_probability_error(
                 v=vt,
                 g=gt,
+                tau=None,
                 scores=scores,
                 groups=groups,
                 values=values,
-                n_buckets=len(buckets),
+                n_buckets=n_buckets,
                 coverage=coverage,
-                threshold=v,
+                threshold=jnp.clip(values + delta, 0, 1),
                 b=bt,
             )
         )(buckets)

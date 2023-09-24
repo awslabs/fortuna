@@ -228,7 +228,11 @@ test_groups = jnp.stack([g(test_data[0]) for g in group_fns], axis=1)
 
 batchmvp = BatchMVPConformalRegressor()
 test_thresholds, status = batchmvp.calibrate(
-    scores=scores, groups=groups, test_groups=test_groups, n_buckets=100, eta=1
+    scores=scores,
+    groups=groups,
+    test_groups=test_groups,
+    eta=1,
+    bucket_types=("<=", ">="),
 )
 test_thresholds = min_score + (max_score - min_score) * test_thresholds
 
@@ -237,7 +241,7 @@ test_thresholds = min_score + (max_score - min_score) * test_thresholds
 
 # %%
 plt.figure(figsize=(6, 3))
-plt.plot(status["mean_squared_errors"], label="mean squared error decay")
+plt.plot(status["losses"], label="mean squared error decay")
 plt.xlabel("rounds")
 plt.legend()
 plt.show()

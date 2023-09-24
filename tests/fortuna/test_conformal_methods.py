@@ -528,7 +528,7 @@ class TestConformalMethods(unittest.TestCase):
     def test_binary_multicalibrator(self):
         size = 10
         test_size = 20
-        scores = random.choice(random.PRNGKey(0), 2, shape=(size,)).astype("int")
+        scores = random.choice(random.PRNGKey(1), 2, shape=(size,)).astype("int")
         groups = random.choice(random.PRNGKey(0), 2, shape=(size, 3)).astype("bool")
         values = jnp.zeros(size)
         test_scores = random.choice(random.PRNGKey(1), 2, shape=(test_size,)).astype(

@@ -22,25 +22,6 @@ class MultivalidMethod:
         self._patches = None
         self._n_buckets = None
 
-    def mean_squared_error(self, values: Array, scores: Array) -> Array:
-        """
-        The mean squared error between the model evaluations and the scores.
-        This is supposed to decrease at every round of the algorithm.
-
-        Parameters
-        ----------
-        values: Array
-            The model evaluations.
-        scores: Array
-            The scores.
-
-        Returns
-        -------
-        Array
-            The mean-squared error.
-        """
-        return self._mean_squared_error(values, scores)
-
     @property
     def patches(self):
         return self._patches
@@ -52,12 +33,6 @@ class MultivalidMethod:
     @n_buckets.setter
     def n_buckets(self, n_buckets):
         self._n_buckets = n_buckets
-
-    @staticmethod
-    def _mean_squared_error(values: Array, scores: Array) -> Array:
-        if scores.ndim == 2 and values.ndim == 1:
-            scores = scores[:, 0]
-        return jnp.mean((values - scores) ** 2)
 
     @staticmethod
     def _get_buckets(n_buckets: int):
