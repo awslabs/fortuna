@@ -41,10 +41,10 @@ class BatchMVPConformalMethod(
         test_thresholds: Optional[Array] = None,
         atol: float = 1e-4,
         rtol: float = 1e-6,
-        min_prob_b: float = 0.1,
+        min_prob_b: Union[float, str] = "auto",
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1,
+        eta: float = 0.1,
         split: float = 0.8,
         bucket_types: Tuple[str, ...] = (">=", "<="),
         coverage: float = 0.95,
@@ -145,10 +145,6 @@ class BatchMVPConformalMethod(
             coverage=self._coverage,
         )
 
-    @staticmethod
-    def mean_squared_error(thresholds: Array, scores: Array) -> Array:
-        return super().mean_squared_error(values=thresholds, scores=scores)
-
     def _calibration_error(
         self,
         v: Array,
@@ -158,7 +154,7 @@ class BatchMVPConformalMethod(
         scores: Array,
         groups: Array,
         values: Array,
-        n_buckets: int,
+        buckets: Array,
         coverage: float = None,
         threshold: Array = None,
     ):
@@ -169,7 +165,7 @@ class BatchMVPConformalMethod(
             scores=scores,
             groups=groups,
             values=values,
-            n_buckets=n_buckets,
+            n_buckets=len(buckets),
             return_prob_b=True,
             coverage=coverage,
             threshold=threshold,
@@ -240,10 +236,11 @@ class BatchMVPConformalMethod(
 
     def _get_patch(
         self,
-        vt: Array,
-        gt: Array,
-        ct: Array,
-        bt: Array,
+        v: Array,
+        g: Array,
+        c: Array,
+        b: Optional[Array],
+        tau: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
@@ -252,21 +249,25 @@ class BatchMVPConformalMethod(
     ) -> Array:
         n_buckets = len(buckets)
         buckets = jnp.concatenate((-buckets[::-1][:-1], buckets))
-        patch, bt = vmap(
+        errors, b = vmap(
             lambda delta: self._compute_probability_error(
-                v=vt,
-                g=gt,
+                v=v,
+                g=g,
                 tau=None,
                 scores=scores,
                 groups=groups,
                 values=values,
                 n_buckets=n_buckets,
                 coverage=coverage,
-                threshold=jnp.clip(values + delta, 0, 1),
-                b=bt,
+                threshold=values + delta,
+                b=b,
             )
         )(buckets)
-        return buckets[jnp.argmin(patch)]
+        min_error = jnp.min(errors)
+        indices_min_error = jnp.where(errors == min_error)[0]
+        if jnp.sum(indices_min_error >= n_buckets):
+            return buckets[jnp.min(indices_min_error)]
+        return buckets[jnp.max(indices_min_error)]
 
     @staticmethod
     def _maybe_check_values(

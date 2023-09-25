@@ -231,8 +231,6 @@ test_thresholds, status = batchmvp.calibrate(
     scores=scores,
     groups=groups,
     test_groups=test_groups,
-    eta=1,
-    bucket_types=("<=", ">="),
 )
 test_thresholds = min_score + (max_score - min_score) * test_thresholds
 

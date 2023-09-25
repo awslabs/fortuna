@@ -79,6 +79,6 @@ class TopLabelMulticalibratorMixin(MulticalibratorMixin):
 
     @staticmethod
     def _maybe_normalize(values: Array):
-        if jnp.all(~jnp.isnan(values)) and jnp.all(values.sum(1, keepdims=True) != 0.0):
-            values /= values.sum(1, keepdims=True)
-        return values
+        sum_values = values.sum(1, keepdims=True)
+        cond = jnp.isnan(sum_values) * (sum_values == 0.0)
+        return values * cond + (values / sum_values) * (1 - cond)

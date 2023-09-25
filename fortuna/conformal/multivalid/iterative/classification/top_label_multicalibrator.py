@@ -44,10 +44,10 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         test_probs: Optional[Array] = None,
         atol: float = 1e-4,
         rtol: float = 1e-6,
-        min_prob_b: float = 0.1,
+        min_prob_b: Union[float, str] = "auto",
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1,
+        eta: float = 0.1,
         split: float = 0.8,
         bucket_types: Tuple[str, ...] = ("<=", ">="),
         **kwargs,
@@ -74,7 +74,8 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         groups: Optional[Array] = None,
         probs: Optional[Array] = None,
     ) -> Array:
-        return super().apply_patches(groups=groups, values=probs)
+        probs = super().apply_patches(groups=groups, values=probs)
+        return probs  # super()._maybe_normalize(probs)
 
     def calibration_error(
         self,
@@ -113,10 +114,10 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         return b
 
     def _patch(
-        self, values: Array, patch: Array, bt: Array, ct: Array, eta: float
+        self, values: Array, patch: Array, b: Array, c: Array, eta: float
     ) -> Array:
-        values = self._maybe_normalize(values)
-        return super()._patch(values=values, patch=patch, bt=bt, ct=ct, eta=eta)
+        # values = self._maybe_normalize(values)
+        return super()._patch(values=values, patch=patch, b=b, c=c, eta=eta)
 
     def _maybe_init_values(
         self, values: Optional[Array], size: Optional[int] = None

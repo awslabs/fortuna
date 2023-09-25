@@ -93,6 +93,7 @@ calib_test_probs, status = mc.calibrate(
     probs=probs,
     test_groups=test_groups,
     test_probs=test_probs,
+    eta=1,
 )
 
 plt.figure(figsize=(10, 3))
