@@ -74,8 +74,7 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         groups: Optional[Array] = None,
         probs: Optional[Array] = None,
     ) -> Array:
-        probs = super().apply_patches(groups=groups, values=probs)
-        return probs  # super()._maybe_normalize(probs)
+        return super().apply_patches(groups=groups, values=probs)
 
     def calibration_error(
         self,
