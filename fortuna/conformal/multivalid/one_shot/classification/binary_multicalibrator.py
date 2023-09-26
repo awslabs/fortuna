@@ -22,7 +22,7 @@ class OneShotBinaryClassificationMulticalibrator(
         probs: Optional[Array] = None,
         test_probs: Optional[Array] = None,
         n_buckets: int = 100,
-        min_prob_b: float = 0.1,
+        min_prob_b: Union[float, str] = "auto",
     ):
         return super().calibrate(
             scores=targets,
