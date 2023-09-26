@@ -43,10 +43,10 @@ class IterativeMultivalidMethod(MultivalidMethod):
         test_values: Optional[Array] = None,
         atol: float = 1e-4,
         rtol: float = 1e-6,
-        min_prob_b: float = 0.1,
+        min_prob_b: Union[float, str] = "auto",
         n_buckets: int = 100,
         n_rounds: int = 1000,
-        eta: float = 1,
+        eta: float = 0.1,
         split: float = 0.8,
         bucket_types: Tuple[str, ...] = ("<=", ">="),
         **kwargs,
@@ -125,7 +125,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
             raise ValueError(
                 "`eta` must be a float greater than 0 and less than or equal to 1."
             )
-        if split <= 0 or split >= 1:
+        if split <= 0 or split > 1:
             raise ValueError("`split` must be a float greater than 0 and less than 1.")
         if min_prob_b != "auto" and (min_prob_b < 0 or min_prob_b > 1):
             raise ValueError(
@@ -174,7 +174,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         converged = False
 
         for t in range(n_rounds):
-            calib_error_gvc, b = vmap(
+            calib_error_tau_g_v_c, b = vmap(
                 lambda tau: vmap(
                     lambda g: vmap(
                         lambda v: vmap(
@@ -186,7 +186,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
                                 scores=scores[:, c],
                                 groups=groups,
                                 values=values,
-                                n_buckets=n_buckets,
+                                buckets=buckets,
                                 **kwargs,
                             )
                         )(jnp.arange(n_dims))
@@ -194,10 +194,18 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 )(jnp.arange(n_groups))
             )(taus)
 
-            calib_error_gvc *= jnp.mean(b, axis=-1) >= min_prob_b
+            cond_b = jnp.mean(b, axis=-1) >= min_prob_b
+
+            if not jnp.count_nonzero(cond_b):
+                logging.warning(
+                    f"Early stopping triggered after {t} rounds. "
+                    f"No further sets with probability at least `min_prob_b` left available."
+                )
+                break
+            calib_error_tau_g_v_c *= cond_b
 
             taut, gt, vt, ct, bt = self._get_taut_and_gt_and_vt_and_ct_and_bt(
-                calib_error_gvc=calib_error_gvc,
+                calib_error_tau_g_v_c=calib_error_tau_g_v_c,
                 buckets=buckets,
                 n_groups=n_groups,
                 n_dims=n_dims,
@@ -207,17 +215,18 @@ class IterativeMultivalidMethod(MultivalidMethod):
             )
 
             patch = self._get_patch(
-                vt=vt,
-                gt=gt,
-                ct=ct,
-                bt=bt,
+                v=vt,
+                g=gt,
+                c=ct,
+                b=bt,
+                tau=taut,
                 scores=scores[:, ct],
                 groups=groups,
                 values=values,
                 buckets=buckets,
                 **kwargs,
             )
-            values = self._patch(values=values, patch=patch, bt=bt, ct=ct, eta=eta)
+            values = self._patch(values=values, patch=patch, b=bt, c=ct, eta=eta)
 
             val_bt = self._get_b(
                 groups=val_groups,
@@ -229,7 +238,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 n_buckets=self.n_buckets,
             )
             val_values = self._patch(
-                values=val_values, patch=patch, bt=val_bt, ct=ct, eta=self.eta
+                values=val_values, patch=patch, b=val_bt, c=ct, eta=self.eta
             )
 
             losses = float(self._loss_fn(values, scores))
@@ -245,7 +254,10 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 converged = True
                 break
             if val_losses[-1] > val_losses[-2]:
-                logging.warning(f"Early stopping triggered after {t} rounds.")
+                logging.warning(
+                    f"Early stopping triggered after {t} rounds. "
+                    f"The loss started increasing on the validation data."
+                )
                 break
             if (
                 jnp.any(val_bt)
@@ -328,7 +340,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 tau=taut,
                 n_buckets=self.n_buckets,
             )
-            values = self._patch(values=values, patch=patch, bt=bt, ct=ct, eta=self.eta)
+            values = self._patch(values=values, patch=patch, b=bt, c=ct, eta=self.eta)
         return values
 
     def calibration_error(
@@ -387,7 +399,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
                             scores=scores[:, c],
                             groups=groups,
                             values=values,
-                            n_buckets=n_buckets,
+                            buckets=buckets,
                             **kwargs,
                         )
                     )(jnp.arange(n_dims))
@@ -423,14 +435,14 @@ class IterativeMultivalidMethod(MultivalidMethod):
         scores: Array,
         groups: Array,
         values: Array,
-        n_buckets: int,
+        buckets: Array,
         **kwargs,
     ):
         pass
 
     @staticmethod
     def _get_taut_and_gt_and_vt_and_ct_and_bt(
-        calib_error_gvc: Array,
+        calib_error_tau_g_v_c: Array,
         buckets: Array,
         n_groups: int,
         n_dims: int,
@@ -439,7 +451,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         taus: Array,
     ) -> Tuple[Array, Array, Array, Array, Array]:
         idx_taut, gt, idx_vt, ct = jnp.unravel_index(
-            jnp.argmax(calib_error_gvc),
+            jnp.argmax(calib_error_tau_g_v_c),
             (n_bucket_types, n_groups, len(buckets), n_dims),
         )
         vt = buckets[idx_vt]
@@ -469,10 +481,11 @@ class IterativeMultivalidMethod(MultivalidMethod):
     @abc.abstractmethod
     def _get_patch(
         self,
-        vt: Array,
-        gt: Array,
-        ct: Array,
-        bt: Array,
+        v: Array,
+        g: Array,
+        c: Array,
+        b: Optional[Array],
+        tau: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
@@ -481,22 +494,29 @@ class IterativeMultivalidMethod(MultivalidMethod):
     ) -> Array:
         pass
 
+    def _patch(
+        self,
+        values: Array,
+        patch: Array,
+        b: Array,
+        c: Array,
+        eta: float,
+    ) -> Array:
+        taken_values_to_set = self._take_values_to_set(values, b, c)
+        taken_values = self._take_values(values, b, c)
+        return taken_values_to_set.set(jnp.clip(taken_values + eta * patch, 0, 1))
+
     @staticmethod
-    def _patch(values: Array, patch: Array, bt: Array, ct: Array, eta: float) -> Array:
+    def _take_values(values: Array, b: Array, c: Array):
         if values.ndim == 1:
-            return values.at[bt].set(
-                jnp.minimum(
-                    values[bt] + eta * patch,  # (1 - eta) * values[bt] + eta * patch,
-                    jnp.ones_like(values[bt]),
-                )
-            )
-        return values.at[bt, ct].set(
-            jnp.minimum(
-                values[bt, ct]
-                + eta * patch,  # (1 - eta) * values[bt, ct] + eta * patch,
-                jnp.ones_like(values[bt, ct]),
-            )
-        )
+            return values[b]
+        return values[b, c]
+
+    @staticmethod
+    def _take_values_to_set(values: Array, b: Array, c: Array):
+        if values.ndim == 1:
+            return values.at[b]
+        return values.at[b, c]
 
     @staticmethod
     def _loss_fn(values: Array, scores: Array) -> Array:
@@ -539,4 +559,4 @@ class IterativeMultivalidMethod(MultivalidMethod):
         supported_bucket_types = ["=", ">=", "<="]
         for bucket_type in bucket_types:
             if bucket_type not in supported_bucket_types:
-                raise ValueError(f"`bucket_type={bucket_type}` not recognized.")
+                raise ValueError(f"`bucket_type='{bucket_type}'` not recognized.")

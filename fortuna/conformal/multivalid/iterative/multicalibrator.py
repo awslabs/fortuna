@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import (
+    Optional,
+    Tuple,
+)
 
 import jax.numpy as jnp
 
@@ -32,52 +35,47 @@ class Multicalibrator(MulticalibratorMixin, IterativeMultivalidMethod):
         scores: Array,
         groups: Array,
         values: Array,
-        n_buckets: int,
+        buckets: Array,
         **kwargs,
     ):
-        expectation_error, b, prob_b = self._compute_expectation_error(
+        patch, b, prob_b = self.__calibration_error(
             v=v,
             g=g,
             c=c,
+            b=None,
             tau=tau,
             scores=scores,
             groups=groups,
             values=values,
-            n_buckets=n_buckets,
-            return_prob_b=True,
+            buckets=buckets,
         )
-        return prob_b * expectation_error, b
+        return prob_b * patch**2, b
 
-    def _compute_expectation_error(
+    def __calibration_error(
         self,
         v: Array,
         g: Array,
         c: Array,
-        tau: Array,
+        b: Optional[Array],
+        tau: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
-        n_buckets: int,
-        return_prob_b: bool = False,
-        b: Optional[Array] = None,
-    ):
-        mean = self._compute_expectation(
+        buckets: Array,
+    ) -> Tuple[Array, Array, Array]:
+        ey, b, prob_b = self._compute_expectation(
             v=v,
             g=g,
             c=c,
+            b=b,
             tau=tau,
             scores=scores,
             groups=groups,
             values=values,
-            n_buckets=n_buckets,
-            return_prob_b=return_prob_b,
-            b=b,
+            n_buckets=len(buckets),
         )
-        if return_prob_b:
-            mean, b, prob_b = mean
-            return (v - mean) ** 2, b, prob_b
-        mean, b = mean
-        return (v - mean) ** 2, b
+        patch = jnp.where(prob_b > 0, ey - self._get_mean_values(values, b, c), 0.0)
+        return patch, b, prob_b
 
     def _compute_expectation(
         self,
@@ -89,7 +87,6 @@ class Multicalibrator(MulticalibratorMixin, IterativeMultivalidMethod):
         groups: Array,
         values: Array,
         n_buckets: int,
-        return_prob_b: bool = False,
         b: Optional[Array] = None,
     ):
         if b is None:
@@ -104,34 +101,36 @@ class Multicalibrator(MulticalibratorMixin, IterativeMultivalidMethod):
             )
         filtered_scores = scores * b
         prob_b = jnp.mean(b)
-        mean = jnp.where(prob_b > 0, jnp.mean(filtered_scores) / prob_b, 0.0)
-
-        if return_prob_b:
-            return mean, b, prob_b
-        return mean, b
+        mean = jnp.mean(filtered_scores) / prob_b
+        return mean, b, prob_b
 
     def _get_patch(
         self,
-        vt: Array,
-        gt: Array,
-        ct: Array,
-        bt: Array,
+        v: Array,
+        g: Array,
+        c: Array,
+        b: Optional[Array],
+        tau: Optional[Array],
         scores: Array,
         groups: Array,
         values: Array,
         buckets: Array,
         **kwargs,
     ) -> Array:
-        ey, bt = self._compute_expectation(
-            v=vt,
-            g=gt,
-            c=ct,
-            b=bt,
-            tau=None,
+        return self.__calibration_error(
+            v=v,
+            g=g,
+            c=c,
+            b=b,
+            tau=tau,
             scores=scores,
             groups=groups,
             values=values,
-            n_buckets=len(buckets),
-        )
+            buckets=buckets,
+        )[0]
 
-        return ey - jnp.mean(values[bt])
+    @staticmethod
+    def _get_mean_values(values: Array, b: Array, c: Array):
+        if values.ndim == 1:
+            return jnp.mean(values * b) / jnp.mean(b)
+        return jnp.mean(values[:, c] * b) / jnp.mean(b)

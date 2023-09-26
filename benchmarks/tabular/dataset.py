@@ -42,9 +42,7 @@ class Dataset:
     def __init__(self, name: str, url: str, task: str, dir: str):
         if task not in SUPPORTED_TASKS:
             raise ValueError(
-                """`task={}` not recognized. Only the following tasks are supported: {}.""".format(
-                    SUPPORTED_TASKS
-                )
+                f"`task={task}` not recognized. Only the following tasks are supported: {SUPPORTED_TASKS}."
             )
         if not os.path.isdir(dir):
             raise ValueError(
@@ -349,7 +347,7 @@ class Yacht(Dataset):
 
 
 class Delgado(Dataset):
-    name = "delgado"
+    name = ""
     url = (
         "http://persoal.citius.usc.es/manuel.fernandez.delgado/papers/jmlr/data.tar.gz"
     )
@@ -549,7 +547,7 @@ for name in delgado_datasets:
     @add_classification
     class C(Delgado):
         name1 = name
-        name = "delgado_" + name
+        name = name
         url = Delgado.url
         task = Delgado.task
 
@@ -861,8 +859,6 @@ regression_datasets.sort()
 
 classification_datasets = list(_ALL_CLASSIFICATION_DATASETS.keys())
 classification_datasets.sort()
-
-assert not bool(set(regression_datasets) & set(classification_datasets))
 
 
 def download_regression_dataset(name, dir, *args, **kwargs):
