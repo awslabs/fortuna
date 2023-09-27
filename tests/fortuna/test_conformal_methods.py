@@ -7,6 +7,8 @@ import numpy as np
 from fortuna.conformal import (
     AdaptiveConformalClassifier,
     AdaptiveConformalRegressor,
+    CVPlusSimplePredictionConformalClassifier,
+    CVPlusAdaptivePredictionConformalClassifier,
     AdaptivePredictionConformalClassifier,
     BatchMVPConformalClassifier,
     BatchMVPConformalRegressor,
@@ -38,14 +40,11 @@ class TestConformalMethods(unittest.TestCase):
         test_probs = np.array([[0.5, 0.5], [0.8, 0.2]])
 
         conformal = SimplePredictionConformalClassifier()
-        scores = conformal.score(val_probs, val_targets)
-        assert scores.shape == (3,)
-        quantile = conformal.quantile(val_probs, val_targets, 0.5, scores=scores)
         coverage_sets = conformal.conformal_set(
             val_probs=val_probs,
             test_probs=test_probs,
             val_targets=val_targets,
-            quantile=quantile,
+            error=0.05
         )
         assert (
             (0 in coverage_sets[0])
@@ -53,21 +52,39 @@ class TestConformalMethods(unittest.TestCase):
             and (0 in coverage_sets[1])
         )
 
+    def test_simple_prediction_conformal_classifier(self):
+        val_probs = np.array([[0.1, 0.7, 0.2], [0.5, 0.4, 0.1], [0.15, 0.6, 0.35]])
+        val_targets = np.array([1, 1, 2])
+        test_probs = np.array([[0.2, 0.5, 0.3], [0.6, 0.01, 0.39]])
+
+        conformal = SimplePredictionConformalClassifier()
+        coverage_sets = conformal.conformal_set(
+            val_probs, val_targets, test_probs, error=0.05
+        )
+        assert len(coverage_sets) == len(test_probs)
+
+        conformal = CVPlusSimplePredictionConformalClassifier()
+        coverage_sets = conformal.conformal_set(
+            [val_probs, val_probs], [val_targets, val_targets], [test_probs, test_probs], error=0.05
+        )
+        assert len(coverage_sets) == 2 * len(test_probs)
+
     def test_adaptive_prediction_conformal_classifier(self):
         val_probs = np.array([[0.1, 0.7, 0.2], [0.5, 0.4, 0.1], [0.15, 0.6, 0.35]])
         val_targets = np.array([1, 1, 2])
         test_probs = np.array([[0.2, 0.5, 0.3], [0.6, 0.01, 0.39]])
 
         conformal = AdaptivePredictionConformalClassifier()
-        scores = conformal.score(val_probs, val_targets)
-        assert jnp.allclose(scores, jnp.array([0.7, 0.9, 0.95]))
-        quantile = conformal.quantile(val_probs, val_targets, 0.5, scores=scores)
-        assert (quantile > 0.9) * (quantile < 0.95)
         coverage_sets = conformal.conformal_set(
-            val_probs, test_probs, val_targets, quantile=quantile
+            val_probs, val_targets, test_probs, error=0.05
         )
-        assert np.allclose(coverage_sets[0], [1, 2, 0])
-        assert np.allclose(coverage_sets[1], [0, 2])
+        assert len(coverage_sets) == len(test_probs)
+
+        conformal = CVPlusAdaptivePredictionConformalClassifier()
+        coverage_sets = conformal.conformal_set(
+            [val_probs, val_probs], [val_targets, val_targets], [test_probs, test_probs], error=0.05
+        )
+        assert len(coverage_sets) == 2 * len(test_probs)
 
     def test_quantile_conformal_regressor(self):
         n_val_inputs = 100
