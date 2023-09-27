@@ -143,6 +143,7 @@ conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
     val_probs=val_means,
     test_probs=test_means,
     val_targets=val_data_loader.to_array_targets(),
+    error=0.05
 )
 
 # %% [markdown]
