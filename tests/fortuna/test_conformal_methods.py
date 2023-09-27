@@ -7,13 +7,13 @@ import numpy as np
 from fortuna.conformal import (
     AdaptiveConformalClassifier,
     AdaptiveConformalRegressor,
-    CVPlusSimplePredictionConformalClassifier,
-    CVPlusAdaptivePredictionConformalClassifier,
     AdaptivePredictionConformalClassifier,
     BatchMVPConformalClassifier,
     BatchMVPConformalRegressor,
     BinaryClassificationMulticalibrator,
+    CVPlusAdaptivePredictionConformalClassifier,
     CVPlusConformalRegressor,
+    CVPlusSimplePredictionConformalClassifier,
     EnbPI,
     JackknifeMinmaxConformalRegressor,
     JackknifePlusConformalRegressor,
@@ -44,7 +44,7 @@ class TestConformalMethods(unittest.TestCase):
             val_probs=val_probs,
             test_probs=test_probs,
             val_targets=val_targets,
-            error=0.05
+            error=0.05,
         )
         assert (
             (0 in coverage_sets[0])
@@ -65,7 +65,10 @@ class TestConformalMethods(unittest.TestCase):
 
         conformal = CVPlusSimplePredictionConformalClassifier()
         coverage_sets = conformal.conformal_set(
-            [val_probs, val_probs], [val_targets, val_targets], [test_probs, test_probs], error=0.05
+            [val_probs, val_probs],
+            [val_targets, val_targets],
+            [test_probs, test_probs],
+            error=0.05,
         )
         assert len(coverage_sets) == 2 * len(test_probs)
 
@@ -82,7 +85,10 @@ class TestConformalMethods(unittest.TestCase):
 
         conformal = CVPlusAdaptivePredictionConformalClassifier()
         coverage_sets = conformal.conformal_set(
-            [val_probs, val_probs], [val_targets, val_targets], [test_probs, test_probs], error=0.05
+            [val_probs, val_probs],
+            [val_targets, val_targets],
+            [test_probs, test_probs],
+            error=0.05,
         )
         assert len(coverage_sets) == 2 * len(test_probs)
 
