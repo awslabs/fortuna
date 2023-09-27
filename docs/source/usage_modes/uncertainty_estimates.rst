@@ -36,7 +36,8 @@ Please check :class:`~fortuna.conformal.classification.adaptive_prediction.Adapt
     conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
         val_probs=val_probs,
         test_probs=test_probs,
-        val_targets=val_targets
+        val_targets=val_targets,
+        error=0.05
     )
 
 You should usually expect your test predictions to be included in the conformal sets, as they contain the most probable
