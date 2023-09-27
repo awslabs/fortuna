@@ -195,7 +195,8 @@ but a new one could be used.
     conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
         val_probs=calib_means,
         test_probs=test_means,
-        val_targets=calib_targets
+        val_targets=calib_targets,
+        error=0.05
     )
 
 .. _flax_models_regression:

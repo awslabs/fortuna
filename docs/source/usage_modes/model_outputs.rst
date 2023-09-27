@@ -116,7 +116,8 @@ and :code:`val_targets` to be the corresponding validation target variables.
     conformal_sets = AdaptivePredictionConformalClassifier().conformal_set(
         val_probs=val_means,
         test_probs=test_means,
-        val_targets=val_targets
+        val_targets=val_targets,
+        error=0.05
     )
 
 .. _model_outputs_regression:

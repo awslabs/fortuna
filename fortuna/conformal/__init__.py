@@ -3,11 +3,13 @@ from fortuna.conformal.classification.adaptive_conformal_classifier import (
 )
 from fortuna.conformal.classification.adaptive_prediction import (
     AdaptivePredictionConformalClassifier,
+    CVPlusAdaptivePredictionConformalClassifier,
 )
 from fortuna.conformal.classification.maxcovfixprec_binary_classfication import (
     MaxCoverageFixedPrecisionBinaryClassificationCalibrator,
 )
 from fortuna.conformal.classification.simple_prediction import (
+    CVPlusSimplePredictionConformalClassifier,
     SimplePredictionConformalClassifier,
 )
 from fortuna.conformal.multivalid.iterative.classification.binary_multicalibrator import (
