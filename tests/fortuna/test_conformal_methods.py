@@ -818,12 +818,12 @@ class TestConformalMethods(unittest.TestCase):
             targets=targets,
             probs=probs,
             true_positive_precision_threshold=0.99,
-            false_negative_precision_threshold=0.99,
+            true_negative_precision_threshold=0.99,
         )
         test_values = calib.calibrate(
             targets=targets,
             probs=probs,
             test_probs=test_probs,
             true_positive_precision_threshold=0.99,
-            false_negative_precision_threshold=0.99,
+            true_negative_precision_threshold=0.99,
         )
