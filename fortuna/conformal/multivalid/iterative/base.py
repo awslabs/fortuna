@@ -385,28 +385,24 @@ class IterativeMultivalidMethod(MultivalidMethod):
         buckets = self._get_buckets(n_buckets)
         values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
-        taus = self._get_bucket_type_indices(self.bucket_types)
-
         error, b = vmap(
-            lambda tau: vmap(
-                lambda g: vmap(
-                    lambda v: vmap(
-                        lambda c: self._calibration_error(
-                            v=v,
-                            g=g,
-                            c=c,
-                            tau=tau,
-                            scores=scores[:, c],
-                            groups=groups,
-                            values=values,
-                            buckets=buckets,
-                            **kwargs,
-                        )
-                    )(jnp.arange(n_dims))
-                )(buckets)
-            )(jnp.arange(groups.shape[1]))
-        )(taus)
-        return error.sum(2)
+            lambda g: vmap(
+                lambda v: vmap(
+                    lambda c: self._calibration_error(
+                        v=v,
+                        g=g,
+                        c=c,
+                        tau=0,
+                        scores=scores[:, c],
+                        groups=groups,
+                        values=values,
+                        buckets=buckets,
+                        **kwargs,
+                    )
+                )(jnp.arange(n_dims))
+            )(buckets)
+        )(jnp.arange(groups.shape[1]))
+        return error.sum(1)
 
     @property
     def eta(self):
