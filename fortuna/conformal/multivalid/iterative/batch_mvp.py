@@ -143,6 +143,7 @@ class BatchMVPConformalMethod(
             values=thresholds,
             n_buckets=n_buckets,
             coverage=self._coverage,
+            **kwargs,
         )
 
     def _calibration_error(
