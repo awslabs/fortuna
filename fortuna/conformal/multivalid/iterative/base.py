@@ -402,7 +402,11 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 )(jnp.arange(n_dims))
             )(buckets)
         )(jnp.arange(groups.shape[1]))
-        return error.sum(1)
+        error = error.sum(1)
+
+        if n_dims == 1:
+            error = error.squeeze(1)
+        return error
 
     @property
     def eta(self):

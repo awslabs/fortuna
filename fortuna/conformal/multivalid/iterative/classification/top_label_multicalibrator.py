@@ -88,6 +88,8 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
             scores=self._get_scores(targets),
             groups=groups,
             values=probs,
+            n_buckets=n_buckets,
+            **kwargs,
         )
 
     def _get_b(

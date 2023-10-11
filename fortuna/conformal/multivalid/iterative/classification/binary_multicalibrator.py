@@ -68,9 +68,7 @@ class BinaryClassificationMulticalibrator(
         **kwargs,
     ) -> Array:
         return super().calibration_error(
-            scores=targets,
-            groups=groups,
-            values=probs,
+            scores=targets, groups=groups, values=probs, n_buckets=n_buckets, **kwargs
         )
 
     def init_probs(self, size: int) -> Array:
