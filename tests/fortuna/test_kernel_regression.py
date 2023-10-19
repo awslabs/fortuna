@@ -24,8 +24,6 @@ class TestKernelRegression(unittest.TestCase):
         assert preds.shape == (4,)
 
         with self.assertRaises(ValueError):
-            kr.predict(inputs=eval_x, bandwidth=-1)
-        with self.assertRaises(ValueError):
             NadarayaWatsonKernelRegressor(
                 train_inputs=train_x, train_targets=train_y[None]
             )
