@@ -26,7 +26,7 @@
 import numpy as np
 
 
-def generate_data(n_data: int, sigma1=0.03, sigma2=0.5, seed: int = 43):
+def generate_data(n_data: int, sigma1=0.03, sigma2=0.5, seed: int = 42):
     rng = np.random.default_rng(seed=seed)
     x = np.concatenate(
         [

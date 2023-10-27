@@ -134,7 +134,7 @@ class BatchMVPConformalMethod(
         scores: Array,
         groups: Optional[Array] = None,
         thresholds: Optional[Array] = None,
-        n_buckets: int = 10000,
+        n_buckets: int = 10,
         **kwargs,
     ) -> Array:
         return super().calibration_error(

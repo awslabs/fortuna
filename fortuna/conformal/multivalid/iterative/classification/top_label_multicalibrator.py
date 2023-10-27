@@ -81,7 +81,7 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         targets: Array,
         groups: Optional[Array] = None,
         probs: Optional[Array] = None,
-        n_buckets: int = 10000,
+        n_buckets: int = 10,
         **kwargs,
     ) -> Array:
         return super().calibration_error(

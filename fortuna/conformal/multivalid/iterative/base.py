@@ -149,7 +149,6 @@ class IterativeMultivalidMethod(MultivalidMethod):
 
         self.n_buckets = n_buckets
         buckets = self._get_buckets(n_buckets)
-        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
         self._check_bucket_types(bucket_types)
         taus = self._get_bucket_type_indices(bucket_types)
@@ -327,9 +326,6 @@ class IterativeMultivalidMethod(MultivalidMethod):
         groups = self._init_groups(groups, values.shape[0])
         self._maybe_check_groups(groups)
 
-        buckets = self._get_buckets(n_buckets=self.n_buckets)
-        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
-
         for taut, gt, vt, ct, patch in self._patches:
             bt = self._get_b(
                 groups=groups,
@@ -348,7 +344,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         scores: Array,
         groups: Optional[Array] = None,
         values: Optional[Array] = None,
-        n_buckets: int = 10000,
+        n_buckets: int = 10,
         **kwargs,
     ) -> Array:
         """
@@ -383,7 +379,6 @@ class IterativeMultivalidMethod(MultivalidMethod):
         values = self._maybe_init_values(values, scores.shape[0])
 
         buckets = self._get_buckets(n_buckets)
-        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
 
         error, b = vmap(
             lambda g: vmap(
@@ -403,6 +398,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
             )(buckets)
         )(jnp.arange(groups.shape[1]))
         error = error.sum(1)
+        error /= groups.mean(0)[:, None]
 
         if n_dims == 1:
             error = error.squeeze(1)

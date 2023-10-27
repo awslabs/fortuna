@@ -39,10 +39,6 @@ class MultivalidMethod:
         return jnp.linspace(0, 1, n_buckets)
 
     @staticmethod
-    def _round_to_buckets(v: Array, buckets: Array):
-        return buckets[jnp.argmin(jnp.abs(v - buckets))]
-
-    @staticmethod
     def _maybe_check_values(
         values: Optional[Array], test_values: Optional[Array] = None
     ):

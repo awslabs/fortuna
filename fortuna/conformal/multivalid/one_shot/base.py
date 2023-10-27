@@ -107,7 +107,6 @@ class OneShotMultivalidMethod(MultivalidMethod):
             return values
 
         buckets = self._get_buckets(self.n_buckets)
-        values = vmap(lambda v: self._round_to_buckets(v, buckets))(values)
         unique_values = jnp.unique(values)
 
         n_dims = 1 if values.ndim == 1 else values.shape[1]
@@ -138,7 +137,7 @@ class OneShotMultivalidMethod(MultivalidMethod):
         patched_values = jnp.copy(values)
         for i, v in enumerate(unique_values):
             for c in range(b.shape[2]):
-                idx_v = jnp.where(buckets == v)[0][0]
+                idx_v = jnp.argmin(jnp.abs(buckets - v))
                 if values.ndim == 1:
                     patched_values = patched_values.at[b[:, i, c]].set(
                         self._patches[idx_v, c]
