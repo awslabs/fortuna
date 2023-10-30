@@ -29,15 +29,6 @@ class TopLabelMulticalibratorMixin(MulticalibratorMixin):
             values=probs, scores=self._get_scores(targets)
         )
 
-    @staticmethod
-    def _round_to_buckets(v: Array, buckets: Array) -> Array:
-        def _fun(_v):
-            return buckets[jnp.argmin(jnp.abs(_v - buckets))]
-
-        if len(v.shape):
-            return vmap(_fun)(v)
-        return _fun(v)
-
     def _get_scores(self, targets: Array) -> Array:
         self._check_targets(targets)
         scores = []
