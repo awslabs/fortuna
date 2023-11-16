@@ -25,11 +25,11 @@ class HallucinationMulticalibrator:
         self,
         generative_model: nn.Module,
         tokenizer: PreTrainedTokenizer,
-        embedding_reduction_fn: Callable[[np.ndarray], np.ndarray] = None,
+        embedding_reduction_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
         clustering_models: Optional[List] = None,
-        scoring_fn: Callable[
-            [torch.Tensor, torch.Tensor, int], torch.Tensor
-        ] = inv_perplexity,
+        scoring_fn: Optional[
+            Callable[[torch.Tensor, torch.Tensor, int], torch.Tensor]
+        ] = None,
     ):
         """
         A hallucination multicalibrator class.
@@ -48,29 +48,25 @@ class HallucinationMulticalibrator:
             A generative model.
         tokenizer: PreTrainedTokenizer
             A tokenizer.
-        embedding_reduction_fn: Callable[[np.ndarray], np.ndarray]
+        embedding_reduction_fn: Optional[Callable[[np.ndarray], np.ndarray]]
             A function aimed at reducing the embedding dimensionality.
         clustering_models: Optional[List]
             A list of clustering models.
-        scoring_fn: Callable[[torch.Tensor, torch.Tensor, int], torch.Tensor]
+        scoring_fn: Optional[Callable[[torch.Tensor, torch.Tensor, int], torch.Tensor]]
             A scoring function.
         """
         self.generative_model = generative_model
         self.tokenizer = tokenizer
-        if embedding_reduction_fn is not None:
-            self.embedding_reduction_fn = embedding_reduction_fn
-        else:
-            self.embedding_reduction_fn = locally_linear_embedding_fn
-        self.scoring_fn = scoring_fn
-        if clustering_models is not None:
-            self.clustering_models = clustering_models
-        else:
-            self.clustering_models = [
-                GaussianMixture(n_components=i) for i in range(2, 11)
-            ]
+        self.embedding_reduction_fn = (
+            embedding_reduction_fn or locally_linear_embedding_fn
+        )
+        self.scoring_fn = scoring_fn or inv_perplexity
+        self.clustering_models = clustering_models or [
+            GaussianMixture(n_components=i) for i in range(2, 11)
+        ]
         self.grouping_model = None
-        self._quantiles = None
         self.multicalibrator = None
+        self._quantiles = None
 
     def fit(
         self,
@@ -255,36 +251,14 @@ class HallucinationMulticalibrator:
             context_inputs = self.tokenizer(context, return_tensors="pt").to(
                 self.generative_model.device
             )
-            len_context_inputs = len(context_inputs)
             if isinstance(text, list):
                 _scores = []
                 _embeddings = []
 
                 for _text in text:
-                    _text_inputs = self.tokenizer(_text, return_tensors="pt").to(
-                        self.generative_model.device
-                    )
-                    _inputs = {
-                        k: torch.cat((context_inputs[k], v), dim=1)
-                        for k, v in _text_inputs.items()
-                    }
-
-                    with torch.no_grad():
-                        __logits = self.generative_model(
-                            input_ids=_inputs["input_ids"],
-                            attention_mask=_inputs["attention_mask"],
-                        ).logits
-
-                    _scores.append(
-                        self.scoring_fn(
-                            logits=__logits,
-                            labels=_inputs["input_ids"],
-                            init_pos=len_context_inputs,
-                        )
-                        .cpu()
-                        .numpy()
-                    )
-                    _embeddings.append(__logits.mean(1).cpu().numpy())
+                    __logits, __scores = self._get_logits_scores(_text, context_inputs)
+                    _embeddings.append(__logits.mean(1))
+                    _scores.append(__scores)
 
                 which_choice = np.argmax(_scores)
                 which_choices.append(which_choice)
@@ -292,35 +266,9 @@ class HallucinationMulticalibrator:
                 embeddings.append(_embeddings[which_choice])
 
             elif isinstance(text, str):
-                text_inputs = self.tokenizer(text, return_tensors="pt").to(
-                    self.generative_model.device
-                )
-                inputs = {
-                    k: torch.cat((context_inputs[k], v), dim=1)
-                    for k, v in text_inputs.items()
-                }
-
-                with torch.no_grad():
-                    _logits = self.generative_model(
-                        input_ids=inputs["input_ids"],
-                        attention_mask=inputs["attention_mask"],
-                    ).logits
-                    embeddings.append(_logits.mean(1).cpu().numpy())
-
-                scores.append(
-                    self.scoring_fn(
-                        logits=_logits,
-                        labels=inputs["input_ids"],
-                        init_pos=len_context_inputs,
-                    )
-                    .cpu()
-                    .numpy()
-                )
-
-            else:
-                raise ValueError(
-                    "`texts` format must be a list of strings, or a list of lists of strings."
-                )
+                _logits, _scores = self._get_logits_scores(text, context_inputs)
+                embeddings.append(_logits.mean(1))
+                scores.append(_scores)
 
         return (
             np.array(scores),
@@ -328,8 +276,32 @@ class HallucinationMulticalibrator:
             np.array(which_choices),
         )
 
+    def _get_logits_scores(
+        self, _text: str, context_inputs
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        _text_inputs = self.tokenizer(_text, return_tensors="pt").to(
+            self.generative_model.device
+        )
+        _inputs = {
+            k: torch.cat((context_inputs[k], v), dim=1) for k, v in _text_inputs.items()
+        }
+
+        with torch.no_grad():
+            __logits = self.generative_model(
+                input_ids=_inputs["input_ids"],
+                attention_mask=_inputs["attention_mask"],
+            ).logits
+
+        __scores = self.scoring_fn(
+            logits=__logits,
+            labels=_inputs["input_ids"],
+            init_pos=len(context_inputs),
+        )
+
+        return __logits.cpu().numpy(), __scores.cpu().numpy()
+
 
 def locally_linear_embedding_fn(x: np.ndarray) -> np.ndarray:
     return locally_linear_embedding(
-        x, n_neighbors=20, n_components=10, method="modified"
+        x, n_neighbors=300, n_components=100, method="modified"
     )[0]
