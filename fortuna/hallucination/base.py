@@ -44,11 +44,16 @@ class HallucinationMulticalibrator:
 
         Parameters
         ----------
-        generative_model
-        tokenizer
-        embedding_reduction_fn
-        clustering_models
-        scoring_fn
+        generative_model: nn.Module
+            A generative model.
+        tokenizer: PreTrainedTokenizer
+            A tokenizer.
+        embedding_reduction_fn: Callable[[np.ndarray], np.ndarray]
+            A function aimed at reducing the embedding dimensionality.
+        clustering_models: Optional[List]
+            A list of clustering models.
+        scoring_fn: Callable[[torch.Tensor, torch.Tensor, int], torch.Tensor]
+            A scoring function.
         """
         self.generative_model = generative_model
         self.tokenizer = tokenizer
