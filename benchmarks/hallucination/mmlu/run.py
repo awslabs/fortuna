@@ -1,5 +1,5 @@
+import os
 import pickle
-from string import ascii_uppercase as auc
 
 from datasets import (
     get_dataset_config_names,
@@ -7,8 +7,8 @@ from datasets import (
 )
 import numpy as np
 from transformers import (
-    GPT2LMHeadModel,
-    GPT2TokenizerFast,
+    AutoModelForCausalLM,
+    AutoTokenizer,
 )
 
 from fortuna.hallucination import HallucinationMulticalibrator
@@ -20,9 +20,9 @@ CALIB_FRAC = 0.8
 
 if __name__ == "__main__":
     device = "cuda"
-    model_id = "gpt2-large"
-    model = GPT2LMHeadModel.from_pretrained(model_id).to(device)
-    tokenizer = GPT2TokenizerFast.from_pretrained(model_id)
+    model_id = "gpt2"
+    model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto")
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     # download and prepare data
     task_list = get_dataset_config_names("lukaemon/mmlu")
@@ -31,13 +31,16 @@ if __name__ == "__main__":
             load_dataset(
                 "lukaemon/mmlu",
                 task,
+                cache_dir=".cache/huggingface/datasets/"
+                if os.path.isdir(".cache/huggingface/datasets/")
+                else None,
             ),
             task,
         )
         for task in task_list
     ]
 
-    answer_map = {a: i for i, a in enumerate(auc)}
+    answer_map = dict(zip(["A", "B", "C", "D"], [0, 1, 2, 3]))
     samples = []
     for datasets, task in dataset_list:
         for dataset_key, dataset in datasets.items():
@@ -45,7 +48,7 @@ if __name__ == "__main__":
                 samples.append(
                     dict(
                         question=string_cleaner(sample["input"]),
-                        choices=[sample[letter] for letter in ["A", "B", "C", "D"]],
+                        choices=[sample[letter] for letter in answer_map.keys()],
                         targets=answer_map[sample["target"]],
                     )
                 )

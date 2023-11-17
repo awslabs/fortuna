@@ -1,3 +1,4 @@
+import logging
 from typing import (
     Callable,
     Dict,
@@ -57,6 +58,9 @@ class HallucinationMulticalibrator:
         """
         self.generative_model = generative_model
         self.tokenizer = tokenizer
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+            logging.info("`tokenizer.pad_token` is None. Set to `tokenizer.eos_token`.")
         self.embedding_reduction_fn = (
             embedding_reduction_fn or locally_linear_embedding_fn
         )
@@ -248,26 +252,15 @@ class HallucinationMulticalibrator:
         which_choices = []
 
         for text, context in tqdm(zip(texts, contexts)):
-            context_inputs = self.tokenizer(context, return_tensors="pt").to(
-                self.generative_model.device
-            )
+            _logits, _scores = self._get_logits_scores(text, context)
+            _embeddings = _logits.mean(1)
             if isinstance(text, list):
-                _scores = []
-                _embeddings = []
-
-                for _text in text:
-                    __logits, __scores = self._get_logits_scores(_text, context_inputs)
-                    _embeddings.append(__logits.mean(1))
-                    _scores.append(__scores)
-
                 which_choice = np.argmax(_scores)
                 which_choices.append(which_choice)
                 scores.append(_scores[which_choice])
                 embeddings.append(_embeddings[which_choice])
-
             elif isinstance(text, str):
-                _logits, _scores = self._get_logits_scores(text, context_inputs)
-                embeddings.append(_logits.mean(1))
+                embeddings.append(_embeddings)
                 scores.append(_scores)
 
         return (
@@ -277,28 +270,29 @@ class HallucinationMulticalibrator:
         )
 
     def _get_logits_scores(
-        self, _text: str, context_inputs
+        self, text: str, context: str
     ) -> Tuple[np.ndarray, np.ndarray]:
-        _text_inputs = self.tokenizer(_text, return_tensors="pt").to(
+        context_inputs = self.tokenizer(context, return_tensors="pt", padding=True).to(
             self.generative_model.device
         )
-        _inputs = {
-            k: torch.cat((context_inputs[k], v), dim=1) for k, v in _text_inputs.items()
+        text_inputs = self.tokenizer(text, return_tensors="pt", padding=True).to(
+            self.generative_model.device
+        )
+        inputs = {
+            k: torch.cat((context_inputs[k].repeat((v.shape[0], 1)), v), dim=1)
+            for k, v in text_inputs.items()
         }
 
         with torch.no_grad():
-            __logits = self.generative_model(
-                input_ids=_inputs["input_ids"],
-                attention_mask=_inputs["attention_mask"],
-            ).logits
+            _logits = self.generative_model(**inputs).logits
 
-        __scores = self.scoring_fn(
-            logits=__logits,
-            labels=_inputs["input_ids"],
+        _scores = self.scoring_fn(
+            logits=_logits,
+            labels=inputs["input_ids"],
             init_pos=len(context_inputs),
         )
 
-        return __logits.cpu().numpy(), __scores.cpu().numpy()
+        return _logits.cpu().numpy(), _scores.cpu().numpy()
 
 
 def locally_linear_embedding_fn(x: np.ndarray) -> np.ndarray:

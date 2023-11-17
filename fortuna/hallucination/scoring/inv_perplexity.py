@@ -8,10 +8,9 @@ def perplexity(logits: torch.Tensor, labels: torch.Tensor, init_pos: int = 0):
     shift_logits = logits[..., :-1, :].contiguous()
     shift_labels = labels[..., 1:].contiguous()
 
-    perplexities = torch.exp(
-        loss_fct(shift_logits.transpose(1, 2), shift_labels)[:, init_pos:].mean()
+    return torch.exp(
+        loss_fct(shift_logits.transpose(1, 2), shift_labels)[:, init_pos:].mean(1)
     )
-    return torch.mean(perplexities)
 
 
 @torch.no_grad()
