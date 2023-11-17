@@ -258,7 +258,7 @@ class HallucinationMulticalibrator:
                 which_choice = np.argmax(_scores)
                 which_choices.append(which_choice)
                 scores.append(_scores[which_choice])
-                embeddings.append(_embeddings[which_choice])
+                embeddings.append(_embeddings[which_choice, None])
             elif isinstance(text, str):
                 embeddings.append(_embeddings)
                 scores.append(_scores)
@@ -297,5 +297,5 @@ class HallucinationMulticalibrator:
 
 def locally_linear_embedding_fn(x: np.ndarray) -> np.ndarray:
     return locally_linear_embedding(
-        x, n_neighbors=300, n_components=100, method="modified"
+        x, n_neighbors=300, n_components=200, method="modified"
     )[0]
