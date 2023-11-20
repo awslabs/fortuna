@@ -18,7 +18,7 @@ from fortuna.typing import (
     OptaxOptimizer,
     Params,
 )
-from fortuna.utils.strings import convert_string_to_jnp_array
+from fortuna.utils.strings import convert_string_to_tuple
 
 
 class PosteriorState(TrainState):
@@ -33,7 +33,7 @@ class PosteriorState(TrainState):
     calib_mutable: Optional[CalibMutable] = None
     grad_accumulated: Optional[jnp.ndarray] = None
     dynamic_scale: Optional[dynamic_scale.DynamicScale] = None
-    encoded_name: jnp.ndarray = convert_string_to_jnp_array("PosteriorState")
+    encoded_name: tuple = convert_string_to_tuple("PosteriorState")
 
     @classmethod
     def init(

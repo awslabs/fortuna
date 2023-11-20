@@ -20,7 +20,7 @@ from fortuna.typing import (
 )
 from fortuna.utils.nested_dicts import nested_pair
 from fortuna.utils.strings import (
-    convert_string_to_jnp_array,
+    convert_string_to_tuple,
     encode_tuple_of_lists_of_strings_to_numpy,
 )
 
@@ -36,7 +36,7 @@ class LaplaceState(PosteriorState):
     """
 
     prior_log_var: float = 0.0
-    encoded_name: jnp.ndarray = convert_string_to_jnp_array("LaplaceState")
+    encoded_name: tuple = convert_string_to_tuple("LaplaceState")
     _encoded_which_params: Optional[Dict[str, Array]] = None
 
     @classmethod
