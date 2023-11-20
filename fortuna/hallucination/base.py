@@ -66,7 +66,7 @@ class HallucinationMulticalibrator:
         )
         self.scoring_fn = scoring_fn or inv_perplexity
         self.clustering_models = clustering_models or [
-            GaussianMixture(n_components=i) for i in range(2, 11)
+            GaussianMixture(n_components=i) for i in range(2, 21)
         ]
         self.grouping_model = None
         self.multicalibrator = None
