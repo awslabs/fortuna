@@ -12,11 +12,11 @@ from flax.training import (
 import jax.numpy as jnp
 
 from fortuna.typing import Params
-from fortuna.utils.strings import convert_string_to_jnp_array
+from fortuna.utils.strings import convert_string_to_tuple
 
 
 class TrainState(train_state.TrainState):
-    encoded_name: jnp.ndarray = convert_string_to_jnp_array("TrainState")
+    encoded_name: tuple = convert_string_to_tuple("TrainState")
     frozen_params: Optional[Params] = None
     dynamic_scale: Optional[dynamic_scale.DynamicScale] = None
 

@@ -17,7 +17,7 @@ from fortuna.typing import (
     OptaxOptimizer,
 )
 from fortuna.utils.strings import (
-    convert_string_to_jnp_array,
+    convert_string_to_tuple,
     encode_tuple_of_lists_of_strings_to_numpy,
 )
 
@@ -30,7 +30,7 @@ class SGHMCState(PosteriorState):
         SGHMC state name encoded as an array.
     """
 
-    encoded_name: jnp.ndarray = convert_string_to_jnp_array("SGHMCState")
+    encoded_name: tuple = convert_string_to_tuple("SGHMCState")
     _encoded_which_params: Optional[Dict[str, List[Array]]] = None
 
     @classmethod

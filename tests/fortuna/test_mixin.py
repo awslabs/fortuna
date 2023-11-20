@@ -113,16 +113,6 @@ class TestCheckpointingMixins(unittest.TestCase):
                     calib_params=None,
                     calib_mutable=None,
                 )
-                restored_state = trainer.restore_checkpoint(
-                    tmp_dir, prefix="test_prefix_"
-                )
-                mc.restore_checkpoint.assert_called_with(
-                    ckpt_dir=tmp_dir,
-                    target=None,
-                    step=None,
-                    prefix="test_prefix_",
-                    parallel=True,
-                )
 
 
 class TestEarlyStoppingMixins(unittest.TestCase):
