@@ -2948,6 +2948,7 @@ files = [
 numpy = [
     {version = ">1.20", markers = "python_version <= \"3.9\""},
     {version = ">=1.21.2", markers = "python_version > \"3.9\""},
+    {version = ">=1.23.3", markers = "python_version > \"3.10\""},
 ]
 
 [package.extras]
@@ -3847,6 +3848,7 @@ files = [
 numpy = [
     {version = ">=1.20.3", markers = "python_version < \"3.10\""},
     {version = ">=1.21.0", markers = "python_version >= \"3.10\""},
+    {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -6771,5 +6773,5 @@ transformers = ["datasets", "transformers"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.8,<3.11"
-content-hash = "56d6ba9935cf9ebda97c1aaedfa43be401154d396f9d7e8df08a2fb80df8b1fe"
+python-versions = ">=3.8,<3.12"
+content-hash = "0d5afd19b3364e869fbb1409b172f1c1d0cb3f0b679dc47eea3d821a92a01c2e"

@@ -15,7 +15,7 @@ from fortuna.typing import (
     Array,
     OptaxOptimizer,
 )
-from fortuna.utils.strings import convert_string_to_jnp_array
+from fortuna.utils.strings import convert_string_to_tuple
 
 
 class SWAGState(PosteriorState):
@@ -35,7 +35,7 @@ class SWAGState(PosteriorState):
     mean: Optional[jnp.ndarray] = None
     std: Optional[jnp.ndarray] = None
     dev: Optional[jnp.ndarray] = None
-    encoded_name: jnp.ndarray = convert_string_to_jnp_array("SWAGState")
+    encoded_name: tuple = convert_string_to_tuple("SWAGState")
     _encoded_which_params: Optional[Dict[str, List[Array]]] = None
 
     @classmethod

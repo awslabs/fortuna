@@ -16,13 +16,13 @@ from fortuna.typing import (
     CalibParams,
     OptaxOptimizer,
 )
-from fortuna.utils.strings import convert_string_to_jnp_array
+from fortuna.utils.strings import convert_string_to_tuple
 
 
 class OutputCalibState(TrainState):
     params: CalibParams
     mutable: Optional[CalibMutable] = None
-    encoded_name: jnp.ndarray = convert_string_to_jnp_array("OutputCalibState")
+    encoded_name: tuple = convert_string_to_tuple("OutputCalibState")
 
     @classmethod
     def init(
