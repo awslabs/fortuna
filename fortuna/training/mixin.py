@@ -81,7 +81,7 @@ class WithCheckpointingMixin:
             raise ValueError(
                 f"No checkpoint was found in `restore_checkpoint_path={restore_checkpoint_path}`."
             )
-        name = "".join([chr(n) for n in d["encoded_name"].tolist()])
+        name = "".join([chr(n) for n in d["encoded_name"].values()])
         return name_to_train_state[name].value.init_from_dict(d, optimizer, **kwargs)
 
     def get_path_latest_checkpoint(
