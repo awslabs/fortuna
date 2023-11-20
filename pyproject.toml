@@ -16,7 +16,7 @@ matplotlib = "^3.6.2"
 tqdm = "^4.64.1"
 numpy = "^1.23.4"
 tensorflow-cpu = { version = "^2.11.0", markers = "sys_platform != 'darwin'" }
-tensorflow-macos = { version = "^2.11.0", markers = "sys_platform == 'darwin'" }
+tensorflow-macos = { version = "^2.13.1", markers = "sys_platform == 'darwin'" }
 Sphinx = { version = "^5.3.0", optional = true }
 sphinx-autodoc-typehints = { version = "^1.19.5", optional = true }
 nbsphinx = { version = "^0.8.10", optional = true }
