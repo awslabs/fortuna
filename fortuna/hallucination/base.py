@@ -110,10 +110,6 @@ class HallucinationMulticalibrator:
         Dict
             The status returned by fitting the multicalibrator.
         """
-        self.generative_model.to(
-            torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        )
-
         (
             scores,
             embeddings,
@@ -176,10 +172,6 @@ class HallucinationMulticalibrator:
         """
         if self.multicalibrator is None:
             raise ValueError("`fit` must be called before this method.")
-
-        self.generative_model.to(
-            torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        )
 
         (
             scores,
