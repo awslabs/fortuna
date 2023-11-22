@@ -82,7 +82,7 @@ class HallucinationMulticalibrator:
         targets: List[int],
         batch_size: int = 16,
         quantile_group_scores_threshold: float = 0.8,
-        balance: bool = True,
+        balance: bool = False,
     ) -> Dict:
         """
         Fit the multicalibrator.

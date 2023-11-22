@@ -115,4 +115,4 @@ if __name__ == "__main__":
     print(f"MSE before calibration: {round(float(mse_before), 4)}.")
     print(f"Accuracy before calibration: {round(float(acc_before), 4)}.")
     print(f"MSE after calibration: {round(float(mse_after), 4)}.")
-    print(f"Accuracy after calibration: {round(float(acc_before), 4)}.")
+    print(f"Accuracy after calibration: {round(float(acc_after), 4)}.")
