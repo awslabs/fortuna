@@ -32,6 +32,7 @@ class HallucinationMulticalibrator:
         scoring_fn: Optional[
             Callable[[torch.Tensor, torch.Tensor, int], torch.Tensor]
         ] = None,
+        seed: int = 0,
     ):
         """
         A hallucination multicalibrator class.
@@ -72,13 +73,16 @@ class HallucinationMulticalibrator:
         self.grouping_model = None
         self.multicalibrator = None
         self._quantiles = None
+        self.rng = np.random.default_rng(seed)
 
     def fit(
         self,
-        texts: Union[List[str], List[List[str]]],
+        texts: List[str],
         contexts: List[str],
-        targets: List[str],
+        targets: List[int],
+        batch_size: int = 16,
         quantile_group_scores_threshold: float = 0.8,
+        balance: bool = False,
     ) -> Dict:
         """
         Fit the multicalibrator.
@@ -99,31 +103,29 @@ class HallucinationMulticalibrator:
             A list of target variables to be used for calibration.
             If `texts` is a list of strings, `targets` should be binary variables indicating whether each of the strings
             in the `texts` list should be marked as positive given the corresponding `contexts`.
-            If `texts` is a list of lists of strings,
-            then `targets` should be a list of integers indicating the position of the strings in the inner lists that
-            should be marked as a positive class.
+        batch_size: int
+            The batch size.
         quantile_group_scores_threshold: float
             A threshold for which to compute the quantiles of the clustering scores.
             This will determine the groups.
+        balance: bool
+            Whether to balance the calibration data.
 
         Returns
         -------
         Dict
             The status returned by fitting the multicalibrator.
         """
+        if balance:
+            texts, contexts, targets = self._balance_data(texts, contexts, targets)
+
         (
             scores,
             embeddings,
-            which_choices,
-        ) = self._compute_scores_embeddings_which_choices(
-            texts=texts, contexts=contexts
+        ) = self._compute_scores_embeddings(
+            texts=texts, contexts=contexts, batch_size=batch_size
         )
-        if len(which_choices):
-            targets = (which_choices == np.array(targets[: len(which_choices)])).astype(
-                int
-            )
-        else:
-            targets = np.array(targets)
+        targets = np.array(targets, dtype="int32")
 
         embeddings = self.embedding_reduction_model.fit_transform(embeddings)
         embeddings = np.concatenate((embeddings, scores[:, None]), axis=1)
@@ -150,6 +152,7 @@ class HallucinationMulticalibrator:
         self,
         texts: List[str],
         contexts: List[str],
+        batch_size: int = 16,
         calibrate: bool = True,
     ) -> np.ndarray:
         """
@@ -163,6 +166,8 @@ class HallucinationMulticalibrator:
             or a list of lists of strings (e.g. a list of multi-choice answers).
         contexts: List[str]
             A list of contexts (e.g. a list of questions).
+        batch_size: int
+            The batch size.
         calibrate: bool
             Whether to calibration the initial probability estimates.
 
@@ -174,12 +179,8 @@ class HallucinationMulticalibrator:
         if self.multicalibrator is None:
             raise ValueError("`fit` must be called before this method.")
 
-        (
-            scores,
-            embeddings,
-            _,
-        ) = self._compute_scores_embeddings_which_choices(
-            texts=texts, contexts=contexts
+        (scores, embeddings) = self._compute_scores_embeddings(
+            texts=texts, contexts=contexts, batch_size=batch_size
         )
         if not calibrate:
             return scores
@@ -198,6 +199,7 @@ class HallucinationMulticalibrator:
         self,
         texts: List[str],
         contexts: List[str],
+        batch_size: int = 16,
         calibrate: bool = True,
         probs: Optional[np.ndarray] = None,
     ) -> np.ndarray:
@@ -213,6 +215,8 @@ class HallucinationMulticalibrator:
             or a list of lists of strings (e.g. a list of multi-choice answers).
         contexts: List[str]
             A list of contexts (e.g. a list of questions).
+        batch_size: int
+            The batch size.
         calibrate: bool
             Whether to calibration the initial probability estimates.
         probs: Optional[np.ndarray]
@@ -225,7 +229,10 @@ class HallucinationMulticalibrator:
         """
         if probs is None:
             probs = self.predict_proba(
-                texts=texts, contexts=contexts, calibrate=calibrate
+                texts=texts,
+                contexts=contexts,
+                batch_size=batch_size,
+                calibrate=calibrate,
             )
         return (probs >= 0.5).astype(int)
 
@@ -235,45 +242,42 @@ class HallucinationMulticalibrator:
             bool
         )
 
-    def _compute_scores_embeddings_which_choices(
-        self,
-        texts: Union[List[str], List[List[str]]],
-        contexts: List[str],
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def _compute_scores_embeddings(
+        self, texts: List[str], contexts: List[str], batch_size: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
         scores = []
         embeddings = []
-        which_choices = []
 
-        for text, context in tqdm(zip(texts, contexts)):
-            _logits, _scores = self._get_logits_scores(text, context)
-            _embeddings = _logits.mean(1)
-            if isinstance(text, list):
-                which_choice = np.argmax(_scores)
-                which_choices.append(which_choice)
-                scores.append(_scores[which_choice])
-                embeddings.append(_embeddings[which_choice, None])
-            elif isinstance(text, str):
-                embeddings.append(_embeddings)
-                scores.append(_scores[0])
+        gen = self._batch(texts, contexts, batch_size)
+
+        for batch_texts, batch_contexts in tqdm(
+            gen, total=int(np.ceil(len(texts) / batch_size))
+        ):
+            logits, _scores = self._get_logits_scores(batch_texts, batch_contexts)
+            embeddings.append(logits.mean(1))
+            scores.append(_scores)
 
         return (
-            np.array(scores),
+            np.concatenate(scores, axis=0).astype("float32"),
             np.concatenate(embeddings, axis=0),
-            np.array(which_choices),
         )
 
+    @staticmethod
+    def _batch(texts: List[str], contexts: List[str], batch_size: int):
+        for i in range(0, len(texts), batch_size):
+            yield texts[i : i + batch_size], contexts[i : i + batch_size]
+
     def _get_logits_scores(
-        self, text: str, context: str
+        self, texts: str, contexts: str
     ) -> Tuple[np.ndarray, np.ndarray]:
-        context_inputs = self.tokenizer(context, return_tensors="pt", padding=True).to(
+        context_inputs = self.tokenizer(contexts, return_tensors="pt", padding=True).to(
             self.generative_model.device
         )
-        text_inputs = self.tokenizer(text, return_tensors="pt", padding=True).to(
+        text_inputs = self.tokenizer(texts, return_tensors="pt", padding=True).to(
             self.generative_model.device
         )
         inputs = {
-            k: torch.cat((context_inputs[k].repeat((v.shape[0], 1)), v), dim=1)
-            for k, v in text_inputs.items()
+            k: torch.cat((context_inputs[k], v), dim=1) for k, v in text_inputs.items()
         }
 
         with torch.no_grad():
@@ -286,6 +290,21 @@ class HallucinationMulticalibrator:
             )
 
         return _logits.cpu().numpy(), _scores.cpu().numpy()
+
+    def _balance_data(
+        self, texts: List[str], contexts: List[str], targets: List[int]
+    ) -> Tuple[List[str], List[str], List[int]]:
+        idx0 = [i for i, y in enumerate(targets) if y == 0]
+        idx1 = [i for i, y in enumerate(targets) if y == 1]
+        len_diff = len(idx1) - len(idx0)
+        idx = self.rng.choice(
+            idx0 if len_diff > 0 else idx1, np.abs(len_diff), replace=True
+        )
+        for i in idx:
+            texts.append(texts[i])
+            contexts.append(contexts[i])
+            targets.append(targets[i])
+        return texts, contexts, targets
 
     def save(self, path):
         state = dict(

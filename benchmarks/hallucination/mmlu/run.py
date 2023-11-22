@@ -61,18 +61,17 @@ if __name__ == "__main__":
     samples = [samples[i] for i in perm]
 
     calib_size = int(np.ceil(CALIB_FRAC * tot_size))
-    calib_choices, calib_questions, calib_targets = [], [], []
-    test_choices, test_questions, test_targets = [], [], []
+    calib_answers, calib_questions, calib_targets = [], [], []
+    test_answers, test_questions, test_targets = [], [], []
     for i, sample in enumerate(samples):
         if i < calib_size:
             calib_questions.append(sample["question"])
-            calib_choices.append(sample["choices"])
-            calib_targets.append(sample["targets"])
+            calib_answers.append(sample["choices"][0])
+            calib_targets.append(int(sample["targets"] == 0))
         else:
             test_questions.append(sample["question"])
-            # test the first answer for each question
-            test_choices.append(sample["choices"][0])
-            test_targets.append(sample["targets"] == 0)
+            test_answers.append(sample["choices"][0])
+            test_targets.append(int(sample["targets"] == 0))
     test_targets = np.array(test_targets)
 
     # calibrate
@@ -81,7 +80,7 @@ if __name__ == "__main__":
     )
 
     status = calibrator.fit(
-        texts=calib_choices,
+        texts=calib_answers,
         contexts=calib_questions,
         targets=calib_targets,
     )
@@ -90,17 +89,17 @@ if __name__ == "__main__":
 
     # test
     test_probs = calibrator.predict_proba(
-        texts=test_choices, contexts=test_questions, calibrate=False
+        texts=test_answers, contexts=test_questions, calibrate=False
     )
     test_preds = calibrator.predict(
-        texts=test_choices, contexts=test_questions, probs=test_probs
+        texts=test_answers, contexts=test_questions, probs=test_probs
     )
 
     calib_test_probs = calibrator.predict_proba(
-        texts=test_choices, contexts=test_questions
+        texts=test_answers, contexts=test_questions
     )
     calib_test_preds = calibrator.predict(
-        texts=test_choices, contexts=test_questions, probs=calib_test_probs
+        texts=test_answers, contexts=test_questions, probs=calib_test_probs
     )
 
     # measure
@@ -116,4 +115,4 @@ if __name__ == "__main__":
     print(f"MSE before calibration: {round(float(mse_before), 4)}.")
     print(f"Accuracy before calibration: {round(float(acc_before), 4)}.")
     print(f"MSE after calibration: {round(float(mse_after), 4)}.")
-    print(f"Accuracy after calibration: {round(float(acc_before), 4)}.")
+    print(f"Accuracy after calibration: {round(float(acc_after), 4)}.")
