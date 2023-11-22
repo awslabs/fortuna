@@ -1,4 +1,5 @@
 import logging
+import pickle
 from typing import (
     Callable,
     Dict,
@@ -9,12 +10,12 @@ from typing import (
 )
 
 import numpy as np
-from sklearn.manifold import locally_linear_embedding
 from sklearn.mixture import GaussianMixture
 import torch
 from torch import nn
 from tqdm import tqdm
 from transformers import PreTrainedTokenizer
+import umap.umap_ as umap
 
 from fortuna.conformal import BinaryClassificationMulticalibrator
 from fortuna.hallucination.grouping.clustering.base import GroupingModel
@@ -26,7 +27,7 @@ class HallucinationMulticalibrator:
         self,
         generative_model: nn.Module,
         tokenizer: PreTrainedTokenizer,
-        embedding_reduction_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+        embedding_reduction_model: Optional = None,
         clustering_models: Optional[List] = None,
         scoring_fn: Optional[
             Callable[[torch.Tensor, torch.Tensor, int], torch.Tensor]
@@ -49,8 +50,8 @@ class HallucinationMulticalibrator:
             A generative model.
         tokenizer: PreTrainedTokenizer
             A tokenizer.
-        embedding_reduction_fn: Optional[Callable[[np.ndarray], np.ndarray]]
-            A function aimed at reducing the embedding dimensionality.
+        embedding_reduction_model: Optional
+            An embedding reduction model.
         clustering_models: Optional[List]
             A list of clustering models.
         scoring_fn: Optional[Callable[[torch.Tensor, torch.Tensor, int], torch.Tensor]]
@@ -61,8 +62,8 @@ class HallucinationMulticalibrator:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             logging.info("`tokenizer.pad_token` is None. Set to `tokenizer.eos_token`.")
-        self.embedding_reduction_fn = (
-            embedding_reduction_fn or locally_linear_embedding_fn
+        self.embedding_reduction_model = embedding_reduction_model or umap.UMAP(
+            n_neighbors=20
         )
         self.scoring_fn = scoring_fn or inv_perplexity
         self.clustering_models = clustering_models or [
@@ -124,7 +125,7 @@ class HallucinationMulticalibrator:
         else:
             targets = np.array(targets)
 
-        embeddings = self.embedding_reduction_fn(embeddings)
+        embeddings = self.embedding_reduction_model.fit_transform(embeddings)
         embeddings = np.concatenate((embeddings, scores[:, None]), axis=1)
 
         self.grouping_model = GroupingModel()
@@ -147,7 +148,7 @@ class HallucinationMulticalibrator:
 
     def predict_proba(
         self,
-        texts: Union[List[str], List[List[str]]],
+        texts: List[str],
         contexts: List[str],
         calibrate: bool = True,
     ) -> np.ndarray:
@@ -156,7 +157,7 @@ class HallucinationMulticalibrator:
 
         Parameters
         ----------
-        texts: Union[List[str], List[List[str]]]
+        texts: List[str]
             The texts to fit.
             This may either be a list of strings (e.g. a list of single answers),
             or a list of lists of strings (e.g. a list of multi-choice answers).
@@ -176,14 +177,14 @@ class HallucinationMulticalibrator:
         (
             scores,
             embeddings,
-            which_choices,
+            _,
         ) = self._compute_scores_embeddings_which_choices(
             texts=texts, contexts=contexts
         )
         if not calibrate:
             return scores
 
-        embeddings = self.embedding_reduction_fn(embeddings)
+        embeddings = self.embedding_reduction_model.transform(embeddings)
         embeddings = np.concatenate((embeddings, scores[:, None]), axis=1)
 
         group_scores = self.grouping_model.predict_proba(
@@ -195,7 +196,7 @@ class HallucinationMulticalibrator:
 
     def predict(
         self,
-        texts: Union[List[str], List[List[str]]],
+        texts: List[str],
         contexts: List[str],
         calibrate: bool = True,
         probs: Optional[np.ndarray] = None,
@@ -206,7 +207,7 @@ class HallucinationMulticalibrator:
 
         Parameters
         ----------
-        texts: Union[List[str], List[List[str]]]
+        texts: List[str],
             The texts to fit.
             This may either be a list of strings (e.g. a list of single answers),
             or a list of lists of strings (e.g. a list of multi-choice answers).
@@ -253,7 +254,7 @@ class HallucinationMulticalibrator:
                 embeddings.append(_embeddings[which_choice, None])
             elif isinstance(text, str):
                 embeddings.append(_embeddings)
-                scores.append(_scores)
+                scores.append(_scores[0])
 
         return (
             np.array(scores),
@@ -278,16 +279,26 @@ class HallucinationMulticalibrator:
         with torch.no_grad():
             _logits = self.generative_model(**inputs).logits
 
-        _scores = self.scoring_fn(
-            logits=_logits,
-            labels=inputs["input_ids"],
-            init_pos=len(context_inputs),
-        )
+            _scores = self.scoring_fn(
+                logits=_logits,
+                labels=inputs["input_ids"],
+                init_pos=len(context_inputs),
+            )
 
         return _logits.cpu().numpy(), _scores.cpu().numpy()
 
+    def save(self, path):
+        state = dict(
+            embedding_reduction_model=self.embedding_reduction_model,
+            grouping_model=self.grouping_model,
+            multicalibrator=self.multicalibrator,
+            _quantiles=self._quantiles,
+        )
 
-def locally_linear_embedding_fn(x: np.ndarray) -> np.ndarray:
-    return locally_linear_embedding(
-        x, n_neighbors=300, n_components=200, method="modified"
-    )[0]
+        with open(path, "wb") as filehandler:
+            pickle.dump(state, filehandler, -1)
+
+    def load(self, path):
+        state = pickle.load(open(path, "rb"))
+        for k, v in state.items():
+            setattr(self, k, v)

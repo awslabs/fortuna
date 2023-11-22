@@ -1,5 +1,4 @@
 import os
-import pickle
 
 from datasets import (
     get_dataset_config_names,
@@ -19,9 +18,11 @@ SEED = 0
 CALIB_FRAC = 0.8
 
 if __name__ == "__main__":
-    device = "cuda"
-    model_id = "gpt2"
-    model = AutoModelForCausalLM.from_pretrained(model_id, device_map="auto")
+    model_id = "tiiuae/falcon-7b"
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id, device_map="auto", load_in_8bit=True
+    )
+    model.eval()
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
     # download and prepare data
@@ -69,8 +70,10 @@ if __name__ == "__main__":
             calib_targets.append(sample["targets"])
         else:
             test_questions.append(sample["question"])
-            test_choices.append(sample["choices"])
-            test_targets.append(sample["targets"])
+            # test the first answer for each question
+            test_choices.append(sample["choices"][0])
+            test_targets.append(sample["targets"] == 0)
+    test_targets = np.array(test_targets)
 
     # calibrate
     calibrator = HallucinationMulticalibrator(
@@ -83,8 +86,7 @@ if __name__ == "__main__":
         targets=calib_targets,
     )
 
-    with open("fitted_calibrator.pth", "wb") as filehandler:
-        pickle.dump(calibrator, filehandler, -1)
+    calibrator.save(f"fitted_calibrator_{model_id.replace('/', '_')}.pth")
 
     # test
     test_probs = calibrator.predict_proba(
@@ -103,13 +105,13 @@ if __name__ == "__main__":
 
     # measure
     mse_before = calibrator.multicalibrator.mean_squared_error(
-        probs=test_probs, targets=np.array(test_targets)
+        probs=test_probs, targets=test_targets
     )
-    acc_before = accuracy(test_preds, np.array(test_targets))
+    acc_before = accuracy(test_preds, test_targets)
     mse_after = calibrator.multicalibrator.mean_squared_error(
-        probs=calib_test_probs, targets=np.array(test_targets)
+        probs=calib_test_probs, targets=test_targets
     )
-    acc_after = accuracy(calib_test_preds, np.array(test_targets))
+    acc_after = accuracy(calib_test_preds, test_targets)
 
     print(f"MSE before calibration: {round(float(mse_before), 4)}.")
     print(f"Accuracy before calibration: {round(float(acc_before), 4)}.")
