@@ -90,20 +90,11 @@ mc_calib_test_probs, status = mc.calibrate(
 )
 mc_calib_val_probs = mc.apply_patches(probs=val_means, groups=groups)
 
-osmc = OneShotTopLabelMulticalibrator(n_classes=10)
-osmc_calib_test_probs = osmc.calibrate(
-    targets=val_targets, probs=val_means, test_probs=test_means
-)
-osmc_calib_val_probs = osmc.apply_patches(probs=val_means)
-
 print(
     f"MSE on calibration data before calibration: {mc.mean_squared_error(val_means, val_targets)}"
 )
 print(
     f"MSE on calibration data after top-label multicalibration: {mc.mean_squared_error(mc_calib_val_probs, val_targets)}"
-)
-print(
-    f"MSE on calibration data after one-shot top-label multicalibration: {mc.mean_squared_error(osmc_calib_val_probs, val_targets)}"
 )
 print()
 print(
@@ -112,18 +103,12 @@ print(
 print(
     f"MSE on test data after top-label multicalibration: {mc.mean_squared_error(mc_calib_test_probs, test_targets)}"
 )
-print(
-    f"MSE on test data after one-shot top-label multicalibration: {osmc.mean_squared_error(osmc_calib_test_probs, test_targets)}"
-)
 print()
 print(
     f"ECE on calibration data before calibration: {expected_calibration_error(preds=val_modes, probs=val_means, targets=val_targets)}"
 )
 print(
     f"ECE on calibration data after top-label multicalibration: {expected_calibration_error(preds=mc_calib_val_probs.argmax(1), probs=mc_calib_val_probs, targets=val_targets)}"
-)
-print(
-    f"ECE on calibration data after one-shot top-label multicalibration: {expected_calibration_error(preds=osmc_calib_val_probs.argmax(1), probs=osmc_calib_val_probs, targets=val_targets)}"
 )
 print()
 print(
@@ -132,9 +117,6 @@ print(
 print(
     f"ECE on test data after top-label multicalibration: {expected_calibration_error(preds=mc_calib_test_probs.argmax(1), probs=mc_calib_test_probs, targets=test_targets)}"
 )
-print(
-    f"ECE on test data after one-shot top-label multicalibration: {expected_calibration_error(preds=osmc_calib_test_probs.argmax(1), probs=osmc_calib_test_probs, targets=test_targets)}"
-)
 print()
 print(
     f"Accuracy on calibration data before top-label calibration: {accuracy(val_modes, val_targets)}"
@@ -142,14 +124,8 @@ print(
 print(
     f"Accuracy on calibration data after top-label multicalibration: {accuracy(mc_calib_val_probs.argmax(1), val_targets)}"
 )
-print(
-    f"Accuracy on calibration data after one-shot top-label multicalibration: {accuracy(osmc_calib_val_probs.argmax(1), val_targets)}"
-)
 print()
 print(f"Accuracy on test data before calibration: {accuracy(test_modes, test_targets)}")
 print(
     f"Accuracy on test data after top-label multicalibration: {accuracy(mc_calib_test_probs.argmax(1), test_targets)}"
-)
-print(
-    f"Accuracy on test data after one-shot top-label multicalibration: {accuracy(osmc_calib_test_probs.argmax(1), test_targets)}"
 )

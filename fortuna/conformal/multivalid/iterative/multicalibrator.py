@@ -115,19 +115,34 @@ class Multicalibrator(MulticalibratorMixin, IterativeMultivalidMethod):
         groups: Array,
         values: Array,
         buckets: Array,
+        patch_type: str,
         **kwargs,
     ) -> Array:
-        return self.__calibration_error(
-            v=v,
-            g=g,
-            c=c,
-            b=b,
-            tau=tau,
-            scores=scores,
-            groups=groups,
-            values=values,
-            buckets=buckets,
-        )[0]
+        if patch_type == "additive":
+            return self.__calibration_error(
+                v=v,
+                g=g,
+                c=c,
+                b=b,
+                tau=tau,
+                scores=scores,
+                groups=groups,
+                values=values,
+                buckets=buckets,
+            )[0]
+        if patch_type == "multiplicative":
+            ey, b, prob_b = self._compute_expectation(
+                v=v,
+                g=g,
+                c=c,
+                b=b,
+                tau=tau,
+                scores=scores,
+                groups=groups,
+                values=values,
+                n_buckets=len(buckets),
+            )
+            return ey / self._get_mean_values(values, b, c)
 
     @staticmethod
     def _get_mean_values(values: Array, b: Array, c: Array):

@@ -2,7 +2,6 @@ import abc
 import logging
 from typing import (
     Dict,
-    List,
     Optional,
     Tuple,
     Union,
@@ -33,6 +32,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         self._patches = []
         self._eta = None
         self._bucket_types = None
+        self._patch_type = None
 
     def calibrate(
         self,
@@ -49,6 +49,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         eta: float = 0.1,
         split: float = 0.8,
         bucket_types: Tuple[str, ...] = ("<=", ">="),
+        patch_type: str = "additive",
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -94,6 +95,8 @@ class IterativeMultivalidMethod(MultivalidMethod):
             - "=", corresponding of buckets like :math:`\{f(x) = v\}`;
             - ">=", corresponding of buckets like :math:`\{f(x) \ge v\}`;
             - "<=", corresponding of buckets like :math:`\{f(x) \le v\}`.
+        patch_type: Tuple[str, ...]
+            The patch type. It can be `additive` or `multiplicative`.
 
         Returns
         -------
@@ -131,6 +134,11 @@ class IterativeMultivalidMethod(MultivalidMethod):
             raise ValueError(
                 "`min_prob_b` must be greater than or equal to 0 and less than or equal to 1."
             )
+        allowed_patch_types = ["additive", "multiplicative"]
+        if patch_type not in allowed_patch_types:
+            raise ValueError(
+                f"`patch_type={patch_type}` not recognized. Please select one among the following options: {allowed_patch_types}."
+            )
 
         self._check_scores(scores)
         scores = self._process_scores(scores)
@@ -156,6 +164,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         n_bucket_types = len(bucket_types)
 
         self._eta = eta
+        self._patch_type = patch_type
 
         size = len(scores)
         calib_size = int(jnp.ceil(split * size))
@@ -223,9 +232,12 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 groups=groups,
                 values=values,
                 buckets=buckets,
+                patch_type=patch_type,
                 **kwargs,
             )
-            values = self._patch(values=values, patch=patch, b=bt, c=ct, eta=eta)
+            values = self._patch(
+                values=values, patch=patch, b=bt, c=ct, eta=eta, patch_type=patch_type
+            )
 
             val_bt = self._get_b(
                 groups=val_groups,
@@ -237,7 +249,12 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 n_buckets=self.n_buckets,
             )
             val_values = self._patch(
-                values=val_values, patch=patch, b=val_bt, c=ct, eta=self.eta
+                values=val_values,
+                patch=patch,
+                b=val_bt,
+                c=ct,
+                eta=self.eta,
+                patch_type=patch_type,
             )
 
             losses = float(self._loss_fn(values, scores))
@@ -336,7 +353,14 @@ class IterativeMultivalidMethod(MultivalidMethod):
                 tau=taut,
                 n_buckets=self.n_buckets,
             )
-            values = self._patch(values=values, patch=patch, b=bt, c=ct, eta=self.eta)
+            values = self._patch(
+                values=values,
+                patch=patch,
+                b=bt,
+                c=ct,
+                eta=self.eta,
+                patch_type=self.patch_type,
+            )
         return values
 
     def calibration_error(
@@ -412,6 +436,10 @@ class IterativeMultivalidMethod(MultivalidMethod):
     def eta(self, eta):
         self._eta = eta
 
+    @property
+    def patch_type(self):
+        return self._patch_type
+
     def _maybe_init_values(self, values: Optional[Array], size: Optional[int] = None):
         if values is None:
             if size is None:
@@ -486,6 +514,7 @@ class IterativeMultivalidMethod(MultivalidMethod):
         groups: Array,
         values: Array,
         buckets: Array,
+        patch_type: str,
         **kwargs,
     ) -> Array:
         pass
@@ -497,10 +526,14 @@ class IterativeMultivalidMethod(MultivalidMethod):
         b: Array,
         c: Array,
         eta: float,
+        patch_type: str,
     ) -> Array:
         taken_values_to_set = self._take_values_to_set(values, b, c)
         taken_values = self._take_values(values, b, c)
-        return taken_values_to_set.set(jnp.clip(taken_values + eta * patch, 0, 1))
+        if patch_type == "additive":
+            return taken_values_to_set.set(jnp.clip(taken_values + eta * patch, 0, 1))
+        if patch_type == "multiplicative":
+            return taken_values_to_set.set(jnp.clip(taken_values * eta * patch, 0, 1))
 
     @staticmethod
     def _take_values(values: Array, b: Array, c: Array):
