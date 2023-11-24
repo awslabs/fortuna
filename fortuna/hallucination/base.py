@@ -64,7 +64,7 @@ class HallucinationMulticalibrator:
             self.tokenizer.pad_token = self.tokenizer.eos_token
             logging.info("`tokenizer.pad_token` is None. Set to `tokenizer.eos_token`.")
         self.embedding_reduction_model = embedding_reduction_model or umap.UMAP(
-            n_neighbors=20
+            n_neighbors=100, n_components=100
         )
         self.scoring_fn = scoring_fn or inv_perplexity
         self.clustering_models = clustering_models or [
@@ -182,6 +182,7 @@ class HallucinationMulticalibrator:
         (scores, embeddings) = self._compute_scores_embeddings(
             texts=texts, contexts=contexts, batch_size=batch_size
         )
+
         if not calibrate:
             return scores
 
@@ -286,7 +287,7 @@ class HallucinationMulticalibrator:
             _scores = self.scoring_fn(
                 logits=_logits,
                 labels=inputs["input_ids"],
-                init_pos=len(context_inputs),
+                init_pos=len(context_inputs.input_ids),
             )
 
         return _logits.cpu().numpy(), _scores.cpu().numpy()
