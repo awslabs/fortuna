@@ -16,6 +16,7 @@ from torch import nn
 from tqdm import tqdm
 from transformers import PreTrainedTokenizer
 import umap.umap_ as umap
+
 from fortuna.conformal import BinaryClassificationMulticalibrator
 from fortuna.hallucination.grouping.clustering.base import GroupingModel
 from fortuna.hallucination.scoring.inv_perplexity import inv_perplexity
@@ -71,18 +72,17 @@ class HallucinationMulticalibrator:
         ]
         self.grouping_model = None
         self.multicalibrator = None
-        self.classification_model = None
         self._quantiles = None
         self.rng = np.random.default_rng(seed)
 
     def fit(
-            self,
-            texts: List[str],
-            contexts: List[str],
-            targets: List[int],
-            batch_size: int = 16,
-            quantile_group_scores_threshold: float = 0.8,
-            balance: bool = False,
+        self,
+        texts: List[str],
+        contexts: List[str],
+        targets: List[int],
+        batch_size: int = 16,
+        quantile_group_scores_threshold: float = 0.8,
+        balance: bool = False,
     ) -> Dict:
         """
         Fit the multicalibrator.
@@ -149,11 +149,11 @@ class HallucinationMulticalibrator:
         return status
 
     def predict_proba(
-            self,
-            texts: List[str],
-            contexts: List[str],
-            batch_size: int = 16,
-            calibrate: bool = True,
+        self,
+        texts: List[str],
+        contexts: List[str],
+        batch_size: int = 16,
+        calibrate: bool = True,
     ) -> np.ndarray:
         """
         Predict probabilities of positive classes for each text given each context.
@@ -197,12 +197,12 @@ class HallucinationMulticalibrator:
         return self.multicalibrator.apply_patches(probs=scores, groups=groups)
 
     def predict(
-            self,
-            texts: List[str],
-            contexts: List[str],
-            batch_size: int = 16,
-            calibrate: bool = True,
-            probs: Optional[np.ndarray] = None,
+        self,
+        texts: List[str],
+        contexts: List[str],
+        batch_size: int = 16,
+        calibrate: bool = True,
+        probs: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """
         A binary prediction for each text given each context.
@@ -244,7 +244,7 @@ class HallucinationMulticalibrator:
         )
 
     def _compute_scores_embeddings(
-            self, texts: List[str], contexts: List[str], batch_size: int
+        self, texts: List[str], contexts: List[str], batch_size: int
     ) -> Tuple[np.ndarray, np.ndarray]:
         scores = []
         embeddings = []
@@ -252,7 +252,7 @@ class HallucinationMulticalibrator:
         gen = self._batch(texts, contexts, batch_size)
 
         for batch_texts, batch_contexts in tqdm(
-                gen, total=int(np.ceil(len(texts) / batch_size))
+            gen, total=int(np.ceil(len(texts) / batch_size))
         ):
             logits, _scores = self._get_logits_scores(batch_texts, batch_contexts)
             embeddings.append(logits.mean(1))
@@ -266,10 +266,10 @@ class HallucinationMulticalibrator:
     @staticmethod
     def _batch(texts: List[str], contexts: List[str], batch_size: int):
         for i in range(0, len(texts), batch_size):
-            yield texts[i: i + batch_size], contexts[i: i + batch_size]
+            yield texts[i : i + batch_size], contexts[i : i + batch_size]
 
     def _get_logits_scores(
-            self, texts: str, contexts: str
+        self, texts: str, contexts: str
     ) -> Tuple[np.ndarray, np.ndarray]:
         context_inputs = self.tokenizer(contexts, return_tensors="pt", padding=True).to(
             self.generative_model.device
@@ -293,7 +293,7 @@ class HallucinationMulticalibrator:
         return _logits.cpu().numpy(), _scores.cpu().numpy()
 
     def _balance_data(
-            self, texts: List[str], contexts: List[str], targets: List[int]
+        self, texts: List[str], contexts: List[str], targets: List[int]
     ) -> Tuple[List[str], List[str], List[int]]:
         idx0 = [i for i, y in enumerate(targets) if y == 0]
         idx1 = [i for i, y in enumerate(targets) if y == 1]
