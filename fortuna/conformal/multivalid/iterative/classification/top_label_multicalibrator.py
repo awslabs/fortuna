@@ -7,10 +7,7 @@ from typing import (
     Union,
 )
 
-from jax import (
-    random,
-    vmap,
-)
+from jax import random
 import jax.numpy as jnp
 
 from fortuna.conformal.multivalid.iterative.multicalibrator import Multicalibrator
@@ -50,6 +47,7 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         eta: float = 0.1,
         split: float = 0.8,
         bucket_types: Tuple[str, ...] = ("<=", ">="),
+        patch_type: str = "additive",
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         return super().calibrate(
@@ -66,6 +64,7 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
             eta=eta,
             split=split,
             bucket_types=bucket_types,
+            patch_type=patch_type,
             **kwargs,
         )
 
@@ -113,12 +112,6 @@ class TopLabelMulticalibrator(TopLabelMulticalibratorMixin, Multicalibrator):
         )
         b *= values.argmax(1) == c
         return b
-
-    def _patch(
-        self, values: Array, patch: Array, b: Array, c: Array, eta: float
-    ) -> Array:
-        # values = self._maybe_normalize(values)
-        return super()._patch(values=values, patch=patch, b=b, c=c, eta=eta)
 
     def _maybe_init_values(
         self, values: Optional[Array], size: Optional[int] = None

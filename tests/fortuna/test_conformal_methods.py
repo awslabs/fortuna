@@ -615,6 +615,15 @@ class TestConformalMethods(unittest.TestCase):
             n_buckets=4,
         )
 
+        test_values, status = mc.calibrate(
+            targets=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
+            patch_type="multiplicative",
+        )
+
     def test_top_label_classification_multicalibrator(self):
         size = 30
         test_size = 20
@@ -687,6 +696,15 @@ class TestConformalMethods(unittest.TestCase):
             test_probs=np.array(test_values) if test_values is not None else None,
             n_rounds=3,
             n_buckets=4,
+        )
+
+        test_values, status = mc.calibrate(
+            targets=scores,
+            groups=groups,
+            test_groups=test_groups,
+            n_rounds=3,
+            n_buckets=4,
+            patch_type="multiplicative",
         )
 
     def test_one_shot_multicalibrator(self):

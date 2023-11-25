@@ -33,6 +33,7 @@ class BinaryClassificationMulticalibrator(
         eta: float = 0.1,
         split: float = 0.8,
         bucket_types: Tuple[str, ...] = ("<=", ">="),
+        patch_type: str = "additive",
         **kwargs,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         return super().calibrate(
@@ -49,6 +50,7 @@ class BinaryClassificationMulticalibrator(
             eta=eta,
             split=split,
             bucket_types=bucket_types,
+            patch_type=patch_type,
             **kwargs,
         )
 
