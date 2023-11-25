@@ -47,6 +47,7 @@ class BatchMVPConformalMethod(
         eta: float = 0.1,
         split: float = 0.8,
         bucket_types: Tuple[str, ...] = (">=", "<="),
+        patch_type: str = "additive",
         coverage: float = 0.95,
     ) -> Union[Dict, Tuple[Array, Dict]]:
         """
@@ -119,6 +120,7 @@ class BatchMVPConformalMethod(
             eta=eta,
             split=split,
             bucket_types=bucket_types,
+            patch_type=patch_type,
             coverage=coverage,
         )
 
@@ -246,8 +248,11 @@ class BatchMVPConformalMethod(
         groups: Array,
         values: Array,
         buckets: Array,
+        patch_type: str,
         coverage: float = None,
     ) -> Array:
+        if patch_type == "multiplicative":
+            raise NotImplementedError("Please use `patch_type='additive'`.")
         n_buckets = len(buckets)
         buckets = jnp.concatenate((-buckets[::-1][:-1], buckets))
         errors, b = vmap(
