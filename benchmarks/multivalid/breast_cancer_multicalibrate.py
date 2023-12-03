@@ -38,6 +38,7 @@ mc_test_probs1, status = mc.calibrate(
     targets=calib_targets,
     probs=calib_probs[:, 1],
     test_probs=test_probs[:, 1],
+    patch_type="multiplicative",
 )
 
 mc_calib_probs1 = mc.apply_patches(probs=calib_probs[:, 1])

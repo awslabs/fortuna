@@ -533,7 +533,9 @@ class IterativeMultivalidMethod(MultivalidMethod):
         if patch_type == "additive":
             return taken_values_to_set.set(jnp.clip(taken_values + eta * patch, 0, 1))
         if patch_type == "multiplicative":
-            return taken_values_to_set.set(jnp.clip(taken_values * eta * patch, 0, 1))
+            return taken_values_to_set.set(
+                jnp.clip(taken_values * (1 - eta * (1 - patch)), 0, 1)
+            )
 
     @staticmethod
     def _take_values(values: Array, b: Array, c: Array):
