@@ -87,6 +87,7 @@ mc_calib_test_probs, status = mc.calibrate(
     groups=groups,
     test_probs=test_means,
     test_groups=test_groups,
+    patch_type="multiplicative",
 )
 mc_calib_val_probs = mc.apply_patches(probs=val_means, groups=groups)
 
