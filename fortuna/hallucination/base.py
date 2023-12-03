@@ -287,7 +287,7 @@ class HallucinationMulticalibrator:
             _scores = self.scoring_fn(
                 logits=_logits,
                 labels=inputs["input_ids"],
-                init_pos=len(context_inputs.input_ids),
+                n_final_tokens=text_inputs.input_ids.shape[1],
             )
 
         return _logits.cpu().numpy(), _scores.cpu().numpy()
