@@ -197,6 +197,9 @@ def plot_reliability_diagram(
     fontsize: int = 10,
     title: Optional[str] = None,
     ylim: Optional[Tuple[float, float]] = None,
+    linewidth: Optional[int] = None,
+    linestyle: Optional[str] = None,
+    alpha: float = 1.0,
     show: bool = False,
     **save_options,
 ) -> None:
@@ -225,6 +228,12 @@ def plot_reliability_diagram(
         Plot title.
     ylim: Optional[Tuple[float, float]]
         Bottom and top limits on the y-axis.
+    linewidth: Optional[int]
+        Line width.
+    linestyle: Optional[str]
+        Line style.
+    alpha: float
+        Opacity.
     show: bool
         Whether to show the plot.
     save_options: dict
@@ -251,8 +260,15 @@ def plot_reliability_diagram(
     ax.grid()
     ax.plot([0, 1], [0, 0], color="grey", linestyle="--", alpha=0.3)
     for i, (a, c) in enumerate(zip(accs, confs)):
+        idx = np.argsort(c)
         ax.plot(
-            c, c - a, marker=".", linestyle="-", label=labels[i] if labels else None
+            c[idx],
+            (c - a)[idx],
+            marker=".",
+            linestyle=linestyle,
+            linewidth=linewidth,
+            alpha=alpha,
+            label=labels[i] if labels else None,
         )
     if labels:
         ax.legend(fontsize=fontsize, loc=legend_loc if legend_loc else None)

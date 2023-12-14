@@ -6,10 +6,10 @@ from tabulate import tabulate
 
 from fortuna.calibration import (
     BiasBinaryClassificationTemperatureScaling,
+    BrierBinaryClassificationTemperatureScaling,
     ClassificationTemperatureScaling,
     CrossEntropyBinaryClassificationTemperatureScaling,
     F1BinaryClassificationTemperatureScaling,
-    MSEBinaryClassificationTemperatureScaling,
 )
 from fortuna.metric.classification import (
     brier_score,
@@ -73,22 +73,26 @@ if __name__ == "__main__":
     before_f1 = f1(test_probs, test_targets)
     before_ce = binary_cross_entropy(test_probs, test_targets)
 
-    mse_temp_scaler = MSEBinaryClassificationTemperatureScaling()
-    mse_temp_scaler.fit(probs=calib_probs, targets=calib_targets)
-    mse_temp_scaled_test_probs = mse_temp_scaler.predict_proba(probs=test_probs)
-    mse_temp_scaled_test_preds = mse_temp_scaler.predict(probs=test_probs)
-    mse_temp_scaled_brier_score = brier_score(mse_temp_scaled_test_probs, test_targets)
-    mse_temp_scaled_ece = expected_calibration_error(
+    brier_temp_scaler = BrierBinaryClassificationTemperatureScaling()
+    brier_temp_scaler.fit(probs=calib_probs, targets=calib_targets)
+    brier_temp_scaled_test_probs = brier_temp_scaler.predict_proba(probs=test_probs)
+    brier_temp_scaled_test_preds = brier_temp_scaler.predict(probs=test_probs)
+    brier_temp_scaled_brier_score = brier_score(
+        brier_temp_scaled_test_probs, test_targets
+    )
+    brier_temp_scaled_ece = expected_calibration_error(
         probs=np.stack(
-            (1 - mse_temp_scaled_test_probs, mse_temp_scaled_test_probs), axis=1
+            (1 - brier_temp_scaled_test_probs, brier_temp_scaled_test_probs), axis=1
         ),
-        preds=mse_temp_scaled_test_preds,
+        preds=brier_temp_scaled_test_preds,
         targets=test_targets,
     )
-    mse_temp_scaled_prec = precision(mse_temp_scaled_test_preds, test_targets)
-    mse_temp_scaled_rec = recall(mse_temp_scaled_test_preds, test_targets)
-    mse_temp_scaled_f1 = f1(mse_temp_scaled_test_preds, test_targets)
-    mse_temp_scaled_ce = binary_cross_entropy(mse_temp_scaled_test_probs, test_targets)
+    brier_temp_scaled_prec = precision(brier_temp_scaled_test_preds, test_targets)
+    brier_temp_scaled_rec = recall(brier_temp_scaled_test_preds, test_targets)
+    brier_temp_scaled_f1 = f1(brier_temp_scaled_test_preds, test_targets)
+    brier_temp_scaled_ce = binary_cross_entropy(
+        brier_temp_scaled_test_probs, test_targets
+    )
 
     ce_temp_scaler = CrossEntropyBinaryClassificationTemperatureScaling()
     ce_temp_scaler.fit(probs=calib_probs, targets=calib_targets)
@@ -185,13 +189,13 @@ if __name__ == "__main__":
                     before_f1,
                 ],
                 [
-                    "MSE binary temperature scaling",
-                    mse_temp_scaled_brier_score,
-                    mse_temp_scaled_ce,
-                    mse_temp_scaled_ece,
-                    mse_temp_scaled_prec,
-                    mse_temp_scaled_rec,
-                    mse_temp_scaled_f1,
+                    "Brier binary temperature scaling",
+                    brier_temp_scaled_brier_score,
+                    brier_temp_scaled_ce,
+                    brier_temp_scaled_ece,
+                    brier_temp_scaled_prec,
+                    brier_temp_scaled_rec,
+                    brier_temp_scaled_f1,
                 ],
                 [
                     "Cross-Entropy binary temperature scaling",
@@ -246,7 +250,7 @@ if __name__ == "__main__":
     print(
         tabulate(
             [
-                ["MSE binary temperature scaling", mse_temp_scaler.temperature],
+                ["Brier binary temperature scaling", brier_temp_scaler.temperature],
                 [
                     "Cross-Entropy binary temperature scaling",
                     ce_temp_scaler.temperature,
