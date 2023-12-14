@@ -1,14 +1,29 @@
 import numpy as np
 from scipy.optimize import brute
 
+from fortuna.calibration.binary_classification.temp_scaling.base import (
+    BaseBinaryClassificationTemperatureScaling,
+)
 
-class F1BinaryClassificationTemperatureScaling:
+
+class F1BinaryClassificationTemperatureScaling(
+    BaseBinaryClassificationTemperatureScaling
+):
+    """
+    A temperature scaling class for binary classification.
+    It scales the probability that the target variables is positive with a single learnable parameters.
+    The method attempts to maximize the F1 score.
+    """
+
     def __init__(self):
         super().__init__()
         self._threshold = None
         self._temperature = None
 
     def fit(self, probs: np.ndarray, targets: np.ndarray, threshold: float):
+        self._check_probs(probs)
+        self._check_targets(targets)
+
         self._threshold = threshold
         n_pos_targets = np.sum(targets)
 
@@ -26,16 +41,10 @@ class F1BinaryClassificationTemperatureScaling:
             loss_fn, ranges=[(np.min(probs), 1 / threshold)], Ns=1000
         )[0]
 
-    def predict_proba(self, probs: np.ndarray):
-        return np.clip(probs / self._temperature, 0.0, 1.0)
-
     def predict(self, probs: np.ndarray):
+        self._check_probs(probs)
         return (self.predict_proba(probs) >= self._threshold).astype(int)
 
     @property
     def threshold(self):
         return self._threshold
-
-    @property
-    def temperature(self):
-        return self._temperature
