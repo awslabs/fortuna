@@ -1,7 +1,5 @@
-from typing import Dict
-
 import numpy as np
-from scipy.optimize import newton
+from scipy.optimize import brute
 
 from fortuna.calibration.binary_classification.temp_scaling.base import (
     BaseBinaryClassificationTemperatureScaling,
@@ -11,12 +9,22 @@ from fortuna.calibration.binary_classification.temp_scaling.base import (
 class CrossEntropyBinaryClassificationTemperatureScaling(
     BaseBinaryClassificationTemperatureScaling
 ):
-    def fit(self, probs: np.ndarray, targets: np.ndarray, **kwargs) -> Dict:
-        scaled_probs = (1 - 1e-6) * (1e-6 + probs)
+    """
+    A temperature scaling class for binary classification.
+    It scales the probability that the target variables is positive with a single learnable parameters.
+    The method minimizes the binary cross-entropy loss.
+    """
 
-        def temp_scaling_fn(phi):
-            return np.mean((1 - targets) / (1 - scaled_probs * np.exp(-phi))) - 1
+    def fit(self, probs: np.ndarray, targets: np.ndarray):
+        self._check_probs(probs)
+        self._check_targets(targets)
 
-        phi, status = newton(temp_scaling_fn, x0=0.0, full_output=True, disp=False)
-        self._temperature = np.exp(phi)
-        return status
+        def temp_scaling_fn(tau):
+            temp_probs = np.clip(probs / tau, 1e-9, 1 - 1e-9)
+            return -np.mean(
+                targets * np.log(temp_probs) + (1 - targets) * np.log(1 - temp_probs)
+            )
+
+        self._temperature = brute(
+            temp_scaling_fn, ranges=[(np.min(probs), 10)], Ns=1000
+        )[0]
