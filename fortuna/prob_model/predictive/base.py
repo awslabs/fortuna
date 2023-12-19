@@ -563,7 +563,8 @@ class Predictive(WithRNG):
             )
             if distribute:
                 outputs = jnp.stack(
-                    list(map(lambda key: _sample(shard_prng_key(key), inputs), keys))
+                    list(map(lambda key: _sample(shard_prng_key(key), inputs), keys)),
+                    axis=1
                 )
                 outputs = self._unshard_ensemble_arrays(outputs)
             else:
