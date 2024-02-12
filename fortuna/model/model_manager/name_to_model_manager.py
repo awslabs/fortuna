@@ -9,6 +9,7 @@ from fortuna.prob_model.posterior.laplace import LAPLACE_NAME
 from fortuna.prob_model.posterior.map import MAP_NAME
 from fortuna.prob_model.posterior.normalizing_flow.advi import ADVI_NAME
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
+from fortuna.prob_model.posterior.sgmcmc.hmc import HMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sngp import SNGP_NAME
 from fortuna.prob_model.posterior.swag import SWAG_NAME
@@ -25,3 +26,4 @@ class ClassificationModelManagers(enum.Enum):
     vars()[SNGP_NAME] = SNGPClassificationModelManager
     vars()[SGHMC_NAME] = ClassificationModelManager
     vars()[CYCLICAL_SGLD_NAME] = ClassificationModelManager
+    vars()[HMC_NAME] = ClassificationModelManager
