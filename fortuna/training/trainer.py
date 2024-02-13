@@ -706,9 +706,11 @@ class TrainerABC(
             return FrozenDict(
                 nested_update(
                     state.frozen_params.unfreeze(),
-                    trainable_params.unfreeze()
-                    if trainable_params is not None
-                    else state.params.unfreeze(),
+                    (
+                        trainable_params.unfreeze()
+                        if trainable_params is not None
+                        else state.params.unfreeze()
+                    ),
                 )
             )
         return trainable_params if trainable_params is not None else state.params

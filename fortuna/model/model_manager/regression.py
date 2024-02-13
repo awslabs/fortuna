@@ -120,9 +120,9 @@ class RegressionModelManager(ModelManager):
                     p,
                     x,
                     m_mutable=mutable["model"] if mutable is not None else False,
-                    llv_mutable=mutable["lik_log_var"]
-                    if mutable is not None
-                    else False,
+                    llv_mutable=(
+                        mutable["lik_log_var"] if mutable is not None else False
+                    ),
                 ),
                 model_params=params,
                 x=inputs,

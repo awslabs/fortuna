@@ -1,6 +1,7 @@
 """
 The code has been taken from https://github.com/google/edward2/blob/main/edward2/jax/nn/normalization.py
 """
+
 import dataclasses
 from typing import (
     Any,

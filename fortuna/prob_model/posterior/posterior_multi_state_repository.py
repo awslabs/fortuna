@@ -21,9 +21,9 @@ class PosteriorMultiStateRepository:
         self.size = size
         self.state = [
             PosteriorStateRepository(
-                checkpoint_dir=os.path.join(checkpoint_dir, str(i))
-                if checkpoint_dir
-                else None
+                checkpoint_dir=(
+                    os.path.join(checkpoint_dir, str(i)) if checkpoint_dir else None
+                )
             )
             for i in range(size)
         ]

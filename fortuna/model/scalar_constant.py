@@ -20,6 +20,7 @@ class ScalarConstantModel(nn.Module):
         Function to initialize the model parameters.
         This must be one of the available options in :code:`flax.linen.initializers`.
     """
+
     output_dim: int
     initializer_fun: Optional[Initializer] = nn.initializers.zeros
 

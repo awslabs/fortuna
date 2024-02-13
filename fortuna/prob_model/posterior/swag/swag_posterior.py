@@ -160,9 +160,9 @@ class SWAGPosterior(Posterior):
             n_epochs=fit_config.optimizer.n_epochs,
             metrics=fit_config.monitor.metrics,
             validation_dataloader=val_data_loader,
-            validation_dataset_size=val_data_loader.size
-            if val_data_loader is not None
-            else None,
+            validation_dataset_size=(
+                val_data_loader.size if val_data_loader is not None else None
+            ),
             verbose=fit_config.monitor.verbose,
             callbacks=fit_config.callbacks,
             **kwargs,

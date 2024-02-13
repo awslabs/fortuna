@@ -16,6 +16,7 @@ class ScalarHyperparameterModel(nn.Module):
     value: float
         Scalar value of the hyperparameter.
     """
+
     output_dim: int
     value: float
 

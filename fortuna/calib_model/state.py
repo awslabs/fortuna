@@ -37,9 +37,11 @@ class CalibState(TrainState):
         return cls(
             apply_fn=None,
             params=params,
-            opt_state=kwargs["opt_state"]
-            if optimizer is None and "opt_state" in kwargs
-            else optimizer.init(params),
+            opt_state=(
+                kwargs["opt_state"]
+                if optimizer is None and "opt_state" in kwargs
+                else optimizer.init(params)
+            ),
             mutable=mutable,
             step=kwargs.get("step", 0),
             tx=optimizer,
@@ -78,11 +80,15 @@ class CalibState(TrainState):
             FrozenDict(d["params"]),
             FrozenDict(d["mutable"]) if d["mutable"] is not None else None,
             optimizer,
-            FrozenDict(d.get("calib_params"))
-            if d["calib_params"] is not None
-            else None,
-            FrozenDict(d.get("calib_mutable"))
-            if d["calib_mutable"] is not None
-            else None,
+            (
+                FrozenDict(d.get("calib_params"))
+                if d["calib_params"] is not None
+                else None
+            ),
+            (
+                FrozenDict(d.get("calib_mutable"))
+                if d["calib_mutable"] is not None
+                else None
+            ),
             **kwargs,
         )
