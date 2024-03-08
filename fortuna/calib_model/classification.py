@@ -182,9 +182,11 @@ class CalibClassifier(CalibModel):
             self._check_output_dim(val_data_loader)
         return self._calibrate(
             calib_data_loader=calib_data_loader,
-            uncertainty_fn=config.monitor.uncertainty_fn
-            if config.monitor.uncertainty_fn is not None
-            else self.prob_output_layer.mean,
+            uncertainty_fn=(
+                config.monitor.uncertainty_fn
+                if config.monitor.uncertainty_fn is not None
+                else self.prob_output_layer.mean
+            ),
             val_data_loader=val_data_loader,
             loss_fn=loss_fn,
             config=config,

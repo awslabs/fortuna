@@ -143,13 +143,13 @@ def sequential_probit_scaling(
             prev_idx = idx[prev_tau] if idx is not None else None
             size = n_outputs if idx is None else len(prev_idx)
 
-            new_fun = (
-                lambda p: _apply_fn(p, _x, new_tau)[new_idx]
+            new_fun = lambda p: (
+                _apply_fn(p, _x, new_tau)[new_idx]
                 if idx is not None
                 else _apply_fn(p, _x, new_tau)
             )
-            prev_fun = (
-                lambda p: _apply_fn(p, _x, prev_tau)[prev_idx]
+            prev_fun = lambda p: (
+                _apply_fn(p, _x, prev_tau)[prev_idx]
                 if idx is not None
                 else _apply_fn(p, _x, prev_tau)
             )

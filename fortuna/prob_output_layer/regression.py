@@ -128,9 +128,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
         q = (
             jnp.array([0.5 * error, 1 - 0.5 * error])
             if interval_type == "two-tailed"
-            else error
-            if interval_type == "left-tailed"
-            else 1 - error
+            else error if interval_type == "left-tailed" else 1 - error
         )
         qq = self.quantile(
             q=q, outputs=outputs, n_target_samples=n_target_samples, rng=rng

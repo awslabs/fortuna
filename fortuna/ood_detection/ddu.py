@@ -1,6 +1,7 @@
 """
 Adapted from https://github.com/omegafragger/DDU/blob/main/utils/gmm_utils.py
 """
+
 import logging
 from typing import (
     Callable,

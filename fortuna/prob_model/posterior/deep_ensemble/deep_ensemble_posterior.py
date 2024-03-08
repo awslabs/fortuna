@@ -172,9 +172,11 @@ class DeepEnsemblePosterior(Posterior):
         else:
             self.state = PosteriorMultiStateRepository(
                 size=self.posterior_approximator.ensemble_size,
-                checkpoint_dir=fit_config.checkpointer.save_checkpoint_dir
-                if fit_config.checkpointer.dump_state is True
-                else None,
+                checkpoint_dir=(
+                    fit_config.checkpointer.save_checkpoint_dir
+                    if fit_config.checkpointer.dump_state is True
+                    else None
+                ),
             )
 
         status = []
