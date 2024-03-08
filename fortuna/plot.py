@@ -167,9 +167,11 @@ def plot_2d_classification_predictions_and_uncertainty(
             inputs[:, 0],
             inputs[:, 1],
             s=marker_size,
-            c=[preds_color[0] if i == 1 else preds_color[1] for i in preds]
-            if preds is not None
-            else base_inputs_color,
+            c=(
+                [preds_color[0] if i == 1 else preds_color[1] for i in preds]
+                if preds is not None
+                else base_inputs_color
+            ),
         )
     if colorbar:
         plt.colorbar(im, ax=ax.ravel().tolist() if hasattr(ax, "ravel") else ax)

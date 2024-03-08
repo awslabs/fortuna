@@ -43,16 +43,22 @@ class SWAGTrainer(MAPTrainer):
         var = jnp.maximum(var, 0.0)
         return state.update(
             dict(
-                mean=self._mean_rav_params
-                if not self.multi_device
-                else self._mean_rav_params[None],
+                mean=(
+                    self._mean_rav_params
+                    if not self.multi_device
+                    else self._mean_rav_params[None]
+                ),
                 std=jnp.sqrt(var) if not self.multi_device else jnp.sqrt(var)[None],
-                dev=self._deviation_rav_params
-                if not self.multi_device
-                else self._deviation_rav_params[None],
-                _encoded_which_params=self._encoded_which_params
-                if not self.multi_device
-                else tree_map(lambda v: v[None], self._encoded_which_params),
+                dev=(
+                    self._deviation_rav_params
+                    if not self.multi_device
+                    else self._deviation_rav_params[None]
+                ),
+                _encoded_which_params=(
+                    self._encoded_which_params
+                    if not self.multi_device
+                    else tree_map(lambda v: v[None], self._encoded_which_params)
+                ),
             )
         )
 

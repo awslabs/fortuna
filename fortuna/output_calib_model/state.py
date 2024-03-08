@@ -52,11 +52,11 @@ class OutputCalibState(TrainState):
         return cls(
             apply_fn=None,
             params=params,
-            opt_state=kwargs["opt_state"]
-            if optimizer is None and "opt_state" in kwargs
-            else None
-            if optimizer is None
-            else optimizer.init(params),
+            opt_state=(
+                kwargs["opt_state"]
+                if optimizer is None and "opt_state" in kwargs
+                else None if optimizer is None else optimizer.init(params)
+            ),
             mutable=mutable,
             step=kwargs.get("step", 0),
             tx=optimizer,

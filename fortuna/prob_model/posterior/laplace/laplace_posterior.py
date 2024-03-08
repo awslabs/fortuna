@@ -161,12 +161,16 @@ class LaplacePosterior(Posterior):
                 _params, _batch_inputs, mutable=mutable, train=False
             )
             outputs = self.joint.likelihood.output_calib_manager.apply(
-                params=calib_params["output_calibrator"]
-                if calib_params is not None
-                else None,
-                mutable=calib_mutable["output_calibrator"]
-                if calib_mutable is not None
-                else None,
+                params=(
+                    calib_params["output_calibrator"]
+                    if calib_params is not None
+                    else None
+                ),
+                mutable=(
+                    calib_mutable["output_calibrator"]
+                    if calib_mutable is not None
+                    else None
+                ),
                 outputs=outputs,
             )
             return outputs

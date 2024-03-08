@@ -102,9 +102,11 @@ class OutputCalibClassifier(OutputCalibModel):
         if val_outputs is not None:
             self._check_output_dim(val_outputs, val_targets)
         return super()._calibrate(
-            uncertainty_fn=config.monitor.uncertainty_fn
-            if config.monitor.uncertainty_fn is not None
-            else self.prob_output_layer.mean,
+            uncertainty_fn=(
+                config.monitor.uncertainty_fn
+                if config.monitor.uncertainty_fn is not None
+                else self.prob_output_layer.mean
+            ),
             calib_outputs=calib_outputs,
             calib_targets=calib_targets,
             val_outputs=val_outputs,

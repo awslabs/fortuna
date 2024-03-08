@@ -95,12 +95,16 @@ class Loss(WithRNG):
         aux = dict()
         if self.likelihood.output_calib_manager is not None:
             outs = self.likelihood.output_calib_manager.apply(
-                params=calib_params["output_calibrator"]
-                if calib_params is not None
-                else None,
-                mutable=calib_mutable["output_calibrator"]
-                if calib_mutable is not None
-                else None,
+                params=(
+                    calib_params["output_calibrator"]
+                    if calib_params is not None
+                    else None
+                ),
+                mutable=(
+                    calib_mutable["output_calibrator"]
+                    if calib_mutable is not None
+                    else None
+                ),
                 outputs=outputs,
                 calib="calib_mutable" in return_aux,
             )

@@ -13,6 +13,7 @@ class HyperparameterModel(nn.Module):
     value: Union[float, Array]
         Value of the hyperparameter.
     """
+
     value: Array
 
     def setup(self) -> None:

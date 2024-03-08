@@ -239,12 +239,16 @@ class Predictive(WithRNG):
                     n_data,
                     mutable=sample.mutable,
                     return_aux=return_aux,
-                    calib_params=calib_params
-                    if calib_params is not None
-                    else sample.calib_params,
-                    calib_mutable=calib_mutable
-                    if calib_mutable is not None
-                    else sample.calib_mutable,
+                    calib_params=(
+                        calib_params
+                        if calib_params is not None
+                        else sample.calib_params
+                    ),
+                    calib_mutable=(
+                        calib_mutable
+                        if calib_mutable is not None
+                        else sample.calib_mutable
+                    ),
                     **kwargs,
                 )
 

@@ -287,9 +287,11 @@ class ProbClassifier(ProbModel):
         if val_data_loader is not None:
             self._check_output_dim(val_data_loader)
         return super()._calibrate(
-            uncertainty_fn=calib_config.monitor.uncertainty_fn
-            if calib_config.monitor.uncertainty_fn is not None
-            else self.prob_output_layer.mean,
+            uncertainty_fn=(
+                calib_config.monitor.uncertainty_fn
+                if calib_config.monitor.uncertainty_fn is not None
+                else self.prob_output_layer.mean
+            ),
             calib_data_loader=calib_data_loader,
             val_data_loader=val_data_loader,
             calib_config=calib_config,
