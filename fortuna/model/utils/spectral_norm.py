@@ -16,8 +16,8 @@ import flax.core
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
-from jax.random import PRNGKeyArray
 import numpy as np
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.typing import (
     Array,

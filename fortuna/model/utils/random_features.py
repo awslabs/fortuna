@@ -12,12 +12,12 @@ from typing import (
 )
 
 import flax.linen as nn
+import jax.numpy as jnp
 from jax import (
     lax,
     random,
 )
-import jax.numpy as jnp
-from jax.random import PRNGKeyArray
+from jax._src.prng import PRNGKeyArray
 
 from fortuna.typing import (
     Array,

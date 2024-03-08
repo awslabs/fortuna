@@ -11,13 +11,13 @@ from typing import (
     Union,
 )
 
+import jax.random
 from datasets import (
     Dataset,
     DatasetDict,
 )
 from jax import numpy as jnp
-import jax.random
-from jax.random import PRNGKeyArray
+from jax._src.prng import PRNGKeyArray
 from tqdm import tqdm
 from transformers import (
     BatchEncoding,
