@@ -119,7 +119,7 @@ class SGMCMCPosteriorStateRepository(PosteriorMultiStateRepository):
             return state
 
         if isinstance(state, list):
-            return [_update_state(_state, modify=modify) for _state in state]
+            return [self._update_state(_state, modify=modify) for _state in state]
 
         if modify == "add":
             state = state.replace(

@@ -62,7 +62,9 @@ def cyclical_sgld_integrator(
             sgld_state=sgld.init(params),
         )
 
-    def update_fn(gradient, state, *_):
+    def update_fn(gradient, state, params=None):
+        del params
+
         def sgd_step():
             step_size = step_schedule(state.sgld_state.count)
             preconditioner_state = preconditioner.update_preconditioner(

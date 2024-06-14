@@ -18,7 +18,9 @@ from jax.tree_util import tree_leaves
 from optax import (
     multi_transform,
     set_to_zero,
+    MultiTransformState,
 )
+from optax._src.wrappers import MaskedState
 
 from fortuna.typing import (
     AnyKey,
@@ -26,6 +28,8 @@ from fortuna.typing import (
     OptaxOptimizer,
     Params,
 )
+
+from fortuna.prob_model.posterior.state import PosteriorState
 
 
 def all_values_in_labels(values: Iterable, labels: Any) -> None:
@@ -79,6 +83,65 @@ def freeze_optimizer(
     partition_params = freeze(partition_params)
     partition_optimizers = {"trainable": optimizer, "frozen": set_to_zero()}
     return multi_transform(partition_optimizers, partition_params)
+
+
+def has_multiple_opt_state(state: PosteriorState):
+    """
+    Check if a given posterior state containts multiple optimizer states.
+
+    Parameters
+    ----------
+    state: PosteriorState
+        An instance of `PosteriorState`.
+
+    Returns
+    -------
+    bool
+    """
+    return isinstance(state.opt_state, MultiTransformState)
+
+
+def get_trainable_opt_state(state: PosteriorState):
+    """
+    Get a trainable optimizer state.
+
+    Parameters
+    ----------
+    state: PosteriorState
+        An instance of `PosteriorState`.
+
+    Returns
+    -------
+    opt_state: Any
+        An instance of trainable optimizer state.
+    """
+    return state.opt_state.inner_states["trainable"].inner_state
+
+
+def update_trainable_opt_state(state: PosteriorState, opt_state: Any):
+    """
+    Update a trainable optimizer state.
+
+    Parameters
+    ----------
+    state: PosteriorState
+        An instance of `PosteriorState`.
+    opt_state: Any
+        An instance of trainable optimizer state.
+
+    Returns
+    -------
+    PosteriorState
+        An updated posterior state.
+    """
+    trainable_state = MaskedState(inner_state=opt_state)
+    opt_state = MultiTransformState(
+        inner_states={
+            k: (trainable_state if k == "trainable" else v)
+            for k, v in state.opt_state.inner_states.items()
+        }
+    )
+    return state.replace(opt_state=opt_state)
 
 
 def get_trainable_paths(

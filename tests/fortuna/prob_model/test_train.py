@@ -31,6 +31,9 @@ from fortuna.prob_model.posterior.normalizing_flow.advi.advi_posterior import (
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_posterior import (
     CyclicalSGLDPosteriorApproximator,
 )
+from fortuna.prob_model.posterior.sgmcmc.hmc.hmc_posterior import (
+    HMCPosteriorApproximator,
+)
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_posterior import (
     SGHMCPosteriorApproximator,
 )
@@ -57,6 +60,9 @@ METHODS = {
     "sghmc": SGHMCPosteriorApproximator(n_samples=3, n_thinning=1, burnin_length=1),
     "cyclical_sgld": CyclicalSGLDPosteriorApproximator(
         n_samples=3, n_thinning=1, cycle_length=4
+    ),
+    "hmc": HMCPosteriorApproximator(
+        n_samples=3, n_thinning=1, burnin_length=1
     ),
 }
 
@@ -380,7 +386,7 @@ def dryrun_task(task, method):
     )
     state = (
         prob_model.posterior.state.get()
-        if method not in ["deep_ensemble", "sghmc", "cyclical_sgld"]
+        if method not in ["deep_ensemble", "sghmc", "cyclical_sgld", "hmc"]
         else prob_model.posterior.state.get(-1)
     )
     model_editor_params = state.params["model_editor"]["params"].unfreeze()
