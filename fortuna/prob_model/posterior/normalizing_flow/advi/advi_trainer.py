@@ -5,7 +5,6 @@ from typing import (
 
 from flax.core import FrozenDict
 import jax
-from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_map
 
@@ -97,8 +96,8 @@ class ADVITrainer(NormalizingFlowTrainer):
         self,
         state: NormalizingFlowState,
         dataloaders: List[DataLoader],
-        rng: PRNGKeyArray,
-    ) -> Tuple[NormalizingFlowState, List[DataLoader], PRNGKeyArray]:
+        rng: jax.Array,
+    ) -> Tuple[NormalizingFlowState, List[DataLoader], jax.Array]:
         if self.freeze_fun is not None:
             frozen_paths = get_frozen_paths(
                 self._unravel(state.params["mean"]), self.freeze_fun

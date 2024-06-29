@@ -8,19 +8,14 @@ from typing import (
 
 from flax.core import FrozenDict
 from jax import (
-    ShapeDtypeStruct,
     jit,
     jvp,
     lax,
-    pure_callback,
     vjp,
     vmap,
 )
 import jax.numpy as jnp
-from jax.tree_util import (
-    tree_map,
-    tree_reduce,
-)
+from jax.tree_util import tree_map
 
 from fortuna.typing import (
     AnyKey,

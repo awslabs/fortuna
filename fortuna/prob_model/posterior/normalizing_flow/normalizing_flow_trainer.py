@@ -12,11 +12,11 @@ from typing import (
 )
 
 from flax.core import FrozenDict
+import jax
 from jax import (
     random,
     vmap,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 from optax._src.base import PyTree
@@ -32,7 +32,6 @@ from fortuna.typing import (
     CalibParams,
     Mutable,
     Params,
-    Path,
 )
 from fortuna.utils.strings import encode_tuple_of_lists_of_strings_to_numpy
 
@@ -48,7 +47,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
 
         Parameters
         ----------
-        rng: PRNGKeyArray
+        rng: jax.Array
             Random number generator.
         params: Params
             Transformation parameters.
@@ -99,7 +98,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         params: Params,
         batch: Batch,
         mutable: Mutable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         calib_params: Optional[CalibParams] = None,
@@ -197,7 +196,7 @@ class NormalizingFlowTrainer(PosteriorTrainerABC):
         state: PosteriorState,
         batch: Batch,
         loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float]], ...] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,

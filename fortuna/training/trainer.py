@@ -21,7 +21,6 @@ from jax import (
     random,
     value_and_grad,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 from optax._src.base import PyTree
@@ -100,7 +99,7 @@ class TrainerABC(
         params: Params,
         batch: Batch,
         mutable: Mutable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         calib_params: Optional[CalibParams] = None,
@@ -114,7 +113,7 @@ class TrainerABC(
         state: TrainState,
         batch: Batch,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
@@ -232,7 +231,7 @@ class TrainerABC(
         state: TrainState,
         batch: Batch,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
@@ -354,7 +353,7 @@ class TrainerABC(
 
     def train(
         self,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         state: TrainState,
         loss_fun: Callable,
         training_dataloader: DataLoader,
@@ -458,7 +457,7 @@ class TrainerABC(
         current_epoch: int,
         loss_fun: Callable,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], jnp.ndarray], ...]],
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         state: TrainState,
         training_dataloader: DataLoader,
         training_dataset_size: int,
@@ -536,7 +535,7 @@ class TrainerABC(
         self,
         loss_fun: Callable,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]],
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         state: TrainState,
         training_kwargs: FrozenDict[str, Any],
         validation_dataloader: DataLoader,
@@ -606,8 +605,8 @@ class TrainerABC(
         self,
         state: TrainState,
         dataloaders: List[DataLoader],
-        rng: PRNGKeyArray,
-    ) -> Tuple[TrainState, List[DataLoader], PRNGKeyArray]:
+        rng: jax.Array,
+    ) -> Tuple[TrainState, List[DataLoader], jax.Array]:
         if self.freeze_fun is not None:
             frozen_paths = get_frozen_paths(state.params, self.freeze_fun)
             trainable_paths = get_trainable_paths(state.params, self.freeze_fun)
@@ -675,8 +674,8 @@ class TrainerABC(
         return metrics_vals
 
     def training_step_start(
-        self, rng: PRNGKeyArray, step: Union[int, jax.Array]
-    ) -> PRNGKeyArray:
+        self, rng: jax.Array, step: Union[int, jax.Array]
+    ) -> jax.Array:
         step = step if isinstance(step, int) or step.ndim == 0 else step[0]
         return random.fold_in(rng, step)
 
@@ -723,7 +722,7 @@ class JittedMixin:
         state: TrainState,
         batch: Batch,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
@@ -738,7 +737,7 @@ class JittedMixin:
         state: TrainState,
         batch: Batch,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,
@@ -800,8 +799,8 @@ class MultiDeviceMixin:
         return jax.device_get(tree_map(lambda x: x[0], state))
 
     def on_train_start(
-        self, state: TrainState, dataloaders: List[DataLoader], rng: PRNGKeyArray
-    ) -> Tuple[TrainState, List[DataLoader], PRNGKeyArray]:
+        self, state: TrainState, dataloaders: List[DataLoader], rng: jax.Array
+    ) -> Tuple[TrainState, List[DataLoader], jax.Array]:
         state, dataloaders, rng = super(MultiDeviceMixin, self).on_train_start(
             state, dataloaders, rng
         )
@@ -816,7 +815,7 @@ class MultiDeviceMixin:
         state = super(MultiDeviceMixin, self).on_train_end(state)
         return jax.device_get(tree_map(lambda x: x[0], state))
 
-    def training_step_start(self, rng: PRNGKeyArray, step: int) -> PRNGKeyArray:
+    def training_step_start(self, rng: jax.Array, step: int) -> jax.Array:
         step = step if isinstance(step, int) or step.ndim == 0 else step[0]
         return jax.vmap(lambda r: random.fold_in(r, step))(rng)
 
@@ -826,7 +825,7 @@ class MultiDeviceMixin:
         state: TrainState,
         batch: Batch,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         kwargs: FrozenDict[str, Any] = FrozenDict(),
@@ -863,7 +862,7 @@ class MultiDeviceMixin:
         state: TrainState,
         batch: Batch,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,

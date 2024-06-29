@@ -65,7 +65,7 @@ class SNGPPosterior(MAPPosterior):
         path = find_one_path_to_key(state.mutable, "spectral_stats")
         if len(path) == 0:
             raise ValueError(
-                f"It looks like your deep feature extractor does not have Spectral Normalization, "
-                f"which is required by SNGP. Please include spectral normalization in your model."
-                f"Check out `fortuna.model.utils.spectral_norm.WithSpectralNorm` for more details."
+                "It looks like your deep feature extractor does not have Spectral Normalization, "
+                "which is required by SNGP. Please include spectral normalization in your model."
+                "Check out `fortuna.model.utils.spectral_norm.WithSpectralNorm` for more details."
             )

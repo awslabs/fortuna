@@ -5,7 +5,6 @@ from typing import (
     Tuple,
 )
 
-import jax.numpy as jnp
 from jax.tree_util import tree_map
 import numpy as np
 
@@ -31,7 +30,7 @@ def encode_tuple_of_lists_of_strings_to_numpy(
 
 
 def decode_encoded_tuple_of_lists_of_strings_to_array(
-    encoded: Optional[Dict[str, List[Array]]]
+    encoded: Optional[Dict[str, List[Array]]],
 ) -> Optional[Tuple[List[str], ...]]:
     if encoded is None:
         return None

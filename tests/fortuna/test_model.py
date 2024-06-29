@@ -129,8 +129,8 @@ class TestConstant(unittest.TestCase):
     def test_constant(self):
         constant = ConstantModel(output_dim=self.output_dim)
         params = constant.init(self.rng, self.inputs)
-        assert jnp.alltrue(params["params"]["constant"] == jnp.zeros(self.output_dim))
-        assert jnp.alltrue(
+        assert jnp.all(params["params"]["constant"] == jnp.zeros(self.output_dim))
+        assert jnp.all(
             params["params"]["constant"] == constant.apply(params, self.inputs)
         )
 
@@ -138,7 +138,7 @@ class TestConstant(unittest.TestCase):
             output_dim=self.output_dim, initializer_fun=nn.initializers.ones
         )
         params = constant.init(self.rng, self.inputs)
-        assert jnp.alltrue(params["params"]["constant"] == jnp.ones(self.output_dim))
+        assert jnp.all(params["params"]["constant"] == jnp.ones(self.output_dim))
 
 
 class TestScalarConstant(unittest.TestCase):
@@ -155,8 +155,8 @@ class TestScalarConstant(unittest.TestCase):
     def test_scalar_constant(self):
         scalar = ScalarConstantModel(output_dim=self.output_dim)
         params = scalar.init(self.rng, self.inputs)
-        assert jnp.alltrue(params["params"]["scalar"] == jnp.zeros(self.output_dim))
-        assert jnp.alltrue(
+        assert jnp.all(params["params"]["scalar"] == jnp.zeros(self.output_dim))
+        assert jnp.all(
             params["params"]["scalar"] == scalar.apply(params, self.inputs)
         )
 
@@ -176,8 +176,8 @@ class TestHyperparameter(unittest.TestCase):
         value = jnp.array([1.0, 2.0])
         hyper = HyperparameterModel(value=value)
         params = hyper.init(self.rng, self.inputs)
-        assert jnp.alltrue(params["params"]["none"] == jnp.zeros(0))
-        assert jnp.alltrue(hyper.apply(params, self.inputs) == value)
+        assert jnp.all(params["params"]["none"] == jnp.zeros(0))
+        assert jnp.all(hyper.apply(params, self.inputs) == value)
 
 
 class TestScalarHyperparameter(unittest.TestCase):
@@ -195,8 +195,8 @@ class TestScalarHyperparameter(unittest.TestCase):
         value = 3.0
         scalar = ScalarHyperparameterModel(output_dim=2, value=value)
         params = scalar.init(self.rng, self.inputs)
-        assert jnp.alltrue(params["params"]["none"] == jnp.zeros(0))
-        assert jnp.alltrue(
+        assert jnp.all(params["params"]["none"] == jnp.zeros(0))
+        assert jnp.all(
             scalar.apply(params, self.inputs)
             == value * jnp.ones((self.inputs.shape[0], self.output_dim))
         )

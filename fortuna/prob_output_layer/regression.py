@@ -4,11 +4,11 @@ from typing import (
     Union,
 )
 
+import jax
 from jax import (
     random,
     vmap,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
 from fortuna.prob_output_layer.base import ProbOutputLayer
@@ -40,7 +40,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
         self,
         n_target_samples: int,
         outputs: Array,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> jnp.ndarray:
         if rng is None:
@@ -55,7 +55,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
         q: Union[float, Array, List],
         outputs: Array,
         n_target_samples: Optional[int] = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> jnp.ndarray:
         if type(q) == list:
             q = jnp.array(q)
@@ -77,7 +77,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
         self,
         outputs: Array,
         n_target_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> jnp.ndarray:
         samples = self.sample(n_target_samples, outputs, rng=rng, **kwargs)
@@ -94,7 +94,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
         n_target_samples: int = 30,
         error: float = 0.05,
         interval_type: str = "two-tailed",
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> jnp.ndarray:
         r"""
         Estimate credible intervals for the target variable. This is supported only if the target variable is scalar.
@@ -110,7 +110,7 @@ class RegressionProbOutputLayer(ProbOutputLayer):
             `error=0.05` corresponds to a 95% level of credibility.
         interval_type: str
             The interval type. We support "two-tailed" (default), "right-tailed" and "left-tailed".
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
         Returns

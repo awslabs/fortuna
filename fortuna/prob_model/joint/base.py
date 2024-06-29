@@ -6,7 +6,7 @@ from typing import (
 )
 
 from flax.core import FrozenDict
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.likelihood.base import Likelihood
@@ -62,7 +62,7 @@ class Joint(WithRNG):
         return_aux: Optional[List[str]] = None,
         train: Optional[bool] = False,
         outputs: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[float, Tuple[float, dict]]:
         """
@@ -90,7 +90,7 @@ class Joint(WithRNG):
             Whether the method is called during training.
         outputs : Optional[jnp.ndarray]
             Pre-computed batch of outputs.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
         Returns
@@ -132,7 +132,7 @@ class Joint(WithRNG):
         return_aux: Optional[List[str]] = None,
         train: Optional[bool] = False,
         outputs: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[float, Tuple[float, dict]]:
         outs = self._batched_log_joint_prob(

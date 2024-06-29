@@ -1,6 +1,6 @@
 from typing import Optional
 
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.data.loader import (
@@ -60,7 +60,7 @@ class Predictive(WithRNG):
         self,
         inputs_loader: InputsLoader,
         n_samples: int = 1,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -80,7 +80,7 @@ class Predictive(WithRNG):
             A loader of input data points.
         n_samples : int
             Number of target samples to sample for each input data point.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.

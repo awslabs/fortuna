@@ -1,7 +1,7 @@
 import abc
 from typing import Optional
 
-from jax._src.prng import PRNGKeyArray
+import jax
 
 from fortuna.typing import Params
 from fortuna.utils.random import WithRNG
@@ -30,7 +30,7 @@ class Prior(WithRNG, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def sample(self, params_like: Params, rng: Optional[PRNGKeyArray] = None) -> Params:
+    def sample(self, params_like: Params, rng: Optional[jax.Array] = None) -> Params:
         """
         Sample parameters from the prior distribution.
 
@@ -38,7 +38,7 @@ class Prior(WithRNG, abc.ABC):
         ----------
         params_like : PyTree
             An PyTree object with the same structure as the parameters to sample.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
         Returns

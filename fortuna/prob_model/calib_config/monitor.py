@@ -68,7 +68,7 @@ class CalibMonitor:
                         f"All metrics in `metrics` must be callable objects, but {metric} is not."
                     )
         if uncertainty_fn is not None and not callable(uncertainty_fn):
-            raise ValueError(f"`uncertainty_fn` must be a a callable function.")
+            raise ValueError("`uncertainty_fn` must be a a callable function.")
 
         self.metrics = metrics
         self.uncertainty_fn = uncertainty_fn

@@ -3,8 +3,8 @@ from typing import (
     Union,
 )
 
+import jax
 from jax import vmap
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import numpy as np
 
@@ -106,7 +106,7 @@ class RegressionLikelihood(Likelihood):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         n_target_samples: Optional[int] = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
         **kwargs,
     ) -> jnp.ndarray:
@@ -139,7 +139,7 @@ class RegressionLikelihood(Likelihood):
         calib_mutable: Optional[CalibMutable] = None,
         n_target_samples: Optional[int] = 30,
         target_samples: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
         **kwargs,
     ) -> Union[float, jnp.ndarray]:
@@ -164,7 +164,7 @@ class RegressionLikelihood(Likelihood):
             Number of target samples to sample for each input data point.
         target_samples: Optional[jnp.ndarray] = None
             Samples of the target variable for each input, used to estimate the quantiles.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.

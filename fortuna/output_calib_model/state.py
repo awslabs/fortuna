@@ -8,7 +8,6 @@ from typing import (
 )
 
 from flax.core import FrozenDict
-import jax.numpy as jnp
 
 from fortuna.training.train_state import TrainState
 from fortuna.typing import (

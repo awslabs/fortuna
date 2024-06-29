@@ -7,7 +7,7 @@ from typing import (
     Union,
 )
 
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.output_calibrator.output_calib_manager.base import OutputCalibManager
@@ -70,7 +70,7 @@ class Predictive(WithRNG, abc.ABC):
         self,
         n_samples: int,
         outputs: Array,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         calibrated: bool = True,
         **kwargs,
     ) -> jnp.ndarray:
@@ -83,7 +83,7 @@ class Predictive(WithRNG, abc.ABC):
             The number of target samples to draw for each of the outputs.
         outputs : Array
             Calibrated outputs.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         calibrated : bool
             Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
@@ -266,7 +266,7 @@ class Predictive(WithRNG, abc.ABC):
         targets: Array,
         outputs: Array,
         mutable: Optional[CalibMutable] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         return_aux: Optional[List[str]] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
         if return_aux is None:

@@ -8,11 +8,11 @@ from typing import (
     Union,
 )
 
+import jax
 from jax import (
     jit,
     pmap,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
 from fortuna.data.loader import (
@@ -133,7 +133,7 @@ class Likelihood(WithRNG):
         return_aux: Optional[List[str]] = None,
         train: bool = False,
         outputs: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
         """
@@ -161,7 +161,7 @@ class Likelihood(WithRNG):
             Whether the method is called during training.
         outputs : Optional[jnp.ndarray]
             Pre-computed batch of outputs.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
         Returns
@@ -272,7 +272,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         return_aux: Optional[List[str]] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
@@ -296,7 +296,7 @@ class Likelihood(WithRNG):
         return_aux : Optional[List[str]]
             The auxiliary objects to return. We support 'outputs'. If this argument is not given, no auxiliary object
             is returned.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -345,7 +345,7 @@ class Likelihood(WithRNG):
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
         return_aux: Optional[List[str]] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         if return_aux is None:

@@ -1,10 +1,10 @@
 from typing import Union
 
+import jax
 from jax import (
     random,
     vmap,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 from jax.scipy.stats import (
     multivariate_normal,
@@ -30,11 +30,11 @@ class DiagGaussian(Distribution):
         self.std = std
         self.dim = 1 if type(mean) in [int, float] else len(mean)
 
-    def sample(self, rng: PRNGKeyArray, n_samples: int = 1) -> jnp.ndarray:
+    def sample(self, rng: jax.Array, n_samples: int = 1) -> jnp.ndarray:
         """
         Sample from the diagonal Gaussian.
 
-        :param rng: PRNGKeyArray
+        :param rng: jax.Array
             Random number generator.
         :param n_samples: int
             Number of samples.
@@ -72,11 +72,11 @@ class MultGaussian(Distribution):
         self.cov = cov
         self.dim = len(mean)
 
-    def sample(self, rng: PRNGKeyArray, n_samples: int = 1) -> jnp.ndarray:
+    def sample(self, rng: jax.Array, n_samples: int = 1) -> jnp.ndarray:
         """
         Sample from the multivariate Gaussian.
 
-        :param rng: PRNGKeyArray
+        :param rng: jax.Array
             Random number generator.
         :param n_samples: int
             Number of samples.
