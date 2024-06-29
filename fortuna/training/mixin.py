@@ -109,7 +109,7 @@ class WithEarlyStoppingMixin:
         if early_stopping_patience is None or early_stopping_patience <= 0:
             if early_stopping_verbose:
                 logging.info(
-                    f"Early stopping not enabled. Set `early_stopping_patience>=0` to enable it."
+                    "Early stopping not enabled. Set `early_stopping_patience>=0` to enable it."
                 )
         elif self.early_stopping_mode is None or self.early_stopping_mode not in (
             "min",
@@ -146,9 +146,8 @@ class WithEarlyStoppingMixin:
             early_stopping_monitor = validation_metrics[self.early_stopping_monitor]
             if self.early_stopping_mode == "max":
                 early_stopping_monitor = -early_stopping_monitor
-            improved, self._early_stopping = self._early_stopping.update(
-                early_stopping_monitor
-            )
+            self._early_stopping = self._early_stopping.update(early_stopping_monitor)
+            improved = self._early_stopping.has_improved
         return improved
 
 

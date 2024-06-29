@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from jax._src.prng import PRNGKeyArray
+import jax
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
@@ -118,7 +118,7 @@ class MAPPosterior(Posterior):
         logging.info("Fit completed.")
         return status
 
-    def sample(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:
+    def sample(self, rng: Optional[jax.Array] = None, **kwargs) -> JointState:
         state = self.state.get()
         return JointState(
             params=state.params,

@@ -14,7 +14,6 @@ from jax import (
     numpy as jnp,
     random,
 )
-from jax._src.prng import PRNGKeyArray
 
 from fortuna.model.model_manager.classification import (
     ClassificationModelManager,
@@ -37,7 +36,7 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
         inputs: Dict[str, Array],
         mutable: Optional[Mutable] = None,
         train: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
         # setup dropout key
@@ -87,7 +86,7 @@ class HuggingFaceClassificationModelManager(ClassificationModelManager):
         return outputs
 
     def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, input_shape: Tuple[int, ...], rng: Optional[jax.Array] = None, **kwargs
     ) -> Dict[str, Mapping]:
         assert self.model._is_initialized, (
             "At the moment Fortuna supports models from Hugging Face that are loaded via "
@@ -135,7 +134,7 @@ class SNGPHuggingFaceClassificationModelManager(
         )
 
     def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, input_shape: Tuple[int, ...], rng: Optional[jax.Array] = None, **kwargs
     ) -> Dict[str, FrozenDict]:
         if rng is None:
             rng = self.rng.get()

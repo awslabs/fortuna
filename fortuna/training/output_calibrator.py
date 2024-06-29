@@ -20,7 +20,6 @@ from jax import (
     random,
     value_and_grad,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 from tqdm import trange
@@ -82,7 +81,7 @@ class OutputCalibratorABC(
 
     def train(
         self,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         state: OutputCalibState,
         loss_fun: Callable,
         training_data_loader: DataLoader,
@@ -178,7 +177,7 @@ class OutputCalibratorABC(
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ],
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         state: OutputCalibState,
         training_data_loader: DataLoader,
         calib_outputs_loader: TargetsLoader,
@@ -237,7 +236,7 @@ class OutputCalibratorABC(
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
         # ensure to use a different key at each step
@@ -270,7 +269,7 @@ class OutputCalibratorABC(
         batch: Batch,
         outputs: Array,
         mutable: CalibMutable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, Any]]:
         pass
@@ -328,7 +327,7 @@ class OutputCalibratorABC(
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
         ],
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         state: OutputCalibState,
         val_data_loader: DataLoader,
         val_outputs_loader: TargetsLoader,
@@ -370,7 +369,7 @@ class OutputCalibratorABC(
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         metrics: Optional[
             Tuple[Callable[[jnp.ndarray, jnp.ndarray, Array], Array], ...]
@@ -387,7 +386,7 @@ class OutputCalibratorABC(
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         pass
@@ -459,8 +458,8 @@ class OutputCalibratorABC(
         state: OutputCalibState,
         data_loaders: List[DataLoader],
         outputs_loaders: List[TargetsLoader],
-        rng: PRNGKeyArray,
-    ) -> Tuple[OutputCalibState, List[DataLoader], List[TargetsLoader], PRNGKeyArray]:
+        rng: jax.Array,
+    ) -> Tuple[OutputCalibState, List[DataLoader], List[TargetsLoader], jax.Array]:
         return state, data_loaders, outputs_loaders, rng
 
     def on_train_end(self, state: OutputCalibState) -> OutputCalibState:
@@ -498,7 +497,7 @@ class JittedMixin:
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
         return super().training_step(state, batch, outputs, loss_fun, rng, n_data)
@@ -510,7 +509,7 @@ class JittedMixin:
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Dict[str, jnp.ndarray]:
         return super().val_loss_step(state, batch, outputs, loss_fun, rng, n_data)
@@ -616,8 +615,8 @@ class MultiDeviceMixin:
         state: OutputCalibState,
         data_loaders: List[DataLoader],
         outputs_loaders: List[TargetsLoader],
-        rng: PRNGKeyArray,
-    ) -> Tuple[OutputCalibState, List[DataLoader], List[TargetsLoader], PRNGKeyArray]:
+        rng: jax.Array,
+    ) -> Tuple[OutputCalibState, List[DataLoader], List[TargetsLoader], jax.Array]:
         state, data_loaders, outputs_loaders, rng = super(
             MultiDeviceMixin, self
         ).on_train_start(state, data_loaders, outputs_loaders, rng)
@@ -644,7 +643,7 @@ class MultiDeviceMixin:
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Tuple[OutputCalibState, Dict[str, Any]]:
         return super().training_step(state, batch, outputs, loss_fun, rng, n_data)
@@ -675,7 +674,7 @@ class MultiDeviceMixin:
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Dict[str, jnp.ndarray]:
         val_losses = super().val_loss_step(state, batch, outputs, loss_fun, rng, n_data)

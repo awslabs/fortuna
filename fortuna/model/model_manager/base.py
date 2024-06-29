@@ -8,9 +8,8 @@ from typing import (
 )
 
 from flax import linen as nn
-from flax.core import FrozenDict
 from flax.training.checkpoints import PyTree
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.typing import (
@@ -38,7 +37,7 @@ class ModelManager(WithRNG, abc.ABC):
         inputs: InputData,
         mutable: Optional[Mutable] = None,
         train: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
         """
         Apply the models' forward pass.
@@ -53,7 +52,7 @@ class ModelManager(WithRNG, abc.ABC):
             The mutable objects used to evaluate the models.
         train : bool
             Whether the method is called during training.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator.
             If not passed,
             this will be taken from the attributes of this class.
@@ -67,7 +66,7 @@ class ModelManager(WithRNG, abc.ABC):
 
     @abc.abstractmethod
     def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, input_shape: Tuple[int, ...], rng: Optional[jax.Array] = None, **kwargs
     ) -> Dict[str, Mapping]:
         """
         Initialize random parameters and mutable objects.
@@ -76,7 +75,7 @@ class ModelManager(WithRNG, abc.ABC):
         ----------
         input_shape : Tuple
             The shape of the input variable.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator.
             If not passed,
             this will be taken from the attributes of this class.

@@ -96,7 +96,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             )
 
         if fit_config.optimizer.method is not None:
-            logging.info(f"`FitOptimizer` method in CyclicalSGLD is ignored.")
+            logging.info("`FitOptimizer` method in CyclicalSGLD is ignored.")
 
         fit_config.optimizer.method = cyclical_sgld_integrator(
             rng_key=self.rng.get(),
@@ -171,7 +171,7 @@ class CyclicalSGLDPosterior(SGMCMCPosterior):
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
         )
 
-        logging.info(f"Run CyclicalSGLD.")
+        logging.info("Run CyclicalSGLD.")
         state, status = trainer.train(
             rng=self.rng.get(),
             state=state,

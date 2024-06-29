@@ -5,7 +5,6 @@ from jax import (
     random,
     vmap,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
 
@@ -35,7 +34,7 @@ class ClassificationProbOutputLayer(ProbOutputLayer):
         self,
         n_target_samples: int,
         outputs: Array,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> jnp.ndarray:
         probs = (

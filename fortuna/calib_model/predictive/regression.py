@@ -4,7 +4,7 @@ from typing import (
     Union,
 )
 
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.calib_model.predictive.base import Predictive
@@ -21,7 +21,7 @@ class RegressionPredictive(Predictive):
         self,
         inputs_loader: InputsLoader,
         n_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -42,7 +42,7 @@ class RegressionPredictive(Predictive):
             A loader of input data points.
         n_samples : int
             Number of samples to draw for each input.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -67,7 +67,7 @@ class RegressionPredictive(Predictive):
         q: Union[float, Array, List],
         inputs_loader: InputsLoader,
         n_samples: Optional[int] = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> Union[float, jnp.ndarray]:
         r"""
@@ -81,7 +81,7 @@ class RegressionPredictive(Predictive):
             A loader of input data points.
         n_samples : int
             Number of target samples to sample for each input data point.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -109,7 +109,7 @@ class RegressionPredictive(Predictive):
         n_samples: int = 30,
         error: float = 0.05,
         interval_type: str = "two-tailed",
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -126,7 +126,7 @@ class RegressionPredictive(Predictive):
             `error=0.05` corresponds to a 95% level of credibility.
         interval_type: str
             The interval type. We support "two-tailed" (default), "right-tailed" and "left-tailed".
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.

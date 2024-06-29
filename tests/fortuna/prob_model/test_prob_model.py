@@ -105,30 +105,30 @@ class TestProbModels(unittest.TestCase):
             prior=IsotropicGaussianPrior(),
             output_calibrator=ClassificationTemperatureScaler(),
         )
-        assert jnp.alltrue(prob_model.rng._rng == jnp.array([0.0, 0.0]))
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.posterior.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.likelihood.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.joint.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.prior.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.predictive.rng._rng)
-        assert jnp.alltrue(
+        assert jnp.all(prob_model.rng._rng == jnp.array([0.0, 0.0]))
+        assert jnp.all(prob_model.rng._rng == prob_model.posterior.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.likelihood.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.joint.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.prior.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.predictive.rng._rng)
+        assert jnp.all(
             prob_model.rng._rng == prob_model.output_calib_manager.rng._rng
         )
         prob_model.rng.get()
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.posterior.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.likelihood.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.joint.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.prior.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.predictive.rng._rng)
-        assert jnp.alltrue(
+        assert jnp.all(prob_model.rng._rng == prob_model.posterior.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.likelihood.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.joint.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.prior.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.predictive.rng._rng)
+        assert jnp.all(
             prob_model.rng._rng == prob_model.output_calib_manager.rng._rng
         )
         prob_model.posterior.rng.get()
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.posterior.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.likelihood.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.joint.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.prior.rng._rng)
-        assert jnp.alltrue(prob_model.rng._rng == prob_model.predictive.rng._rng)
-        assert jnp.alltrue(
+        assert jnp.all(prob_model.rng._rng == prob_model.posterior.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.likelihood.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.joint.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.prior.rng._rng)
+        assert jnp.all(prob_model.rng._rng == prob_model.predictive.rng._rng)
+        assert jnp.all(
             prob_model.rng._rng == prob_model.output_calib_manager.rng._rng
         )

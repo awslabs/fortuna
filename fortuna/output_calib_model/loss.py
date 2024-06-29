@@ -7,7 +7,7 @@ from typing import (
     Union,
 )
 
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.output_calib_model.predictive.base import Predictive
@@ -34,7 +34,7 @@ class Loss(WithRNG):
         targets: Array,
         outputs: Array,
         mutable: Optional[CalibMutable] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         return_aux: Optional[List[str]] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Any]]:
         if return_aux is None:

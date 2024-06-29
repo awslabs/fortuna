@@ -10,7 +10,6 @@ import flax.linen as nn
 from flax.training.checkpoints import PyTree
 import jax
 from jax import random
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
 from fortuna.model.model_manager.base import ModelManager
@@ -53,7 +52,7 @@ class RegressionModelManager(ModelManager):
         inputs: Array,
         mutable: Optional[Mutable] = None,
         train: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
         # setup dropout key
         if rng is not None:
@@ -141,7 +140,7 @@ class RegressionModelManager(ModelManager):
         return outputs
 
     def init(
-        self, input_shape: Tuple, rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, input_shape: Tuple, rng: Optional[jax.Array] = None, **kwargs
     ) -> Dict[str, FrozenDict]:
         if rng is None:
             rng = self.rng.get()

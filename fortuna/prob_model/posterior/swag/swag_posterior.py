@@ -4,8 +4,8 @@ import logging
 from typing import Optional
 
 from flax.core import FrozenDict
+import jax
 from jax import random
-from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 
@@ -179,7 +179,7 @@ class SWAGPosterior(Posterior):
 
     def sample(
         self,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         inputs_loader: Optional[InputsLoader] = None,
         inputs: Optional[Array] = None,
         **kwargs,
@@ -189,7 +189,7 @@ class SWAGPosterior(Posterior):
 
         Parameters
         ----------
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         inputs_loader: Optional[InputsLoader]
             Input data loader. This or `inputs` is required if the posterior state includes mutable objects.

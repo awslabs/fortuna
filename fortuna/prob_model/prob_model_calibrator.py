@@ -8,7 +8,6 @@ from typing import (
 
 from flax import jax_utils
 import jax
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 from jax.tree_util import tree_map
 
@@ -35,7 +34,7 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
         batch: Batch,
         outputs: Array,
         mutable: CalibMutable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, Any]]:
         return_aux = ["outputs"]
@@ -66,7 +65,7 @@ class ProbModelOutputCalibrator(OutputCalibratorABC):
         batch: Batch,
         outputs: Array,
         loss_fun: Callable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
     ) -> Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]:
         loss, aux = loss_fun(

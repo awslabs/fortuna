@@ -1,7 +1,7 @@
 from typing import Optional
 
+import jax
 from jax import random
-from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 
@@ -31,7 +31,7 @@ class IsotropicGaussianPrior(Prior):
         n = len(rav)
         return -0.5 * (self.prec * jnp.sum(rav**2) + n * (self.log2pi + self.log_var))
 
-    def sample(self, params_like: Params, rng: Optional[PRNGKeyArray] = None) -> Params:
+    def sample(self, params_like: Params, rng: Optional[jax.Array] = None) -> Params:
         dummy_rav, unravel = ravel_pytree(params_like)
         n = len(dummy_rav)
         if rng is None:
@@ -60,7 +60,7 @@ class DiagonalGaussianPrior(Prior):
             jnp.exp(-self.log_var) * rav**2 + self.log2pi + self.log_var
         )
 
-    def sample(self, params_like: Params, rng: Optional[PRNGKeyArray] = None) -> Params:
+    def sample(self, params_like: Params, rng: Optional[jax.Array] = None) -> Params:
         dummy_rav, unravel = ravel_pytree(params_like)
         n = len(dummy_rav)
         if rng is None:

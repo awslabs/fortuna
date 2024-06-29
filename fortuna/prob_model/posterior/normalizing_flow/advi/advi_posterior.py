@@ -11,10 +11,9 @@ from typing import (
 )
 
 from flax.core import FrozenDict
-from jax._src.prng import PRNGKeyArray
+import jax
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
-import numpy as np
 
 from fortuna.data.loader import (
     DataLoader,
@@ -267,7 +266,7 @@ class ADVIPosterior(Posterior):
 
     def sample(
         self,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         input_shape: Optional[Tuple[int, ...]] = None,
         inputs_loader: Optional[InputsLoader] = None,
         inputs: Optional[Array] = None,
@@ -277,7 +276,7 @@ class ADVIPosterior(Posterior):
         Sample from the posterior distribution. Either `input_shape` or `_inputs_loader` must be passed.
         Parameters
         ----------
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         input_shape: Optional[Tuple[int, ...]]
             Shape of a single input.

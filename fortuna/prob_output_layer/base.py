@@ -1,7 +1,7 @@
 import abc
 from typing import Optional
 
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.typing import Array
@@ -56,7 +56,7 @@ class ProbOutputLayer(WithRNG, abc.ABC):
         self,
         n_target_samples: int,
         outputs: Array,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> jnp.ndarray:
         """
@@ -68,7 +68,7 @@ class ProbOutputLayer(WithRNG, abc.ABC):
             The number of target samples to draw for each of the outputs.
         outputs : Array
             Calibrated outputs.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
         Returns

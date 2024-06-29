@@ -12,12 +12,12 @@ from typing import (
 )
 
 import flax.linen as nn
+import jax
 from jax import (
     lax,
     random,
 )
 import jax.numpy as jnp
-from jax.random import PRNGKeyArray
 
 from fortuna.typing import (
     Array,
@@ -29,7 +29,7 @@ linalg = lax.linalg
 # Default config for random features.
 default_rbf_bias_init = nn.initializers.uniform(scale=2.0 * jnp.pi)
 # Using "he_normal" style random feature distribution (see https://arxiv.org/abs/1502.01852).
-# Effectively, this is equivalent to approximating a RBF kernel but with the input standardized by
+# Effectively, this is equivalent to approximating an RBF kernel but with the input standardized by
 # its dimensionality (i.e., input_scaled = input * sqrt(2. / dim_input)) and
 # empirically leads to better performance for neural network inputs.
 # default_rbf_kernel_init = nn.initializers.variance_scaling(
@@ -154,10 +154,10 @@ class RandomFourierFeatures(nn.Module):
         Scale to apply to the output.
         When using GP layer as the output layer of a nerual network, it is recommended to set this to 1.
         to prevent it from changing the learning rate to the hidden layers.
-    kernel_init:  Callable[[PRNGKeyArray, Shape, Type], Array]
-         Callable[[PRNGKeyArray, Shape, Type], Array] function for the weight matrix.
-    bias_init:  Callable[[PRNGKeyArray, Shape, Type], Array]
-         Callable[[PRNGKeyArray, Shape, Type], Array] function for the bias.
+    kernel_init:  Callable[[jax.Array, Shape, Type], Array]
+         Callable[[jax.Array, Shape, Type], Array] function for the weight matrix.
+    bias_init:  Callable[[jax.Array, Shape, Type], Array]
+         Callable[[jax.Array, Shape, Type], Array] function for the bias.
     seed: int
         Random seed for generating random features. This will override the external RNGs.
     dtype: Type
@@ -167,8 +167,8 @@ class RandomFourierFeatures(nn.Module):
     features: int
     kernel_scale: Optional[float] = 1.0
     feature_scale: Optional[float] = 1.0
-    kernel_init: Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_kernel_init
-    bias_init: Callable[[PRNGKeyArray, Shape, Type], Array] = default_rbf_bias_init
+    kernel_init: Callable[[jax.Array, Shape, Type], Array] = default_rbf_kernel_init
+    bias_init: Callable[[jax.Array, Shape, Type], Array] = default_rbf_bias_init
     seed: int = 0
     dtype: Type = jnp.float32
     collection_name: str = "random_features"

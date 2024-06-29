@@ -1,5 +1,5 @@
+import jax
 from jax import random
-from jax._src.prng import PRNGKeyArray
 from jax.tree_util import (
     tree_map,
     tree_structure,
@@ -35,14 +35,14 @@ class RandomNumberGenerator:
         """
         self._rng = random.PRNGKey(seed)
 
-    def get(self) -> PRNGKeyArray:
+    def get(self) -> jax.Array:
         """
         Get the internal random number generator key. Whenever this function is called, the random number generator
         key is updated.
 
         Returns
         -------
-        PRNGKeyArray
+        jax.Array
             A random number generator key.
         """
         self._rng = random.split(self._rng)[0]

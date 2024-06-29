@@ -59,7 +59,7 @@ class TestDiagnostic(unittest.TestCase):
         samp1_flat = self.rng.multivariate_normal(self.mu, self.sigma, size=DATA_SIZE)
         ess = effective_sample_size(samp1_flat)
         assert samp1_flat.shape[-1] == ess.shape[0]
-        assert jnp.alltrue(0 <= ess) and jnp.alltrue(ess <= len(samp1_flat))
+        assert jnp.all(0 <= ess) and jnp.all(ess <= len(samp1_flat))
         samp1_tree = self.unflatten(samp1_flat)
         ess_tree = effective_sample_size(samp1_tree)
         vals, _unravel_fn = ravel_pytree(ess_tree)

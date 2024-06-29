@@ -4,7 +4,6 @@ from typing import (
 )
 
 import jax
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 from optax import GradientTransformation
 from optax._src.base import PyTree
@@ -22,7 +21,7 @@ class OptaxSGHMCState(NamedTuple):
     """Optax state for the SGHMC integrator."""
 
     count: Array
-    rng_key: PRNGKeyArray
+    rng_key: jax.Array
     momentum: PyTree
     preconditioner_state: PreconditionerState
 
@@ -30,7 +29,7 @@ class OptaxSGHMCState(NamedTuple):
 def sghmc_integrator(
     momentum_decay: float,
     momentum_resample_steps: Optional[int],
-    rng_key: PRNGKeyArray,
+    rng_key: jax.Array,
     step_schedule: StepSchedule,
     preconditioner: Preconditioner,
 ) -> GradientTransformation:
@@ -40,7 +39,7 @@ def sghmc_integrator(
     ----------
         momentum_decay: float
             The momentum decay parameter.
-        rng_key: PRNGKeyArray
+        rng_key: jax.Array
             An initial random number generator.
         step_schedule: StepSchedule
             A function that takes training step as input and returns the step size.

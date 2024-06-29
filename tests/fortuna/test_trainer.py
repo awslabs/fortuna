@@ -13,7 +13,7 @@ import chex
 from flax.core import FrozenDict
 import flax.linen as nn
 from jax import numpy as jnp
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.random
 import numpy as np
 import optax
@@ -72,7 +72,7 @@ class FakeTrainer(TrainerABC):
         params: Params,
         batch: Batch,
         mutable: Mutable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         calib_params: Optional[CalibParams] = None,
@@ -684,7 +684,7 @@ class TestTrainer(unittest.TestCase):
             None,
             FrozenDict({"max_grad_norm": max_grad_norm}),
         )
-        loss = float(aux["loss"])
+        loss = float(aux["loss"][0])
 
         # grad acc update
         optimizer = optax.sgd(learning_rate=1e-4)
@@ -693,8 +693,8 @@ class TestTrainer(unittest.TestCase):
         loss_grad_acc = 0.0
         batches = [
             (
-                inputs[start : start + gradient_accumulation_steps][None],
-                targets[start : start + gradient_accumulation_steps][None],
+                inputs[start: start + gradient_accumulation_steps][None],
+                targets[start: start + gradient_accumulation_steps][None],
             )
             for start in range(0, 9, gradient_accumulation_steps)
         ]
@@ -715,8 +715,8 @@ class TestTrainer(unittest.TestCase):
                     }
                 ),
             )
-            loss_grad_acc += float(aux_grad_acc["loss"])
-        chex.assert_tree_all_close(new_state.params, new_state_acc.params, atol=1e-7)
+            loss_grad_acc += float(aux_grad_acc["loss"][0])
+        chex.assert_trees_all_close(new_state.params, new_state_acc.params, atol=1e-7)
         self.assertAlmostEqual(loss, loss_grad_acc / (i + 1), places=6)
 
     def test_grad_acc_no_clipping(self):
@@ -775,5 +775,5 @@ class TestTrainer(unittest.TestCase):
                 ),
             )
             loss_grad_acc += float(aux_grad_acc["loss"])
-        chex.assert_tree_all_close(new_state.params, new_state_acc.params, atol=1e-7)
+        chex.assert_trees_all_close(new_state.params, new_state_acc.params, atol=1e-7)
         self.assertAlmostEqual(loss, loss_grad_acc / 3, places=6)

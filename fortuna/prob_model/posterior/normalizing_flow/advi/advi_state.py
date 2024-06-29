@@ -6,8 +6,6 @@ from typing import (
     Optional,
 )
 
-import jax.numpy as jnp
-
 from fortuna.prob_model.posterior.normalizing_flow.normalizing_flow_state import (
     NormalizingFlowState,
 )
