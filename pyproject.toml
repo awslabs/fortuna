@@ -16,7 +16,7 @@ matplotlib = "^3.6.2"
 tqdm = "^4.64.1"
 numpy = "^1.23.4"
 tensorflow-cpu = { version = "^2.11.0", markers = "sys_platform != 'darwin'" }
-tensorflow-macos = { version = "^2.13.1", markers = "sys_platform == 'darwin'" }
+tensorflow-macos = { version = "2.13.1", markers = "sys_platform == 'darwin'" }
 Sphinx = { version = "^5.3.0", optional = true }
 sphinx-autodoc-typehints = { version = "^1.19.5", optional = true }
 nbsphinx = { version = "^0.8.10", optional = true }
@@ -38,6 +38,7 @@ tabulate = "^0.9.0"
 jax = "~0.4.30"
 jaxlib = "~0.4.30"
 tensorflow-io-gcs-filesystem = "0.29.0"
+aiohttp = "^3.9.5"
 
 [tool.poetry.extras]
 docs = ["Sphinx", "sphinx-autodoc-typehints", "pydata-sphinx-theme", "nbsphinx", "nbsphinx-link",
