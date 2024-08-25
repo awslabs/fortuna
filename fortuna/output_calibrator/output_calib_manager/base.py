@@ -7,8 +7,8 @@ from typing import (
 from flax.core import FrozenDict
 import flax.linen as nn
 from flax.training.checkpoints import PyTree
+import jax
 from jax import random
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
 from fortuna.typing import (
@@ -29,7 +29,7 @@ class OutputCalibManager(WithRNG):
         outputs: Array,
         mutable: Optional[CalibMutable] = None,
         calib: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
         """
         Apply the output calibrator forward pass.
@@ -44,7 +44,7 @@ class OutputCalibManager(WithRNG):
             The mutable objects used to evaluate the models.
         calib : bool
             Whether the method is called during calibration.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator.
             If not passed,
             this will be taken from the attributes of this class.
@@ -82,7 +82,7 @@ class OutputCalibManager(WithRNG):
             )
 
     def init(
-        self, output_dim: int, rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, output_dim: int, rng: Optional[jax.Array] = None, **kwargs
     ) -> Optional[FrozenDict]:
         """
         Initialize random parameters and mutable objects.
@@ -91,7 +91,7 @@ class OutputCalibManager(WithRNG):
         ----------
         output_dim: int
             The output dimension.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator.
             If not passed,
             this will be taken from the attributes of this class.

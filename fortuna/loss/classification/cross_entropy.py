@@ -1,9 +1,3 @@
-from typing import (
-    Any,
-    Callable,
-    Tuple,
-)
-
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp

@@ -9,7 +9,6 @@ from flax.training import (
     dynamic_scale,
     train_state,
 )
-import jax.numpy as jnp
 
 from fortuna.typing import Params
 from fortuna.utils.strings import convert_string_to_tuple

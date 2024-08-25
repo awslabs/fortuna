@@ -16,7 +16,6 @@ import flax.core
 import flax.linen as nn
 import jax
 import jax.numpy as jnp
-from jax.random import PRNGKeyArray
 import numpy as np
 
 from fortuna.typing import (
@@ -44,9 +43,9 @@ class SpectralNormalization(nn.Module):
     norm_multiplier: float
         Multiplicative constant to threshold the normalization.
         Usually under normalization, the singular value will converge to this value.
-    u_init: Callable[[PRNGKeyArray, Shape, Type], Array]
+    u_init: Callable[[jax.Array, Shape, Type], Array]
         Initializer function for the first left singular vectors of the kernel.
-    v_init: Callable[[PRNGKeyArray, Shape, Type], Array]
+    v_init: Callable[[jax.Array, Shape, Type], Array]
         Initializer function for the first right singular vectors of the kernel.
     kernel_apply_kwargs: Optional[Mapping[str, Any]]
         Updated keyword arguments to clone the input layer.
@@ -70,10 +69,10 @@ class SpectralNormalization(nn.Module):
     layer: nn.Module
     iteration: int = 1
     norm_multiplier: float = 0.95
-    u_init: Callable[[PRNGKeyArray, Shape, Type], Array] = nn.initializers.normal(
+    u_init: Callable[[jax.Array, Shape, Type], Array] = nn.initializers.normal(
         stddev=0.05
     )
-    v_init: Callable[[PRNGKeyArray, Shape, Type], Array] = nn.initializers.normal(
+    v_init: Callable[[jax.Array, Shape, Type], Array] = nn.initializers.normal(
         stddev=0.05
     )
     kernel_apply_kwargs: Optional[Mapping[str, Any]] = None

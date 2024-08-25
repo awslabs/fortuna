@@ -57,7 +57,7 @@ class SGHMCPosteriorApproximator(SGMCMCPosteriorApproximator):
         if isinstance(step_schedule, float):
             step_schedule = constant_schedule(step_schedule)
         elif not callable(step_schedule):
-            raise ValueError(f"`step_schedule` must be a a callable function.")
+            raise ValueError("`step_schedule` must be a a callable function.")
         self.burnin_length = burnin_length
         self.momentum_decay = momentum_decay
         self.step_schedule = step_schedule

@@ -2,7 +2,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Optional,
     Tuple,
     Union,
 )
@@ -10,10 +9,7 @@ from typing import (
 import flax.linen as nn
 import jax.numpy as jnp
 
-from fortuna.typing import (
-    InputData,
-    Mutable,
-)
+from fortuna.typing import InputData
 
 
 class ModelEditor(nn.Module):

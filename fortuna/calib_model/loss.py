@@ -6,7 +6,7 @@ from typing import (
     Tuple,
 )
 
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.likelihood.base import Likelihood
@@ -40,7 +40,7 @@ class Loss(WithRNG):
         return_aux: Optional[List[str]] = None,
         train: bool = False,
         outputs: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Tuple[jnp.ndarray, Any]:
         if return_aux is None:

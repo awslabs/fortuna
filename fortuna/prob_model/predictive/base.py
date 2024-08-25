@@ -9,13 +9,13 @@ from typing import (
 )
 
 from flax.training.common_utils import shard_prng_key
+import jax
 from jax import (
     jit,
     lax,
     pmap,
     random,
 )
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 import jax.scipy as jsp
 from jax.tree_util import tree_map
@@ -54,7 +54,7 @@ class Predictive(WithRNG):
         self,
         data_loader: DataLoader,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
         **kwargs,
     ) -> jnp.ndarray:
@@ -76,7 +76,7 @@ class Predictive(WithRNG):
         n_posterior_samples : int
             Number of posterior samples to draw in order to compute the log -ikelihood.
             that would be produced using the posterior distribution state.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -105,7 +105,7 @@ class Predictive(WithRNG):
         self,
         batch: Batch,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         if rng is None:
@@ -132,7 +132,7 @@ class Predictive(WithRNG):
         self,
         data_loader: DataLoader,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
         **kwargs,
     ) -> jnp.ndarray:
@@ -154,7 +154,7 @@ class Predictive(WithRNG):
         n_posterior_samples : int
             Number of posterior samples to draw in order to approximate the predictive log-pdf.
             that would be produced using the posterior distribution state.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -180,7 +180,7 @@ class Predictive(WithRNG):
         self,
         batch: Batch,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         if rng is None:
@@ -211,7 +211,7 @@ class Predictive(WithRNG):
         ensemble_outputs: Optional[jnp.ndarray] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
         if return_aux is None:
@@ -295,7 +295,7 @@ class Predictive(WithRNG):
         ensemble_outputs: Optional[jnp.ndarray] = None,
         calib_params: Optional[CalibParams] = None,
         calib_mutable: Optional[CalibMutable] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict]]:
         outs = self._batched_log_joint_prob(
@@ -320,7 +320,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_target_samples: int = 1,
         return_aux: Optional[List[str]] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, Dict[str, jnp.ndarray]]]:
@@ -343,7 +343,7 @@ class Predictive(WithRNG):
             Number of target samples to sample for each input data point.
         return_aux : Optional[List[str]]
             Return auxiliary objects. We currently support 'outputs'.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -408,7 +408,7 @@ class Predictive(WithRNG):
         inputs: Array,
         n_target_samples: int = 1,
         return_aux: Optional[List[str]] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> jnp.ndarray:
         if return_aux is None:
@@ -443,7 +443,7 @@ class Predictive(WithRNG):
         self,
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -455,7 +455,7 @@ class Predictive(WithRNG):
             A loader of input data points.
         n_output_samples : int
             Number of output samples to draw for each input.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -480,7 +480,7 @@ class Predictive(WithRNG):
         self,
         inputs: Array,
         n_output_samples: int = 1,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
@@ -502,7 +502,7 @@ class Predictive(WithRNG):
         self,
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         if rng is None:
@@ -520,7 +520,7 @@ class Predictive(WithRNG):
         self,
         inputs: Array,
         n_output_samples: int = 1,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
@@ -538,7 +538,7 @@ class Predictive(WithRNG):
         self,
         inputs_loader: InputsLoader,
         n_output_samples: int = 1,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         return_size: bool = False,
         distribute: bool = True,
     ) -> Union[TargetsLoader, Tuple[TargetsLoader, int]]:
@@ -583,7 +583,7 @@ class Predictive(WithRNG):
         self,
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -604,7 +604,7 @@ class Predictive(WithRNG):
             A loader of input data points.
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -625,7 +625,7 @@ class Predictive(WithRNG):
         self,
         inputs: Array,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
@@ -652,7 +652,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         means: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -674,7 +674,7 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         means : Optional[jnp.ndarray] = None
             An estimate of the predictive mean.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -690,7 +690,7 @@ class Predictive(WithRNG):
         self,
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -711,7 +711,7 @@ class Predictive(WithRNG):
             A loader of input data points.
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -736,7 +736,7 @@ class Predictive(WithRNG):
         self,
         inputs: Array,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
@@ -761,7 +761,7 @@ class Predictive(WithRNG):
         self,
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -782,7 +782,7 @@ class Predictive(WithRNG):
             A loader of input data points.
         n_posterior_samples : int
             Number of samples to draw from the posterior distribution for each input.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -807,7 +807,7 @@ class Predictive(WithRNG):
         self,
         inputs: Array,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> jnp.ndarray:
         if rng is None:
             rng = self.rng.get()
@@ -841,7 +841,7 @@ class Predictive(WithRNG):
         n_posterior_samples: int = 30,
         aleatoric_variances: Optional[jnp.ndarray] = None,
         epistemic_variances: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -867,7 +867,7 @@ class Predictive(WithRNG):
             An estimate of the aleatoric predictive variance for each input.
         epistemic_variances: Optional[jnp.ndarray]
             An estimate of the epistemic predictive variance for each input.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -902,7 +902,7 @@ class Predictive(WithRNG):
         inputs_loader: InputsLoader,
         n_posterior_samples: int = 30,
         variances: Optional[jnp.ndarray] = None,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         distribute: bool = True,
     ) -> jnp.ndarray:
         r"""
@@ -924,7 +924,7 @@ class Predictive(WithRNG):
             Number of samples to draw from the posterior distribution for each input.
         variances: Optional[jnp.ndarray]
             An estimate of the predictive variance.
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         distribute: bool
             Whether to distribute computation over multiple devices, if available.
@@ -954,7 +954,7 @@ class Predictive(WithRNG):
         fun: Callable,
         inputs_loader: InputsLoader,
         n_posterior_samples: int,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         distribute: bool = True,
         **kwargs,
     ) -> Array:
@@ -979,7 +979,7 @@ class Predictive(WithRNG):
         fun: Callable,
         data_loader: DataLoader,
         n_posterior_samples: int,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         distribute: bool = True,
         **kwargs,
     ) -> Array:
@@ -1001,7 +1001,7 @@ class Predictive(WithRNG):
         fun: Callable,
         inputs_loader: InputsLoader,
         n_posterior_samples: int,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         distribute: bool = True,
         **kwargs,
     ) -> Array:

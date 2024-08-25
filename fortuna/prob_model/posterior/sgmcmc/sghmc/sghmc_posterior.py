@@ -7,7 +7,6 @@ from flax.core import FrozenDict
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.base import Joint
-from fortuna.prob_model.posterior.map.map_posterior import MAPPosterior
 from fortuna.prob_model.posterior.map.map_state import MAPState
 from fortuna.prob_model.posterior.map.map_trainer import (
     JittedMAPTrainer,
@@ -93,7 +92,7 @@ class SGHMCPosterior(SGMCMCPosterior):
             )
 
         if fit_config.optimizer.method is not None:
-            logging.info(f"`FitOptimizer` method in SGHMC is ignored.")
+            logging.info("`FitOptimizer` method in SGHMC is ignored.")
 
         fit_config.optimizer.method = sghmc_integrator(
             momentum_decay=self.posterior_approximator.momentum_decay,
@@ -167,7 +166,7 @@ class SGHMCPosterior(SGMCMCPosterior):
             keep_top_n_checkpoints=fit_config.checkpointer.keep_top_n_checkpoints,
         )
 
-        logging.info(f"Run SGHMC.")
+        logging.info("Run SGHMC.")
         state, status["sghmc"] = trainer.train(
             rng=self.rng.get(),
             state=state,

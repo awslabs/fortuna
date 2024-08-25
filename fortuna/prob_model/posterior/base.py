@@ -9,7 +9,7 @@ from typing import (
 )
 
 from flax.core import FrozenDict
-from jax._src.prng import PRNGKeyArray
+import jax
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
@@ -149,13 +149,13 @@ class Posterior(WithRNG, WithPosteriorCheckpointingMixin):
         pass
 
     @abc.abstractmethod
-    def sample(self, rng: Optional[PRNGKeyArray] = None, *args, **kwargs) -> JointState:
+    def sample(self, rng: Optional[jax.Array] = None, *args, **kwargs) -> JointState:
         """
         Sample from the posterior distribution.
 
         Parameters
         ----------
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
         Returns

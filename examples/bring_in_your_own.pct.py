@@ -77,7 +77,7 @@ from typing import Optional
 from fortuna.utils.random import generate_rng_like_tree
 from jax.flatten_util import ravel_pytree
 from jax.tree_util import tree_map
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 
@@ -86,7 +86,7 @@ class Uniform(Prior):
         v = jnp.mean((ravel_pytree(params)[0] <= 1) & (ravel_pytree(params)[0] >= 0))
         return jnp.where(v == 1.0, jnp.array(0), -jnp.inf)
 
-    def sample(self, params_like: Params, rng: Optional[PRNGKeyArray] = None) -> Params:
+    def sample(self, params_like: Params, rng: Optional[jax.Array] = None) -> Params:
         if rng is None:
             rng = self.rng.get()
         keys = generate_rng_like_tree(rng, params_like)

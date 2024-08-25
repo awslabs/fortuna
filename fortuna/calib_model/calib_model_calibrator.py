@@ -8,7 +8,7 @@ from typing import (
 )
 
 from flax.core import FrozenDict
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 from optax._src.base import PyTree
 
@@ -35,7 +35,7 @@ class CalibModelCalibrator(TrainerABC):
         params: Params,
         batch: Batch,
         mutable: Mutable,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         unravel: Optional[Callable[[any], PyTree]] = None,
         calib_params: Optional[CalibParams] = None,
@@ -71,7 +71,7 @@ class CalibModelCalibrator(TrainerABC):
         state: CalibState,
         batch: Batch,
         loss_fun: Callable[[Any], Union[float, Tuple[float, dict]]],
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         n_data: int,
         metrics: Optional[Tuple[Callable[[jnp.ndarray, Array], float], ...]] = None,
         unravel: Optional[Callable[[any], PyTree]] = None,

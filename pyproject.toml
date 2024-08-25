@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aws-fortuna"
-version = "0.1.45"
+version = "0.2.0"
 description = "A Library for Uncertainty Quantification."
 authors = ["Gianluca Detommaso <gianluca.detommaso@gmail.com>", "Alberto Gasparin <albgas@amazon.de>"]
 license = "Apache-2.0"
@@ -9,15 +9,16 @@ documentation = "https://aws-fortuna.readthedocs.io/en/latest/"
 packages = [{include = "fortuna"}]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.12"
-flax = "^0.6.2"
+python = ">=3.9,<3.12"
+flax = "^0.8.5"
 optax = "^0.1.3"
 matplotlib = "^3.6.2"
 tqdm = "^4.64.1"
 numpy = "^1.23.4"
 tensorflow-cpu = { version = "^2.11.0", markers = "sys_platform != 'darwin'" }
-tensorflow-macos = { version = "^2.13.1", markers = "sys_platform == 'darwin'" }
-Sphinx = { version = "^5.3.0", optional = true }
+tensorflow-macos = { version = "2.13.1", markers = "sys_platform == 'darwin'" }
+array-record = { version = "0.4.1", markers = "sys_platform == 'darwin'" }
+Sphinx = { version = "^7.0.0", optional = true }
 sphinx-autodoc-typehints = { version = "^1.19.5", optional = true }
 nbsphinx = { version = "^0.8.10", optional = true }
 nbsphinx-link = { version = "^1.3.0", optional = true }
@@ -35,6 +36,7 @@ torch = {version = "^2.1.0", optional = true}
 scikit-learn = {version = "^1.3.2", optional = true}
 umap-learn = {version = "^0.5.5", optional = true}
 tabulate = "^0.9.0"
+jax = "~0.4.30"
 
 [tool.poetry.extras]
 docs = ["Sphinx", "sphinx-autodoc-typehints", "pydata-sphinx-theme", "nbsphinx", "nbsphinx-link",
@@ -63,7 +65,7 @@ tabulate = "^0.9.0"
 tensorflow-datasets = "^4.8.3"
 xlrd = "^2.0.1"
 openpyxl = "^3.1.2"
-myst-nb = "^0.17.1"
+myst-nb = "^1.1.0"
 jupytext = "^1.14.5"
 
 [build-system]
@@ -72,14 +74,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]  # https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html#configuration-via-a-file
 line-length = 88
-target-version = ["py38"]
+target-version = ["py39"]
 
 [tool.isort]
 profile = "black"
 combine_as_imports = true
 force_sort_within_sections = true
 force_grid_wrap = 2
-skip = 'docs'
+skip = "docs"
 
 [tool.codespell]
 ignore-words-list = "ACI"

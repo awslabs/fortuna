@@ -23,7 +23,6 @@ from jax import (
     pmap,
     vjp,
 )
-from jax._src.prng import PRNGKeyArray
 from jax.flatten_util import ravel_pytree
 import jax.numpy as jnp
 from jax.tree_util import tree_map
@@ -316,7 +315,7 @@ class LaplacePosterior(Posterior):
 
     def sample(
         self,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> JointState:
         if rng is None:
@@ -426,7 +425,7 @@ class LaplacePosterior(Posterior):
         batch,
         prior_log_var: float,
         n_posterior_samples: int = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, dict]]:
         import jax.random as random
@@ -472,7 +471,7 @@ class LaplacePosterior(Posterior):
             )
         elif mode == "marginal_lik":
             raise NotImplementedError(
-                f"Optimizing the prior log variance via marginal likelihood maximization is not yet available."
+                "Optimizing the prior log variance via marginal likelihood maximization is not yet available."
             )
         else:
             raise ValueError(f"Unrecognized mode={mode} for prior log variance tuning.")

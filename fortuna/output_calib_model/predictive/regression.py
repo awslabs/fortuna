@@ -4,7 +4,7 @@ from typing import (
     Union,
 )
 
-from jax._src.prng import PRNGKeyArray
+import jax
 import jax.numpy as jnp
 
 from fortuna.output_calib_model.predictive.base import Predictive
@@ -29,7 +29,7 @@ class RegressionPredictive(Predictive):
         q: Union[float, Array, List],
         outputs: Array,
         n_samples: Optional[int] = 30,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         calibrated: bool = True,
     ) -> jnp.ndarray:
         """
@@ -43,7 +43,7 @@ class RegressionPredictive(Predictive):
             Model outputs.
         n_samples: Optional[int]
             Number of target samples to draw when computing quantiles.
-        rng: Optional[PRNGKeyArray]
+        rng: Optional[jax.Array]
             A random number generator.
         calibrated : bool
             Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the
@@ -70,7 +70,7 @@ class RegressionPredictive(Predictive):
         n_samples: int = 30,
         error: float = 0.05,
         interval_type: str = "two-tailed",
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         calibrated: bool = True,
     ) -> jnp.ndarray:
         """
@@ -88,7 +88,7 @@ class RegressionPredictive(Predictive):
             `error=0.05` corresponds to a 95% level of credibility.
         interval_type: str
             The interval type. We support "two-tailed" (default), "right-tailed" and "left-tailed".
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
         calibrated : bool
             Whether the outputs should be calibrated when computing this method. If `calibrated` is set to True, the

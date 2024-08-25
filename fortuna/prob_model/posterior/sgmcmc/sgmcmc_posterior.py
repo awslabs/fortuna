@@ -5,11 +5,11 @@ from typing import (
     Type,
 )
 
+import jax
 from jax import (
     pure_callback,
     random,
 )
-from jax._src.prng import PRNGKeyArray
 
 from fortuna.prob_model.fit_config.base import FitConfig
 from fortuna.prob_model.joint.state import JointState
@@ -27,7 +27,7 @@ class SGMCMCPosterior(Posterior):
 
     def sample(
         self,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         **kwargs,
     ) -> JointState:
         """
@@ -35,7 +35,7 @@ class SGMCMCPosterior(Posterior):
 
         Parameters
         ----------
-        rng : Optional[PRNGKeyArray]
+        rng : Optional[jax.Array]
             A random number generator. If not passed, this will be taken from the attributes of this class.
 
         Returns

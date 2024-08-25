@@ -15,9 +15,9 @@ from datasets import (
     Dataset,
     DatasetDict,
 )
+import jax
 from jax import numpy as jnp
 import jax.random
-from jax.random import PRNGKeyArray
 from tqdm import tqdm
 from transformers import (
     BatchEncoding,
@@ -90,7 +90,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         self,
         dataset: Dataset,
         per_device_batch_size: int,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         shuffle: bool = False,
         drop_last: bool = False,
         verbose: bool = False,
@@ -105,7 +105,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
             A tokenizeed dataset (see :meth:`.HuggingFaceClassificationDatasetABC.get_tokenized_datasets`).
         per_device_batch_size: bool
             Batch size for each device.
-        rng: PRNGKeyArray
+        rng: jax.Array
             Random number generator.
         shuffle: bool
             if True, shuffle the data so that each batch is a ranom sample from the dataset.
@@ -141,7 +141,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
 
     @staticmethod
     def _get_batches_idxs(
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         dataset_size: int,
         batch_size: int,
         shuffle: bool = False,
@@ -167,7 +167,7 @@ class HuggingFaceClassificationDatasetABC(abc.ABC):
         batch_size: int,
         shuffle: bool = False,
         drop_last: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
         verbose: bool = False,
     ) -> Union[Iterable[Dict[str, Array]], Iterable[Tuple[Dict[str, Array], Array]]]:
         batch_idxs_gen = self._get_batches_idxs(
@@ -375,7 +375,7 @@ class HuggingFaceMaskedLMDataset(HuggingFaceClassificationDatasetABC):
         super(HuggingFaceMaskedLMDataset, self).__init__(*args, **kwargs)
         if not self.tokenizer.is_fast:
             logger.warning(
-                f"You are not using a Fast Tokenizer, so whole words cannot be masked, only tokens."
+                "You are not using a Fast Tokenizer, so whole words cannot be masked, only tokens."
             )
         self.mlm = mlm
         self.mlm_probability = mlm_probability
@@ -407,7 +407,7 @@ class HuggingFaceMaskedLMDataset(HuggingFaceClassificationDatasetABC):
         ), "Only one text column should be passed when the task is MaskedLM."
 
         def _tokenize_fn(
-            batch: Dict[str, List[Union[str, int]]]
+            batch: Dict[str, List[Union[str, int]]],
         ) -> Dict[str, List[int]]:
             tokenized_inputs = self.tokenizer(
                 *[batch[col] for col in text_columns],

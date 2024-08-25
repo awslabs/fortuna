@@ -124,7 +124,7 @@ class CalibClassifier(CalibModel):
                 )
             else:
                 model_manager = model_manager_cls(model, model_editor)
-        except ModuleNotFoundError as e:
+        except ModuleNotFoundError:
             logging.warning(
                 "No module named 'transformer' is installed. "
                 "If you are not working with models from the `transformers` library ignore this warning, otherwise "

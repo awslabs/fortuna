@@ -1,6 +1,5 @@
 from typing import Optional
 
-from jax import vmap
 import jax.numpy as jnp
 
 from fortuna.conformal.multivalid.mixins.multicalibrator import MulticalibratorMixin

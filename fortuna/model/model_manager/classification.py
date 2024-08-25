@@ -8,12 +8,14 @@ from typing import (
     Union,
 )
 
-from flax.core import FrozenDict
+from flax.core import (
+    FrozenDict,
+    unfreeze,
+)
 import flax.linen as nn
 from flax.training.checkpoints import PyTree
 import jax
 from jax import random
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
 from fortuna.model.model_manager.base import ModelManager
@@ -50,7 +52,7 @@ class ClassificationModelManager(ModelManager):
         inputs: Array,
         mutable: Optional[Mutable] = None,
         train: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
         variables = params["model"].unfreeze()
 
@@ -97,7 +99,7 @@ class ClassificationModelManager(ModelManager):
         return outputs
 
     def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, input_shape: Tuple[int, ...], rng: Optional[jax.Array] = None, **kwargs
     ) -> Dict[str, Mapping]:
         if rng is None:
             rng = self.rng.get()
@@ -215,7 +217,7 @@ class SNGPClassificationModelManagerMixin:
         """
         # Implementation adapted from https://github.com/google/edward2/blob/520e28285e905e0021e49b52b982ee5ea170071c/edward2/tensorflow/layers/utils.py#L379
         if self.mean_field_factor < 0:
-            raise ValueError(f"mean_field_factor cannot be < 0.")
+            raise ValueError("mean_field_factor cannot be < 0.")
 
         # Compute standard deviation.
         if covariance is None:
@@ -238,7 +240,7 @@ class SNGPClassificationModelManagerMixin:
         inputs: Array,
         mutable: Optional[Mutable] = None,
         train: bool = False,
-        rng: Optional[PRNGKeyArray] = None,
+        rng: Optional[jax.Array] = None,
     ) -> Union[jnp.ndarray, Tuple[jnp.ndarray, PyTree]]:
         if mutable and mutable is not None:
             deep_feature_extractor_mutable = {
@@ -294,7 +296,7 @@ class SNGPClassificationModelManagerMixin:
             outputs = outputs[0]
             if gp_mutable is not None:
                 mutable = deep_feature_extractor_mutable["mutable"]["model"].unfreeze()
-                mutable.update(gp_mutable.unfreeze())
+                mutable.update(unfreeze(gp_mutable))
                 mutable = {"mutable": FrozenDict({"model": mutable})}
             return outputs, mutable
         else:
@@ -325,7 +327,7 @@ class SNGPClassificationModelManager(
         super(SNGPClassificationModelManager, self).__init__(model, *args, **kwargs)
 
     def init(
-        self, input_shape: Tuple[int, ...], rng: Optional[PRNGKeyArray] = None, **kwargs
+        self, input_shape: Tuple[int, ...], rng: Optional[jax.Array] = None, **kwargs
     ) -> Dict[str, FrozenDict]:
         if rng is None:
             rng = self.rng.get()
@@ -345,9 +347,7 @@ class SNGPClassificationModelManager(
             )
         gp_params = self._gp_output_model.init(rngs, jnp.zeros(output_shape), **kwargs)
         params = dict(
-            model=FrozenDict(
-                nested_update(model_params.unfreeze(), gp_params.unfreeze())
-            )
+            model=FrozenDict(nested_update(unfreeze(model_params), unfreeze(gp_params)))
         )
 
         if self.model_editor is not None:

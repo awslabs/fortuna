@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import pathlib
 from typing import (
     List,
@@ -11,11 +10,11 @@ from typing import (
 )
 
 from flax.core import FrozenDict
+import jax
 from jax import (
     pure_callback,
     random,
 )
-from jax._src.prng import PRNGKeyArray
 
 from fortuna.data.loader import DataLoader
 from fortuna.prob_model.fit_config.base import FitConfig
@@ -192,7 +191,7 @@ class DeepEnsemblePosterior(Posterior):
         logging.info("Fit completed.")
         return status
 
-    def sample(self, rng: Optional[PRNGKeyArray] = None, **kwargs) -> JointState:
+    def sample(self, rng: Optional[jax.Array] = None, **kwargs) -> JointState:
         if rng is None:
             rng = self.rng.get()
         state = pure_callback(

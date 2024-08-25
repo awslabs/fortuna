@@ -6,8 +6,8 @@ from typing import (
     Tuple,
 )
 
+import jax
 from jax import random
-from jax._src.prng import PRNGKeyArray
 import jax.numpy as jnp
 
 from fortuna.utils.builtins import HashableMixin
@@ -85,7 +85,7 @@ class ADVIArchitecture(HashableMixin):
 
     def init_params(
         self,
-        rng: PRNGKeyArray,
+        rng: jax.Array,
         mean: Optional[jnp.ndarray] = None,
         log_std: Optional[jnp.ndarray] = None,
     ) -> Dict[str, jnp.ndarray]:
@@ -94,7 +94,7 @@ class ADVIArchitecture(HashableMixin):
 
         Parameters
         ----------
-        rng: PRNGKeyArray
+        rng: jax.Array
             Random number generator.
         mean: jnp.ndarray
             If the main model has already been initialized calling `model.init`, the already

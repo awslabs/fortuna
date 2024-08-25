@@ -1,7 +1,6 @@
 from typing import NamedTuple
 
 import jax
-from jax._src.prng import PRNGKeyArray
 import optax
 from optax import GradientTransformation
 
@@ -20,7 +19,7 @@ class OptaxCyclicalSGLDState(NamedTuple):
 
 
 def cyclical_sgld_integrator(
-    rng_key: PRNGKeyArray,
+    rng_key: jax.Array,
     init_step_size: float,
     cycle_length: int,
     exploration_ratio: float,
@@ -30,7 +29,7 @@ def cyclical_sgld_integrator(
 
     Parameters
     ----------
-        rng_key: PRNGKeyArray
+        rng_key: jax.Array
             An initial random number generator.
         init_step_size: float
             The initial step size.

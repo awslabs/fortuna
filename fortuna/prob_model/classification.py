@@ -201,7 +201,7 @@ class ProbClassifier(ProbModel):
                     model_editor=model_editor,
                     **posterior_approximator.posterior_method_kwargs,
                 )
-        except ModuleNotFoundError as e:
+        except ModuleNotFoundError:
             logging.warning(
                 "No module named 'transformer' is installed. "
                 "If you are not working with models from the `transformers` library ignore this warning, otherwise "
