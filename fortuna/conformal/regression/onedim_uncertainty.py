@@ -107,11 +107,11 @@ class OneDimensionalUncertaintyConformalRegressor(ConformalRegressor):
         ----------
         val_preds: Array
             A two-dimensional array of predictions over the validation data points.
-        test_preds: Array
-            A two-dimensional array of predictions over the test data points.
         val_uncertainties: Array
             A two-dimensional array of uncertainty estimates (e.g. the standard deviation). The first
             dimension is over the validation inputs. The second must have only one component.
+        test_preds: Array
+            A two-dimensional array of predictions over the test data points.
         test_uncertainties: Array
             A two-dimensional array of uncertainty estimates (e.g. the standard deviation). The first
             dimension is over the test inputs. The second must have only one component.
