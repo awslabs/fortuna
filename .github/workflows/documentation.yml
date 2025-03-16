@@ -39,6 +39,7 @@ jobs:
 
       - name: Build the documentation with Sphinx
         run: |
+          poetry env use python${{ matrix.python-version }}
           poetry install --all-extras
           sudo apt install pandoc
           pip install pandoc
