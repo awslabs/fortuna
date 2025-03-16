@@ -33,6 +33,7 @@ df = yf.download(
     interval="1d",
     ignore_tz=True,
     prepost=False,
+    auto_adjust=False,
 )
 tickers = df["Adj Close"].columns
 dates = df.index
