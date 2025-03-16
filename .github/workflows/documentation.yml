@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: ["ubuntu-latest"]
-        python-version: ["3.9"]
+        python-version: ["3.11"]
 
     steps:
       # Grap the latest commit from the branch
@@ -39,8 +39,6 @@ jobs:
 
       - name: Build the documentation with Sphinx
         run: |
-          pyenv install ${{ matrix.python-version }}
-          poetry env use python${{ matrix.python-version }}
           poetry install --all-extras
           sudo apt install pandoc
           pip install pandoc
