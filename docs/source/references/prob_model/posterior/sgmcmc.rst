@@ -4,12 +4,37 @@ SG-MCMC procedures approximate the posterior as a steady-state distribution of
 a Monte Carlo Markov chain, that utilizes noisy estimates of the gradient
 computed on minibatches of data.
 
+Hamiltonian Monte Carlo (HMC)
+=============================
+
+HMC `[Neal, 2010] <https://arxiv.org/pdf/1206.1901.pdf>`_ is a MCMC sampling
+algorithm that simulates a Hamiltonian dynamical system to rapidly explores
+the posterior.
+
+.. autoclass:: fortuna.prob_model.posterior.sgmcmc.hmc.hmc_approximator.HMCPosteriorApproximator
+
+.. autoclass:: fortuna.prob_model.posterior.sgmcmc.hmc.hmc_posterior.HMCPosterior
+    :show-inheritance:
+    :no-inherited-members:
+    :exclude-members: state
+    :members: fit, sample, load_state, save_state
+
+.. autoclass:: fortuna.prob_model.posterior.sgmcmc.hmc.hmc_state.HMCState
+    :show-inheritance:
+    :no-inherited-members:
+    :inherited-members: init, init_from_dict
+    :members: convert_from_map_state
+    :exclude-members: params, mutable, calib_params, calib_mutable, replace, apply_gradients, encoded_name, create
+    :no-undoc-members:
+    :no-special-members:
+
+
 Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)
 ===================================================
 
 SGHMC `[Chen T. et al., 2014] <http://proceedings.mlr.press/v32/cheni14.pdf>`_
 is a popular MCMC algorithm that uses stochastic gradient estimates to scale
-to large datasets.
+HMC to large datasets.
 
 .. autoclass:: fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_approximator.SGHMCPosteriorApproximator
 
