@@ -1,6 +1,9 @@
 Fortuna
 #######
 
+This project is archived and is no longer being actively developed or monitored.
+################################################################################
+
 .. image:: https://img.shields.io/pypi/status/Fortuna
     :target: https://img.shields.io/pypi/status/Fortuna
     :alt: PyPI - Status
