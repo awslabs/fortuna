@@ -29,12 +29,16 @@ Posterior approximation methods
     taken by averaging checkpoints over the stochastic optimization trajectory. The covariance is also estimated
     empirically along the trajectory, and it is made of a diagonal component and a low-rank non-diagonal one.
 
+- **Hamiltonian Monte Carlo (HMC)** `[Neal, 2010] <https://arxiv.org/pdf/1206.1901.pdf>`_
+    HMC approximates the posterior as a steady-state distribution of a Monte Carlo Markov chain with Hamiltonian dynamics.
+    After the initial "burn-in" phase, each step of the chain generates a sample from the posterior. HMC is typically applied
+    in the full-batch scenario.
+
 - **Stochastic Gradient Hamiltonian Monte Carlo (SGHMC)** `[Chen et al., 2014] <http://proceedings.mlr.press/v32/cheni14.pdf>`_
-    SGHMC approximates the posterior as a steady-state distribution of a Monte Carlo Markov chain with Hamiltonian dynamics.
-    After the initial "burn-in" phase, each step of the chain generates samples from the posterior.
+    SGHMC implements a variant of HMC algorithm that expects noisy gradient estimate computed on mini-batches of data.
 
 - **Cyclical Stochastic Gradient Langevin Dynamics (Cyclical SGLD)** `[Zhang et al., 2020] <https://openreview.net/pdf?id=rkeS1RVtPS>`_
-    Cyclical SGLD adapts the cyclical cosine step size schedule, and alternates between *exploration* and *sampling* stages to better
+    Cyclical SGLD adopts the cyclical cosine step size schedule, and alternates between *exploration* and *sampling* stages to better
     explore the multimodal posteriors for deep neural networks.
 
 - **Spectral-normalized Neural Gaussian Process (SNGP)** `[Liu et al., 2020] <https://arxiv.org/pdf/2006.10108.pdf>`_

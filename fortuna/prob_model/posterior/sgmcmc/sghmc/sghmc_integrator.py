@@ -56,7 +56,8 @@ def sghmc_integrator(
             preconditioner_state=preconditioner.init(params),
         )
 
-    def update_fn(gradient, state, *_):
+    def update_fn(gradient, state, params=None):
+        del params
         step_size = step_schedule(state.count)
 
         preconditioner_state = preconditioner.update_preconditioner(

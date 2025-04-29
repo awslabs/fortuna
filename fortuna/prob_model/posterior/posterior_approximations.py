@@ -16,6 +16,8 @@ from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld import CYCLICAL_SGLD_NAME
 from fortuna.prob_model.posterior.sgmcmc.cyclical_sgld.cyclical_sgld_posterior import (
     CyclicalSGLDPosterior,
 )
+from fortuna.prob_model.posterior.sgmcmc.hmc import HMC_NAME
+from fortuna.prob_model.posterior.sgmcmc.hmc.hmc_posterior import HMCPosterior
 from fortuna.prob_model.posterior.sgmcmc.sghmc import SGHMC_NAME
 from fortuna.prob_model.posterior.sgmcmc.sghmc.sghmc_posterior import SGHMCPosterior
 from fortuna.prob_model.posterior.sngp import SNGP_NAME
@@ -35,3 +37,4 @@ class PosteriorApproximations(enum.Enum):
     vars()[SNGP_NAME] = SNGPPosterior
     vars()[SGHMC_NAME] = SGHMCPosterior
     vars()[CYCLICAL_SGLD_NAME] = CyclicalSGLDPosterior
+    vars()[HMC_NAME] = HMCPosterior
